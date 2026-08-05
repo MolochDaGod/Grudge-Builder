@@ -92,13 +92,65 @@ export function stopBGM(): void {
 
 export function setBGMVolume(vol: number): void {
   bgmVolume = Math.max(0, Math.min(1, vol));
-  if (currentBgm && !bgmMuted) currentBgm.volume = bgmVolume;
+  if (currentBgm && !bgmMuted) currentBgm.volume = bgmVolume * bgmDuckMul;
 }
 
 export function toggleBGMMute(): boolean {
   bgmMuted = !bgmMuted;
-  if (currentBgm) currentBgm.volume = bgmMuted ? 0 : bgmVolume;
+  if (currentBgm) currentBgm.volume = bgmMuted ? 0 : bgmVolume * bgmDuckMul;
   return bgmMuted;
+}
+
+/** 0..1 multiplier on top of BGM volume (VO ducking, storm intensity). */
+let bgmDuckMul = 1;
+
+/**
+ * Soft-duck BGM under dialogue / VO. Restores when factor=1.
+ * @param factor 0 = silence BGM, 1 = full, typical duck 0.25–0.4
+ * @param rampMs optional linear ramp (default instant apply; tick can re-call)
+ */
+export function duckBGM(factor: number, _rampMs = 0): void {
+  bgmDuckMul = Math.max(0, Math.min(1, factor));
+  if (currentBgm && !bgmMuted) {
+    currentBgm.volume = bgmVolume * bgmDuckMul;
+  }
+}
+
+export function getBGMDuck(): number {
+  return bgmDuckMul;
+}
+
+/** Prefetch catalog / CDN audio so first play is not cold. */
+export function prefetchGameSfx(eventIds: string[]): void {
+  if (typeof window === 'undefined') return;
+  for (const id of eventIds) {
+    const ev = GAME_AUDIO_BY_ID[id];
+    if (!ev) continue;
+    const keys = [ev.key, ...(ev.variants ?? [])].slice(0, 3);
+    for (const key of keys) {
+      const url = key.startsWith('http') ? key : audioCdnUrl(key);
+      try {
+        const a = new Audio();
+        a.preload = 'auto';
+        a.src = url;
+      } catch {
+        /* ignore */
+      }
+    }
+  }
+}
+
+/** Prefetch BGM track URLs (browser cache). */
+export function prefetchBGM(tracks: BGMTrack[]): void {
+  for (const t of tracks) {
+    try {
+      const a = new Audio();
+      a.preload = 'auto';
+      a.src = BGM_TRACKS[t];
+    } catch {
+      /* ignore */
+    }
+  }
 }
 
 // ── SFX ──────────────────────────────────────────────────────────────────────

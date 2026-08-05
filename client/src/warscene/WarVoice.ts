@@ -6,7 +6,9 @@
  *  2. Web Speech API fallback
  *
  * Never put API keys in the client — server proxy only.
+ * Ducks game BGM while speaking (audioManager.duckBGM).
  */
+import { duckBGM } from '@/lib/audioManager';
 export type WarVoiceRole = 'herald' | 'crimson_lord' | 'azure_lord' | 'narrator';
 
 export interface SpeakOpts {
@@ -182,25 +184,31 @@ export class WarVoice {
       if (!blob.size || !blob.type.includes('audio')) return false;
 
       const url = URL.createObjectURL(blob);
-      await new Promise<void>((resolve, reject) => {
-        const audio = new Audio(url);
-        this.audio = audio;
-        audio.volume = Math.min(1, Math.max(0, volume));
-        audio.onended = () => {
-          URL.revokeObjectURL(url);
-          this.audio = null;
-          resolve();
-        };
-        audio.onerror = () => {
-          URL.revokeObjectURL(url);
-          this.audio = null;
-          reject(new Error('audio_play_failed'));
-        };
-        void audio.play().catch(reject);
-      });
-      return true;
+      duckBGM(0.28);
+      try {
+        await new Promise<void>((resolve, reject) => {
+          const audio = new Audio(url);
+          this.audio = audio;
+          audio.volume = Math.min(1, Math.max(0, volume));
+          audio.onended = () => {
+            URL.revokeObjectURL(url);
+            this.audio = null;
+            resolve();
+          };
+          audio.onerror = () => {
+            URL.revokeObjectURL(url);
+            this.audio = null;
+            reject(new Error('audio_play_failed'));
+          };
+          void audio.play().catch(reject);
+        });
+        return true;
+      } finally {
+        duckBGM(1);
+      }
     } catch {
       this.elevenAvailable = false;
+      duckBGM(1);
       return false;
     }
   }
@@ -218,14 +226,20 @@ export class WarVoice {
       u.volume = opts.volume ?? 1;
       const voice = this.pickVoice(role);
       if (voice) u.voice = voice;
-      u.onend = () => resolve();
-      u.onerror = () => resolve();
+      duckBGM(0.32);
+      const clear = () => {
+        duckBGM(1);
+        resolve();
+      };
+      u.onend = clear;
+      u.onerror = clear;
       window.speechSynthesis.speak(u);
     });
   }
 
   dispose(): void {
     this.cancel();
+    duckBGM(1);
     if (this.speechSupported) window.speechSynthesis.onvoiceschanged = null;
   }
 }

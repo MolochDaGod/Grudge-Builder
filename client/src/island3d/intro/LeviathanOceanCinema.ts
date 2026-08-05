@@ -80,6 +80,7 @@ import {
   surfaceBiasFromLeviAt,
 } from './LeviathanLookAndWater';
 import { CinemaBoxSystems } from './CinemaBoxSystems';
+import { CinemaSceneAudio } from './CinemaSceneAudio';
 
 export {
   LEVIATHAN_BATTLE_DURATION_SEC as LEVIATHAN_CINEMA_DURATION_SEC,
@@ -433,7 +434,11 @@ export class LeviathanOceanCinema {
     baseX: number;
     baseZ: number;
     deckY: number;
+    /** Cast one-shot progress (s) for LoopOnce → idle */
+    castT: number;
   }> = [];
+  /** Film audio: BGM bed + beat SFX (CDN catalog) */
+  private sceneAudio = new CinemaSceneAudio();
   /** Ship-linked camera: eye/look treated as ship-local offsets (author ship at origin). */
   private camShipLinked = false;
   private camEyeLocal = new THREE.Vector3();
@@ -1085,6 +1090,8 @@ export class LeviathanOceanCinema {
     );
 
     this.ready = true;
+    // Audio bed + prefetch (autoplay may wait for first click — gate also unmutes)
+    this.sceneAudio.start();
     // Beat 0 first, then onReady, then URL seek (SSOT for SPA + standalone HTML)
     this.applyBeat(0, true);
     this.cbs.onReady?.();
@@ -1475,6 +1482,9 @@ export class LeviathanOceanCinema {
     this.beatIdx = idx;
     this.cbs.onCaption?.(beat.caption, beat.sub);
     this.cbs.onBeat?.(idx, beat);
+
+    // Film audio stems (CDN catalog — not live ElevenLabs)
+    this.sceneAudio.onBeat(beat, prev !== idx || force);
 
     // Camera — ship-linked offsets + film blend
     this.bindBeatCamera(beat);
@@ -2455,6 +2465,7 @@ export class LeviathanOceanCinema {
 
       if (next !== cy.phase) {
         cy.phase = next;
+        cy.castT = 0;
         if (next === 'walk') {
           dir.play(['walk', 'walk2', 'run', 'idle'], {
             fade: 0.22,
@@ -2470,13 +2481,16 @@ export class LeviathanOceanCinema {
               : v === 1
                 ? ['cast2', '2h_magic_attack_2', '2h_cast', 'attack', 'cast']
                 : ['cast3', '2h_magic_attack_3', '2h_magic_attack_fallback', 'attack', 'cast'];
+          // One-shot cast → hold pose → idle phase of cycle blends back
           dir.play(castHints, {
             fade: 0.2,
-            loop: THREE.LoopRepeat,
+            loop: THREE.LoopOnce,
+            clamp: true,
             timeScale: cy.spec.timeScale,
             restart: true,
           });
           dir.seekTime(cy.spec.castOffset * 0.12);
+          this.sceneAudio.onMageCast(i);
         } else {
           dir.play(['idle', 'stand', 'fight_idle', 'defend'], {
             fade: 0.3,
@@ -2485,6 +2499,18 @@ export class LeviathanOceanCinema {
             restart: true,
           });
           dir.seekTime(i * 0.37);
+        }
+      } else if (cy.phase === 'cast') {
+        // Ensure we return to idle when one-shot finishes before period slice ends
+        cy.castT += dt;
+        const dur = dir.getClipDuration() || cy.spec.castDur;
+        if (cy.castT >= dur * 0.92 && dir.getActionProgress() >= 0.9) {
+          dir.play(['idle', 'stand', 'fight_idle'], {
+            fade: 0.28,
+            loop: THREE.LoopRepeat,
+            timeScale: cy.spec.idleScale,
+            restart: true,
+          });
         }
       }
 
@@ -2635,6 +2661,7 @@ export class LeviathanOceanCinema {
         baseX: sx,
         baseZ: sz,
         deckY: slotDeckY,
+        castT: 0,
       });
     }
 
@@ -3527,6 +3554,7 @@ export class LeviathanOceanCinema {
       fleeIdx++;
     }
     console.info(`[cinema] mages flee screen-right ×${this.fleeingMages.length} (hero stays for throw)`);
+    this.sceneAudio.onMageFlee();
   }
 
   private updateFleeingMages(dt: number): void {
@@ -4995,9 +5023,10 @@ export class LeviathanOceanCinema {
       if (a.root.visible) tickWaterCyclone(a.root, dt, this.elapsed);
     }
 
-    // 0) Per-mage phase machines (idle/walk/cast staggered) + face levi
+    // 0) Per-mage phase machines (idle/walk/cast staggered) + face levi + audio tick
     this.tickMageCycles(dt, beat);
     this.faceMagesTowardLevi(dt);
+    this.sceneAudio.tick(dt, beat);
 
     // 1) Mixers FIRST (Bip001 cast/idle — rotation-only, feet stay planted)
     this.leviDirector?.update(dt);
@@ -5191,6 +5220,7 @@ export class LeviathanOceanCinema {
     this.disposed = true;
     cancelAnimationFrame(this.raf);
     this.resizeObs?.disconnect();
+    this.sceneAudio.dispose();
     this.shipBlend = null;
     this.shipHulls = { intact: null, damaged: null, sinking: null };
     this.shipHullState = 'intact';
