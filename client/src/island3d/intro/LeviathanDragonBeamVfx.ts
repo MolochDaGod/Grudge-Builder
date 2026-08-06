@@ -435,7 +435,7 @@ export class LeviathanDragonBeamVfx {
     if (phase === 'blast' && shieldPoints.length && this.fireballVolleyCd <= 0) {
       this.fireballVolleyCd = 0.22;
       const aim = shieldPoints[Math.floor(Math.random() * shieldPoints.length)];
-      const jitter = mouth.clone().add(
+      const jitter = mouthOpen.clone().add(
         new THREE.Vector3(
           (Math.random() - 0.5) * 1.2,
           (Math.random() - 0.5) * 0.5,
