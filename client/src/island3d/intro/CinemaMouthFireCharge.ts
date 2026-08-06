@@ -157,7 +157,7 @@ export class CinemaMouthFireCharge {
     const pos = new Float32Array(this.n * 3);
     this.emberVel = new Float32Array(this.n * 3);
     this.emberLife = new Float32Array(this.n);
-    for (let i = 0; i < this.n; i++) this.respawn(i, true);
+    // Build geometry + Points FIRST — respawn() needs this.embers
     const geo = new THREE.BufferGeometry();
     geo.setAttribute('position', new THREE.BufferAttribute(pos, 3));
     const pmat = new THREE.PointsMaterial({
@@ -181,6 +181,8 @@ export class CinemaMouthFireCharge {
     this.embers.frustumCulled = false;
     this.embers.renderOrder = CINEMA_RENDER_ORDER.sparks;
     this.root.add(this.embers);
+    for (let i = 0; i < this.n; i++) this.respawn(i, true);
+    (geo.getAttribute('position') as THREE.BufferAttribute).needsUpdate = true;
 
     // Soft warm key — gold, low intensity so mesh does not wash red
     this.light = new THREE.PointLight(0xffcc88, 0, 18, 2);
@@ -189,7 +191,10 @@ export class CinemaMouthFireCharge {
   }
 
   private respawn(i: number, random: boolean): void {
-    const arr = this.embers.geometry.getAttribute('position').array as Float32Array;
+    if (!this.embers) return;
+    const attr = this.embers.geometry.getAttribute('position') as THREE.BufferAttribute | undefined;
+    if (!attr) return;
+    const arr = attr.array as Float32Array;
     const a = Math.random() * Math.PI * 2;
     const r = 0.15 + Math.random() * 0.55;
     arr[i * 3] = Math.cos(a) * r;
