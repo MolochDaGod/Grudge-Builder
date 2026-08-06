@@ -13,6 +13,7 @@
 import * as THREE from 'three';
 import { CIN_WARD_GLYPH_M } from '@shared/definitions/leviathanCinemaStage';
 import { CinemaSandboxFireAura } from './CinemaSandboxFireAura';
+import { CinemaMouthFireCharge } from './CinemaMouthFireCharge';
 import {
   applyCinemaBlend,
   CINEMA_RENDER_ORDER,
@@ -114,8 +115,9 @@ export class LeviathanDragonBeamVfx {
   private ribbonB: THREE.Mesh;
   private beamGroup = new THREE.Group();
 
-  // Charge / aura — sandbox fire_aura (rings + rising flame), not sphere shells
+  // Charge — mouth GLSL fire + soft sandbox rings (NOT mesh body red tint)
   private fireAura: CinemaSandboxFireAura;
+  private mouthCharge: CinemaMouthFireCharge;
   private mouthGlow: THREE.Mesh;
   private hotHandL: THREE.Mesh;
   private hotHandR: THREE.Mesh;
@@ -136,6 +138,7 @@ export class LeviathanDragonBeamVfx {
     this.root.name = 'leviathan_dragon_beam_vfx';
     scene.add(this.root);
     this.fireAura = new CinemaSandboxFireAura(this.root);
+    this.mouthCharge = new CinemaMouthFireCharge(this.root);
 
     // Beam cylinders (unit height 1, scale.y = length)
     this.core = new THREE.Mesh(
@@ -166,34 +169,34 @@ export class LeviathanDragonBeamVfx {
     this.beamGroup.renderOrder = CINEMA_RENDER_ORDER.beam;
     this.root.add(this.beamGroup);
 
-    // Mouth charge + hot hands
+    // Mouth charge + jaw corner glows — warm gold/amber, not pure red
     this.mouthGlow = new THREE.Mesh(
-      new THREE.SphereGeometry(0.55, 16, 12),
-      addMat(0xffee88, 0.0),
+      new THREE.SphereGeometry(0.45, 16, 12),
+      addMat(0xfff0b0, 0.0),
     );
     this.hotHandL = new THREE.Mesh(
-      new THREE.SphereGeometry(0.22, 10, 8),
-      addMat(0xffcc44, 0.0),
+      new THREE.SphereGeometry(0.18, 10, 8),
+      addMat(0xffd080, 0.0),
     );
     this.hotHandR = new THREE.Mesh(
-      new THREE.SphereGeometry(0.22, 10, 8),
-      addMat(0xff8822, 0.0),
+      new THREE.SphereGeometry(0.18, 10, 8),
+      addMat(0xffc060, 0.0),
     );
     this.root.add(this.mouthGlow, this.hotHandL, this.hotHandR);
 
-    // Gather orbs around maw (fireball stand-ins)
+    // Gather orbs around maw — amber/gold cores
     for (let i = 0; i < 6; i++) {
       const o = new THREE.Mesh(
-        new THREE.SphereGeometry(0.28, 12, 10),
-        addMat(0xff6622, 0.0),
+        new THREE.SphereGeometry(0.22, 12, 10),
+        addMat(0xffc060, 0.0),
       );
       o.visible = false;
       this.chargeOrbs.push(o);
       this.root.add(o);
     }
 
-    this.chargeLight = new THREE.PointLight(0xff6622, 0, 28, 2);
-    this.blastLight = new THREE.PointLight(0xffaa44, 0, 40, 1.6);
+    this.chargeLight = new THREE.PointLight(0xffd090, 0, 22, 2);
+    this.blastLight = new THREE.PointLight(0xffe0a0, 0, 36, 1.6);
     this.root.add(this.chargeLight, this.blastLight);
   }
 
@@ -330,75 +333,89 @@ export class LeviathanDragonBeamVfx {
     this.snapFlash = Math.max(0, this.snapFlash - dt / 0.12);
     const snap = this.snapFlash;
 
-    // Hot hands / mouth — smooth opacity (no hard pop between phases)
+    // Jaw corner glows — softer, gold (not red wash)
     const hotTarget =
       phase === 'off'
         ? 0
         : phase === 'snap'
-          ? 0.4 + snap * 0.55
+          ? 0.25 + snap * 0.35
           : phase === 'charge'
-            ? 0.55 + chargeU * 0.4 + Math.sin(elapsed * 12) * 0.08
+            ? 0.28 + chargeU * 0.28 + Math.sin(elapsed * 12) * 0.05
             : phase === 'blast'
-              ? 0.85 + Math.sin(elapsed * 20) * 0.1
-              : 0.25;
+              ? 0.4 + Math.sin(elapsed * 20) * 0.06
+              : 0.12;
     smoothMaterialOpacity(this.hotHandL.material, hotTarget, dt, 10);
     smoothMaterialOpacity(this.hotHandR.material, hotTarget * 0.9, dt, 10);
     const hotOp = (this.hotHandL.material as THREE.MeshBasicMaterial).opacity;
     this.hotHandL.visible = hotOp > 0.02;
     this.hotHandR.visible = hotOp > 0.02;
-    this.hotHandL.scale.setScalar(1 + hotOp * 0.6 + snap);
-    this.hotHandR.scale.setScalar(1 + hotOp * 0.55 + snap);
+    this.hotHandL.scale.setScalar(0.85 + hotOp * 0.45 + snap * 0.3);
+    this.hotHandR.scale.setScalar(0.85 + hotOp * 0.4 + snap * 0.3);
 
-    const mouthTarget =
+    // Soft core at OPEN mouth (forward of kuchi along aim) — gold, not red ball
+    const mouthCoreTarget =
       phase === 'charge'
-        ? 0.2 + chargeU * 0.7
+        ? 0.15 + chargeU * 0.4
         : phase === 'blast'
-          ? 0.85
+          ? 0.45
           : phase === 'snap'
-            ? 0.5 + snap * 0.4
+            ? 0.3 + snap * 0.25
             : 0;
-    smoothMaterialOpacity(this.mouthGlow.material, mouthTarget, dt, 9);
+    // Place mouth glow OUT of throat into open cavity
+    this.mouthGlow.position.copy(mouth).addScaledVector(_dir, 1.1);
+    smoothMaterialOpacity(this.mouthGlow.material, mouthCoreTarget, dt, 9);
     const mouthOp = (this.mouthGlow.material as THREE.MeshBasicMaterial).opacity;
     this.mouthGlow.visible = mouthOp > 0.02;
-    this.mouthGlow.scale.setScalar(0.8 + chargeU * 1.4 + (blastVis ? 0.5 : 0) + snap * 0.8);
+    this.mouthGlow.scale.setScalar(0.55 + chargeU * 0.9 + (blastVis ? 0.35 : 0) + snap * 0.4);
 
-    // Sandbox fire_aura (vfxgrudge fire_aura / Open Vfx.fireAura) — rings + rising flame
-    const auraOn = chargeVis && (phase === 'charge' || phase === 'blast' || phase === 'snap');
-    const auraI =
+    // GLSL mouth fire volume — OPEN maw (forward), never mesh body tint
+    const chargeI =
       phase === 'blast'
-        ? 0.85 + blastU * 0.15
+        ? 0.75 + blastU * 0.2
         : phase === 'charge'
-          ? 0.35 + chargeU * 0.65
+          ? 0.3 + chargeU * 0.7
           : phase === 'snap'
-            ? 0.55 + snap * 0.4
+            ? 0.45 + snap * 0.35
             : 0;
-    // Anchor slightly behind maw toward body; scale for levi SI (~3–5 m ring)
-    const auraPos = mouth.clone().addScaledVector(_dir, -2.0);
-    auraPos.y -= 0.35;
-    const auraScale = 3.4 + chargeU * 2.2 + (blastVis ? 1.0 : 0) + storm * 0.4;
-    this.fireAura.setActive(auraOn, auraI, auraPos, auraScale);
+    const mouthOpen = mouth.clone().addScaledVector(_dir, 1.55 + chargeU * 0.6);
+    this.mouthCharge.setWorld(
+      mouthOpen,
+      _dir,
+      chargeVis ? chargeI : 0,
+      0.35 + chargeU * 0.5, // slight extra push out of teeth
+      2.0 + chargeU * 1.4 + (blastVis ? 0.8 : 0),
+    );
+    this.mouthCharge.update(dt);
+
+    // Soft ground telegraph under maw only (small, gold) — not huge red halo on body
+    const auraOn = chargeVis && (phase === 'charge' || phase === 'blast');
+    const auraPos = mouthOpen.clone();
+    auraPos.y = Math.min(auraPos.y, mouth.y) - 0.15;
+    const auraScale = 1.1 + chargeU * 0.9; // maw-local, not 5 m body ring
+    this.fireAura.setActive(auraOn, chargeI * 0.55, auraPos, auraScale);
     this.fireAura.update(dt, auraPos);
     if (phase === 'snap' && !this.snapAuraFired) {
-      // One snap-in fire_aura burst like sandbox Alt+G / Q
       this.snapAuraFired = true;
-      this.fireAura.burst(auraPos, 1.05 + chargeU * 0.35);
+      // Burst at OPEN mouth
+      this.fireAura.burst(mouthOpen, 0.75 + chargeU * 0.25);
     }
 
-    // Charge orbs orbit maw; during blast stream fireballs at deck (shield intercepts)
+    // Charge orbs orbit OPEN mouth (forward of jaw), amber/gold
     for (let i = 0; i < this.chargeOrbs.length; i++) {
       const o = this.chargeOrbs[i];
       if (phase === 'charge' || (phase === 'snap' && snap > 0.2)) {
         o.visible = true;
         const ang = elapsed * (1.8 + i * 0.15) + (i / 6) * Math.PI * 2;
-        const r = 1.1 + chargeU * 0.9 + Math.sin(elapsed * 3 + i) * 0.15;
+        const r = 0.7 + chargeU * 0.55 + Math.sin(elapsed * 3 + i) * 0.1;
+        // Center at open maw, not throat
         o.position.set(
-          mouth.x + Math.cos(ang) * r,
-          mouth.y + Math.sin(ang * 1.3) * 0.45 * (0.5 + chargeU),
-          mouth.z + Math.sin(ang) * r,
+          mouthOpen.x + Math.cos(ang) * r,
+          mouthOpen.y + Math.sin(ang * 1.3) * 0.35 * (0.5 + chargeU),
+          mouthOpen.z + Math.sin(ang) * r,
         );
-        const op = 0.35 + chargeU * 0.55;
+        const op = 0.22 + chargeU * 0.4;
         (o.material as THREE.MeshBasicMaterial).opacity = op;
-        o.scale.setScalar(0.55 + chargeU * 0.9);
+        o.scale.setScalar(0.4 + chargeU * 0.55);
       } else if (phase === 'blast' && blastU < 0.35) {
         if (o.visible) {
           // Aim at a shield point if available so mages can block
@@ -428,12 +445,14 @@ export class LeviathanDragonBeamVfx {
       this.launchFireball(jitter, aim, 'shot');
     }
 
-    // Lights
-    this.chargeLight.position.copy(mouth);
+    // Lights at OPEN mouth — warm gold, lower intensity (no full-body red wash)
+    this.chargeLight.position.copy(mouthOpen);
+    this.chargeLight.color.setHex(0xffd090);
     this.chargeLight.intensity =
-      phase === 'charge' ? 4 + chargeU * 18 : phase === 'snap' ? 8 + snap * 12 : 0;
-    this.blastLight.position.copy(_mid.copy(mouth).lerp(target, 0.35));
-    this.blastLight.intensity = blastVis ? 12 + blastU * 28 : 0;
+      phase === 'charge' ? 1.5 + chargeU * 5 : phase === 'snap' ? 2.5 + snap * 4 : 0;
+    this.blastLight.position.copy(_mid.copy(mouthOpen).lerp(target, 0.35));
+    this.blastLight.color.setHex(0xffe0a8);
+    this.blastLight.intensity = blastVis ? 5 + blastU * 12 : 0;
 
     // ── Dragon beam (blast) ──────────────────────────────────────────
     this.beamGroup.visible = blastVis;
@@ -639,6 +658,7 @@ export class LeviathanDragonBeamVfx {
   private hideAll(): void {
     this.beamGroup.visible = false;
     this.fireAura.setActive(false, 0);
+    this.mouthCharge.setWorld(new THREE.Vector3(), new THREE.Vector3(0, 0, 1), 0);
     this.mouthGlow.visible = false;
     this.hotHandL.visible = false;
     this.hotHandR.visible = false;
@@ -650,6 +670,7 @@ export class LeviathanDragonBeamVfx {
   dispose(): void {
     this.hideAll();
     this.fireAura.dispose();
+    this.mouthCharge.dispose();
     for (const f of this.flying) {
       this.root.remove(f.mesh);
       f.mesh.traverse((o) => {
@@ -771,12 +792,13 @@ export function leviathanWaveTilt(
 }
 
 /**
- * Apply wet/emissive charge look on leviathan meshes during fire phases.
+ * Wetness only on leviathan body — NEVER paint the whole mesh red/orange.
+ * Fire charge is VFX-only (CinemaMouthFireCharge / fire_aura at open maw).
  */
 export function applyLeviathanChargeLook(
   root: THREE.Object3D | null,
-  chargeU: number,
-  blastU: number,
+  _chargeU: number,
+  _blastU: number,
   underwater: number,
 ): void {
   if (!root) return;
@@ -787,28 +809,29 @@ export function applyLeviathanChargeLook(
     for (const mat of mats) {
       const std = mat as THREE.MeshStandardMaterial;
       if (!std.isMeshStandardMaterial && !(std as THREE.MeshPhysicalMaterial).isMeshPhysicalMaterial) {
-        // MeshBasic / other — skip
         continue;
       }
       if (std.userData.__leviBaseEmissive == null) {
         std.userData.__leviBaseEmissive = std.emissive?.clone?.() ?? new THREE.Color(0);
         std.userData.__leviBaseEmissiveIntensity = std.emissiveIntensity ?? 0;
         std.userData.__leviBaseRoughness = std.roughness ?? 0.7;
+        std.userData.__leviBaseMetalness = std.metalness ?? 0;
       }
-      const fire = Math.max(chargeU * 0.55, blastU * 0.9);
-      if (!std.emissive) std.emissive = new THREE.Color(0);
-      std.emissive.setRGB(0.45 + fire * 0.5, 0.12 + fire * 0.08, 0.02);
-      std.emissiveIntensity = (std.userData.__leviBaseEmissiveIntensity as number) + fire * 1.8;
-      // Wet when underwater
+      // Restore mesh color — do not apply fire emissive to body
+      if (std.emissive && std.userData.__leviBaseEmissive) {
+        std.emissive.copy(std.userData.__leviBaseEmissive as THREE.Color);
+      }
+      std.emissiveIntensity = (std.userData.__leviBaseEmissiveIntensity as number) ?? 0;
+      // Wet when underwater only
       if (std.roughness != null) {
         std.roughness = THREE.MathUtils.lerp(
           std.userData.__leviBaseRoughness as number,
-          0.25,
+          0.28,
           Math.min(1, underwater * 1.2),
         );
       }
       if (std.metalness != null) {
-        std.metalness = Math.min(0.45, fire * 0.25);
+        std.metalness = (std.userData.__leviBaseMetalness as number) ?? 0;
       }
     }
   });

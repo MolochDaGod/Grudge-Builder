@@ -4822,12 +4822,13 @@ export class LeviathanOceanCinema {
     if (bone) {
       bone.updateWorldMatrix(true, false);
       bone.getWorldPosition(out);
-      // Nudge from maw toward boat so beam leaves the open jaw (kuchi)
+      // Open-mouth cavity: push OUT of throat toward boat (not into head)
       const boat = this.shipGroup.position;
       const dir = boat.clone().sub(out);
       if (dir.lengthSq() > 1e-6) {
         dir.normalize();
-        out.addScaledVector(dir, 0.85);
+        // Stronger outward so charge VFX sits in open jaws, not kuchi throat joint
+        out.addScaledVector(dir, 2.2);
       }
       return out;
     }

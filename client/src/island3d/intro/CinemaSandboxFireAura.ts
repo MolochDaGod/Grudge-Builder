@@ -277,8 +277,9 @@ export class CinemaSandboxFireAura {
   private buildContinuous(): void {
     // Persistent dual rings (sandbox auraRing look, looping)
     const map = cinemaRingTexture();
+    // Gold/amber rings — not pure red (matches mouth fire charge palette)
     this.ringMatA = new THREE.MeshBasicMaterial({
-      color: 0xff5510,
+      color: 0xffb050,
       map,
       transparent: true,
       side: THREE.DoubleSide,
@@ -295,7 +296,7 @@ export class CinemaSandboxFireAura {
       fog: false,
     });
     this.ringMatB = this.ringMatA.clone();
-    this.ringMatB.color.setHex(0xff6a1e);
+    this.ringMatB.color.setHex(0xffd080);
     this.ringA = new THREE.Mesh(unitGroundPlane(), this.ringMatA);
     this.ringB = new THREE.Mesh(unitGroundPlane(), this.ringMatB);
     this.ringA.position.y = 0.06;
@@ -314,18 +315,18 @@ export class CinemaSandboxFireAura {
     const geo = new THREE.BufferGeometry();
     geo.setAttribute('position', new THREE.BufferAttribute(pos, 3));
     const mat = new THREE.PointsMaterial({
-      color: 0xff6a1e,
-      size: 0.38,
+      color: 0xffc070,
+      size: 0.32,
       map: cinemaSparkTexture(),
       transparent: true,
-      opacity: 0.9,
+      opacity: 0.75,
       sizeAttenuation: true,
       fog: false,
       toneMapped: false,
     });
     applyCinemaBlend(mat, {
       recipe: 'softAdditive',
-      opacity: 0.9,
+      opacity: 0.75,
       depthWrite: false,
       toneMapped: false,
       fog: false,
@@ -416,9 +417,9 @@ export class CinemaSandboxFireAura {
     if (this.continuousFlame && this.contVel && this.contLife) {
       const arr = this.continuousFlame.geometry.getAttribute('position').array as Float32Array;
       const mat = this.continuousFlame.material as THREE.PointsMaterial;
-      mat.opacity = 0.45 + I * 0.5;
-      mat.size = 0.28 + I * 0.22;
-      mat.color.setHex(I > 0.7 ? 0xffd27a : 0xff6a1e);
+      mat.opacity = 0.35 + I * 0.4;
+      mat.size = 0.22 + I * 0.16;
+      mat.color.setHex(I > 0.7 ? 0xffe8a0 : 0xffc070);
       for (let i = 0; i < this.contN; i++) {
         this.contLife[i] -= dt;
         if (this.contLife[i] <= 0) {
