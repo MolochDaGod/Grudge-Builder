@@ -97,6 +97,17 @@ import {
 } from './CinemaCastingTornado';
 import { CinemaFpsBudget, type FpsBudgetState } from './CinemaFpsBudget';
 import { applyCinemaBlend, configureCinemaRendererBlending } from './CinemaMaterialBlend';
+import {
+  applyCharredDebrisMaterial,
+  beginLimpRagdoll,
+  createDebrisEmbers,
+  createShatterBurst,
+  integrateDebrisPiece,
+  integrateLimpRagdoll,
+  tickShatterBurst,
+  type CinemaDebrisPiece,
+  type CinemaRagdollState,
+} from './CinemaShipDestroy';
 
 export {
   LEVIATHAN_BATTLE_DURATION_SEC as LEVIATHAN_CINEMA_DURATION_SEC,
@@ -502,24 +513,14 @@ export class LeviathanOceanCinema {
   private camMasterDist = 32;
   private camMasterSideDist = 20;
   /**
-   * Ship break debris:
-   *  - blast → ballistic chunk
-   *  - sink  → drops through free surface (most timber)
-   *  - float → ~20 flame-aura wreck pieces bobbing near thrown hero (ending plate)
+   * Ship break debris (CinemaShipDestroy):
+   *  - blast → ballistic chunk + water hit
+   *  - sink  → buoyancy/drag drop through free surface
+   *  - float → charred timber + gold embers bobbing near hero
    */
-  private pinataPieces: Array<{
-    mesh: THREE.Object3D;
-    vel: THREE.Vector3;
-    ang: THREE.Vector3;
-    life: number;
-    /** Optional fire-aura shell parented under mesh */
-    aura?: THREE.Mesh;
-    kind: 'ship' | 'shield' | 'float_debris';
-    phase: 'blast' | 'sink' | 'float';
-    /** Bob phase for float debris */
-    bob: number;
-    rWorld: number;
-  }> = [];
+  private pinataPieces: CinemaDebrisPiece[] = [];
+  /** Face-up limp ragdoll (not bone-spin animation) */
+  private limpRagdoll: CinemaRagdollState | null = null;
   /**
    * Non-hero deck mages fleeing off camera-right (not hidden, not thrown).
    * One orc stays as throwHero; these three run / fly out of frame.
@@ -3099,12 +3100,20 @@ export class LeviathanOceanCinema {
             ? new THREE.BoxGeometry(0.5, 0.08, 0.7)
             : new THREE.SphereGeometry(0.28 + Math.random() * 0.2, 6, 5);
       const mat = new THREE.MeshBasicMaterial({
-        color: i % 2 === 0 ? 0x66eeff : 0xaaffff,
+        color: i % 2 === 0 ? 0x88e8ff : 0xd0f6ff,
         transparent: true,
-        opacity: 0.85,
-        depthWrite: false,
-        blending: THREE.AdditiveBlending,
+        opacity: 0.75,
         side: THREE.DoubleSide,
+        fog: false,
+        toneMapped: false,
+      });
+      applyCinemaBlend(mat, {
+        recipe: 'softAdditive',
+        opacity: 0.75,
+        depthWrite: false,
+        side: THREE.DoubleSide,
+        toneMapped: false,
+        fog: false,
       });
       const mesh = new THREE.Mesh(geo, mat);
       mesh.position.copy(pos);
@@ -3122,15 +3131,17 @@ export class LeviathanOceanCinema {
         mesh,
         vel,
         ang: new THREE.Vector3(
-          (Math.random() - 0.5) * 14,
-          (Math.random() - 0.5) * 14,
-          (Math.random() - 0.5) * 14,
+          (Math.random() - 0.5) * 10,
+          (Math.random() - 0.5) * 10,
+          (Math.random() - 0.5) * 10,
         ),
         life: 1.4 + Math.random() * 1.1,
         kind: 'shield',
         phase: 'blast',
         bob: Math.random() * Math.PI * 2,
-        rWorld: 0.2,
+        rWorld: 0.25,
+        halfH: 0.12,
+        mass: 0.4,
       });
     }
     // Flash burst at shield center
@@ -3139,40 +3150,16 @@ export class LeviathanOceanCinema {
     console.info('[cinema] ship shield SHATTERED â€” shards:', shardN);
   }
 
-  /** Fire-aura shell for burning timber debris (procedural, not glyph GLB). */
-  private attachFireAura(parent: THREE.Object3D, radius = 0.55): THREE.Mesh {
-    const aura = new THREE.Mesh(
-      new THREE.SphereGeometry(radius, 10, 8),
-      new THREE.MeshBasicMaterial({
-        color: 0xff5511,
-        transparent: true,
-        opacity: 0.35,
-        depthWrite: false,
-        blending: THREE.AdditiveBlending,
-        side: THREE.BackSide,
-      }),
-    );
-    aura.name = 'debris_fire_aura';
-    parent.add(aura);
-    return aura;
+  /** Gold embers for float wreck — not red sphere shells. */
+  private attachFireAura(parent: THREE.Object3D, radius = 0.55): THREE.Points {
+    const embers = createDebrisEmbers(radius, 16);
+    parent.add(embers);
+    return embers;
   }
 
+  /** Charred wet timber — no neon red burn wash. */
   private applyBurnMaterial(mat: THREE.Material): THREE.Material {
-    const std = mat as THREE.MeshStandardMaterial;
-    if (std.isMeshStandardMaterial || (std as THREE.MeshPhysicalMaterial).isMeshPhysicalMaterial) {
-      const c = std.clone();
-      c.emissive = new THREE.Color(0xff4400);
-      c.emissiveIntensity = 0.85 + Math.random() * 0.6;
-      if (c.color) c.color.lerp(new THREE.Color(0x221100), 0.35);
-      c.needsUpdate = true;
-      return c;
-    }
-    if ((mat as THREE.MeshBasicMaterial).isMeshBasicMaterial) {
-      const b = (mat as THREE.MeshBasicMaterial).clone();
-      b.color = new THREE.Color(0xff6622);
-      return b;
-    }
-    return mat;
+    return applyCharredDebrisMaterial(mat);
   }
 
   /** Instant world shove on shipGroup along beam (pre-pinata physical hit). */
@@ -3642,12 +3629,7 @@ export class LeviathanOceanCinema {
     this.throwT = 0;
     this.throwDur = 2.4;
     this.ragdollBones = [];
-    hero.traverse((o) => {
-      if ((o as THREE.Bone).isBone || /bip001|spine|arm|leg|hand|foot|head/i.test(o.name)) {
-        this.ragdollBones.push(o);
-      }
-    });
-    console.info('[cinema] HERO THROW → face-up water ragdoll');
+    console.info('[cinema] HERO THROW → limp face-up water ragdoll (no bone spin)');
   }
 
   private updateHeroThrow(dt: number): void {
@@ -3661,10 +3643,14 @@ export class LeviathanOceanCinema {
     const peak = 7 + CIN_HERO_THROW_M * 0.12;
     const y = baseY + Math.sin(u * Math.PI) * peak;
     this.throwHero.position.set(x, y, z);
-    // Arc tumble into face-up (supine): end rot.x ≈ -π/2
-    this.throwHero.rotation.x = THREE.MathUtils.lerp(0.2, -Math.PI / 2, e);
-    this.throwHero.rotation.z = Math.sin(u * Math.PI * 2) * 0.35 * (1 - e);
-    this.throwHero.rotation.y += dt * 0.8;
+    // Smooth arc into face-up — damped tumble, not continuous spin
+    this.throwHero.rotation.x = THREE.MathUtils.lerp(0.15, -Math.PI / 2, e);
+    this.throwHero.rotation.z = THREE.MathUtils.lerp(0, Math.sin(u * Math.PI) * 0.2, e);
+    this.throwHero.rotation.y = THREE.MathUtils.lerp(
+      this.throwHero.rotation.y,
+      Math.atan2(this.throwTo.x - this.throwFrom.x, this.throwTo.z - this.throwFrom.z),
+      dt * 1.2,
+    );
     this.throwHero.visible = true;
 
     if (u >= 1) {
@@ -3673,14 +3659,14 @@ export class LeviathanOceanCinema {
     }
   }
 
-  /** Face-up on water — wave height + soft limb sway (no weapons). */
+  /** Face-up limp float on Gerstner water — limbs ease to rest, no sin-spin. */
   private beginWaterRagdoll(): void {
     if (!this.throwHero) return;
     this.ragdollActive = true;
     this.ragdollT = 0;
-    this.ragdollVel.set((Math.random() - 0.5) * 0.4, 0, (Math.random() - 0.5) * 0.35);
-    // Face up: back in water
-    this.throwHero.rotation.set(-Math.PI / 2, this.throwHero.rotation.y, 0);
+    this.limpRagdoll = beginLimpRagdoll(this.throwHero);
+    this.ragdollBones = this.limpRagdoll.bones;
+    this.ragdollVel.copy(this.limpRagdoll.vel);
     const wy = sampleCinemaWaterY(
       this.throwHero.position.x,
       this.throwHero.position.z,
@@ -3688,37 +3674,22 @@ export class LeviathanOceanCinema {
       this.stormCur ?? 0.5,
     );
     this.throwHero.position.y = wy + 0.15;
-    console.info('[cinema] water ragdoll face-up active');
+    console.info('[cinema] limp water ragdoll face-up · bones=', this.limpRagdoll.bones.length);
   }
 
   private updateRagdollInWater(dt: number): void {
     if (!this.ragdollActive || !this.throwHero) return;
     this.ragdollT += dt;
-    const p = this.throwHero.position;
-    // Water height field + storm bob
-    const wy = sampleCinemaWaterY(p.x, p.z, this.elapsed, this.stormCur ?? 0.5);
-    const wave = Math.sin(this.elapsed * 1.7 + p.x * 0.2) * 0.12 + Math.sin(this.elapsed * 1.1 + p.z * 0.15) * 0.08;
-    p.y = THREE.MathUtils.lerp(p.y, wy + 0.12 + wave, Math.min(1, dt * 4));
-    // Drift + water push from ship bob / swell
-    p.x += this.ragdollVel.x * dt + Math.sin(this.elapsed * 0.9) * dt * 0.15;
-    p.z += this.ragdollVel.z * dt + Math.cos(this.elapsed * 0.7) * dt * 0.12;
-    this.ragdollVel.multiplyScalar(0.99);
-    // Stay face-up; gentle roll with swell
-    this.throwHero.rotation.x = THREE.MathUtils.lerp(
-      this.throwHero.rotation.x,
-      -Math.PI / 2 + wave * 0.4,
-      dt * 2,
-    );
-    this.throwHero.rotation.z = Math.sin(this.elapsed * 1.3) * 0.18;
-    // Soft limb limp (bones only — no mixer)
-    for (let i = 0; i < this.ragdollBones.length; i++) {
-      const b = this.ragdollBones[i];
-      if (!b || /root|hips|bip001$/i.test(b.name)) continue;
-      const f = this.elapsed * 2.1 + i * 0.7;
-      b.rotation.x += Math.sin(f) * dt * 0.35;
-      b.rotation.z += Math.cos(f * 0.8) * dt * 0.25;
+    if (!this.limpRagdoll) {
+      this.limpRagdoll = beginLimpRagdoll(this.throwHero);
     }
-    this.throwHero.visible = true;
+    integrateLimpRagdoll(
+      this.limpRagdoll,
+      dt,
+      (x, z) => sampleCinemaWaterY(x, z, this.elapsed, this.stormCur ?? 0.5),
+      this.elapsed,
+    );
+    this.ragdollVel.copy(this.limpRagdoll.vel);
   }
 
   /**
@@ -3915,10 +3886,10 @@ export class LeviathanOceanCinema {
             Math.max(Math.abs(src.scale.x), Math.abs(src.scale.y), Math.abs(src.scale.z), 0.01),
         );
         const keepFloat = floatSet.has(src);
-        // Flame aura on all float keepers + larger sinkers
-        let aura: THREE.Mesh | undefined;
-        if (keepFloat || rWorld > 0.16) {
-          aura = this.attachFireAura(src, 0.2 + Math.min(1.6, rWorld * 0.12));
+        // Gold/amber embers on float keepers + larger timber (not red shells)
+        let embers: THREE.Points | undefined;
+        if (keepFloat || rWorld > 0.2) {
+          embers = this.attachFireAura(src, 0.18 + Math.min(1.2, rWorld * 0.1));
         }
 
         const fromCenter = src.position.clone().sub(origin);
@@ -3929,32 +3900,35 @@ export class LeviathanOceanCinema {
         }
         fromCenter.normalize();
 
-        // Float keepers: milder blast so they land near the wreck / hero, not off-camera
-        const radial = keepFloat ? 4 + Math.random() * 7 : 10 + Math.random() * 15;
-        const beamSpeed = keepFloat ? 3 + Math.random() * 5 : 9 + Math.random() * 14;
-        const lift = keepFloat ? 3 + Math.random() * 4 : 5 + Math.random() * 9;
+        // Mass-ish scale: big pieces slower, small splinters faster
+        const mass = Math.max(0.15, Math.min(8, rWorld * rWorld * 0.8));
+        const inv = 1 / mass;
+        const radial = (keepFloat ? 3.5 + Math.random() * 6 : 9 + Math.random() * 14) * inv;
+        const beamSpeed = (keepFloat ? 2.5 + Math.random() * 4.5 : 8 + Math.random() * 12) * inv;
+        const lift = (keepFloat ? 2.5 + Math.random() * 3.5 : 4.5 + Math.random() * 8) * Math.sqrt(inv);
         const vel = fromCenter
           .multiplyScalar(radial)
           .addScaledVector(push, beamSpeed)
           .add(new THREE.Vector3(0, lift, 0));
-        if (rWorld > 2.2) vel.multiplyScalar(0.7);
-        else if (rWorld < 0.12) vel.multiplyScalar(1.3);
 
+        // Angular impulse scales with size (big planks tumble slower)
+        const angScale = keepFloat ? 2.2 : 6 / Math.max(0.4, Math.sqrt(rWorld));
         this.pinataPieces.push({
           mesh: src,
           vel,
           ang: new THREE.Vector3(
-            (Math.random() - 0.5) * (keepFloat ? 4 : 12),
-            (Math.random() - 0.5) * (keepFloat ? 5 : 14),
-            (Math.random() - 0.5) * (keepFloat ? 4 : 12),
+            (Math.random() - 0.5) * angScale,
+            (Math.random() - 0.5) * angScale * 0.9,
+            (Math.random() - 0.5) * angScale,
           ),
-          // Float debris lives for the whole ending plate; sinkers linger then go under
-          life: keepFloat ? 999 : 7 + Math.random() * 5,
-          aura,
+          life: keepFloat ? 999 : 8 + Math.random() * 5,
+          embers,
           kind: keepFloat ? 'float_debris' : 'ship',
           phase: 'blast',
           bob: Math.random() * Math.PI * 2,
           rWorld,
+          halfH: Math.max(0.08, rWorld * 0.35),
+          mass,
         });
       }
 
@@ -3971,182 +3945,50 @@ export class LeviathanOceanCinema {
   }
 
   private spawnExplosionBurst(at: THREE.Vector3): void {
-    // Clear any prior stuck burst
     if (this.explosionBurst) {
       this.scene.remove(this.explosionBurst);
       this.explosionBurst.geometry.dispose();
       (this.explosionBurst.material as THREE.Material).dispose();
       this.explosionBurst = null;
     }
-    const n = 280;
-    const pos = new Float32Array(n * 3);
-    const vel = new Float32Array(n * 3);
-    for (let i = 0; i < n; i++) {
-      pos[i * 3] = at.x;
-      pos[i * 3 + 1] = at.y;
-      pos[i * 3 + 2] = at.z;
-      const d = new THREE.Vector3(
-        Math.random() - 0.5,
-        Math.random() * 0.9 + 0.25,
-        Math.random() - 0.5,
-      ).normalize().multiplyScalar(10 + Math.random() * 22);
-      vel[i * 3] = d.x;
-      vel[i * 3 + 1] = d.y;
-      vel[i * 3 + 2] = d.z;
-    }
-    const geo = new THREE.BufferGeometry();
-    geo.setAttribute('position', new THREE.BufferAttribute(pos, 3));
-    geo.setAttribute('velocity', new THREE.BufferAttribute(vel, 3));
-    this.explosionBurst = new THREE.Points(
-      geo,
-      new THREE.PointsMaterial({
-        color: 0xff6622,
-        size: 0.42,
-        transparent: true,
-        opacity: 0.95,
-        depthWrite: false,
-        blending: THREE.AdditiveBlending,
-      }),
-    );
+    // Gold/white soft shatter — not pure red fireballs
+    this.explosionBurst = createShatterBurst(at, 240);
     this.scene.add(this.explosionBurst);
   }
 
   private updatePinata(dt: number): void {
-    const g = 11;
-    // Free surface Y (cinema ocean at 0)
-    const waterY = 0.08;
-    // Hero anchor for floating wreckage ring
     const heroPos = this.throwHero
       ? this.throwHero.getWorldPosition(new THREE.Vector3())
       : this.shipGroup.getWorldPosition(new THREE.Vector3());
+    const waterAt = (x: number, z: number) =>
+      sampleCinemaWaterY(x, z, this.elapsed, this.stormCur ?? 0.5);
+
+    // Shatter particle burst
+    if (this.explosionBurst && !tickShatterBurst(this.explosionBurst, dt)) {
+      this.scene.remove(this.explosionBurst);
+      this.explosionBurst.geometry.dispose();
+      (this.explosionBurst.material as THREE.Material).dispose();
+      this.explosionBurst = null;
+    }
 
     for (let i = this.pinataPieces.length - 1; i >= 0; i--) {
       const p = this.pinataPieces[i]!;
-      if (p.kind !== 'float_debris') p.life -= dt;
+      integrateDebrisPiece(p, dt, waterAt, heroPos, this.elapsed, i);
 
-      // ── FLOAT DEBRIS: flaming planks bobbing on water around the thrown orc ──
-      if (p.phase === 'float' || (p.kind === 'float_debris' && p.phase !== 'blast')) {
-        p.phase = 'float';
-        p.bob += dt * (1.1 + (i % 5) * 0.08);
-        // Soft drift toward a ring around the hero (beautiful ending plate)
-        const ang = p.bob * 0.35 + i * 0.31;
-        const ringR = 3.5 + (i % 7) * 0.85 + Math.sin(p.bob * 0.5) * 0.4;
-        const tx = heroPos.x + Math.cos(ang) * ringR;
-        const tz = heroPos.z + Math.sin(ang) * ringR;
-        p.mesh.position.x = THREE.MathUtils.lerp(p.mesh.position.x, tx, 1 - Math.exp(-dt * 0.55));
-        p.mesh.position.z = THREE.MathUtils.lerp(p.mesh.position.z, tz, 1 - Math.exp(-dt * 0.55));
-        p.mesh.position.y =
-          waterY + 0.12 + Math.sin(p.bob) * 0.18 + Math.sin(p.bob * 1.7 + i) * 0.06;
-        // Gentle rock
-        p.mesh.rotation.x = Math.sin(p.bob * 0.9) * 0.25;
-        p.mesh.rotation.z = Math.cos(p.bob * 0.7) * 0.2;
-        p.mesh.rotation.y += dt * p.ang.y * 0.08;
-        p.vel.set(0, 0, 0);
-        p.mesh.visible = true;
-
-        if (p.aura?.material) {
-          const am = p.aura.material as THREE.MeshBasicMaterial;
-          am.opacity =
-            0.45 * (0.75 + 0.25 * Math.sin(this.elapsed * 14 + i));
-          p.aura.scale.setScalar(1 + Math.sin(this.elapsed * 11 + i) * 0.15);
-        }
-        continue;
-      }
-
-      // ── BLAST / SINK ──
-      const grav = p.kind === 'shield' ? 6 : p.phase === 'sink' ? 4.5 : g;
-      p.vel.y -= grav * dt;
-      p.vel.multiplyScalar(p.kind === 'shield' ? 0.985 : p.phase === 'sink' ? 0.97 : 0.992);
-      p.mesh.position.addScaledVector(p.vel, dt);
-      p.mesh.rotation.x += p.ang.x * dt;
-      p.mesh.rotation.y += p.ang.y * dt;
-      p.mesh.rotation.z += p.ang.z * dt;
-
-      // Hit free surface
-      if (p.phase === 'blast' && p.mesh.position.y <= waterY + 0.35 && p.vel.y < 0) {
-        if (p.kind === 'float_debris') {
-          // Splash settle → permanent float with flame
-          p.phase = 'float';
-          p.vel.set(
-            (Math.random() - 0.5) * 0.6,
-            0,
-            (Math.random() - 0.5) * 0.6,
-          );
-          p.ang.multiplyScalar(0.15);
-          p.mesh.position.y = waterY + 0.15;
-          if (!p.aura) {
-            p.aura = this.attachFireAura(p.mesh, 0.28 + Math.min(1.2, p.rWorld * 0.1));
-          }
-        } else if (p.kind === 'ship') {
-          // Timber sinks through the surface
-          p.phase = 'sink';
-          p.vel.x *= 0.35;
-          p.vel.z *= 0.35;
-          p.vel.y = Math.min(p.vel.y, -0.8);
-          p.ang.multiplyScalar(0.4);
-        } else {
-          // Shield shards bounce then die
-          p.vel.y *= -0.25;
-          p.mesh.position.y = waterY + 0.1;
-        }
-      }
-
-      // Sink deeper after surface
-      if (p.phase === 'sink') {
-        p.vel.y = Math.min(p.vel.y, -0.6);
-        // Slow spin underwater
-        p.ang.multiplyScalar(0.99);
-      }
-
-      // Fire aura while airborne / sinking (float handled above)
-      if (p.aura?.material && p.phase !== 'float') {
-        const am = p.aura.material as THREE.MeshBasicMaterial;
-        const u = p.kind === 'float_debris' ? 1 : Math.max(0, Math.min(1, p.life / 6));
-        am.opacity =
-          (p.kind === 'shield' ? 0.55 : 0.42) *
-          u *
-          (0.75 + 0.25 * Math.sin(this.elapsed * 18 + i));
-        p.aura.scale.setScalar(1 + Math.sin(this.elapsed * 14 + i) * 0.12);
-      }
       if (p.kind === 'shield') {
         const m = p.mesh as THREE.Mesh;
         const mat = m.material as THREE.MeshBasicMaterial;
         if (mat && 'opacity' in mat) {
-          mat.opacity = Math.max(0, (p.life / 2.2) * 0.9);
+          mat.opacity = Math.max(0, (p.life / 2.2) * 0.85);
         }
       }
 
-      // Remove only sinkers/shields that finished — never kill float debris
-      const sunkAway = p.phase === 'sink' && p.mesh.position.y < -6;
+      // Remove sinkers/shields only — float wreck stays for ending plate
+      const sunkAway = p.phase === 'sink' && p.mesh.position.y < -8;
       const expired = p.kind !== 'float_debris' && p.life <= 0;
       if (sunkAway || expired) {
-        // Soft fade sinkers: leave float_debris forever for ending
         this.scene.remove(p.mesh);
-        // Don't dispose float geometries; for sinkers, drop refs only (avoid double-free shared mats)
         this.pinataPieces.splice(i, 1);
-      }
-    }
-
-    if (this.explosionBurst) {
-      const pos = this.explosionBurst.geometry.getAttribute('position') as THREE.BufferAttribute;
-      const vel = this.explosionBurst.geometry.getAttribute('velocity') as THREE.BufferAttribute;
-      const arr = pos.array as Float32Array;
-      const varr = vel.array as Float32Array;
-      for (let i = 0; i < arr.length / 3; i++) {
-        varr[i * 3 + 1] -= g * dt * 0.6;
-        arr[i * 3] += varr[i * 3] * dt;
-        arr[i * 3 + 1] += varr[i * 3 + 1] * dt;
-        arr[i * 3 + 2] += varr[i * 3 + 2] * dt;
-      }
-      pos.needsUpdate = true;
-      const mat = this.explosionBurst.material as THREE.PointsMaterial;
-      mat.opacity *= Math.exp(-dt * 3.2);
-      mat.size *= Math.exp(-dt * 0.8);
-      if (mat.opacity < 0.04) {
-        this.scene.remove(this.explosionBurst);
-        this.explosionBurst.geometry.dispose();
-        mat.dispose();
-        this.explosionBurst = null;
       }
     }
   }
