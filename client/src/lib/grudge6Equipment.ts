@@ -23,27 +23,31 @@ interface SlotDef {
  * Match stripped names (prefix already removed) AND raw names that still
  * contain Units_ / weapon_ / Xtra_ tokens (when race prefix is missing).
  */
+/**
+ * After race prefix strip (WK_/BRB_/…).
+ * WK/UD/ELF: Units_Body_A · Barbarian BRB: body_A (no Units_ token).
+ */
 const SLOT_DEFS: SlotDef[] = [
-  { slot: "body", re: /Units_Body_([A-Z])$/i, group: "armor" },
-  { slot: "arms", re: /Units_Arms_([A-Z])$/i, group: "armor" },
-  { slot: "legs", re: /Units_Legs_([A-Z])$/i, group: "armor" },
-  { slot: "head", re: /Units_head_([A-Z])$/i, group: "armor" },
+  { slot: "body", re: /^(?:Units_)?Body_([A-Z])$/i, group: "armor" },
+  { slot: "arms", re: /^(?:Units_)?Arms_([A-Z])$/i, group: "armor" },
+  { slot: "legs", re: /^(?:Units_)?Legs_([A-Z])$/i, group: "armor" },
+  { slot: "head", re: /^(?:Units_)?(?:Head|Haed)_([A-Z])$/i, group: "armor" },
   // hats / tricorns sometimes use separate mesh names
   { slot: "hat", re: /(?:Units_)?(?:hat|tricorn|pirate_hat|headwear)_([A-Z])$/i, group: "armor" },
-  { slot: "shoulders", re: /Units_shoulderpads_([A-Z])$/i, group: "armor" },
-  { slot: "axe", re: /(?:Units_|weapon_)axe_([A-Z])$/i, group: "weapon_r" },
-  { slot: "hammer", re: /(?:Units_|weapon_)hammer_([A-Z])$/i, group: "weapon_r" },
-  { slot: "sword", re: /(?:Units_|weapon_)[Ss]word_([A-Z])$/i, group: "weapon_r" },
-  // BRB_weapon_Dagger — optional letter; empty → A. External bone_dagger.glb when race kit has no dagger
-  { slot: "dagger", re: /(?:Units_|weapon_)[Dd]agger(?:_([A-Z]))?$/i, group: "weapon_r" },
-  { slot: "pick", re: /(?:Units_|weapon_)pick$/i, group: "weapon_r", noVariant: true },
-  { slot: "spear", re: /(?:Units_|weapon_)[Ss]pear$/i, group: "weapon_r", noVariant: true },
-  { slot: "bow", re: /(?:Units_|weapon_)[Bb]ow$/i, group: "weapon_l", noVariant: true },
-  { slot: "staff", re: /(?:Units_|weapon_)staff_([A-Z])$/i, group: "weapon_l" },
-  { slot: "shield", re: /(?:Units_|)[Ss]hield_([A-Z])$/i, group: "shield" },
-  { slot: "bag", re: /(?:Xtra_|Units_)bag$/i, group: "utility", noVariant: true },
-  { slot: "wood", re: /(?:Xtra_|Units_)wood$/i, group: "utility", noVariant: true },
-  { slot: "quiver", re: /(?:Xtra_|Units_)quiver$/i, group: "utility", noVariant: true },
+  { slot: "shoulders", re: /^(?:Units_)?Shoulderpads_([A-Z])$/i, group: "armor" },
+  { slot: "axe", re: /^(?:Units_|weapon_|Weapon_)?[Aa]xe(?:_([A-Z]))?$/i, group: "weapon_r" },
+  { slot: "hammer", re: /^(?:Units_|weapon_|Weapon_)?[Hh]ammer(?:_([A-Z]))?$/i, group: "weapon_r" },
+  { slot: "sword", re: /^(?:Units_|weapon_|Weapon_)?[Ss]word(?:_([A-Z]))?$/i, group: "weapon_r" },
+  // BRB_weapon_Dagger — optional letter; empty → A
+  { slot: "dagger", re: /^(?:Units_|weapon_|Weapon_)?[Dd]agger(?:_([A-Z]))?$/i, group: "weapon_r" },
+  { slot: "pick", re: /^(?:Units_|weapon_|Weapon_)?[Pp]ick(?:_([A-Z]))?$/i, group: "weapon_r", noVariant: true },
+  { slot: "spear", re: /^(?:Units_|weapon_|Weapon_)?[Ss]pear(?:_([A-Z]))?$/i, group: "weapon_r", noVariant: true },
+  { slot: "bow", re: /^(?:Units_|weapon_|Weapon_)?[Bb]ow$/i, group: "weapon_l", noVariant: true },
+  { slot: "staff", re: /^(?:Units_|weapon_|Weapon_)?[Ss]taff_([A-Z])$/i, group: "weapon_l" },
+  { slot: "shield", re: /^(?:Units_)?[Ss]hield_([A-Z])$/i, group: "shield" },
+  { slot: "bag", re: /^(?:Xtra_|Units_)?[Bb]ag$/i, group: "utility", noVariant: true },
+  { slot: "wood", re: /^(?:Xtra_|Units_)?[Ww]ood$/i, group: "utility", noVariant: true },
+  { slot: "quiver", re: /^(?:Xtra_|Units_)?[Qq]uiver$/i, group: "utility", noVariant: true },
 ];
 
 const WEAPON_SLOTS = new Set([

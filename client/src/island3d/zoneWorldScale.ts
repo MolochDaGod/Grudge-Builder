@@ -103,12 +103,67 @@ function isBodyMeasureMesh(node: THREE.Object3D): boolean {
   return true;
 }
 
+const _boneH = new THREE.Vector3();
+
 /**
- * World-space height from visible body meshes (on-screen truth).
- * Prefer skinned body verts; ignore weapons.
+ * Bone-chain height for grudge6 modular skinned kits.
+ *
+ * Units_* SkinnedMesh geometry is local bind pieces near origin. Transforming
+ * raw verts by matrixWorld (no skinning) measures a ~3–5 m pile and under-scales
+ * SI fit → main panel looks like exploded modular debris. Bones are correct.
+ */
+export function measureBoneChainHeight(root: THREE.Object3D): number {
+  root.updateMatrixWorld(true);
+  root.traverse((o) => {
+    const sm = o as THREE.SkinnedMesh;
+    if (sm.isSkinnedMesh && sm.skeleton) sm.skeleton.update();
+  });
+
+  const groups: string[][] = [
+    ['Bip001_Head', 'Bip001 Head', 'Head'],
+    ['Bip001_HeadNub', 'Bip001 HeadNub'],
+    ['Bip001_Pelvis', 'Bip001 Pelvis'],
+    ['Bip001_L_Foot', 'Bip001 L Foot'],
+    ['Bip001_R_Foot', 'Bip001 R Foot'],
+    ['Bip001_L_Toe0', 'Bip001 L Toe0'],
+    ['Bip001_R_Toe0', 'Bip001 R Toe0'],
+    ['Bip001_L_Hand', 'Bip001 L Hand'],
+    ['Bip001_R_Hand', 'Bip001 R Hand'],
+  ];
+
+  let minY = Infinity;
+  let maxY = -Infinity;
+  let n = 0;
+  for (const names of groups) {
+    let bone: THREE.Object3D | null = null;
+    for (const name of names) {
+      bone = root.getObjectByName(name);
+      if (bone) break;
+    }
+    if (!bone) continue;
+    bone.getWorldPosition(_boneH);
+    if (!Number.isFinite(_boneH.y)) continue;
+    minY = Math.min(minY, _boneH.y);
+    maxY = Math.max(maxY, _boneH.y);
+    n++;
+  }
+  if (n < 2 || !Number.isFinite(minY)) return 0;
+  const h = maxY - minY;
+  // Pad soles / crown (~10% of bone span)
+  return h > 0.05 ? h * 1.12 : 0;
+}
+
+/**
+ * World-space height for SI fit (on-screen truth).
+ * grudge6 modular kits: bone chain first (skinned extent).
+ * Fallback: visible body verts × matrixWorld (unskinned — only OK for non-modular).
  */
 export function measureCharacterWorldHeight(root: THREE.Object3D): number {
   root.updateMatrixWorld(true);
+
+  const boneH = measureBoneChainHeight(root);
+  if (boneH > 0.2) return boneH;
+
   let minY = Infinity;
   let maxY = -Infinity;
   let samples = 0;
@@ -335,15 +390,53 @@ export function assertHeroSiHeight(
 
 function groundAndCenterRoot(root: THREE.Object3D): void {
   root.updateMatrixWorld(true);
-  const box = new THREE.Box3().setFromObject(root);
-  if (Number.isFinite(box.min.y)) {
-    root.position.y -= box.min.y;
+  root.traverse((o) => {
+    const sm = o as THREE.SkinnedMesh;
+    if (sm.isSkinnedMesh && sm.skeleton) sm.skeleton.update();
+  });
+
+  // Prefer bone feet / pelvis XZ — setFromObject on modular skinned kits is unskinned.
+  const footNames = [
+    'Bip001_L_Toe0',
+    'Bip001 L Toe0',
+    'Bip001_R_Toe0',
+    'Bip001 R Toe0',
+    'Bip001_L_Foot',
+    'Bip001 L Foot',
+    'Bip001_R_Foot',
+    'Bip001 R Foot',
+  ];
+  const p = new THREE.Vector3();
+  let minY = Infinity;
+  for (const n of footNames) {
+    const b = root.getObjectByName(n);
+    if (!b) continue;
+    b.getWorldPosition(p);
+    if (p.y < minY) minY = p.y;
   }
-  if (Number.isFinite(box.min.x) && Number.isFinite(box.max.x)) {
-    const cx = (box.min.x + box.max.x) / 2;
-    const cz = (box.min.z + box.max.z) / 2;
-    root.position.x -= cx;
-    root.position.z -= cz;
+  const pelvis =
+    root.getObjectByName('Bip001_Pelvis') ||
+    root.getObjectByName('Bip001 Pelvis') ||
+    root.getObjectByName('Bip001');
+
+  if (Number.isFinite(minY) && minY !== Infinity) {
+    // Sole pad below toe/ankle bone
+    root.position.y -= minY - 0.02 * Math.max(root.scale.y, 1e-6);
+  } else {
+    const box = new THREE.Box3().setFromObject(root);
+    if (Number.isFinite(box.min.y)) root.position.y -= box.min.y;
+  }
+
+  if (pelvis) {
+    pelvis.getWorldPosition(p);
+    root.position.x -= p.x;
+    root.position.z -= p.z;
+  } else {
+    const box = new THREE.Box3().setFromObject(root);
+    if (Number.isFinite(box.min.x) && Number.isFinite(box.max.x)) {
+      root.position.x -= (box.min.x + box.max.x) / 2;
+      root.position.z -= (box.min.z + box.max.z) / 2;
+    }
   }
   root.updateMatrixWorld(true);
 }
