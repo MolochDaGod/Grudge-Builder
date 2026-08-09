@@ -24,6 +24,7 @@ ID_GATEWAY_ORIGIN = "https://id.grudge-studio.com"
 ASSETS_CDN = "https://assets.grudge-studio.com"
 CLIENT_ORIGIN = "https://client.grudge-studio.com"
 PORTAL_ORIGIN = "https://grudge-studio.com"
+POKER_ORIGIN = "https://poker.grudge-studio.com"
 
 [env.production]
 name = "grudge-wallet-site"
@@ -35,6 +36,7 @@ ID_GATEWAY_ORIGIN = "https://id.grudge-studio.com"
 ASSETS_CDN = "https://assets.grudge-studio.com"
 CLIENT_ORIGIN = "https://client.grudge-studio.com"
 PORTAL_ORIGIN = "https://grudge-studio.com"
+POKER_ORIGIN = "https://poker.grudge-studio.com"
 
 [[env.production.routes]]
 pattern = "wallet.grudge-studio.com/*"

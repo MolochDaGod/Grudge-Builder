@@ -2,52 +2,71 @@
 
 Production edge for **https://wallet.grudge-studio.com/**
 
-## Production topology (2026-07-25)
+## Production topology (2026-08-09)
 
 | Layer | Target |
 |-------|--------|
 | DNS | Cloudflare zone `grudge-studio.com` (proxied) |
 | Worker route | `wallet.grudge-studio.com/*` → **`grudge-wallet-site`** |
-| Game API | `RAILWAY_API_ORIGIN` = `https://grudge-api-production-0d46.up.railway.app` |
-| Auth | `ID_GATEWAY_ORIGIN` = `https://id.grudge-studio.com` |
+| Game API | `RAILWAY_API_ORIGIN` = Railway grudge-api |
+| Auth login UI | `ID_GATEWAY_ORIGIN` = `https://id.grudge-studio.com` |
+| Play ledger | `POKER_ORIGIN` = `https://poker.grudge-studio.com` |
+| Images | Live poker CDN media (logo, GBUX, PokerSolPro, table hero) |
 
-**Do not** point wallet at VPS `74.208.155.229`. That was the broken origin in the zone export.
+**Do not** point wallet at VPS `74.208.155.229`.
+
+## Player product (clean wallet tool)
+
+| Feature | How |
+|---------|-----|
+| Working images | `poker.grudge-studio.com/media/**` (real image/*) |
+| Sign in / reconnect | Grudge ID SSO + bridge + Domain cookie handoff |
+| Connect Phantom | Handoff → `poker…/connect` with `sso_token` |
+| Fleet bag GBUX | `GET /api/wallet/overview` (Railway) |
+| Play GBUX | Poker `/api/wallet/scopes?wallet=` |
+| **Fund play** | `POST /api/wallet/transfer-to-play` → debit bag → poker D1 credit |
+| Bag SOL↔GBUX | `POST /api/exchange/quote` + `/swap` |
+| Games grid | Poker, Nexus, Warlords, Foundry, Open, GRUDOX, Mine, Forge, Casting |
 
 ## Deploy
 
 ```bash
-cd F:\GitHub\GrudgeBuilder\workers\wallet-site
+cd Documents/Grudge-Builder/workers/wallet-site
 $env:WRANGLER_HOME = "C:\Users\nugye\.wrangler"
 npx wrangler deploy --env=""
-# If route already exists on another worker, reassign via CF API:
-# PUT /zones/{zone}/workers/routes/{id}  { pattern, script: "grudge-wallet-site" }
 ```
 
-## Env (production vars in wrangler.toml)
+Railway (transfer-to-play route lives in grudge-api):
 
-- `ENVIRONMENT=production`
-- `RAILWAY_API_ORIGIN`
-- `ID_GATEWAY_ORIGIN`
-- `ASSETS_CDN` / `CLIENT_ORIGIN` / `PORTAL_ORIGIN`
+```bash
+cd Documents/Grudge-Builder
+railway up
+```
+
+Poker (credit-from-fleet):
+
+```bash
+cd Projects/poker-grudge
+npm run build && npx wrangler deploy
+```
+
+Optional shared secret (align Railway + poker):
+
+- Railway: `FLEET_PLAY_CREDIT_SECRET`
+- Poker worker secret: `FLEET_PLAY_CREDIT_SECRET` (falls back to SESSION_SECRET)
 
 ## Health
 
 ```bash
 curl -s https://wallet.grudge-studio.com/health
-# { "ok": true, "service": "grudge-wallet-site", "vps_origin": false, ... }
+# features: fleet-bag, transfer-to-play, exchange-swap, game-handoff, phantom-reconnect
 ```
 
-## Auth SSOT (2026-08-02)
+## Auth SSOT
 
 | Concern | Rule |
 |---------|------|
-| Login UI | **Only** `https://id.grudge-studio.com` (Discord / password / Puter) |
-| Session JWT | Railway `users` + `accounts` (same Postgres as Foundry / client) |
-| Edge `/api/auth/*` | Proxy → **Railway** (not id host — avoids 526 / split-brain) |
-| Edge `/api/wallet/*`, `/api/characters` | Proxy → Railway |
-| Token handoff | Prefer **`sso_token` / `token`** (session JWT) over short `grudge_token` (launch) |
-| Guest | **Never** treat unauthenticated as guest account — `/api/wallet/status` returns 401 |
-
-**Bug fixed:** unauthenticated `/api/wallet/status` used to resolve `userId=guest` and return the shared guest Crossmint wallet (`user-guest@grudgewarlords.com`), so Discord login that failed to store the real session JWT still “looked signed in” to the wrong roster.
-
-**After Discord login:** clear site data if you still see guest, then Sign in again so `sso_token` is stored in fleet keys.
+| Login UI | **Only** id.grudge-studio.com |
+| Session JWT | Railway users/accounts |
+| Edge `/api/*` | Proxy → Railway |
+| Guest | Never as signed-in wallet |

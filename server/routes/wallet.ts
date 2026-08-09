@@ -197,7 +197,138 @@ export function registerWalletRoutes(app: Express): void {
     }
   });
 
+  /**
+   * Server-side: debit fleet bag GBUX → hand off to a game play ledger (poker, etc.).
+   * No on-chain tx; ledgered as ai_agent_transfer with play_fund metadata.
+   */
+  app.post("/api/wallet/transfer-to-play", requireAuth, async (req, res) => {
+    try {
+      const account = await requireAccount(req, res);
+      if (!account) return;
+      const body = req.body as {
+        amount?: number;
+        game?: string;
+        walletAddress?: string;
+      };
+      const amount = Math.floor(Number(body.amount) || 0);
+      if (amount < 1) {
+        return res.status(400).json({ error: "amount must be ≥ 1 GBUX" });
+      }
+      const game = (body.game || "poker").toLowerCase();
+      if (!["poker", "blackjack", "slots", "budb"].includes(game)) {
+        return res.status(400).json({
+          error: "game must be poker (BUDB play ledger)",
+        });
+      }
+
+      const overview = await getWalletOverview(account.id);
+      if (!overview) {
+        return res.status(404).json({ error: "Wallet overview not found" });
+      }
+      const linked0 =
+        overview.linkedWallets?.[0] &&
+        ((overview.linkedWallets[0] as { walletAddress?: string; address?: string })
+          .walletAddress ||
+          (overview.linkedWallets[0] as { address?: string }).address);
+      const walletAddress = String(
+        body.walletAddress || overview.primaryWallet || linked0 || "",
+      ).trim();
+      if (!walletAddress || walletAddress.length < 32) {
+        return res.status(400).json({
+          error:
+            "No Solana wallet on account — link Phantom or open a custodial wallet first",
+        });
+      }
+
+      const bal = Number(account.gbuxBalance ?? 0);
+      if (bal < amount) {
+        return res.status(400).json({
+          error: `Insufficient fleet bag GBUX (have ${bal}, need ${amount})`,
+          gbuxBalance: bal,
+        });
+      }
+
+      const receiptId = `play-fund-${Date.now()}-${Math.random().toString(36).slice(2, 10)}`;
+      await storage.debitGbux(account.id, amount, "ai_agent_transfer", {
+        sourceRef: receiptId,
+        metadata: {
+          kind: "play_fund",
+          game,
+          walletAddress,
+          host: "poker.grudge-studio.com",
+        },
+      });
+
+      // Credit D1 play ledger on poker edge
+      const pokerOrigin =
+        process.env.POKER_ORIGIN || "https://poker.grudge-studio.com";
+      const fleetSecret =
+        process.env.FLEET_PLAY_CREDIT_SECRET ||
+        process.env.SESSION_SECRET ||
+        process.env.JWT_SECRET ||
+        "";
+      let playCredit: Record<string, unknown> | null = null;
+      let playError: string | null = null;
+      try {
+        const pr = await fetch(`${pokerOrigin}/api/play/credit-from-fleet`, {
+          method: "POST",
+          headers: {
+            "Content-Type": "application/json",
+            "X-Fleet-Play-Secret": fleetSecret,
+            Authorization: req.get("Authorization") || "",
+          },
+          body: JSON.stringify({
+            wallet: walletAddress,
+            amount,
+            receiptId,
+            accountId: account.id,
+            game,
+          }),
+        });
+        playCredit = (await pr.json()) as Record<string, unknown>;
+        if (!pr.ok) {
+          playError =
+            (playCredit?.error as string) || `poker credit HTTP ${pr.status}`;
+          // Refund fleet bag if play credit failed
+          await storage.creditGbux(account.id, amount, "admin_grant", {
+            sourceRef: `refund-${receiptId}`,
+            metadata: { kind: "play_fund_refund", playError },
+          });
+          return res.status(502).json({
+            error: "Play ledger credit failed — fleet bag refunded",
+            playError,
+            gbuxBalance: (await storage.getAccount(account.id))?.gbuxBalance,
+          });
+        }
+      } catch (e: any) {
+        await storage.creditGbux(account.id, amount, "admin_grant", {
+          sourceRef: `refund-${receiptId}`,
+          metadata: { kind: "play_fund_refund", error: String(e?.message || e) },
+        });
+        return res.status(502).json({
+          error: "Play host unreachable — fleet bag refunded",
+          detail: e?.message || String(e),
+          gbuxBalance: (await storage.getAccount(account.id))?.gbuxBalance,
+        });
+      }
+
+      const after = await storage.getAccount(account.id);
+      res.json({
+        success: true,
+        amount,
+        game,
+        walletAddress,
+        receiptId,
+        gbuxBalance: after?.gbuxBalance ?? 0,
+        play: playCredit,
+      });
+    } catch (e: any) {
+      console.error("[Wallet/transfer-to-play]", e);
+      res.status(400).json({ error: e.message || "Transfer failed" });
+    }
+  });
+
   console.log(
-    "[Wallet] Routes: GET /api/wallet/overview, /linked; POST /link/challenge, /link/confirm, /purchase/{quote,intent,confirm}",
+    "[Wallet] Routes: GET /api/wallet/overview, /linked; POST /link/*, /purchase/*, /transfer-to-play",
   );
 }
