@@ -711,10 +711,25 @@ export class Island3DEngine {
 
     this.setupLighting();
 
-    // Fire/smoke + supernova spell/weapon impacts (4 color variants)
-    void import('../vfx/WorldFxBus').then(({ WorldFxBus, setWorldFxBus }) => {
+    // Fire/smoke + supernova + CastingMaster (Linear skillshots + Casting VFX)
+    void Promise.all([
+      import('../vfx/WorldFxBus'),
+      import('../vfx/SpellFxSystem'),
+    ]).then(([{ WorldFxBus, setWorldFxBus }, { SpellFxSystem }]) => {
       this.worldFx = new WorldFxBus(this.scene);
       this.worldFx.supernova.setCamera(this.camera);
+      const spellFx = new SpellFxSystem({ parent: this.scene });
+      (this as any)._spellFx = spellFx;
+      this.worldFx.attachCastingMaster({
+        spellFx,
+        getHeight: (x, z) => {
+          // Prefer live terrain height when island generator is present
+          const fn = (this as any).getTerrainHeightAt as
+            | ((x: number, z: number) => number)
+            | undefined;
+          return fn ? fn(x, z) : 0;
+        },
+      });
       setWorldFxBus(this.worldFx);
       this.character?.setWorldFxBus?.(this.worldFx);
     });
@@ -3367,8 +3382,9 @@ export class Island3DEngine {
     // Farm plots — crop growth after watering
     this.farmPlots?.update(dt);
 
-    // Fire / smoke particles
+    // Fire / smoke particles + CastingMaster lightweight ribbons
     this.worldFx?.update(dt);
+    (this as any)._spellFx?.update?.(dt);
 
     // Ground loot sprites (rotate + bob + E prompt)
     if (this.groundLoot) {

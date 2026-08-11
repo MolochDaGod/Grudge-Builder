@@ -30,6 +30,8 @@ import {
   DragonKoiCastAuraSystem,
   type DragonKoiCastOpts,
 } from './DragonKoiCastAura';
+import { CastingMaster, type CastRequest } from '../casting/CastingMaster';
+import type { SpellFxSystem } from './SpellFxSystem';
 
 export class WorldFxBus {
   readonly root = new THREE.Group();
@@ -42,6 +44,11 @@ export class WorldFxBus {
   readonly supernova: SupernovaImpactSystem;
   /** Surrounding cast auras (dragon_koi multipack, multi color/opacity/shader) */
   readonly dragonKoiCast: DragonKoiCastAuraSystem;
+  /**
+   * Master casting orchestrator (Linear skillshots + Casting path/VFX).
+   * Wired after SpellFxSystem is available via `attachCastingMaster`.
+   */
+  casting: CastingMaster | null = null;
 
   constructor(scene: THREE.Scene) {
     this.scene = scene;
@@ -53,6 +60,29 @@ export class WorldFxBus {
     // Preload large pack in background so first skill hit isn't cold
     void this.supernova.preload();
     void this.dragonKoiCast.preload();
+  }
+
+  /**
+   * Attach CastingMaster (Linear + CastingAbilities mastered stack).
+   * Call once after SpellFxSystem is constructed for the island scene.
+   */
+  attachCastingMaster(opts?: {
+    spellFx?: SpellFxSystem | null;
+    getHeight?: (x: number, z: number) => number;
+  }): CastingMaster {
+    this.casting = new CastingMaster({
+      scene: this.scene,
+      worldFx: this,
+      spellFx: opts?.spellFx ?? null,
+      getHeight: opts?.getHeight,
+    });
+    return this.casting;
+  }
+
+  /** Weapon / element skill cast through master planner */
+  castSkill(req: CastRequest) {
+    if (!this.casting) this.attachCastingMaster();
+    return this.casting!.cast(req);
   }
 
   /**
@@ -349,6 +379,7 @@ export class WorldFxBus {
 
     this.supernova.update(dt);
     this.dragonKoiCast.update(dt);
+    this.casting?.update(dt);
   }
 
   dispose(): void {
@@ -360,6 +391,8 @@ export class WorldFxBus {
     this.trails = [];
     this.supernova.dispose();
     this.dragonKoiCast.dispose();
+    this.casting?.dispose();
+    this.casting = null;
     setSupernovaImpactSystem(null);
     this.scene.remove(this.root);
   }

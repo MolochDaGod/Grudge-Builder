@@ -1,0 +1,14 @@
+{
+  "name": "anim-ai-worker",
+  "version": "2.1.0",
+  "private": true,
+  "description": "Grudox Animator AI worker — NL → Mixamo pose clips for THREE.AnimationMixer",
+  "scripts": {
+    "dev": "wrangler dev",
+    "deploy": "wrangler deploy",
+    "tail": "wrangler tail"
+  },
+  "devDependencies": {
+    "wrangler": "^4.0.0"
+  }
+}

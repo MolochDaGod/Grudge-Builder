@@ -1,0 +1,15 @@
+name = "anim-ai-worker"
+main = "src/index.js"
+compatibility_date = "2025-03-01"
+account_id = "ee475864561b02d4588180b8b9acf694"
+workers_dev = true
+
+[ai]
+binding = "AI"
+
+[vars]
+ENVIRONMENT = "production"
+# Optional: require Authorization: Bearer <token> when set as secret ANIM_WORKER_TOKEN
+# npx wrangler secret put ANIM_WORKER_TOKEN
+
+# Route optional custom domain later; SPA uses *.workers.dev + grudox /api/anim-ai proxy

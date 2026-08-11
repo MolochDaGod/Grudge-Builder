@@ -103,6 +103,7 @@ import { hydrateVideoCatalog } from "@/lib/fleetVideo";
 import { loadFleetCdnFonts } from "@/lib/fleetFonts";
 import WeaponModelAdminPage from "@/pages/weapon-model-admin";
 import WeaponSkillsPage from "@/pages/weapon-skills";
+import CastingMasterPage from "@/pages/casting-master";
 import WeaponMasteryPage from "@/pages/weapon-mastery";
 import CombatLabPage from "@/pages/combat-lab";
 import TownPage from "@/pages/town";
@@ -222,6 +223,8 @@ function Router() {
       <Route path="/homeIsland" component={HomeIslandEntryPage} />
       <Route path="/weapon-admin" component={WeaponModelAdminPage} />
       <Route path="/weapon-skills" component={WeaponSkillsPage} />
+      <Route path="/casting-master" component={CastingMasterPage} />
+      <Route path="/casting" component={CastingMasterPage} />
       <Route path="/weapon-mastery" component={WeaponMasteryPage} />
       <Route path="/combat-lab" component={CombatLabPage} />
       <Route path="/equipment-lab" component={CombatLabPage} />
