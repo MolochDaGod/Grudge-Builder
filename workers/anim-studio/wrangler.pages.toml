@@ -1,0 +1,7 @@
+# Cloudflare Pages project: anim-studio
+# Deploy: npm run build && wrangler pages deploy dist --project-name anim-studio
+# Domain: anim.grudge-studio.com
+name = "anim-studio"
+pages_build_output_dir = "dist"
+compatibility_date = "2025-03-01"
+account_id = "ee475864561b02d4588180b8b9acf694"

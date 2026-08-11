@@ -84,6 +84,40 @@ export default function SystemsPage() {
           </div>
         </section>
 
+        <section className="rounded-xl border border-cyan-800/40 bg-cyan-950/20 p-6">
+          <h2 className="text-lg font-semibold text-cyan-100 mb-2">Anim Studio · video mocap</h2>
+          <p className="text-sm text-stone-400 mb-3">
+            Record or upload a short clip, track body pose on-device (MediaPipe), mirror to Mixamo,
+            save bake JSON, and hand off into Warlords / island AnimationManager.
+          </p>
+          <div className="flex flex-wrap gap-2">
+            <a
+              href="https://anim-studio.pages.dev"
+              target="_blank"
+              rel="noreferrer"
+              className="inline-flex items-center gap-2 rounded-lg bg-cyan-600/90 hover:bg-cyan-500 px-4 py-2 text-sm font-medium text-stone-950"
+            >
+              Open Anim Studio <ExternalLink className="h-3.5 w-3.5" />
+            </a>
+            <a
+              href="/video-mocap"
+              className="inline-flex items-center gap-2 rounded-lg border border-cyan-700/60 px-4 py-2 text-sm text-cyan-100 hover:bg-cyan-950/50"
+            >
+              In-app mocap
+            </a>
+            <a
+              href="/casting-master"
+              className="inline-flex items-center gap-2 rounded-lg border border-cyan-700/60 px-4 py-2 text-sm text-cyan-100 hover:bg-cyan-950/50"
+            >
+              Casting master
+            </a>
+          </div>
+          <div className="mt-3 text-xs text-stone-500 space-y-1 font-mono">
+            <div>FLEET_URLS.animStudio · anim.grudge-studio.com (CNAME → pages)</div>
+            <div>API: anim-ai-worker /mocap/reconstruct · playMocapClip on AnimationManager</div>
+          </div>
+        </section>
+
         <section className="rounded-xl border border-amber-800/40 bg-amber-950/20 p-6">
           <h2 className="text-lg font-semibold text-amber-100 mb-2">Combat equipment lab</h2>
           <p className="text-sm text-stone-400 mb-3">

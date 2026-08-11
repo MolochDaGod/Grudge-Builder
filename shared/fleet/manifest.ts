@@ -62,6 +62,15 @@ export const FLEET_URLS = {
   objectStore: "https://objectstore.grudge-studio.com/api/v1",
   ai: "https://ai.grudge-studio.com",
   /**
+   * Video mocap Anim Studio (Cloudflare Pages).
+   * Live: anim-studio.pages.dev · custom domain anim.grudge-studio.com (CNAME).
+   * On-device MediaPipe track → Mixamo bake JSON · /api → anim-ai-worker.
+   */
+  animStudio: "https://anim.grudge-studio.com",
+  animStudioPages: "https://anim-studio.pages.dev",
+  /** Motion reconstruct / chat (Workers AI) */
+  animAiWorker: "https://anim-ai-worker.grudge.workers.dev",
+  /**
    * RAG endpoint for fleet docs. Never localhost in production manifests.
    * Browser: same-origin `/api/ai/rag` (Vercel → Railway). Server may set ANYTHINGLLM_URL.
    */

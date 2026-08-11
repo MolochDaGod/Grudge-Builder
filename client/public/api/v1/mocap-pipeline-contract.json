@@ -1,0 +1,55 @@
+{
+  "id": "grudge-mocap-pipeline",
+  "version": "1.0.0",
+  "updated": "2026-08-11",
+  "description": "2–10s screen-recording motion capture → AI reconstruct → rigid-body safe AnimationClip → redeploy",
+  "durationSec": { "min": 2, "max": 10 },
+  "sources": ["screen_recording", "nl_description", "pose_sequence", "reference_clip", "combo_chain"],
+  "skeletons": ["mixamorig", "bip001", "toon"],
+  "rigidBody": {
+    "rotationOnlyBones": true,
+    "lockScale": true,
+    "rootMotion": "baked_locked",
+    "reGroundFeet": true,
+    "centerXZOnPelvis": true,
+    "humanHeightM": 1.8,
+    "physicsRole": "kinematic_player",
+    "bans": [
+      "bone position tracks on skinned mesh",
+      "pelvis.y as feet",
+      "Object3D.clone for skins",
+      "shared AnimationMixer across instances",
+      "empty AnimationClip"
+    ]
+  },
+  "endpoints": {
+    "reconstruct": "https://anim-ai-worker.grudge.workers.dev/mocap/reconstruct",
+    "validate": "https://anim-ai-worker.grudge.workers.dev/mocap/validate",
+    "comboCompile": "https://anim-ai-worker.grudge.workers.dev/combo/compile",
+    "chat": "https://anim-ai-worker.grudge.workers.dev/chat"
+  },
+  "client": {
+    "MotionDeployService": "client/src/lib/animation/MotionDeployService.ts",
+    "videoTracker": "client/src/lib/animation/videoMocap/VideoMocapTracker.ts",
+    "library": "client/src/lib/animation/videoMocap/mocapLibrary.ts",
+    "studioUi": "/video-mocap",
+    "definitions": "shared/animation/mocap/"
+  },
+  "videoPipeline": {
+    "engine": "MediaPipe PoseLandmarker lite",
+    "sampleFpsDefault": 12,
+    "mirror": true,
+    "output": "mixamorig rotation-only frames + bake JSON",
+    "storage": "localStorage library + downloadable JSON"
+  },
+  "combos": [
+    "gs_samurai_cleave_combo",
+    "melee_3hit_standard",
+    "mocap_dual_slash"
+  ],
+  "hosts": {
+    "info": "https://info.grudge-studio.com",
+    "animator": "https://grudox.grudge-studio.com/animator/",
+    "builder": "https://grudgewarlords.com"
+  }
+}

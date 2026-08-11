@@ -62,6 +62,30 @@ export class AnimationManager {
     this.controller.registerClip(state, clip);
   }
 
+  /**
+   * Register + play a video-mocap / bake JSON clip (fleet integration).
+   * Prefer slot `special` or `attack` so loco stays intact after oneshot.
+   */
+  playMocapClip(
+    clip: THREE.AnimationClip,
+    opts?: {
+      state?: AnimState;
+      loop?: boolean;
+      fadeDuration?: number;
+      speed?: number;
+      onFinish?: () => void;
+    },
+  ): void {
+    const state = opts?.state ?? "special";
+    this.controller.registerClip(state, clip);
+    this.play(state, {
+      loop: opts?.loop ?? false,
+      fadeDuration: opts?.fadeDuration ?? 0.15,
+      speed: opts?.speed,
+      onFinish: opts?.onFinish,
+    });
+  }
+
   /** Crossfade to a new animation state */
   play(
     state: AnimState,

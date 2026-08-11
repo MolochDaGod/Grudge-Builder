@@ -2620,6 +2620,24 @@ export class CharacterController3D {
     return this.orchestrator?.playMove(moveId) ?? false;
   }
 
+  /**
+   * Play a video-mocap / bake clip on the character (fleet Anim Studio integration).
+   * Clip tracks must match this model skeleton (mixamorig / remapped).
+   */
+  playMocapClip(
+    clip: THREE.AnimationClip,
+    opts?: { loop?: boolean; fadeDuration?: number; onFinish?: () => void },
+  ): boolean {
+    if (!this.animations) return false;
+    this.animations.playMocapClip(clip, {
+      state: "special",
+      loop: opts?.loop,
+      fadeDuration: opts?.fadeDuration ?? 0.15,
+      onFinish: opts?.onFinish,
+    });
+    return true;
+  }
+
   getActivityState(): CharacterState {
     return this.stateMachine?.getState() ?? 'idle';
   }
