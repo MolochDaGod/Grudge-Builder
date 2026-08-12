@@ -98,7 +98,6 @@ const OceanPage = lazy(() => import("@/pages/ocean"));
 import TutorialPage from "@/pages/tutorial";
 import WarlordsStartPage from "@/pages/warlords-start";
 const WorldNativePage = lazy(() => import("@/pages/world-native"));
-const CastingLabRedirectPage = lazy(() => import("@/pages/casting-lab-redirect"));
 import IslandRevealPage from "@/pages/island-reveal";
 
 import HomeIslandPage from "@/pages/home-island";
@@ -121,7 +120,6 @@ import AssetShowcasePage from "@/pages/asset-showcase";
 import MainPanelPage from "@/pages/main-panel";
 import { consumeGcsReturnHandoff } from "@/lib/gcsRedirect";
 import { CharacterManager } from "@/lib/characterManager";
-import { preloadPirateCursors } from "@/lib/uiCursor";
 
 const AssassinationGroundsPage = lazy(() => import("@/pages/assassination-grounds"));
 
@@ -228,9 +226,6 @@ function Router() {
       <Route path="/game/world" component={PlayPage} />
       <Route path="/world">{() => <Suspense fallback={null}><WorldNativePage /></Suspense>}</Route>
       <Route path="/cloudfix">{() => <Suspense fallback={null}><WorldNativePage /></Suspense>}</Route>
-      {/* Warlords-era UI/UX SSOT → Casting Lab (not monorepo vendor) */}
-      <Route path="/casting">{() => <Suspense fallback={null}><CastingLabRedirectPage /></Suspense>}</Route>
-      <Route path="/casting-lab">{() => <Suspense fallback={null}><CastingLabRedirectPage /></Suspense>}</Route>
       {/* /warlords = production flow router (was dead: WorldNativePage claimed bare /warlords first) */}
       <Route path="/warlords" component={WarlordsStartPage} />
       <Route path="/warlords/start" component={WarlordsStartPage} />
@@ -292,16 +287,6 @@ function AppContent() {
   useEffect(() => {
     void hydrateVideoCatalog();
     loadFleetCdnFonts();
-    // Pirate Pack cursors — ship board / door / attack / sail hover intents
-    preloadPirateCursors();
-    // Casting play contract warm (Toon / residual / DRC parity SSOT)
-    void import('@/lib/warlords/castingParityRuntime').then((m) =>
-      m.fetchPlayContract().then((c) => {
-        if (c?.version) {
-          console.debug('[CastingParity] play contract', c.version);
-        }
-      }),
-    );
 
     // Warm ObjectStore data cache on app init, then sync all game data
     prefetchCoreData().then(async () => {
