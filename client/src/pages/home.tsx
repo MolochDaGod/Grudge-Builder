@@ -50,8 +50,14 @@ function qs(): URLSearchParams {
  * Where /home should send the player next — single funnel, no dead tiles.
  */
 async function resolveHomeForward(): Promise<{ path: string; reason: RouteReason }> {
-  await ensureFleetSessionClaim().catch(() => {});
-  await waitForAuthReady(8000);
+  // Phase B: URL characterId + session claim + Railway activate
+  try {
+    const { ensurePlayEntrySession } = await import("@/lib/characterHandoff");
+    await ensurePlayEntrySession({ search: window.location.search });
+  } catch {
+    await ensureFleetSessionClaim().catch(() => {});
+    await waitForAuthReady(8000);
+  }
 
   if (!getToken() && !hasAuthToken()) {
     return { path: "", reason: "sign_in" };
@@ -65,6 +71,13 @@ async function resolveHomeForward(): Promise<{ path: string; reason: RouteReason
 
   // Ensure roster has an active hero when Railway has one
   let charId = readiness.activeCharacterId;
+  try {
+    const { parseCharacterHandoff } = await import("@/lib/characterHandoff");
+    const h = parseCharacterHandoff();
+    if (h.characterId) charId = h.characterId;
+  } catch {
+    /* ignore */
+  }
   if (!charId && readiness.hasCharacter) {
     try {
       const list = await CharacterManager.getAll("warlords");
@@ -89,10 +102,10 @@ async function resolveHomeForward(): Promise<{ path: string; reason: RouteReason
     ? `characterId=${encodeURIComponent(charId)}&from=home`
     : "from=home";
 
-  // First voyage: leviathan → shipwreck tutorial (once per browser/account flag)
+  // First voyage: LeviathanOceanCinema → shipwreck tutorial (canonical path)
   if (!isTutorialComplete()) {
     return {
-      path: `/shipwreck-cinema?${idQ}`,
+      path: `/leviathan-cinema?${idQ}`,
       reason: "tutorial",
     };
   }

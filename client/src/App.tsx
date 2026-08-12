@@ -67,7 +67,12 @@ const AirshipZonePage = lazy(() => import("@/pages/AirshipZonePage"));
 import HeroCodexPage from "@/pages/hero-codex";
 import CraftingPage from "@/pages/crafting";
 const Island3DPage = lazy(() => import("@/pages/island-3d"));
-const ShipwreckCinemaPage = lazy(() => import("@/pages/shipwreck-cinema"));
+/** Canonical first-voyage: LeviathanOceanCinema */
+const LeviathanCinemaPage = lazy(() => import("@/pages/shipwreck-cinema"));
+/** Legacy deep link — redirect only */
+const LegacyShipwreckCinemaRedirect = lazy(
+  () => import("@/pages/legacy-shipwreck-cinema-redirect"),
+);
 import OpenWorldEntryPage from "@/pages/open-world";
 const WarScenePage = lazy(() => import("@/pages/war-scene"));
 import AuthCallbackPage from "@/pages/auth-callback";
@@ -93,7 +98,9 @@ const OceanPage = lazy(() => import("@/pages/ocean"));
 import TutorialPage from "@/pages/tutorial";
 import WarlordsStartPage from "@/pages/warlords-start";
 const WorldNativePage = lazy(() => import("@/pages/world-native"));
+const CastingLabRedirectPage = lazy(() => import("@/pages/casting-lab-redirect"));
 import IslandRevealPage from "@/pages/island-reveal";
+
 import HomeIslandPage from "@/pages/home-island";
 import HomeIslandEntryPage from "@/pages/homeisland";
 import AirshipHandoffPage from "@/pages/airship-handoff";
@@ -114,6 +121,7 @@ import AssetShowcasePage from "@/pages/asset-showcase";
 import MainPanelPage from "@/pages/main-panel";
 import { consumeGcsReturnHandoff } from "@/lib/gcsRedirect";
 import { CharacterManager } from "@/lib/characterManager";
+import { preloadPirateCursors } from "@/lib/uiCursor";
 
 const AssassinationGroundsPage = lazy(() => import("@/pages/assassination-grounds"));
 
@@ -197,9 +205,16 @@ function Router() {
       <Route path="/crafting" component={CraftingPage} />
       <Route path="/crafting-suite" component={CraftingPage} />
       <Route path="/island-3d" component={Island3DPage} />
-      {/* Full-systems leviathan cinema v10 film */}
-      <Route path="/shipwreck-cinema" component={ShipwreckCinemaPage} />
-      <Route path="/leviathan-cinema" component={ShipwreckCinemaPage} />
+      {/* First voyage — LeviathanOceanCinema (canonical) */}
+      <Route path="/leviathan-cinema" component={LeviathanCinemaPage} />
+      {/* Legacy bookmark — soft-redirect to /leviathan-cinema (keeps characterId) */}
+      <Route path="/shipwreck-cinema">
+        {() => (
+          <Suspense fallback={null}>
+            <LegacyShipwreckCinemaRedirect />
+          </Suspense>
+        )}
+      </Route>
       <Route path="/war-scene" component={WarScenePage} />
       <Route path="/medieval-battle" component={WarScenePage} />
       <Route path="/editor" component={EditorPage} />
@@ -213,6 +228,9 @@ function Router() {
       <Route path="/game/world" component={PlayPage} />
       <Route path="/world">{() => <Suspense fallback={null}><WorldNativePage /></Suspense>}</Route>
       <Route path="/cloudfix">{() => <Suspense fallback={null}><WorldNativePage /></Suspense>}</Route>
+      {/* Warlords-era UI/UX SSOT → Casting Lab (not monorepo vendor) */}
+      <Route path="/casting">{() => <Suspense fallback={null}><CastingLabRedirectPage /></Suspense>}</Route>
+      <Route path="/casting-lab">{() => <Suspense fallback={null}><CastingLabRedirectPage /></Suspense>}</Route>
       {/* /warlords = production flow router (was dead: WorldNativePage claimed bare /warlords first) */}
       <Route path="/warlords" component={WarlordsStartPage} />
       <Route path="/warlords/start" component={WarlordsStartPage} />
@@ -274,6 +292,16 @@ function AppContent() {
   useEffect(() => {
     void hydrateVideoCatalog();
     loadFleetCdnFonts();
+    // Pirate Pack cursors — ship board / door / attack / sail hover intents
+    preloadPirateCursors();
+    // Casting play contract warm (Toon / residual / DRC parity SSOT)
+    void import('@/lib/warlords/castingParityRuntime').then((m) =>
+      m.fetchPlayContract().then((c) => {
+        if (c?.version) {
+          console.debug('[CastingParity] play contract', c.version);
+        }
+      }),
+    );
 
     // Warm ObjectStore data cache on app init, then sync all game data
     prefetchCoreData().then(async () => {

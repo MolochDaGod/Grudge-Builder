@@ -16,7 +16,7 @@
  *   ?intro=1 | ?intro=shipwreck — force leviathan cinema
  *   ?ui=1&options=1 — keep production chrome visible
  *
- * Dedicated cinema surface: /shipwreck-cinema (replaces purged shipwreck-cinema-preview.html)
+ * Dedicated cinema surface: /leviathan-cinema (canonical first-voyage opener)
  */
 import { useState, useEffect, useRef, useCallback, useMemo } from 'react';
 import { useLocation } from 'wouter';

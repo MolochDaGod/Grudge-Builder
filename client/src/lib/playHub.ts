@@ -111,7 +111,7 @@ export async function resolvePlayDestination(): Promise<PlayDestination> {
     const { isTutorialComplete } = await import('@/lib/warlordsOnboarding');
     if (!isTutorialComplete()) {
       return {
-        path: `/shipwreck-cinema?${charQ}from=play`,
+        path: `/leviathan-cinema?${charQ}from=play`,
         reason: 'play_home_island',
       };
     }

@@ -71,18 +71,20 @@ export default function WarlordsStartPage() {
     }
     // Don't auto-skip UI on first paint of locked next — only when next is clear
     const t = setTimeout(() => {
-      const path = progress.nextPath;
       if (progress.nextStepId === 'character_create' && !isAuthenticated) {
-        openLogin?.();
+        openLogin?.('/warlords/start?auto=1');
         return;
       }
       if (progress.nextStepId === 'opening_scene') {
         markOpeningSeen();
       }
+      // Always attach active characterId — bare /leviathan-cinema without id
+      // drops players into /heroes? after tutorial load fail.
+      const path = stepPath(progress.nextStepId, getActiveCharacterId());
       setLocation(path);
     }, 900);
     return () => clearTimeout(t);
-  }, [loading, auto, progress.nextPath, progress.nextStepId, isAuthenticated, openLogin, setLocation]);
+  }, [loading, auto, progress.nextStepId, isAuthenticated, openLogin, setLocation]);
 
   if (loading) {
     return (
@@ -168,7 +170,9 @@ export default function WarlordsStartPage() {
         <div className="mt-8 flex flex-wrap gap-2">
           <button
             type="button"
-            onClick={() => setLocation(progress.nextPath)}
+            onClick={() =>
+              setLocation(stepPath(progress.nextStepId, getActiveCharacterId()))
+            }
             className="px-4 py-2 rounded-xl bg-amber-500 text-black text-sm font-bold hover:bg-amber-400"
           >
             Continue → {progress.steps.find((s) => s.isNext)?.title}

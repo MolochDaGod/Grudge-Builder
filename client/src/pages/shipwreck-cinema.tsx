@@ -1,14 +1,14 @@
 /**
- * Shipwreck / Leviathan cinema — production first-voyage opener.
+ * Leviathan Ocean cinema — production first-voyage opener.
  *
  * Beat flow (LeviathanOceanCinema / battle script):
  *   leviathan attack → ship destroy (breach/pinata) → throw/sink → blackout logo
  *   → handoff to /tutorial on chicken-gun pirate-islands shipwreck_cove wash-up
  *
  * Routes:
- *   /shipwreck-cinema
- *   /leviathan-cinema (alias)
- *   /island-3d?intro=1 (StormShipIntroGate)
+ *   /leviathan-cinema          ← CANONICAL (home / heroes / Foundry returnTo)
+ *   /shipwreck-cinema         ← legacy redirect only (see legacy-shipwreck-cinema-redirect)
+ *   /island-3d?intro=1        ← StormShipIntroGate (same engine, not primary entry)
  */
 import { useCallback, useEffect, useRef, useState } from 'react';
 import { useLocation } from 'wouter';
@@ -22,6 +22,7 @@ import { INTRO_SESSION_KEY } from '@shared/definitions/productionIntro';
 import { tutorialShipwreckWashupPath } from '@shared/definitions/warlordsProductionFlow';
 import {
   applyCharacterHandoffFromLocation,
+  ensurePlayEntrySession,
   persistActiveCharacter,
 } from '@/lib/characterHandoff';
 import { SkipForward } from 'lucide-react';
@@ -38,6 +39,11 @@ export default function ShipwreckCinemaPage() {
   const [ready, setReady] = useState(false);
   const [canSkip, setCanSkip] = useState(false);
   const finished = useRef(false);
+
+  // Phase B: claim JWT + activate characterId before cinema (handoff to tutorial)
+  useEffect(() => {
+    void ensurePlayEntrySession({ search: window.location.search });
+  }, []);
 
   const finish = useCallback(() => {
     if (finished.current) return;
@@ -73,12 +79,20 @@ export default function ShipwreckCinemaPage() {
         'grudge_shipwreck_intro_seen_v10',
         'grudge_shipwreck_intro_seen_v11',
         'grudge_shipwreck_intro_seen_v12',
-      'grudge_shipwreck_intro_seen_v13',
-      'grudge_shipwreck_intro_seen_v14',
-      'grudge_shipwreck_intro_seen_v15',
+        'grudge_shipwreck_intro_seen_v13',
+        'grudge_shipwreck_intro_seen_v14',
+        'grudge_shipwreck_intro_seen_v15',
+        'grudge_shipwreck_intro_seen_v16',
+        'grudge_shipwreck_intro_seen_v17',
+        'grudge_shipwreck_intro_seen_v21',
+        'grudge_shipwreck_intro_seen_v22',
+        'grudge_shipwreck_intro_seen_v23',
+        'grudge_shipwreck_intro_seen_v24',
         'grudge_storm_intro_seen_v1',
         'grudge_island3d_intro_options_v9',
         'grudge_island3d_intro_options_v10',
+        'grudge_island3d_intro_options_v23',
+        'grudge_island3d_intro_options_v24',
       ]) {
         sessionStorage.removeItem(k);
       }

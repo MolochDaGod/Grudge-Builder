@@ -103,3 +103,95 @@ export function applyCharacterHandoffFromLocation(
 export function tutorialHandoffUrl(characterId: string, from: HandoffSource = "heroes"): string {
   return `/tutorial?characterId=${encodeURIComponent(characterId)}&from=${encodeURIComponent(from)}`;
 }
+
+export type PlayEntrySessionResult = {
+  handoff: CharacterHandoff;
+  /** JWT present after claim/wait */
+  jwtPresent: boolean;
+  /** Railway activate succeeded (or skipped if no id) */
+  activated: boolean;
+  error?: string;
+};
+
+/**
+ * Phase B SSOT — call on every production play entry route:
+ *   /home · /heroes · /leviathan-cinema · /tutorial · /home-island · /play · /airship
+ *
+ * 1) claim fleet session cookie/JWT
+ * 2) wait for auth ready
+ * 3) apply URL characterId handoff → localStorage
+ * 4) PUT activate warlords era slot (best-effort)
+ */
+export async function ensurePlayEntrySession(opts?: {
+  search?: string;
+  /** Default warlords */
+  era?: string;
+  authTimeoutMs?: number;
+}): Promise<PlayEntrySessionResult> {
+  const era = opts?.era ?? "warlords";
+  const authTimeoutMs = opts?.authTimeoutMs ?? 8000;
+  const handoff = applyCharacterHandoffFromLocation(opts?.search);
+
+  let jwtPresent = false;
+  try {
+    const { ensureFleetSessionClaim, waitForAuthReady, getToken, isAuthenticated } =
+      await import("@/lib/grudgeBackend");
+    await ensureFleetSessionClaim().catch(() => false);
+    await waitForAuthReady(authTimeoutMs).catch(() => false);
+    jwtPresent = !!(getToken() || isAuthenticated());
+  } catch (e) {
+    return {
+      handoff,
+      jwtPresent: false,
+      activated: false,
+      error: e instanceof Error ? e.message : String(e),
+    };
+  }
+
+  const id = handoff.characterId?.trim() || null;
+  if (!id) {
+    return { handoff, jwtPresent, activated: false };
+  }
+
+  if (handoff.fromUrl) {
+    persistActiveCharacter(id, handoff.from);
+  }
+
+  let activated = false;
+  if (jwtPresent) {
+    try {
+      const { characterAPI } = await import("@/lib/api");
+      await characterAPI.activate(id, era as "warlords");
+      activated = true;
+      try {
+        const { CharacterManager } = await import("@/lib/characterManager");
+        CharacterManager.setActiveLocal(id);
+        // setActive also hits activate API — we already activated; local only is enough
+      } catch {
+        /* optional */
+      }
+    } catch (e) {
+      // Non-fatal — get() may still work; surface for logs
+      console.warn(
+        "[handoff] activate failed (continuing):",
+        e instanceof Error ? e.message : e,
+      );
+      return {
+        handoff,
+        jwtPresent,
+        activated: false,
+        error: e instanceof Error ? e.message : String(e),
+      };
+    }
+  }
+
+  try {
+    console.info(
+      `[handoff] play entry · id=${id.slice(0, 8)}… · from=${handoff.from} · jwt=${jwtPresent} · activated=${activated}`,
+    );
+  } catch {
+    /* ignore */
+  }
+
+  return { handoff, jwtPresent, activated };
+}

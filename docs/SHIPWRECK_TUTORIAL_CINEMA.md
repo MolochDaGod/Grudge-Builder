@@ -41,8 +41,9 @@
 
 | Surface | Engine | Video / TI? |
 |---------|--------|-------------|
-| `/island-3d?intro=1` | `StormShipIntroGate` → `LeviathanOceanCinema` | **Never** primary |
-| `/shipwreck-cinema` | Same native cinema page | No |
+| **`/leviathan-cinema`** | `LeviathanOceanCinema` page | **CANONICAL** first-voyage entry |
+| `/shipwreck-cinema` | Soft-redirect → `/leviathan-cinema` | Legacy bookmarks only |
+| `/island-3d?intro=1` | `StormShipIntroGate` → `LeviathanOceanCinema` | Same engine, not primary product entry |
 | `/homeisland` End Game | `AbandonShipIntroGate` | TI/storyboard (separate product) |
 | `/island` legacy | `IslandCutscene` + `warlordsIntro` mp4 | **Legacy only** — not island-3d opener |
 
@@ -58,9 +59,10 @@
 ## QA
 
 ```
+https://client.grudge-studio.com/leviathan-cinema?characterId=…&from=home
 https://client.grudge-studio.com/island-3d?intro=1
-https://client.grudge-studio.com/shipwreck-cinema
-http://127.0.0.1:5173/island-3d?intro=1
+# legacy (redirects): /shipwreck-cinema?characterId=…
+http://127.0.0.1:5173/leviathan-cinema
 # seek combat: ?seek=29
 # SI helpers: ?box3=1
 ```

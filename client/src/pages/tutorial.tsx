@@ -29,6 +29,10 @@ import {
   RESOURCE_TO_PROFESSION,
   getGatherXp,
 } from '@/lib/professionSystem';
+import {
+  depositHarvestResource,
+  flushOfflineHarvestQueue,
+} from '@/lib/craftHarvestDeposit';
 import type { Character } from '@/lib/characterManager';
 import { getAvatarForContext } from '@/lib/aiAvatars';
 import { TutorialWakeCinematic } from '@/island3d/tutorial/TutorialWakeCinematic';
@@ -183,7 +187,10 @@ export default function TutorialPage() {
   useEffect(() => {
     async function load() {
       try {
-        const handoff = applyCharacterHandoffFromLocation();
+        // Phase B: session claim + activate before get()
+        const { ensurePlayEntrySession } = await import('@/lib/characterHandoff');
+        const entry = await ensurePlayEntrySession({ search: window.location.search });
+        const handoff = entry.handoff;
         const activeId = handoff.characterId;
 
         if (!activeId) {
@@ -195,12 +202,6 @@ export default function TutorialPage() {
 
         if (handoff.fromUrl) {
           persistActiveCharacter(activeId, handoff.from);
-          // Best-effort fleet activate so era slots stay coherent
-          try {
-            await characterAPI.activate(activeId, 'warlords');
-          } catch (e) {
-            console.warn('[Tutorial] activate failed (continuing with get):', e);
-          }
         }
 
         const char = await characterAPI.get(activeId);
@@ -241,21 +242,30 @@ export default function TutorialPage() {
       } catch (err) {
         console.error('[Tutorial] character load failed', err);
         const handoff = applyCharacterHandoffFromLocation();
+        // Do NOT dump to /heroes? (dead-end layered UI). Re-enter via /home
+        // funnel or retry cinema with the same characterId.
         if (handoff.characterId) {
-          // Keep id for roster retry; user can re-enter tutorial
           setLocation(
-            `/heroes?characterId=${encodeURIComponent(handoff.characterId)}&error=load`,
+            `/home?characterId=${encodeURIComponent(handoff.characterId)}&from=tutorial-load-fail`,
           );
         } else {
           setLocation(
             '/create-character?returnTo=' +
-              encodeURIComponent('/tutorial?from=gcs'),
+              encodeURIComponent('/leviathan-cinema?from=gcs'),
           );
         }
       }
     }
     load();
   }, [setLocation]);
+
+  // Flush offline harvest queue into Railway craft bag
+  useEffect(() => {
+    void flushOfflineHarvestQueue();
+    const onOnline = () => { void flushOfflineHarvestQueue(); };
+    window.addEventListener('online', onOnline);
+    return () => window.removeEventListener('online', onOnline);
+  }, []);
 
   // ── Sync play mode → sheath / last harvest tool / combat ───────
 
@@ -308,6 +318,8 @@ export default function TutorialPage() {
     try {
       await characterAPI.update(char.id, { inventory: inv });
     } catch { /* offline-tolerant */ }
+    // Also deposit mats into Railway craft bag (grudgewarlords.com/craft/)
+    void depositHarvestResource(itemId, qty, 'tutorial-harvest');
   }, []);
 
   // ── Solo tutorial instance (NOT multiplayer lobby) ─────────────
@@ -699,8 +711,32 @@ export default function TutorialPage() {
           hasInjuredGetUp: hasGetUp,
           wakeOrigin,
           onCinematicBegin: () => engine.beginCinematicCamera(),
-          onCinematicEnd: () => engine.endCinematicCamera(),
+          onCinematicEnd: () => {
+            // Always restore TPC play_tps (never leave OrbitControls writing camera)
+            engine.endCinematicCamera();
+            engine.setCameraMode('play_tps');
+            if (engine.character) {
+              engine.character.cameraFollowEnabled = true;
+              engine.character.setFacingYaw?.(SHIPWRECK_WAKE.facingYaw);
+            }
+            const cam = engine.getCamera();
+            if (cam && 'fov' in cam) {
+              cam.fov = 58;
+              cam.updateProjectionMatrix?.();
+            }
+          },
           onComplete: () => {
+            // Double-ensure sole-owner TPC after wake (casting parity FOV 58°)
+            engine.setCameraMode('play_tps');
+            if (engine.character) {
+              engine.character.cameraFollowEnabled = true;
+              engine.character.setFacingYaw?.(SHIPWRECK_WAKE.facingYaw);
+            }
+            const cam = engine.getCamera();
+            if (cam && 'fov' in cam) {
+              cam.fov = 58;
+              cam.updateProjectionMatrix?.();
+            }
             setWakePhase('playable');
             setIntroPlaying(false);
             setPlayMode('harvest');

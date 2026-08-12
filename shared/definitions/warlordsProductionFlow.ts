@@ -82,7 +82,7 @@ export const WARLORDS_PRODUCTION_FLOW: WarlordsFlowStep[] = [
     subtitle: 'Required once · attack · ship destroy · wash-up',
     description:
       'First voyage: leviathan attack cinema destroys the hull, then you wash up on chicken-gun pirate-islands (shipwreck_cove) for harvest / craft / raft. Complete once per account.',
-    path: '/shipwreck-cinema',
+    path: '/leviathan-cinema',
     minLevel: 0,
     requiresAuth: true,
     requiresCharacter: true,
@@ -317,7 +317,7 @@ export function postCreateReturnRelativePath(tutorialComplete: boolean): string 
     return '/airship?from=gcs';
   }
   // Full-systems leviathan cut, then handoff to pirate-islands tutorial
-  return '/shipwreck-cinema?from=create';
+  return '/leviathan-cinema?from=create';
 }
 
 /**
@@ -336,7 +336,7 @@ export function airshipForwardRelativePath(
   if (tutorialComplete) {
     return `/home-island?${q.toString()}`;
   }
-  return `/shipwreck-cinema?${q.toString()}`;
+  return `/leviathan-cinema?${q.toString()}`;
 }
 
 /**

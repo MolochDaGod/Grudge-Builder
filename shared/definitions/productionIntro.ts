@@ -15,11 +15,14 @@
  *    Cannon fire · ship sinks · all models jump off (no throw overboard)
  *    → /homeisland · home-island spawn
  *
- * Production: https://client.grudge-studio.com/island-3d
+ * Production cinema: https://client.grudge-studio.com/leviathan-cinema
+ * (legacy /shipwreck-cinema soft-redirects here — do not deep-link it)
+ * Island-3d lobby: https://client.grudge-studio.com/island-3d
  * Home island: https://client.grudge-studio.com/homeisland
  *
  * KILL LIST for island-3d: TI iframe, Stonewisp stand-in, intro.mp4 as primary.
  * Legacy mp4 cutscene (IslandCutscene / warlordsIntro) is for /island only — not intro gate.
+ * Do not route new product entry to /shipwreck-cinema — use /leviathan-cinema.
  */
 
 export type ProductionIntroVariant =
@@ -114,6 +117,29 @@ export const HOME_ISLAND_PRODUCTION_URL =
 export const PRODUCTION_START_PATH = '/island-3d';
 export const PRODUCTION_START_URL = 'https://client.grudge-studio.com/island-3d';
 
+/**
+ * Canonical first-voyage Leviathan ocean cinema (LeviathanOceanCinema).
+ * Prefer this over the legacy /shipwreck-cinema deep link.
+ */
+export const LEVIATHAN_INTRO_PATH = '/leviathan-cinema' as const;
+export const LEVIATHAN_INTRO_URL =
+  'https://client.grudge-studio.com/leviathan-cinema' as const;
+/** Legacy alias — keep as redirect only; do not use for new product links. */
+export const LEGACY_SHIPWRECK_CINEMA_PATH = '/shipwreck-cinema' as const;
+
+/** Build `/leviathan-cinema?characterId=&from=` for home / heroes / Foundry returnTo. */
+export function leviathanIntroPath(opts?: {
+  characterId?: string | null;
+  from?: string | null;
+}): string {
+  const q = new URLSearchParams();
+  const id = opts?.characterId?.trim();
+  if (id) q.set('characterId', id);
+  if (opts?.from) q.set('from', String(opts.from));
+  const s = q.toString();
+  return s ? `${LEVIATHAN_INTRO_PATH}?${s}` : LEVIATHAN_INTRO_PATH;
+}
+
 /** Default query after storm intro completes */
 export const AFTER_STORM_INTRO_QUERY = {
   mode: 'lobby',
@@ -171,8 +197,8 @@ export const AFTER_INTRO_DESTINATIONS: Array<{
 ];
 
 /** Bump when cinema cut changes so players re-see the battle */
-export const INTRO_SESSION_KEY = 'grudge_shipwreck_intro_seen_v24';
-export const INTRO_OPTIONS_KEY = 'grudge_island3d_intro_options_v24';
+export const INTRO_SESSION_KEY = 'grudge_shipwreck_intro_seen_v25';
+export const INTRO_OPTIONS_KEY = 'grudge_island3d_intro_options_v25';
 
 export interface Island3dIntroOptions {
   /** Play leviathan cinema on visit when not yet seen */

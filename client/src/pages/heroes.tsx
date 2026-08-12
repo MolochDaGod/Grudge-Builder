@@ -1,10 +1,11 @@
 /**
  * /heroes · /characters · /select-character
  * Warlords 4-slot roster — seaside sector cinema (NO painted airship plate).
- * Airship / scene_airship.png cinema was a product mistake; purged 2026-07.
- * Arsenal / professions / skill trees stay on the same SPA.
+ *
+ * NOT a dead-end: after intro / load-fail, auto-forward into first voyage
+ * (shipwreck cinema → tutorial) when a hero is selected. Use ?stay=1 to pick.
  */
-import { useEffect, useMemo, useState } from "react";
+import { useCallback, useEffect, useMemo, useRef, useState } from "react";
 import { useLocation } from "wouter";
 import { Home, LogIn, Map, Plus, Swords, Hammer, Loader2, GitBranch, Users } from "lucide-react";
 import { useCharacters } from "@/hooks/use-characters";
@@ -17,6 +18,7 @@ import { CharacterManager, type Character } from "@/lib/characterManager";
 import { pickCrewSlots } from "@/components/heroes/heroesCrewLoader";
 import HeroesSeasideCinemaScene from "@/components/heroes/HeroesSeasideCinemaScene";
 import { Link } from "wouter";
+import { isTutorialComplete } from "@/lib/warlordsOnboarding";
 
 const MAX_SLOTS = 4;
 
@@ -28,9 +30,16 @@ const SLOT_META = [
   { id: "slot4", label: "Hero 4", role: "Warlord slot" },
 ] as const;
 
-type PlayDest = "home_island" | "zone" | "lobby" | "tutorial" | "world";
+type PlayDest = "shipwreck" | "home_island" | "zone" | "lobby" | "tutorial" | "world";
 
 const DEST: { id: PlayDest; label: string; path: (id: string) => string; icon: React.ReactNode }[] = [
+  {
+    id: "shipwreck",
+    label: "First Voyage",
+    path: (id) =>
+      `/leviathan-cinema?characterId=${encodeURIComponent(id)}&from=heroes`,
+    icon: <Swords className="w-4 h-4" />,
+  },
   {
     id: "home_island",
     label: "Home Island",
@@ -52,7 +61,7 @@ const DEST: { id: PlayDest; label: string; path: (id: string) => string; icon: R
   },
   {
     id: "tutorial",
-    label: "Tutorial",
+    label: "Tutorial Island",
     path: (id) => `/tutorial?characterId=${encodeURIComponent(id)}&from=heroes`,
     icon: <Users className="w-4 h-4" />,
   },
@@ -72,11 +81,22 @@ function className(id: string) {
 }
 
 function readQueryParams() {
-  if (typeof window === "undefined") return { characterId: null as string | null, errorCode: null as string | null };
+  if (typeof window === "undefined") {
+    return {
+      characterId: null as string | null,
+      errorCode: null as string | null,
+      stay: false,
+      auto: false,
+      from: null as string | null,
+    };
+  }
   const q = new URLSearchParams(window.location.search);
   return {
     characterId: q.get("characterId"),
     errorCode: q.get("error"),
+    stay: q.get("stay") === "1",
+    auto: q.get("auto") === "1",
+    from: q.get("from"),
   };
 }
 
@@ -84,12 +104,24 @@ export default function HeroesPage() {
   const [, setLocation] = useLocation();
   // Warlords product page — era=warlords only (voxel/nexus have their own hosts).
   const { characters: warlordsChars, loading, activeId, setActive, error, refetch } = useCharacters();
-  /** Default = home island (happy path), not open zone — avoids new players landing cold in haven_shore */
-  const [dest, setDest] = useState<PlayDest>("home_island");
+  const tutorialDone = isTutorialComplete();
+  /** First voyage until tutorial flag; then home island */
+  const [dest, setDest] = useState<PlayDest>(() =>
+    isTutorialComplete() ? "home_island" : "shipwreck",
+  );
   const signedIn = isAuthenticated();
   const [handoffError, setHandoffError] = useState<string | null>(null);
-  const [queryCharId] = useState(() => readQueryParams().characterId);
-  const [queryError] = useState(() => readQueryParams().errorCode);
+  const [query] = useState(() => readQueryParams());
+  const queryCharId = query.characterId;
+  const queryError = query.errorCode;
+  const autoForwarded = useRef(false);
+
+  // Phase B: fleet session + activate before roster / auto-forward
+  useEffect(() => {
+    void import("@/lib/characterHandoff").then(({ ensurePlayEntrySession }) =>
+      ensurePlayEntrySession({ search: window.location.search }),
+    );
+  }, []);
 
   // Honor ?characterId= handoff + surface ?error=load recovery
   useEffect(() => {
@@ -144,39 +176,87 @@ export default function HeroesPage() {
     ? slots.findIndex((s) => s?.id === selected.id)
     : -1;
 
-  const enterPlay = () => {
-    if (!selected) return;
-    setActive(selected.id);
-    try {
-      localStorage.setItem("grudge_active_character", selected.id);
-      localStorage.setItem("gruda_active_character", selected.id);
-      localStorage.setItem("grudge.open.selectedCharacterId", selected.id);
-      localStorage.setItem("voxelrealms.selectedCharacterId", selected.id);
-      const era =
-        selected.gameEra ||
-        (selected.model3d as { gameEra?: string } | undefined)?.gameEra ||
-        "warlords";
+  const enterPlay = useCallback(
+    (overrideDest?: PlayDest) => {
+      if (!selected) return;
+      setActive(selected.id);
       try {
-        const byEra = JSON.parse(localStorage.getItem("grudge.selectedCharacterByEra") || "{}");
-        byEra[String(era)] = selected.id;
-        if (String(era) === "voxel" || String(era) === "warlords") {
-          byEra.voxel = byEra.voxel || selected.id;
-          byEra.warlords = byEra.warlords || selected.id;
+        localStorage.setItem("grudge_active_character", selected.id);
+        localStorage.setItem("gruda_active_character", selected.id);
+        localStorage.setItem("grudge.open.selectedCharacterId", selected.id);
+        localStorage.setItem("voxelrealms.selectedCharacterId", selected.id);
+        const era =
+          selected.gameEra ||
+          (selected.model3d as { gameEra?: string } | undefined)?.gameEra ||
+          "warlords";
+        try {
+          const byEra = JSON.parse(localStorage.getItem("grudge.selectedCharacterByEra") || "{}");
+          byEra[String(era)] = selected.id;
+          if (String(era) === "voxel" || String(era) === "warlords") {
+            byEra.voxel = byEra.voxel || selected.id;
+            byEra.warlords = byEra.warlords || selected.id;
+          }
+          localStorage.setItem("grudge.selectedCharacterByEra", JSON.stringify(byEra));
+        } catch {
+          /* ignore */
         }
-        localStorage.setItem("grudge.selectedCharacterByEra", JSON.stringify(byEra));
+        const gid = localStorage.getItem("grudge_account_id") || "guest";
+        localStorage.setItem(`gruda_active_character_${gid}`, selected.id);
+        localStorage.setItem("grudge_character_handoff_from", "heroes");
+        CharacterManager.setActive(selected.id);
       } catch {
         /* ignore */
       }
-      const gid = localStorage.getItem("grudge_account_id") || "guest";
-      localStorage.setItem(`gruda_active_character_${gid}`, selected.id);
-      localStorage.setItem("grudge_character_handoff_from", "heroes");
-      CharacterManager.setActive(selected.id);
-    } catch {
-      /* ignore */
-    }
-    const d = DEST.find((x) => x.id === dest) ?? DEST[1];
-    setLocation(d.path(selected.id));
-  };
+      // Never send first-voyage players to home island (locked / empty)
+      let pick = overrideDest ?? dest;
+      if (!tutorialDone && (pick === "home_island" || pick === "zone" || pick === "world")) {
+        pick = "shipwreck";
+      }
+      if (tutorialDone && pick === "shipwreck") {
+        pick = "home_island";
+      }
+      const d = DEST.find((x) => x.id === pick) ?? DEST[0];
+      setLocation(d.path(selected.id));
+    },
+    [selected, setActive, dest, tutorialDone, setLocation],
+  );
+
+  // Escape the /heroes? dead-end: once roster is ready, auto-enter play
+  // unless user asked to stay and pick (?stay=1).
+  useEffect(() => {
+    if (loading || autoForwarded.current || query.stay) return;
+    if (!signedIn || !selected) return;
+
+    // Auto when: explicit auto, handoff characterId, or bare /heroes after intro
+    const shouldAuto =
+      query.auto ||
+      !!queryCharId ||
+      queryError === "load" ||
+      query.from === "intro" ||
+      query.from === "start" ||
+      query.from === "home" ||
+      // Bare /heroes with exactly one hero → don't strand on layered UI
+      (warlordsChars.length === 1 && !query.stay);
+
+    if (!shouldAuto) return;
+    autoForwarded.current = true;
+    const t = setTimeout(() => {
+      enterPlay(tutorialDone ? "home_island" : "shipwreck");
+    }, 650);
+    return () => clearTimeout(t);
+  }, [
+    loading,
+    signedIn,
+    selected,
+    query.stay,
+    query.auto,
+    query.from,
+    queryCharId,
+    queryError,
+    warlordsChars.length,
+    tutorialDone,
+    enterPlay,
+  ]);
 
   // First voyage → tutorial; after tutorial → airship → home (not empty /heroes)
   const forgeUrl = buildGcsUrl({
@@ -201,20 +281,21 @@ export default function HeroesPage() {
           className="w-full h-full"
         />
       </div>
-      <div className="absolute inset-0 z-[1] pointer-events-none bg-gradient-to-b from-black/45 via-transparent to-black/80" />
+      {/* Light vignette only — avoid heavy stacked opaque layers over cinema */}
+      <div className="absolute inset-0 z-[1] pointer-events-none bg-gradient-to-b from-black/55 via-transparent to-black/70" />
 
-      <div className="relative z-10 flex flex-col flex-1 max-w-6xl w-full mx-auto px-3 sm:px-4 py-4 sm:py-6 gap-4">
-        {/* WCS-style product tabs (same SPA — no separate crafting-suite deploy) */}
-        <nav className="flex flex-wrap justify-center gap-1.5 sm:gap-2 pointer-events-auto">
+      <div className="relative z-10 flex flex-col flex-1 max-w-5xl w-full mx-auto px-3 sm:px-4 pt-3 pb-36 gap-3">
+        {/* Thin product tabs — single row, not competing with cinema HUD */}
+        <nav className="flex flex-wrap justify-center gap-1 sm:gap-1.5 pointer-events-auto">
           {[
-            { href: "/heroes", label: "Characters", icon: <Users className="w-3.5 h-3.5" /> },
+            { href: "/heroes?stay=1", label: "Characters", icon: <Users className="w-3.5 h-3.5" /> },
             { href: "/arsenal", label: "Arsenal", icon: <Swords className="w-3.5 h-3.5" /> },
             { href: "/professions", label: "Professions", icon: <Hammer className="w-3.5 h-3.5" /> },
             { href: "/skill-tree", label: "Skill Trees", icon: <GitBranch className="w-3.5 h-3.5" /> },
             { href: "/crafting", label: "Crafting", icon: <Hammer className="w-3.5 h-3.5" /> },
           ].map((t) => (
             <Link key={t.href} href={t.href}>
-              <a className="inline-flex items-center gap-1.5 px-3 py-1.5 rounded-md border border-amber-600/35 bg-black/55 hover:bg-amber-500/10 hover:border-amber-400/50 text-[10px] sm:text-[11px] font-cinzel uppercase tracking-wider text-amber-100/90 no-underline backdrop-blur-sm">
+              <a className="inline-flex items-center gap-1.5 px-2.5 py-1 rounded-md border border-amber-600/30 bg-black/50 hover:bg-amber-500/10 text-[10px] font-cinzel uppercase tracking-wider text-amber-100/90 no-underline backdrop-blur-sm">
                 {t.icon}
                 {t.label}
               </a>
@@ -223,14 +304,16 @@ export default function HeroesPage() {
         </nav>
 
         <header className="text-center pointer-events-none">
-          <p className="font-cinzel text-[10px] uppercase tracking-[0.4em] text-amber-200/80 mb-1 drop-shadow">
+          <p className="font-cinzel text-[10px] uppercase tracking-[0.4em] text-amber-200/80 mb-0.5 drop-shadow">
             Grudge Warlords · 4-slot roster
           </p>
-          <h1 className="font-cinzel text-2xl sm:text-4xl font-bold tracking-[0.18em] text-amber-50 drop-shadow-[0_2px_12px_rgba(0,0,0,0.85)]">
+          <h1 className="font-cinzel text-xl sm:text-3xl font-bold tracking-[0.18em] text-amber-50 drop-shadow-[0_2px_12px_rgba(0,0,0,0.85)]">
             HEROES
           </h1>
-          <p className="mt-1.5 text-xs sm:text-sm text-amber-50/85 max-w-xl mx-auto drop-shadow">
-            Select a warlord from your roster, then enter home island, zone, lobby, or world.
+          <p className="mt-1 text-[11px] sm:text-xs text-amber-50/80 max-w-lg mx-auto drop-shadow">
+            {tutorialDone
+              ? "Pick a warlord, then enter home island or open world."
+              : "First voyage: leviathan cinema → shipwreck tutorial. Enter play below (or wait for auto-start)."}
           </p>
         </header>
 
@@ -347,96 +430,42 @@ export default function HeroesPage() {
           </section>
         )}
 
-        {/* Spacer so 3D stays visible */}
-        <div className="flex-1 min-h-[12vh] pointer-events-none" />
+        {/* Leave cinema visible — no full-width stats panel stacking over it */}
+        <div className="flex-1 min-h-[28vh] pointer-events-none" />
+      </div>
 
-        {selected && (
-          <div
-            className="p-3 sm:p-4 rounded-md border border-emerald-400/30 pointer-events-auto backdrop-blur-sm grid sm:grid-cols-[auto_1fr] gap-3"
-            style={{ background: "linear-gradient(180deg, rgba(8,32,28,0.92), rgba(6,14,18,0.95))" }}
-          >
-            <div className="flex sm:flex-col items-center gap-3 sm:gap-2">
-              <div className="w-16 h-16 sm:w-20 sm:h-20 rounded-full overflow-hidden ring-2 ring-emerald-400/70 shadow-[0_0_20px_rgba(52,211,153,0.25)] shrink-0">
-                <img
-                  src={selected.avatarUrl || getRacePortrait(selected.raceId)}
-                  alt={selected.name}
-                  className="w-full h-full object-cover object-top"
-                  onError={(e) => {
-                    (e.target as HTMLImageElement).src = getRacePortrait(selected.raceId);
-                  }}
-                />
-              </div>
-              <div className="text-center sm:text-left min-w-0">
-                <div className="font-cinzel text-lg tracking-[0.12em] text-amber-100">
-                  {selected.name.toUpperCase()}
-                </div>
-                <div className="text-xs text-emerald-100/80 mt-0.5">
-                  {selectedSlotIndex >= 0
-                    ? `${SLOT_META[selectedSlotIndex]?.label ?? `Slot ${selectedSlotIndex + 1}`} · `
-                    : ""}
-                  {raceName(selected.raceId)} · {className(selected.classId)} · Lv {selected.level}
-                </div>
-                {selected.grudgeCode && (
-                  <div className="text-[10px] text-slate-400 font-mono mt-0.5 truncate">
-                    {selected.grudgeCode}
-                  </div>
-                )}
-              </div>
+      {/* Fixed bottom dock — sole enter-play surface (avoids layered mid-page cards) */}
+      <div
+        className="fixed bottom-0 left-0 right-0 z-30 pointer-events-auto border-t border-sky-400/25 px-3 py-3"
+        style={{ background: "linear-gradient(180deg, rgba(6,12,20,0.72), rgba(4,8,14,0.96))" }}
+      >
+        <div className="max-w-5xl mx-auto flex flex-col gap-2">
+          {selected && (
+            <div className="flex items-center justify-center gap-2 text-[11px] text-emerald-100/90">
+              <span className="font-cinzel tracking-wider text-amber-100">
+                {selected.name}
+              </span>
+              <span className="text-slate-400">
+                · {raceName(selected.raceId)} · {className(selected.classId)} · Lv {selected.level}
+                {selectedSlotIndex >= 0
+                  ? ` · ${SLOT_META[selectedSlotIndex]?.label ?? `Slot ${selectedSlotIndex + 1}`}`
+                  : ""}
+              </span>
             </div>
-            <div className="grid grid-cols-2 sm:grid-cols-3 gap-x-3 gap-y-1.5 text-[11px]">
-              <div className="col-span-2 sm:col-span-3 text-[9px] uppercase tracking-[0.2em] text-sky-200/55 font-cinzel">
-                Stats · equipment · active selection
-              </div>
-              {Object.entries(selected.attributes || {})
-                .slice(0, 6)
-                .map(([k, v]) => (
-                  <div key={k} className="flex justify-between gap-2 border-b border-white/5 pb-0.5">
-                    <span className="text-slate-400 capitalize">{k}</span>
-                    <span className="text-amber-100 font-semibold">{v}</span>
-                  </div>
-                ))}
-              <div className="col-span-2 sm:col-span-3 flex flex-wrap gap-1.5 mt-1">
-                {Object.entries(selected.equipment || {})
-                  .filter(([, id]) => !!id)
-                  .slice(0, 8)
-                  .map(([slot, id]) => (
-                    <span
-                      key={slot}
-                      className="px-1.5 py-0.5 rounded border border-amber-600/30 bg-black/30 text-[9px] text-amber-100/90"
-                      title={String(id)}
-                    >
-                      {slot}: {String(id).slice(0, 18)}
-                    </span>
-                  ))}
-                {!Object.values(selected.equipment || {}).some(Boolean) && (
-                  <span className="text-[10px] text-slate-500">No equipment equipped</span>
-                )}
-              </div>
-              <p className="col-span-2 sm:col-span-3 text-[10px] text-emerald-200/70 mt-1">
-                Selected for all play options below — stays active until you pick another crewmate on this
-                scene.
-              </p>
-            </div>
-          </div>
-        )}
-
-        <section
-          className="p-4 flex flex-col gap-3 rounded-md border border-sky-400/25 pointer-events-auto backdrop-blur-sm"
-          style={{ background: "linear-gradient(180deg, rgba(8,24,36,0.92), rgba(6,12,20,0.96))" }}
-        >
-          <div className="text-[10px] uppercase tracking-[0.2em] text-sky-200/60 font-cinzel text-center">
-            Enter live play as selected hero
-          </div>
-          <div className="flex flex-wrap justify-center gap-2">
-            {DEST.map((d) => (
+          )}
+          <div className="flex flex-wrap justify-center gap-1.5">
+            {DEST.filter((d) => {
+              if (!tutorialDone) return d.id === "shipwreck" || d.id === "tutorial";
+              return d.id !== "shipwreck";
+            }).map((d) => (
               <button
                 key={d.id}
                 type="button"
                 onClick={() => setDest(d.id)}
-                className={`flex items-center gap-1.5 px-3 py-1.5 rounded-md text-[11px] font-cinzel uppercase tracking-wider border transition ${
+                className={`flex items-center gap-1 px-2.5 py-1 rounded-md text-[10px] font-cinzel uppercase tracking-wider border transition ${
                   dest === d.id
                     ? "border-emerald-400/50 bg-emerald-500/15 text-emerald-100"
-                    : "border-sky-500/20 text-slate-400 hover:text-amber-100"
+                    : "border-sky-500/20 text-slate-400 hover:text-amber-100 bg-black/30"
                 }`}
               >
                 {d.icon}
@@ -444,23 +473,46 @@ export default function HeroesPage() {
               </button>
             ))}
           </div>
-          <div className="flex flex-wrap justify-center gap-3">
+          <div className="flex flex-wrap justify-center gap-2">
             <button
               type="button"
               disabled={!selected}
-              onClick={enterPlay}
-              className="flex items-center gap-2 px-6 py-2.5 font-cinzel font-bold text-sm tracking-wider uppercase rounded border border-amber-600/50 bg-gradient-to-b from-[#5a2818] to-[#2a0e08] text-amber-50 disabled:opacity-40 shadow-[0_0_16px_rgba(200,60,20,0.25)]"
+              onClick={() => enterPlay()}
+              className="flex items-center gap-2 px-7 py-2.5 font-cinzel font-bold text-sm tracking-wider uppercase rounded border border-amber-600/50 bg-gradient-to-b from-[#5a2818] to-[#2a0e08] text-amber-50 disabled:opacity-40 shadow-[0_0_16px_rgba(200,60,20,0.25)]"
             >
-              <Swords className="w-4 h-4" /> Enter with hero
+              <Swords className="w-4 h-4" />
+              {!selected
+                ? "Select a hero"
+                : tutorialDone
+                  ? "Enter play"
+                  : "Start first voyage"}
             </button>
             <a
               href={forgeUrl}
-              className="flex items-center gap-2 px-5 py-2.5 font-cinzel text-sm tracking-wider uppercase rounded border border-slate-500/40 bg-black/40 text-slate-200 hover:text-amber-100"
+              className="flex items-center gap-2 px-4 py-2.5 font-cinzel text-sm tracking-wider uppercase rounded border border-slate-500/40 bg-black/40 text-slate-200 hover:text-amber-100"
             >
               <Hammer className="w-4 h-4" /> Forge new
             </a>
+            {!query.stay && selected && (
+              <button
+                type="button"
+                onClick={() => {
+                  try {
+                    const url = new URL(window.location.href);
+                    url.searchParams.set("stay", "1");
+                    window.history.replaceState({}, "", url.pathname + url.search);
+                  } catch {
+                    /* ignore */
+                  }
+                  autoForwarded.current = true;
+                }}
+                className="px-3 py-2 text-[10px] text-slate-400 underline underline-offset-2"
+              >
+                Stay on roster
+              </button>
+            )}
           </div>
-        </section>
+        </div>
       </div>
     </div>
   );
