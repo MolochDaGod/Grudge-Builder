@@ -11,17 +11,17 @@
  * NPCs: production `.prod.glb` on R2; fallback WK_Characters grudge6 kit.
  */
 
-export const AIRSHIP_ZONE_VERSION = '2.0.0';
+export const AIRSHIP_ZONE_VERSION = '2.1.0';
 
 /**
  * Site-relative paths — resolved through assetUrl / Vercel /models rewrite to R2.
  * JSON camera pins may remain in repo (tiny); all meshes are CDN-only.
  */
 export const AIRSHIP_ZONE_PATHS = {
-  /** Opener hull/islands — R2: models/airship-zone/opener-scene.glb */
-  airship: '/models/airship-zone/opener-scene.glb',
-  /** Legacy hull fallback on R2 */
-  airshipLegacy: '/models/airship-zone/airship.glb',
+  /** Scene (7) + project (6) — new key so CDN immutable cache cannot serve the old opener */
+  airship: '/models/airship-zone/opener-scene-7.glb',
+  /** Previous opener (may be stale at edge) */
+  airshipLegacy: '/models/airship-zone/opener-scene.glb',
   /**
    * Cabin create — prefer cabin.prod.glb (non-voxel) on R2.
    * boatvoxelinside is temporary until converted cabin ships.
@@ -78,7 +78,7 @@ export const AIRSHIP_NPCS: AirshipNpcDef[] = [
     heightM: AIRSHIP_HERO_HEIGHT_M,
     realm: 'deck',
     role: 'helm',
-    // Stern / upper deck wheel — adjusted at runtime to probed helm if found
+    // Top of Object_163_1 · home at Object_16 / Object_111 — retargeted at load
     waypoints: [{ x: 0, y: 3.5, z: -6 }],
     dialogue: [
       'Steady as she goes. The wheel is mine — always.',

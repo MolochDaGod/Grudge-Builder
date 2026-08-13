@@ -1,46 +1,64 @@
 # Airship opener scene (solo zone)
 
-**Route:** `/airship-zone`  
+**Route:** `/combat` · `/airship-zone`  
 **Handoff:** `/airship` (Foundry → home-island bridge)  
-**Code:** `AirshipSoloZone` · `airshipScenePolish` · `airshipSoloZone` SSOT  
+**Code:** `AirshipSoloZone` · `airshipDeck163` · `airshipScenePolish` · `MeshSceneNavMesh`
 
 ## Asset SSOT — Cloudflare R2 (not GitHub)
 
 | Role | R2 key | Notes |
 |------|--------|--------|
-| Opener hull / islands | `models/airship-zone/opener-scene.glb` | Convert + SI fit + meshopt + webp |
-| Legacy hull | `models/airship-zone/airship.glb` | Fallback |
+| Opener hull / islands | `models/airship-zone/opener-scene-7.glb` | **scene (7).glb** — keep names, **no 72 m squash** |
+| Legacy hull | `models/airship-zone/airship.glb` | Fallback only |
 | Cabin create | `models/airship-zone/cabin.prod.glb` | Prefer non-voxel; temp: `boatvoxelinside.glb` |
 | Crew | `models/airship-zone/npcs/*.prod.glb` | FBX→GLB convert; never runtime FBX |
 | Grudge6 fallback | `models/grudge6/races/WK_Characters.glb` | If NPC GLB missing |
+| Camera + capsule pins | `client/public/models/airship-zone/scene-camera.json` | From **project (6).json** |
 
 Runtime: `assetUrl(path)` → `/api/assets/...` → `assets.grudge-studio.com`.
 
 **Do not commit** FBX or multi-MB GLB. Camera JSON may stay in `client/public/models/airship-zone/*.json`.
 
+## Deck contract (scene 7 / project 6)
+
+| Name | Role |
+|------|------|
+| `Object_163_1` | Walkable multi-deck hull (~13 m SI already) |
+| `Object_16` · `Object_111` | Steering wheels — John Wayne home on **top** |
+| `Object_163` | Palm leaf fragment — **purge / hide** |
+| `characters` + 3 `Capsule` | Editor-only spawn pads (not in the GLB) — baked into scene-camera.json |
+
+- Captain John Wayne: top band, wheels, wander `Object_163_1` top  
+- Scourge: **mid** deck of the same hull  
+- Racalvin: **low** deck of the same hull  
+- Account roster (Railway `?era=warlords`, up to 4): plant on capsules → wander 163_1  
+
+Pathfinding: existing `MeshSceneNavMesh` (three-pathfinding + grid A*) baked **per Y-band** on 163_1. No new nav package.
+
 ## Convert + upload (local → R2)
 
-```powershell
-# 1) Optimize source
-npx @gltf-transform/cli optimize source.glb opener-scene.glb `
-  --texture-compress webp --texture-size 1024
+**Never** run `optimize` flatten/join or `fitOpenerSceneToSpan` (72 m) on this pack — that crushes 163_1 and drops names.
 
-# 2) Upload (Wrangler R2 or fleet asset pipeline)
-# wrangler r2 object put grudge-assets/models/airship-zone/opener-scene.glb --file=opener-scene.glb
-# Or use grudge-asset-convert / ObjectStore upload skill
+```powershell
+# 1) Keep node names — webp textures only
+node scripts/optimize-airship-opener.mjs
+
+# 2) Upload
+npx wrangler r2 object put grudge-assets/models/airship-zone/opener-scene.glb `
+  --file=tmp/airship-zone/opener-scene.glb --content-type=model/gltf-binary --remote
+# cwd: workers/cdn
 ```
 
-FBX NPCs: convert with same pipeline to `*.prod.glb`, SI height 2.0 m, then upload under `models/airship-zone/npcs/`.
+Author sources: `D:\Games\Models\scene (7).glb` + `D:\Games\Models\project (6).json`.
 
 ## Polish pipeline (`airshipScenePolish.ts`)
 
-1. **Weld** — mergeVertices (skip skinned)  
-2. **SI fit** — longest AABB → ~72 m span, feet on y=0  
-3. **Stylized toon** — MeshToonMaterial heuristics  
-4. **Posts** — helm / bow / mid deck for 3 captains  
+When `Object_163_1` is present: **skip weld / 72 m fit / toon** (hull already SI).  
+Otherwise (legacy hull): weld + 72 m span + toon + name posts.
 
 ## Flow
 
-1. Cabin (CDN) + Racalvin  
-2. Grudge6 create (WK/BRB/ELF/DWF/ORC/UD) or GCS  
-3. Hatch → deck posts (John helm · Scourge bow · Racalvin mid)  
+1. Load opener-scene.glb + project (6) camera  
+2. Bind 163_1 / wheels / baked capsules  
+3. Railway roster → capsules → wander 163_1  
+4. Cabin create only if no account heroes (first-time fallback)  

@@ -16,6 +16,9 @@ export interface MeshSceneNavMeshOptions {
   /** Minimum upward normal.y for a triangle to count as walkable floor */
   floorNormalYMin?: number;
   maxSampleHeight?: number;
+  /** Keep only hits in this world-Y band (multi-deck hulls like Object_163_1). */
+  yMin?: number;
+  yMax?: number;
 }
 
 export interface MeshNavBakeSummary {
@@ -43,6 +46,8 @@ export class MeshSceneNavMesh {
   private raycaster = new THREE.Raycaster();
   private down = new THREE.Vector3(0, -1, 0);
   private floorMeshes: THREE.Mesh[] = [];
+  private yMin: number | null = null;
+  private yMax: number | null = null;
 
   constructor(
     sceneRoot: THREE.Object3D,
@@ -50,6 +55,8 @@ export class MeshSceneNavMesh {
   ) {
     this.zoneId = opts.zoneId ?? 'mesh_scene';
     this.cellSize = opts.cellSizeM ?? 1.25;
+    this.yMin = opts.yMin ?? null;
+    this.yMax = opts.yMax ?? null;
     const floorNormalYMin = opts.floorNormalYMin ?? 0.55;
     const maxSampleHeight = opts.maxSampleHeight ?? 80;
 
@@ -116,6 +123,13 @@ export class MeshSceneNavMesh {
     this.raycaster.far = maxSampleHeight + (this.bounds.max.y - this.bounds.min.y) + 20;
     const hits = this.raycaster.intersectObjects(this.floorMeshes, false);
     if (!hits.length) return null;
+    if (this.yMin != null || this.yMax != null) {
+      const lo = this.yMin ?? -Infinity;
+      const hi = this.yMax ?? Infinity;
+      const inBand = hits.find((h) => h.point.y >= lo && h.point.y <= hi);
+      if (inBand) return inBand.point.y;
+      return null;
+    }
     return hits[0].point.y;
   }
 

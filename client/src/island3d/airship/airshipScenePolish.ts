@@ -1,8 +1,9 @@
 /**
  * Airship opener scene polish — weld, SI fit, stylized toon materials.
  *
- * Source: D:\Games\Models\scene (2).glb → /models/airship-zone/opener-scene.glb
- * (gltf-transform optimize: weld + meshopt + webp)
+ * Source: D:\Games\Models\scene (7).glb + project (6).json
+ * → R2 models/airship-zone/opener-scene.glb
+ * Walk hull Object_163_1 · wheels Object_16 / Object_111.
  */
 import * as THREE from 'three';
 import * as BufferGeometryUtils from 'three/examples/jsm/utils/BufferGeometryUtils.js';
@@ -218,15 +219,22 @@ export function findDeckPosts(root: THREE.Object3D): Record<DeckPostKind, THREE.
     deck: new THREE.Vector3(center.x, deckY, center.z),
   };
 
-  // Prefer named empties / meshes
+  // Prefer scene (7) names: Object_163_1 hull, Object_16 / Object_111 wheels
   const named: Partial<Record<DeckPostKind, THREE.Vector3>> = {};
   root.traverse((obj) => {
     const n = (obj.name || '').toLowerCase();
     if (!n) return;
     const wp = new THREE.Vector3();
     obj.getWorldPosition(wp);
-    if (/helm|wheel|stern|aft/.test(n)) named.helm = wp.clone();
-    if (/bow|prow|front|fore/.test(n)) named.bow = wp.clone();
+    if (n === 'object_16' || n === 'object_111') named.helm = wp.clone();
+    if (n === 'object_163_1') {
+      const box = new THREE.Box3().setFromObject(obj);
+      named.mid = box.getCenter(new THREE.Vector3());
+      named.deck = named.mid.clone();
+      named.bow = new THREE.Vector3(named.mid.x, box.max.y, box.max.z);
+    }
+    if (/helm|wheel|stern|aft/.test(n) && !named.helm) named.helm = wp.clone();
+    if (/bow|prow|front|fore/.test(n) && !named.bow) named.bow = wp.clone();
     if (/post|mast|mid|deck_center|quarter/.test(n) && !named.mid) named.mid = wp.clone();
   });
 
@@ -248,9 +256,14 @@ export function polishOpenerAirshipScene(root: THREE.Object3D): {
   posts: Record<DeckPostKind, THREE.Vector3>;
 } {
   root.name = root.name || 'opener_airship_scene';
-  const welded = weldSceneGeometries(root);
-  const scale = fitOpenerSceneToSpan(root, OPENER_SCENE_TARGET_SPAN_M);
-  const materials = applyStylizedToonMaterials(root);
+  let hull163 = false;
+  root.traverse((o) => {
+    if ((o.name || '').toLowerCase() === 'object_163_1') hull163 = true;
+  });
+  // scene (7): hull is already SI (~13 m). Do NOT squash the whole island pack to 72 m.
+  const welded = hull163 ? 0 : weldSceneGeometries(root);
+  const scale = hull163 ? 1 : fitOpenerSceneToSpan(root, OPENER_SCENE_TARGET_SPAN_M);
+  const materials = hull163 ? 0 : applyStylizedToonMaterials(root);
   const posts = findDeckPosts(root);
   return { scale, welded, materials, posts };
 }

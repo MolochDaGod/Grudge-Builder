@@ -28,6 +28,7 @@ import {
   applyCharacterHandoffFromLocation,
   persistActiveCharacter,
 } from '@/lib/characterHandoff';
+import { useCharacters } from '@/hooks/use-characters';
 
 const RACES = [
   { id: 'human', label: 'Human (WK)', prefix: 'WK_' },
@@ -44,6 +45,7 @@ export default function AirshipZonePage() {
   const mountRef = useRef<HTMLDivElement>(null);
   const zoneRef = useRef<AirshipSoloZone | null>(null);
   const [, setLocation] = useLocation();
+  const { characters, loading: rosterLoading } = useCharacters('warlords');
 
   const [phase, setPhase] = useState<AirshipZonePhase>('loading');
   const [prompt, setPrompt] = useState<string | null>('Loading airship zone…');
@@ -121,6 +123,21 @@ export default function AirshipZonePage() {
     };
   }, []);
 
+  const rosterKey = characters
+    .slice(0, 4)
+    .map((c) => c.id)
+    .join(',');
+  const rosterRef = useRef(characters);
+  rosterRef.current = characters;
+  useEffect(() => {
+    if (!ready || rosterLoading) return;
+    const zone = zoneRef.current;
+    if (!zone) return;
+    const roster = rosterRef.current.slice(0, 4);
+    if (!roster.length) return;
+    void zone.spawnAccountCrew(roster);
+  }, [ready, rosterLoading, rosterKey]);
+
   const onAcceptCreate = useCallback(async () => {
     if (!zoneRef.current || creating) return;
     setCreating(true);
@@ -188,8 +205,8 @@ export default function AirshipZonePage() {
         >
           {isTutorialComplete() ? 'Continue → Home island' : 'Continue → Tutorial island'}
         </Button>
-        <Button size="sm" variant="ghost" className="text-stone-300" onClick={() => setLocation('/heroes')}>
-          Characters
+        <Button size="sm" variant="ghost" className="text-stone-300" onClick={() => setLocation('/warlords/heroes')}>
+          Roster
         </Button>
         <Button size="sm" variant="ghost" className="text-stone-300" onClick={() => setLocation('/home')}>
           Hub

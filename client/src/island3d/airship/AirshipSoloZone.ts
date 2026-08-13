@@ -1,11 +1,9 @@
 /**
- * AirshipSoloZone — solo game zone: cabin create → deck with 3 captains.
- *
- * Scene: airship.glb + boatvoxelinside + camera from PerspectiveCamera / project extract.
- * Heroes: 2.0 m, Mixamo/custom skinned NPCs with simple patrol + E chat.
+ * AirshipSoloZone — 4-character Warlords airship.
+ * Walk hull Object_163_1 · wheels Object_16 / Object_111.
+ * Account heroes plant on project (6) capsules then wander 163_1.
  */
 import * as THREE from 'three';
-import { GLTFLoader } from 'three/addons/loaders/GLTFLoader.js';
 import { OrbitControls } from 'three/examples/jsm/controls/OrbitControls.js';
 import { assetUrl } from '@/lib/assetConfig';
 import { fitCharacterRootToHeightM } from '@/island3d/zoneWorldScale';
@@ -36,8 +34,22 @@ import {
   polishOpenerAirshipScene,
   type DeckPostKind,
 } from '@/island3d/airship/airshipScenePolish';
-
-const gltfLoader = new GLTFLoader();
+import {
+  bindDeck163,
+  sampleHullHeight,
+  wanderPointsForBand,
+  type Deck163Bind,
+  type Deck163SlotPin,
+  type DeckBand,
+} from '@/island3d/airship/airshipDeck163';
+import { MeshSceneNavMesh } from '@/island3d/navigation/MeshSceneNavMesh';
+import type { Character } from '@/lib/characterManager';
+import { loadCrewHero } from '@/components/heroes/heroesCrewLoader';
+import {
+  ensureSharedGltfReady,
+  loadGltfCached,
+} from '@/lib/three/SharedGltfPipeline';
+import type { GLTF } from 'three/examples/jsm/loaders/GLTFLoader.js';
 
 export type AirshipZonePhase = 'loading' | 'cabin_create' | 'deck' | 'chat';
 
@@ -55,6 +67,9 @@ interface NpcRuntime {
   waypointIndex: number;
   idle: number;
   inCabin: boolean;
+  band: DeckBand;
+  path: THREE.Vector3[];
+  pathIdx: number;
 }
 
 export class AirshipSoloZone {
@@ -130,15 +145,17 @@ export class AirshipSoloZone {
     fill.position.set(-30, 20, -40);
     this.scene.add(fill);
 
-    // Soft sky deck plane under ship (terrain/wood feel)
+    // Soft sky pad — hidden when Object_163_1 is the walk mesh
     const deckPad = new THREE.Mesh(
       new THREE.CircleGeometry(90, 48),
       new THREE.MeshToonMaterial({ color: 0x3d5c4a }),
     );
+    deckPad.name = 'legacy_deck_pad';
     deckPad.rotation.x = -Math.PI / 2;
     deckPad.position.y = -0.5;
     deckPad.receiveShadow = true;
     this.scene.add(deckPad);
+    this.legacyDeckPad = deckPad;
 
     window.addEventListener('resize', this.onResize);
     window.addEventListener('keydown', this.onKeyDown);
@@ -192,6 +209,10 @@ export class AirshipSoloZone {
         this.controls.target.set(0, 3, 0);
       }
       if (data?.camera?.object?.fov) this.camera.fov = data.camera.object.fov;
+      const pins = data?.deck163?.slots as Deck163SlotPin[] | undefined;
+      if (Array.isArray(pins) && pins.length) {
+        this.bakedSlots = pins.filter((s) => Number.isFinite(s.x) && Number.isFinite(s.y) && Number.isFinite(s.z));
+      }
       this.camera.updateProjectionMatrix();
       this.controls.update();
     } catch {
@@ -202,12 +223,27 @@ export class AirshipSoloZone {
   }
 
   private deckPosts: Record<DeckPostKind, THREE.Vector3> | null = null;
+  private deck163: Deck163Bind | null = null;
+  private bakedSlots: Deck163SlotPin[] | null = null;
+  private legacyDeckPad: THREE.Mesh | null = null;
+  private deckNav: Partial<Record<DeckBand, MeshSceneNavMesh>> = {};
+  private accountCrew: Array<{
+    heroId: string;
+    root: THREE.Group;
+    wp: THREE.Vector3[];
+    idx: number;
+    idle: number;
+    band: DeckBand;
+    path: THREE.Vector3[];
+    pathIdx: number;
+  }> = [];
 
-  private async loadGltfChain(urls: string[]): Promise<Awaited<ReturnType<typeof gltfLoader.loadAsync>>> {
+  private async loadGltfChain(urls: string[]): Promise<GLTF> {
+    await ensureSharedGltfReady();
     let last: unknown;
     for (const u of urls) {
       try {
-        return await gltfLoader.loadAsync(assetUrl(u));
+        return await loadGltfCached(assetUrl(u), 'critical');
       } catch (e) {
         last = e;
         console.warn('[AirshipZone] load miss', u, e);
@@ -233,11 +269,77 @@ export class AirshipSoloZone {
     );
 
     this.scene.add(this.airshipRoot);
+    this.deck163 = bindDeck163(this.airshipRoot, this.bakedSlots);
+    if (this.deck163) {
+      if (this.legacyDeckPad) this.legacyDeckPad.visible = false;
+      this.bakeDeck163Nav(this.deck163);
+      this.frameCameraOnHull(this.deck163);
+      console.info(
+        `[AirshipZone] deck163 hull=${this.deck163.hull.name} wheels=${this.deck163.wheels.map((w) => w.name).join(',')} slots=${this.deck163.slots.length}`,
+      );
+    }
     this.retargetNpcWaypointsToShip();
+  }
+
+  private bakeDeck163Nav(bind: Deck163Bind): void {
+    for (const nav of Object.values(this.deckNav)) nav?.dispose();
+    this.deckNav = {};
+    const bands: DeckBand[] = ['top', 'mid', 'low'];
+    for (const band of bands) {
+      const y = bind.bandY[band];
+      try {
+        this.deckNav[band] = new MeshSceneNavMesh(bind.hull, {
+          zoneId: `deck163_${band}`,
+          cellSizeM: 0.55,
+          floorNormalYMin: 0.35,
+          maxSampleHeight: 24,
+          yMin: y.min,
+          yMax: y.max,
+        });
+      } catch (e) {
+        console.warn('[AirshipZone] deck nav bake skip', band, e);
+      }
+    }
+  }
+
+  private frameCameraOnHull(bind: Deck163Bind): void {
+    const home = bind.johnHome;
+    const camY = this.camera.position.y;
+    if (Math.abs(camY - home.y) < 24) return;
+    this.camera.position.set(home.x + 10, home.y + 6, home.z + 14);
+    this.controls.target.set(home.x, home.y + 1.6, home.z);
+    this.controls.update();
   }
 
   private retargetNpcWaypointsToShip(): void {
     if (!this.airshipRoot) return;
+    const d163 = this.deck163;
+    if (d163) {
+      const john = wanderPointsForBand(d163, 'top', 4);
+      john.unshift(d163.johnHome);
+      const scourge = wanderPointsForBand(d163, 'mid', 4);
+      scourge.unshift(d163.scourgeHome);
+      const rac = wanderPointsForBand(d163, 'low', 4);
+      rac.unshift(d163.racalvinHome);
+      for (const def of AIRSHIP_NPCS) {
+        const pts =
+          def.role === 'helm' ? john : def.role === 'bow_patrol' ? scourge : rac;
+        def.waypoints = pts.map((p) => ({ x: p.x, y: p.y, z: p.z }));
+        const h = pts[0]!;
+        def.cameraFocusLocal = { x: h.x, y: h.y + 2.2, z: h.z - 2 };
+      }
+      this.doorLocal = {
+        x: d163.racalvinHome.x,
+        y: d163.racalvinHome.y + 0.05,
+        z: d163.racalvinHome.z,
+      };
+      this.deckSpawn = {
+        x: d163.slots[0]?.x ?? d163.johnHome.x,
+        y: d163.slots[0]?.y ?? d163.johnHome.y,
+        z: d163.slots[0]?.z ?? d163.johnHome.z,
+      };
+      return;
+    }
     const posts = this.deckPosts;
     const box = new THREE.Box3().setFromObject(this.airshipRoot);
     const size = box.getSize(new THREE.Vector3());
@@ -366,7 +468,7 @@ export class AirshipSoloZone {
           console.warn('[AirshipZone] skipping FBX (not in CDN pipeline)', p);
           continue;
         }
-        const gltf = await gltfLoader.loadAsync(assetUrl(p));
+        const gltf = await loadGltfCached(assetUrl(p), 'high');
         return gltf.scene as THREE.Group;
       } catch (e) {
         last = e;
@@ -424,6 +526,9 @@ export class AirshipSoloZone {
           waypointIndex: 0,
           idle: 0,
           inCabin: startInCabin,
+          band: def.role === 'helm' ? 'top' : def.role === 'bow_patrol' ? 'mid' : 'low',
+          path: [],
+          pathIdx: 0,
         });
       } catch (e) {
         console.warn('[AirshipZone] NPC load failed', def.id, e);
@@ -445,6 +550,9 @@ export class AirshipSoloZone {
           waypointIndex: 0,
           idle: 0,
           inCabin: def.id === 'racalvin_king' && !airshipHasSavedCharacter(),
+          band: def.role === 'helm' ? 'top' : def.role === 'bow_patrol' ? 'mid' : 'low',
+          path: [],
+          pathIdx: 0,
         });
       }
     }
@@ -480,7 +588,7 @@ export class AirshipSoloZone {
     const prefix = raceMeshPrefix(id);
     const path = `/models/grudge6/races/${prefix}_Characters.glb`;
     try {
-      const gltf = await gltfLoader.loadAsync(assetUrl(path));
+      const gltf = await loadGltfCached(assetUrl(path), 'critical');
       // Clear placeholder
       while (this.playerRoot.children.length) {
         this.playerRoot.remove(this.playerRoot.children[0]!);
@@ -666,35 +774,154 @@ export class AirshipSoloZone {
     }
   }
 
+  private plantOnHull(pos: THREE.Vector3, band?: DeckBand): void {
+    if (!this.deck163) return;
+    const nav = band ? this.deckNav[band] : undefined;
+    const hy = nav?.getHeightAt(pos.x, pos.z);
+    if (hy != null) {
+      pos.y = hy;
+      return;
+    }
+    pos.y = sampleHullHeight(this.deck163.hull, pos.x, pos.z, pos.y);
+  }
+
+  private planPath(from: THREE.Vector3, to: THREE.Vector3, band: DeckBand): THREE.Vector3[] {
+    const nav = this.deckNav[band];
+    if (nav) {
+      const path = nav.findPath(from, to);
+      if (path?.points.length) return path.points;
+    }
+    return [to.clone()];
+  }
+
+  private walkToward(
+    pos: THREE.Vector3,
+    target: THREE.Vector3,
+    speed: number,
+    dt: number,
+    rot: THREE.Object3D,
+    band?: DeckBand,
+    route?: { path: THREE.Vector3[]; pathIdx: number },
+  ): boolean {
+    if (route && (!route.path.length || route.pathIdx >= route.path.length)) {
+      route.path = this.planPath(pos, target, band ?? 'top');
+      route.pathIdx = 0;
+    }
+    const dest = (route?.path[route.pathIdx] ?? target).clone();
+    this.plantOnHull(dest, band);
+    const dir = dest.clone().sub(pos);
+    dir.y = 0;
+    const dist = dir.length();
+    if (dist < 0.35) {
+      this.plantOnHull(pos, band);
+      if (route) {
+        route.pathIdx += 1;
+        if (route.pathIdx >= route.path.length) {
+          route.path = [];
+          route.pathIdx = 0;
+          return true;
+        }
+        return false;
+      }
+      return true;
+    }
+    dir.normalize();
+    pos.addScaledVector(dir, speed * dt);
+    this.plantOnHull(pos, band);
+    rot.rotation.y = Math.atan2(dir.x, dir.z);
+    return false;
+  }
+
   private updateNpcs(dt: number): void {
     for (const npc of this.npcs.values()) {
-      if (npc.def.role === 'helm') {
-        // Stay at wheel
-        const wp = npc.def.waypoints[0]!;
-        npc.root.position.lerp(new THREE.Vector3(wp.x, wp.y, wp.z), 0.05);
+      if (npc.inCabin) continue;
+      npc.idle -= dt;
+      if (npc.idle > 0) {
+        this.plantOnHull(npc.root.position, npc.band);
         continue;
       }
-      if (npc.inCabin) continue; // mentor waits in cabin
-      if (npc.def.role === 'bow_patrol' || npc.def.role === 'mentor_wander') {
-        npc.idle -= dt;
-        if (npc.idle > 0) continue;
-        const wps = npc.def.waypoints;
-        const target = wps[npc.waypointIndex % wps.length]!;
-        const pos = npc.root.position;
-        const dest = new THREE.Vector3(target.x, target.y, target.z);
-        const dir = dest.clone().sub(pos);
-        dir.y = 0;
-        const dist = dir.length();
-        if (dist < 0.35) {
-          npc.waypointIndex++;
-          npc.idle = 1.2 + Math.random() * 2;
-        } else {
-          dir.normalize();
-          const speed = npc.def.role === 'bow_patrol' ? 1.4 : 1.8;
-          pos.addScaledVector(dir, speed * dt);
-          npc.root.rotation.y = Math.atan2(dir.x, dir.z);
-        }
+      const wps = npc.def.waypoints;
+      if (!wps.length) continue;
+      const target = wps[npc.waypointIndex % wps.length]!;
+      const arrived = this.walkToward(
+        npc.root.position,
+        new THREE.Vector3(target.x, target.y, target.z),
+        npc.def.role === 'helm' ? 1.15 : npc.def.role === 'bow_patrol' ? 1.4 : 1.8,
+        dt,
+        npc.root,
+        npc.band,
+        npc,
+      );
+      if (arrived) {
+        npc.waypointIndex++;
+        npc.idle = npc.def.role === 'helm' ? 2.2 + Math.random() * 2 : 1.2 + Math.random() * 2;
       }
+    }
+    for (const crew of this.accountCrew) {
+      crew.idle -= dt;
+      if (crew.idle > 0) {
+        this.plantOnHull(crew.root.position, crew.band);
+        continue;
+      }
+      const target = crew.wp[crew.idx % crew.wp.length];
+      if (!target) continue;
+      const arrived = this.walkToward(
+        crew.root.position,
+        target,
+        1.2,
+        dt,
+        crew.root,
+        crew.band,
+        crew,
+      );
+      if (arrived) {
+        crew.idx++;
+        crew.idle = 1.5 + Math.random() * 2.5;
+      }
+    }
+  }
+
+  /** Place up to 4 Railway Warlords heroes on the author capsules; they wander Object_163_1. */
+  async spawnAccountCrew(heroes: Character[]): Promise<void> {
+    for (const c of this.accountCrew) {
+      this.scene.remove(c.root);
+    }
+    this.accountCrew = [];
+    const slots = this.deck163?.slots ?? [];
+    const filled = heroes.filter(Boolean).slice(0, 4);
+    for (let i = 0; i < filled.length; i++) {
+      const hero = filled[i]!;
+      try {
+        const loaded = await loadCrewHero(hero);
+        const root = new THREE.Group();
+        root.name = `account_crew_${hero.id}`;
+        root.add(loaded.root);
+        const spawn = slots[i] ?? this.deck163?.johnHome ?? new THREE.Vector3();
+        const band: DeckBand = i === 0 ? 'top' : i === 1 ? 'mid' : i === 2 ? 'low' : 'top';
+        root.position.copy(spawn);
+        this.plantOnHull(root.position, band);
+        this.scene.add(root);
+        const bandPts = this.deck163
+          ? wanderPointsForBand(this.deck163, band, 4)
+          : [spawn.clone()];
+        this.accountCrew.push({
+          heroId: hero.id,
+          root,
+          wp: [spawn.clone(), ...bandPts],
+          idx: 0,
+          idle: 0.4 + i * 0.3,
+          band,
+          path: [],
+          pathIdx: 0,
+        });
+      } catch (e) {
+        console.warn('[AirshipZone] account crew skip', hero.id, e);
+      }
+    }
+    if (this.accountCrew.length) {
+      this.exitCabinToDeck(false);
+      this.setPhase('deck');
+      this.events.onPrompt?.('Account crew on Object_163_1 — John at the wheels, decks wandering.');
     }
   }
 
@@ -729,11 +956,21 @@ export class AirshipSoloZone {
       this.playerRoot.rotation.y = angle;
     }
 
-    // Ground Y: cabin floor or deck
-    const groundY =
+    // Ground Y: cabin floor or Object_163_1
+    let groundY =
       this.inCabin && this.cabinRoot
         ? this.cabinRoot.position.y + 0.25
         : this.deckSpawn.y;
+    if (!this.inCabin && this.deck163) {
+      groundY =
+        this.deckNav.top?.getHeightAt(this.playerRoot.position.x, this.playerRoot.position.z) ??
+        sampleHullHeight(
+          this.deck163.hull,
+          this.playerRoot.position.x,
+          this.playerRoot.position.z,
+          groundY,
+        );
+    }
 
     // threejs-games random-boxes hold-to-jump (Space)
     const spaceHeld = this.keys.has(' ') || this.keys.has('Space');
@@ -789,6 +1026,8 @@ export class AirshipSoloZone {
 
   dispose(): void {
     this._disposed = true;
+    for (const nav of Object.values(this.deckNav)) nav?.dispose();
+    this.deckNav = {};
     cancelAnimationFrame(this.raf);
     window.removeEventListener('resize', this.onResize);
     window.removeEventListener('keydown', this.onKeyDown);
