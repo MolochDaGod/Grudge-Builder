@@ -4,7 +4,6 @@
  * Four invisible capsules under `characters` are account-hero slots.
  */
 import * as THREE from 'three';
-import { MeshBVH } from 'three-mesh-bvh';
 
 export const DECK_HULL_NAMES = ['Object_163_1', 'object_163_1'] as const;
 export const WHEEL_NAMES = ['Object_16', 'Object_111', 'object_16', 'object_111'] as const;
@@ -134,14 +133,6 @@ export function bindDeck163(
   if (chars[0]) chars[0].visible = false;
 
   hull.updateMatrixWorld(true);
-  try {
-    const geo = hull.geometry as THREE.BufferGeometry;
-    if (geo && !(geo as unknown as { boundsTree?: MeshBVH }).boundsTree) {
-      (geo as unknown as { boundsTree?: MeshBVH }).boundsTree = new MeshBVH(geo);
-    }
-  } catch {
-    /* hull still walkable via raw raycast */
-  }
   const box = new THREE.Box3().setFromObject(hull);
   const center = box.getCenter(new THREE.Vector3());
   const samples = sampleHullPoints(hull, 64);

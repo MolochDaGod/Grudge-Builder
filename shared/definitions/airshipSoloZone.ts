@@ -18,10 +18,10 @@ export const AIRSHIP_ZONE_VERSION = '2.1.0';
  * JSON camera pins may remain in repo (tiny); all meshes are CDN-only.
  */
 export const AIRSHIP_ZONE_PATHS = {
-  /** Scene (7) + project (6) — new key so CDN immutable cache cannot serve the old opener */
-  airship: '/models/airship-zone/opener-scene-7.glb',
-  /** Previous opener (may be stale at edge) */
-  airshipLegacy: '/models/airship-zone/opener-scene.glb',
+  /** Scene (7) playable — skins stripped, dequantized. New key busts immutable CDN. */
+  airship: '/models/airship-zone/opener-scene-8.glb',
+  /** Legacy hull only — do not fall back to skinned scene-7 (Ve/clone crash) */
+  airshipLegacy: '/models/airship-zone/airship.glb',
   /**
    * Cabin create — prefer cabin.prod.glb (non-voxel) on R2.
    * boatvoxelinside is temporary until converted cabin ships.

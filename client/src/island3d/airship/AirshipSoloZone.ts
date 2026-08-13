@@ -32,6 +32,7 @@ import {
 } from '@/island3d/physics/PlatformerJump';
 import {
   polishOpenerAirshipScene,
+  findDeckPosts,
   type DeckPostKind,
 } from '@/island3d/airship/airshipScenePolish';
 import {
@@ -261,8 +262,13 @@ export class AirshipSoloZone {
     this.airshipRoot = gltf.scene as THREE.Group;
     this.airshipRoot.name = 'airship_opener_scene';
 
-    // Weld + SI fit + stylized toon materials (realism-stylized)
-    const polish = polishOpenerAirshipScene(this.airshipRoot);
+    let polish: ReturnType<typeof polishOpenerAirshipScene>;
+    try {
+      polish = polishOpenerAirshipScene(this.airshipRoot);
+    } catch (e) {
+      console.warn('[AirshipZone] polish skip', e);
+      polish = { scale: 1, welded: 0, materials: 0, posts: findDeckPosts(this.airshipRoot) };
+    }
     this.deckPosts = polish.posts;
     console.info(
       `[AirshipZone] opener polish scale=${polish.scale.toFixed(4)} welded=${polish.welded} mats=${polish.materials}`,
