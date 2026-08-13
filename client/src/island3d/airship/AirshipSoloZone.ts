@@ -168,8 +168,16 @@ export class AirshipSoloZone {
     try {
       await this.applyCameraFromProject();
       await this.loadAirship();
-      await this.loadCabin();
-      await this.spawnNpcs();
+      try {
+        await this.loadCabin();
+      } catch (e) {
+        console.warn('[AirshipZone] cabin skip — deck still playable', e);
+      }
+      try {
+        await this.spawnNpcs();
+      } catch (e) {
+        console.warn('[AirshipZone] npc skip', e);
+      }
       await this.setupPlayer();
       this.setPhase(airshipHasSavedCharacter() ? 'deck' : 'cabin_create');
       if (this.phase === 'deck') {
@@ -278,11 +286,8 @@ export class AirshipSoloZone {
     this.deck163 = bindDeck163(this.airshipRoot, this.bakedSlots);
     if (this.deck163) {
       if (this.legacyDeckPad) this.legacyDeckPad.visible = false;
-      try {
-        this.bakeDeck163Nav(this.deck163);
-      } catch (e) {
-        console.warn('[AirshipZone] deck nav bake failed — waypoint walk only', e);
-      }
+      // Pathfinding bake deferred — production minify was throwing Ve/Je from
+      // three-pathfinding mergeVertices / createZone on this hull. Waypoint + hull ray is enough.
       this.frameCameraOnHull(this.deck163);
       console.info(
         `[AirshipZone] deck163 hull=${this.deck163.hull.name} wheels=${this.deck163.wheels.map((w) => w.name).join(',')} slots=${this.deck163.slots.length}`,
