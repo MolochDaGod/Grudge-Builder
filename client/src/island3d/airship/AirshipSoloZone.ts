@@ -46,10 +46,7 @@ import {
 import { MeshSceneNavMesh } from '@/island3d/navigation/MeshSceneNavMesh';
 import type { Character } from '@/lib/characterManager';
 import { loadCrewHero } from '@/components/heroes/heroesCrewLoader';
-import {
-  ensureSharedGltfReady,
-  loadGltfCached,
-} from '@/lib/three/SharedGltfPipeline';
+import { loadGltfCached } from '@/lib/three/SharedGltfPipeline';
 import type { GLTF } from 'three/examples/jsm/loaders/GLTFLoader.js';
 
 export type AirshipZonePhase = 'loading' | 'cabin_create' | 'deck' | 'chat';
@@ -248,7 +245,9 @@ export class AirshipSoloZone {
   }> = [];
 
   private async loadGltfChain(urls: string[]): Promise<GLTF> {
-    await ensureSharedGltfReady();
+    // Do not call ensureSharedGltfReady() here — the three-app production chunk
+    // currently exports that binding as undefined (Ve/Je is not a function).
+    // loadGltfCached → ensureLoader already attaches DRACO + meshopt.
     let last: unknown;
     for (const u of urls) {
       try {

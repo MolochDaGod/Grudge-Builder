@@ -68,6 +68,16 @@ function ensureLoader(): GLTFLoader {
   return _loader;
 }
 
+/** Safe even when Vite circular-chunks the named export. */
+export function ensureSharedGltfReady(): Promise<GLTFLoader> {
+  const loader = ensureLoader();
+  const ready = (MeshoptDecoder as { ready?: Promise<unknown> } | undefined)?.ready;
+  if (ready && typeof (ready as { then?: unknown }).then === 'function') {
+    return Promise.resolve(ready).then(() => loader);
+  }
+  return Promise.resolve(loader);
+}
+
 /** Absolute or CDN URL → cache key */
 function cacheKey(url: string): string {
   return url.split('?')[0];
