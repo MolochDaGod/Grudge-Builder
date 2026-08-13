@@ -18,9 +18,9 @@ export const AIRSHIP_ZONE_VERSION = '2.1.0';
  * JSON camera pins may remain in repo (tiny); all meshes are CDN-only.
  */
 export const AIRSHIP_ZONE_PATHS = {
-  /** Scene (7) playable — skins stripped, dequantized. New key busts immutable CDN. */
-  airship: '/models/airship-zone/opener-scene-8.glb',
-  /** Legacy hull only — do not fall back to skinned scene-7 (Ve/clone crash) */
+  /** Scene (7) playable — no skins, dequantized, webp→png. New key busts CDN. */
+  airship: '/models/airship-zone/opener-scene-9.glb',
+  /** Legacy hull only — do not fall back to skinned/quantized scene-7/8 */
   airshipLegacy: '/models/airship-zone/airship.glb',
   /**
    * Cabin create — prefer cabin.prod.glb (non-voxel) on R2.

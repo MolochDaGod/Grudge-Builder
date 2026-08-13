@@ -278,7 +278,11 @@ export class AirshipSoloZone {
     this.deck163 = bindDeck163(this.airshipRoot, this.bakedSlots);
     if (this.deck163) {
       if (this.legacyDeckPad) this.legacyDeckPad.visible = false;
-      this.bakeDeck163Nav(this.deck163);
+      try {
+        this.bakeDeck163Nav(this.deck163);
+      } catch (e) {
+        console.warn('[AirshipZone] deck nav bake failed — waypoint walk only', e);
+      }
       this.frameCameraOnHull(this.deck163);
       console.info(
         `[AirshipZone] deck163 hull=${this.deck163.hull.name} wheels=${this.deck163.wheels.map((w) => w.name).join(',')} slots=${this.deck163.slots.length}`,
