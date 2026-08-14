@@ -1,29 +1,23 @@
 /**
- * AirshipSoloZone — 4-character Warlords airship.
+ * AirshipSoloZone — Warlords pre-game deck.
  * Walk hull Object_163_1 · wheels Object_16 / Object_111.
- * Account heroes plant on project (6) capsules then wander 163_1.
+ * Player + pirate crew = original-30 Toon looks at 1.8 m, deck nav + Foot IK.
+ * No cabin. No voxel interior.
  */
 import * as THREE from 'three';
 import { OrbitControls } from 'three/examples/jsm/controls/OrbitControls.js';
 import { assetUrl } from '@/lib/assetConfig';
-import { fitCharacterRootToHeightM } from '@/island3d/zoneWorldScale';
 import {
   AIRSHIP_ZONE_PATHS,
   AIRSHIP_NPCS,
-  AIRSHIP_HERO_HEIGHT_M,
   AIRSHIP_CABIN_DOOR_LOCAL,
   AIRSHIP_DECK_SPAWN_LOCAL,
-  AIRSHIP_CABIN_SPAWN_LOCAL,
   airshipHasSavedCharacter,
   markAirshipCharacterCreated,
   loadAirshipCharacter,
   type AirshipNpcDef,
   type AirshipNpcId,
 } from '@shared/definitions/airshipSoloZone';
-import {
-  deploySafeCharacter,
-  formatSafeReport,
-} from '@/lib/safeCharacter';
 import {
   AIRSHIP_DECK_JUMP,
   createJumpState,
@@ -45,9 +39,17 @@ import {
 } from '@/island3d/airship/airshipDeck163';
 import { MeshSceneNavMesh } from '@/island3d/navigation/MeshSceneNavMesh';
 import type { Character } from '@/lib/characterManager';
-import { loadCrewHero } from '@/components/heroes/heroesCrewLoader';
 import { loadGltfCached } from '@/lib/three/SharedGltfPipeline';
 import type { GLTF } from 'three/examples/jsm/loaders/GLTFLoader.js';
+import {
+  createDeckActor,
+  tickDeckActor,
+  playDeckTalk,
+  revealPirateDeckMeshes,
+  originalThirtyRoleFromClass,
+  groundSkinnedFeetLocal,
+  type DeckActor,
+} from '@/island3d/airship/airshipDeckActor';
 
 export type AirshipZonePhase = 'loading' | 'cabin_create' | 'deck' | 'chat';
 
@@ -62,6 +64,7 @@ export interface AirshipZoneEvents {
 interface NpcRuntime {
   def: AirshipNpcDef;
   root: THREE.Group;
+  actor: DeckActor | null;
   waypointIndex: number;
   idle: number;
   inCabin: boolean;
@@ -83,18 +86,20 @@ export class AirshipSoloZone {
   private doorMarker: THREE.Mesh | null = null;
   private npcs = new Map<AirshipNpcId, NpcRuntime>();
   private playerRoot: THREE.Group | null = null;
+  private playerActor: DeckActor | null = null;
   private keys = new Set<string>();
   private phase: AirshipZonePhase = 'loading';
   private raf = 0;
   private clock = new THREE.Clock();
   private _disposed = false;
   private playerLocal = new THREE.Vector3(
-    AIRSHIP_CABIN_SPAWN_LOCAL.x,
-    AIRSHIP_CABIN_SPAWN_LOCAL.y,
-    AIRSHIP_CABIN_SPAWN_LOCAL.z,
+    AIRSHIP_DECK_SPAWN_LOCAL.x,
+    AIRSHIP_DECK_SPAWN_LOCAL.y,
+    AIRSHIP_DECK_SPAWN_LOCAL.z,
   );
   private playerYaw = 0;
-  private inCabin = true;
+  /** Cabin / voxel quarters purged from Warlords pre-game — always deck. */
+  private inCabin = false;
   private eLatch = false;
   private chatCooldown = 0;
   private doorLocal = { ...AIRSHIP_CABIN_DOOR_LOCAL };
@@ -165,23 +170,10 @@ export class AirshipSoloZone {
     try {
       await this.applyCameraFromProject();
       await this.loadAirship();
-      try {
-        await this.loadCabin();
-      } catch (e) {
-        console.warn('[AirshipZone] cabin skip — deck still playable', e);
-      }
-      try {
-        await this.spawnNpcs();
-      } catch (e) {
-        console.warn('[AirshipZone] npc skip', e);
-      }
+      await this.spawnNpcs();
       await this.setupPlayer();
+      this.exitCabinToDeck(false);
       this.setPhase(airshipHasSavedCharacter() ? 'deck' : 'cabin_create');
-      if (this.phase === 'deck') {
-        this.exitCabinToDeck(false);
-      } else {
-        this.enterCabin(true);
-      }
       this.events.onReady?.();
       this.loop();
     } catch (e) {
@@ -236,6 +228,7 @@ export class AirshipSoloZone {
   private accountCrew: Array<{
     heroId: string;
     root: THREE.Group;
+    actor: DeckActor | null;
     wp: THREE.Vector3[];
     idx: number;
     idle: number;
@@ -243,6 +236,11 @@ export class AirshipSoloZone {
     path: THREE.Vector3[];
     pathIdx: number;
   }> = [];
+
+  private deckIkMeshes(): THREE.Object3D[] {
+    const hull = this.deck163?.hull;
+    return hull ? [hull] : [];
+  }
 
   private async loadGltfChain(urls: string[]): Promise<GLTF> {
     // Do not call ensureSharedGltfReady() here — the three-app production chunk
@@ -282,11 +280,16 @@ export class AirshipSoloZone {
     );
 
     this.scene.add(this.airshipRoot);
+    const pirateMeshes = revealPirateDeckMeshes(this.airshipRoot);
+    console.info(`[AirshipZone] pirate deck meshes visible=${pirateMeshes}`);
     this.deck163 = bindDeck163(this.airshipRoot, this.bakedSlots);
     if (this.deck163) {
       if (this.legacyDeckPad) this.legacyDeckPad.visible = false;
-      // Pathfinding bake deferred — production minify was throwing Ve/Je from
-      // three-pathfinding mergeVertices / createZone on this hull. Waypoint + hull ray is enough.
+      try {
+        this.bakeDeck163Nav(this.deck163);
+      } catch (e) {
+        console.warn('[AirshipZone] deck nav bake failed — waypoint walk only', e);
+      }
       this.frameCameraOnHull(this.deck163);
       console.info(
         `[AirshipZone] deck163 hull=${this.deck163.hull.name} wheels=${this.deck163.wheels.map((w) => w.name).join(',')} slots=${this.deck163.slots.length}`,
@@ -405,229 +408,82 @@ export class AirshipSoloZone {
     };
   }
 
-  private async loadCabin(): Promise<void> {
-    const gltf = await this.loadGltfChain([
-      AIRSHIP_ZONE_PATHS.interior,
-      AIRSHIP_ZONE_PATHS.interiorFallback,
-    ]);
-    this.cabinRoot = gltf.scene as THREE.Group;
-    this.cabinRoot.name = 'airship_cabin';
-    // Boat-inside voxel: weld + toon polish (same pipeline, smaller span)
-    try {
-      const { weldSceneGeometries, applyStylizedToonMaterials, fitOpenerSceneToSpan } =
-        await import('@/island3d/airship/airshipScenePolish');
-      weldSceneGeometries(this.cabinRoot);
-      fitOpenerSceneToSpan(this.cabinRoot, 14);
-      applyStylizedToonMaterials(this.cabinRoot);
-    } catch {
-      this.cabinRoot.traverse((c) => {
-        if ((c as THREE.Mesh).isMesh) {
-          c.castShadow = true;
-          c.receiveShadow = true;
-        }
-      });
-    }
-    // Position cabin under / inside ship mid-deck hatch
-    if (this.airshipRoot) {
-      const box = new THREE.Box3().setFromObject(this.airshipRoot);
-      const c = box.getCenter(new THREE.Vector3());
-      const deckY = this.deckSpawn.y > 0 ? this.deckSpawn.y - 0.4 : box.min.y + 0.8;
-      this.cabinRoot.position.set(
-        this.doorLocal.x || c.x,
-        deckY - 2.2,
-        this.doorLocal.z || c.z,
-      );
-    }
-    // Floor plate
-    const box = new THREE.Box3().setFromObject(this.cabinRoot);
-    const floorY = box.isEmpty() ? 0 : box.min.y + 0.05;
-    const floor = new THREE.Mesh(
-      new THREE.BoxGeometry(12, 0.15, 12),
-      new THREE.MeshBasicMaterial({ visible: false }),
-    );
-    floor.position.set(0, floorY, 0);
-    floor.name = 'cabin_floor';
-    this.cabinRoot.add(floor);
-    this.scene.add(this.cabinRoot);
-
-    // Hatch marker on deck
-    const ring = new THREE.Mesh(
-      new THREE.RingGeometry(0.4, 0.55, 24),
-      new THREE.MeshBasicMaterial({
-        color: 0xfbbf24,
-        transparent: true,
-        opacity: 0.65,
-        side: THREE.DoubleSide,
-        depthWrite: false,
-      }),
-    );
-    ring.rotation.x = -Math.PI / 2;
-    ring.position.set(this.doorLocal.x, this.doorLocal.y, this.doorLocal.z);
-    ring.name = 'cabin_hatch_marker';
-    this.doorMarker = ring;
-    this.scene.add(ring);
-  }
-
-  /**
-   * Load NPC mesh: production GLB on R2 only (no FBX in runtime).
-   * Fallback: fleet grudge6 WK race kit (mesh+texture equip system).
-   */
-  private async loadNpcModel(path: string): Promise<THREE.Group> {
-    const candidates = [path, AIRSHIP_ZONE_PATHS.grudge6HumanFallback];
-    let last: unknown;
-    for (const p of candidates) {
-      try {
-        // Never load .fbx in production path — convert to .prod.glb on R2
-        if (p.toLowerCase().endsWith('.fbx')) {
-          console.warn('[AirshipZone] skipping FBX (not in CDN pipeline)', p);
-          continue;
-        }
-        const gltf = await loadGltfCached(assetUrl(p), 'high');
-        return gltf.scene as THREE.Group;
-      } catch (e) {
-        last = e;
-      }
-    }
-    throw last instanceof Error ? last : new Error(`NPC model failed ${path}`);
+  /** Helm = knight · bow = spearman · Racalvin = mage — original 30 looks. */
+  private npcOriginalRole(def: AirshipNpcDef): 'knight' | 'spearman' | 'mage' {
+    if (def.role === 'helm') return 'knight';
+    if (def.role === 'bow_patrol') return 'spearman';
+    return 'mage';
   }
 
   private async spawnNpcs(): Promise<void> {
     for (const def of AIRSHIP_NPCS) {
       try {
-        const model = await this.loadNpcModel(def.modelPath);
-        const root = new THREE.Group();
-        root.name = `npc_${def.id}`;
-        root.add(model);
-        fitCharacterRootToHeightM(model, 1, def.heightM);
-        // Production GLB / grudge6 — art-forward auto
-        deploySafeCharacter(model, {
-          targetHeightM: def.heightM,
-          facePlusZ: 'auto',
-          importPipeline: 'glb-baked',
+        const actor = await createDeckActor({
+          raceId: def.raceId,
+          role: this.npcOriginalRole(def),
+          name: `npc_${def.id}`,
         });
-        model.userData.npcId = def.id;
-        model.userData.interactable = true;
-        model.userData.safeNpc = true;
-        model.userData.postRole = def.role;
+        actor.model.userData.npcId = def.id;
+        actor.model.userData.interactable = true;
+        actor.model.userData.safeNpc = true;
+        actor.model.userData.postRole = def.role;
+        actor.model.userData.factionRace = def.raceId;
 
         const wp0 = def.waypoints[0]!;
-        // Racalvin starts in boatvoxelinside cabin until grudge6 create
-        const startInCabin = def.id === 'racalvin_king' && !airshipHasSavedCharacter();
-        if (startInCabin && this.cabinRoot) {
-          root.position.set(
-            this.cabinRoot.position.x,
-            this.cabinRoot.position.y + 0.2,
-            this.cabinRoot.position.z + 1.5,
-          );
-        } else {
-          // Plant feet on post Y (wp is already deck height)
-          root.position.set(wp0.x, wp0.y, wp0.z);
-        }
-        // Small post marker under feet (gold = station)
-        if (!startInCabin) {
-          const postMark = new THREE.Mesh(
-            new THREE.CylinderGeometry(0.22, 0.28, 0.08, 10),
-            new THREE.MeshToonMaterial({ color: 0xd4a017 }),
-          );
-          postMark.position.set(0, 0.02, 0);
-          postMark.name = `post_${def.id}`;
-          root.add(postMark);
-        }
-        this.scene.add(root);
+        actor.root.position.set(wp0.x, wp0.y, wp0.z);
+        this.plantActorOnDeck(
+          actor,
+          def.role === 'helm' ? 'top' : def.role === 'bow_patrol' ? 'mid' : 'low',
+        );
+        this.scene.add(actor.root);
         this.npcs.set(def.id, {
           def,
-          root,
+          root: actor.root,
+          actor,
           waypointIndex: 0,
           idle: 0,
-          inCabin: startInCabin,
+          inCabin: false,
           band: def.role === 'helm' ? 'top' : def.role === 'bow_patrol' ? 'mid' : 'low',
           path: [],
           pathIdx: 0,
         });
       } catch (e) {
-        console.warn('[AirshipZone] NPC load failed', def.id, e);
-        // Placeholder capsule so scene still works
-        const root = new THREE.Group();
-        root.name = `npc_${def.id}_placeholder`;
-        const body = new THREE.Mesh(
-          new THREE.CapsuleGeometry(0.35, 1.2, 4, 8),
-          new THREE.MeshToonMaterial({ color: 0x884422 }),
-        );
-        body.position.y = 1;
-        root.add(body);
-        const wp0 = def.waypoints[0]!;
-        root.position.set(wp0.x, wp0.y, wp0.z);
-        this.scene.add(root);
-        this.npcs.set(def.id, {
-          def,
-          root,
-          waypointIndex: 0,
-          idle: 0,
-          inCabin: def.id === 'racalvin_king' && !airshipHasSavedCharacter(),
-          band: def.role === 'helm' ? 'top' : def.role === 'bow_patrol' ? 'mid' : 'low',
-          path: [],
-          pathIdx: 0,
-        });
+        console.warn('[AirshipZone] Toon faction NPC failed — skip (no capsule)', def.id, e);
       }
     }
   }
 
   private async setupPlayer(): Promise<void> {
-    this.playerRoot = new THREE.Group();
-    this.playerRoot.name = 'airship_player';
-    // Temporary capsule until grudge6 race loaded after create
-    const body = new THREE.Mesh(
-      new THREE.CapsuleGeometry(0.35, 1.3, 4, 8),
-      new THREE.MeshStandardMaterial({ color: 0x4a7ab5 }),
-    );
-    body.position.y = 1.0;
-    body.name = 'player_placeholder';
-    this.playerRoot.add(body);
-    this.playerRoot.userData.isPlayer = true;
-    this.scene.add(this.playerRoot);
-
     const saved = loadAirshipCharacter();
-    if (saved?.raceId) {
-      await this.applyGrudge6RaceToPlayer(saved.raceId).catch((e) =>
-        console.warn('[AirshipZone] race apply', e),
-      );
-    }
+    const raceId = saved?.raceId || 'human';
+    const classId = saved?.classId || 'warrior';
+    await this.applyGrudge6RaceToPlayer(raceId, classId).catch((e) =>
+      console.warn('[AirshipZone] Toon player failed', e),
+    );
   }
 
-  /** Swap placeholder for grudge6 race kit (production CDN). */
-  async applyGrudge6RaceToPlayer(raceId: string): Promise<void> {
-    if (!this.playerRoot) return;
-    const { normalizeRaceId, raceMeshPrefix } = await import('@shared/fleet');
-    const id = normalizeRaceId(raceId);
-    const prefix = raceMeshPrefix(id);
-    const path = `/models/grudge6/races/${prefix}_Characters.glb`;
+  /** Swap player for Toon RTS race kit. Fail closed — no bake, no capsule. */
+  async applyGrudge6RaceToPlayer(raceId: string, classId = 'warrior'): Promise<void> {
     try {
-      const gltf = await loadGltfCached(assetUrl(path), 'critical');
-      // Clear placeholder
-      while (this.playerRoot.children.length) {
-        this.playerRoot.remove(this.playerRoot.children[0]!);
-      }
-      const model = gltf.scene as THREE.Group;
-      this.playerRoot.add(model);
-      const { applyGrudge6RaceTextures } = await import('@/lib/grudge6Textures');
-      await applyGrudge6RaceTextures(model, id);
-      const dep = deploySafeCharacter(model, {
-        targetHeightM: AIRSHIP_HERO_HEIGHT_M,
-        importPipeline: 'glb-baked',
-        raceId: id,
-        facePlusZ: 'auto',
+      const actor = await createDeckActor({
+        raceId,
+        role: originalThirtyRoleFromClass(classId),
+        classId,
+        name: 'airship_player',
       });
-      if (!dep.report.ok) {
-        console.warn(formatSafeReport(dep.report));
-        fitCharacterRootToHeightM(model, 1, AIRSHIP_HERO_HEIGHT_M);
-      }
+      actor.root.userData.isPlayer = true;
+      if (this.playerRoot) this.scene.remove(this.playerRoot);
+      this.playerActor = actor;
+      this.playerRoot = actor.root;
+      actor.root.position.set(this.deckSpawn.x, this.deckSpawn.y, this.deckSpawn.z);
+      this.plantActorOnDeck(actor, 'top');
+      this.scene.add(actor.root);
     } catch (e) {
-      console.warn('[AirshipZone] grudge6 race load failed, keep capsule', path, e);
-      fitCharacterRootToHeightM(this.playerRoot, 1, AIRSHIP_HERO_HEIGHT_M);
+      console.warn('[AirshipZone] Toon RTS player load failed — no fallback body', raceId, e);
     }
   }
 
-  /** Called from UI after player accepts grudge6 create. */
+  /** Called from UI after player accepts Toon RTS create. */
   async completeCharacterCreate(opts: {
     name: string;
     raceId: string;
@@ -640,53 +496,22 @@ export class AirshipSoloZone {
       raceId: opts.raceId,
       classId: opts.classId,
     });
-    await this.applyGrudge6RaceToPlayer(opts.raceId);
-    // Racalvin leaves cabin to deck
-    const rac = this.npcs.get('racalvin_king');
-    if (rac) {
-      rac.inCabin = false;
-      const wp = rac.def.waypoints[0]!;
-      rac.root.position.set(wp.x, wp.y, wp.z);
-    }
+    await this.applyGrudge6RaceToPlayer(opts.raceId, opts.classId);
     this.exitCabinToDeck(true);
     this.setPhase('deck');
     this.events.onPrompt?.('Welcome aboard. Meet the crew — E to talk.');
   }
 
-  private enterCabin(firstTime: boolean) {
-    this.inCabin = true;
-    if (this.cabinRoot) this.cabinRoot.visible = true;
-    if (this.doorMarker) this.doorMarker.visible = !firstTime;
-    this.playerLocal.set(
-      AIRSHIP_CABIN_SPAWN_LOCAL.x,
-      AIRSHIP_CABIN_SPAWN_LOCAL.y,
-      AIRSHIP_CABIN_SPAWN_LOCAL.z,
-    );
-    if (this.cabinRoot && this.playerRoot) {
-      this.playerRoot.position.set(
-        this.cabinRoot.position.x + this.playerLocal.x,
-        this.cabinRoot.position.y + this.playerLocal.y + 0.1,
-        this.cabinRoot.position.z + this.playerLocal.z,
-      );
-    }
-    // Camera into cabin
-    if (this.cabinRoot) {
-      const p = this.cabinRoot.position;
-      this.camera.position.set(p.x + 4, p.y + 3, p.z + 5);
-      this.controls.target.set(p.x, p.y + 1.2, p.z);
-      this.controls.update();
-    }
-    this.events.onPrompt?.(
-      firstTime
-        ? 'Racalvin: forge your grudge6 captain. Accept to walk onto the deck.'
-        : 'Cabin safe zone · E at hatch to return to deck',
-    );
-  }
-
   private exitCabinToDeck(animateCam: boolean) {
     this.inCabin = false;
-    if (this.cabinRoot) this.cabinRoot.visible = true; // keep loaded
-    if (this.doorMarker) this.doorMarker.visible = true;
+    if (this.cabinRoot) {
+      this.scene.remove(this.cabinRoot);
+      this.cabinRoot = null;
+    }
+    if (this.doorMarker) {
+      this.scene.remove(this.doorMarker);
+      this.doorMarker = null;
+    }
     if (this.playerRoot) {
       this.playerRoot.position.set(this.deckSpawn.x, this.deckSpawn.y, this.deckSpawn.z);
     }
@@ -714,15 +539,11 @@ export class AirshipSoloZone {
     this.events.onPrompt?.(`${npc.def.displayName} — ${npc.def.title}`);
   }
 
-  /** Camera to cabin door then signal create UI. */
+  /** Open create UI on deck — no cabin. */
   openCreateAtDoor(): void {
-    const d = this.doorLocal;
-    this.camera.position.set(d.x + 5, d.y + 4, d.z + 7);
-    this.controls.target.set(d.x, d.y + 1, d.z);
-    this.controls.update();
-    this.enterCabin(false);
+    this.exitCabinToDeck(true);
     this.setPhase('cabin_create');
-    this.events.onPrompt?.('Character creation — choose grudge6 race, then Accept.');
+    this.events.onPrompt?.('Choose a Toon RTS race, then Accept.');
   }
 
   private nearestNpc(radius = 2.8): NpcRuntime | null {
@@ -731,18 +552,6 @@ export class AirshipSoloZone {
     let bestD = radius;
     const pp = this.playerRoot.position;
     for (const npc of this.npcs.values()) {
-      // Racalvin only interactable in cabin while first-time
-      if (npc.def.id === 'racalvin_king' && this.inCabin && npc.inCabin) {
-        const d = pp.distanceTo(npc.root.position);
-        if (d < bestD) {
-          bestD = d;
-          best = npc;
-        }
-        continue;
-      }
-      if (this.inCabin && npc.def.realm === 'deck') continue;
-      if (!this.inCabin && npc.def.realm === 'cabin') continue;
-      if (npc.inCabin && !this.inCabin) continue;
       const d = pp.distanceTo(npc.root.position);
       if (d < bestD) {
         bestD = d;
@@ -754,33 +563,11 @@ export class AirshipSoloZone {
 
   private tryInteract(): void {
     if (this.chatCooldown > 0) return;
-
-    // Hatch E
-    if (!this.inCabin && this.playerRoot) {
-      const d = this.playerRoot.position.distanceTo(
-        new THREE.Vector3(this.doorLocal.x, this.doorLocal.y, this.doorLocal.z),
-      );
-      if (d < 2.5) {
-        this.enterCabin(false);
-        this.setPhase(airshipHasSavedCharacter() ? 'deck' : 'cabin_create');
-        return;
-      }
-    }
-    if (this.inCabin && this.playerRoot && airshipHasSavedCharacter()) {
-      const exit = this.cabinRoot
-        ? this.cabinRoot.position.clone().add(new THREE.Vector3(0, 0.2, 3))
-        : new THREE.Vector3(this.doorLocal.x, this.doorLocal.y, this.doorLocal.z);
-      if (this.playerRoot.position.distanceTo(exit) < 3.5) {
-        this.exitCabinToDeck(true);
-        this.setPhase('deck');
-        return;
-      }
-    }
-
     const npc = this.nearestNpc();
     if (npc) {
       const lines = npc.def.dialogue;
       const line = lines[Math.floor(Math.random() * lines.length)]!;
+      if (npc.actor) playDeckTalk(npc.actor);
       this.events.onChat?.(npc.def, line);
       this.events.onPrompt?.(`${npc.def.displayName}: "${line}"`);
       this.setPhase('chat');
@@ -797,6 +584,27 @@ export class AirshipSoloZone {
       return;
     }
     pos.y = sampleHullHeight(this.deck163.hull, pos.x, pos.z, pos.y);
+  }
+
+  /** Hull Y on the group, then Box3 feet (not pelvis) sit on that deck sample. */
+  private plantActorOnDeck(actor: DeckActor, band?: DeckBand): void {
+    this.plantOnHull(actor.root.position, band);
+    groundSkinnedFeetLocal(actor.model, 0);
+    actor.root.updateMatrixWorld(true);
+    const box = new THREE.Box3();
+    let any = false;
+    actor.root.traverse((o) => {
+      const m = o as THREE.SkinnedMesh;
+      if (!m.isSkinnedMesh || m.visible === false) return;
+      if (!any) {
+        box.setFromObject(m, true);
+        any = true;
+      } else box.expandByObject(m);
+    });
+    if (!any) box.setFromObject(actor.root, true);
+    if (!Number.isFinite(box.min.y)) return;
+    const hullY = actor.root.position.y;
+    actor.root.position.y += hullY - box.min.y;
   }
 
   private planPath(from: THREE.Vector3, to: THREE.Vector3, band: DeckBand): THREE.Vector3[] {
@@ -852,6 +660,7 @@ export class AirshipSoloZone {
       npc.idle -= dt;
       if (npc.idle > 0) {
         this.plantOnHull(npc.root.position, npc.band);
+        if (npc.actor) tickDeckActor(npc.actor, dt, this.deckIkMeshes(), false);
         continue;
       }
       const wps = npc.def.waypoints;
@@ -866,6 +675,7 @@ export class AirshipSoloZone {
         npc.band,
         npc,
       );
+      if (npc.actor) tickDeckActor(npc.actor, dt, this.deckIkMeshes(), !arrived);
       if (arrived) {
         npc.waypointIndex++;
         npc.idle = npc.def.role === 'helm' ? 2.2 + Math.random() * 2 : 1.2 + Math.random() * 2;
@@ -875,6 +685,7 @@ export class AirshipSoloZone {
       crew.idle -= dt;
       if (crew.idle > 0) {
         this.plantOnHull(crew.root.position, crew.band);
+        if (crew.actor) tickDeckActor(crew.actor, dt, this.deckIkMeshes(), false);
         continue;
       }
       const target = crew.wp[crew.idx % crew.wp.length];
@@ -888,6 +699,7 @@ export class AirshipSoloZone {
         crew.band,
         crew,
       );
+      if (crew.actor) tickDeckActor(crew.actor, dt, this.deckIkMeshes(), !arrived);
       if (arrived) {
         crew.idx++;
         crew.idle = 1.5 + Math.random() * 2.5;
@@ -906,21 +718,23 @@ export class AirshipSoloZone {
     for (let i = 0; i < filled.length; i++) {
       const hero = filled[i]!;
       try {
-        const loaded = await loadCrewHero(hero);
-        const root = new THREE.Group();
-        root.name = `account_crew_${hero.id}`;
-        root.add(loaded.root);
+        const actor = await createDeckActor({
+          raceId: hero.raceId || 'human',
+          classId: hero.classId || 'warrior',
+          name: `account_crew_${hero.id}`,
+        });
         const spawn = slots[i] ?? this.deck163?.johnHome ?? new THREE.Vector3();
         const band: DeckBand = i === 0 ? 'top' : i === 1 ? 'mid' : i === 2 ? 'low' : 'top';
-        root.position.copy(spawn);
-        this.plantOnHull(root.position, band);
-        this.scene.add(root);
+        actor.root.position.copy(spawn);
+        this.plantActorOnDeck(actor, band);
+        this.scene.add(actor.root);
         const bandPts = this.deck163
           ? wanderPointsForBand(this.deck163, band, 4)
           : [spawn.clone()];
         this.accountCrew.push({
           heroId: hero.id,
-          root,
+          root: actor.root,
+          actor,
           wp: [spawn.clone(), ...bandPts],
           idx: 0,
           idle: 0.4 + i * 0.3,
@@ -943,6 +757,7 @@ export class AirshipSoloZone {
     if (!this.playerRoot || this.phase === 'loading') return;
     // Block free walk during create until accepted — still allow look + jump feel off
     if (this.phase === 'cabin_create' && !airshipHasSavedCharacter()) {
+      if (this.playerActor) tickDeckActor(this.playerActor, dt, this.deckIkMeshes(), false);
       return;
     }
 
@@ -961,6 +776,7 @@ export class AirshipSoloZone {
         ? (this.controls as any).getAzimuthalAngle()
         : this.playerYaw;
 
+    let moving = false;
     if (fwd !== 0 || side !== 0) {
       const angle = Math.atan2(side, fwd || 0.001) + yaw;
       const dx = Math.sin(angle) * speed * dt;
@@ -968,13 +784,11 @@ export class AirshipSoloZone {
       this.playerRoot.position.x += dx;
       this.playerRoot.position.z += dz;
       this.playerRoot.rotation.y = angle;
+      moving = true;
     }
 
-    // Ground Y: cabin floor or Object_163_1
-    let groundY =
-      this.inCabin && this.cabinRoot
-        ? this.cabinRoot.position.y + 0.25
-        : this.deckSpawn.y;
+    // Ground Y: Object_163_1 hull only
+    let groundY = this.deckSpawn.y;
     if (!this.inCabin && this.deck163) {
       groundY =
         this.deckNav.top?.getHeightAt(this.playerRoot.position.x, this.playerRoot.position.z) ??
@@ -1002,6 +816,9 @@ export class AirshipSoloZone {
     });
     this.jumpState = step.state;
     this.playerRoot.position.y = step.y;
+    if (this.playerActor) {
+      tickDeckActor(this.playerActor, dt, this.deckIkMeshes(), moving);
+    }
   }
 
   private loop = () => {

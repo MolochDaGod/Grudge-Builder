@@ -58,21 +58,30 @@ export default function AirshipZonePage() {
   const [classId, setClassId] = useState('warrior');
   const [creating, setCreating] = useState(false);
 
-  /** Continue production path: airship → tutorial (or home if already past tutorial) */
+  const entry = new URLSearchParams(
+    typeof window !== 'undefined' ? window.location.search : '',
+  ).get('entry');
+  const isLobbyEntry = entry === 'warlords_play';
+
+  /** Continue production path: airship lobby → pirate start / tutorial */
   const continueWarlordsPath = useCallback(() => {
     markAirshipSeen();
     const id = getActiveCharacterId();
-    if (isTutorialComplete()) {
-      setLocation(
-        id
-          ? `${AFTER_TUTORIAL_PATH}&characterId=${encodeURIComponent(id)}`
-          : AFTER_TUTORIAL_PATH,
-      );
+    if (isLobbyEntry || isTutorialComplete()) {
+      const q = new URLSearchParams({
+        mode: 'lobby',
+        map: 'pirate-islands',
+        from: isLobbyEntry ? 'warlords_play' : 'tutorial',
+        focus: 'faction',
+      });
+      if (id) q.set('characterId', id);
+      q.set('era', 'warlords');
+      setLocation(`/island-3d?${q.toString()}`);
       return;
     }
     const q = id ? `?characterId=${encodeURIComponent(id)}&from=airship` : '?from=airship';
     setLocation(`/tutorial${q}`);
-  }, [setLocation]);
+  }, [setLocation, isLobbyEntry]);
 
   useEffect(() => {
     // Persist handoff + mark combat/airship tab visited
@@ -160,8 +169,8 @@ export default function AirshipZonePage() {
       mode: 'create',
       returnTo:
         typeof window !== 'undefined'
-          ? `${window.location.origin}/airship-zone?from=gcs`
-          : 'https://grudgewarlords.com/airship-zone',
+          ? `${window.location.origin}/combat?era=warlords&entry=warlords_play&from=gcs`
+          : 'https://grudgewarlords.com/combat?era=warlords&entry=warlords_play',
     });
     window.location.href = url;
   };
@@ -203,7 +212,9 @@ export default function AirshipZonePage() {
           className="bg-amber-500 hover:bg-amber-400 text-black font-semibold"
           onClick={continueWarlordsPath}
         >
-          {isTutorialComplete() ? 'Continue → Home island' : 'Continue → Tutorial island'}
+          {isLobbyEntry || isTutorialComplete()
+            ? 'Start game → Pirate lobby'
+            : 'Continue → Tutorial island'}
         </Button>
         <Button size="sm" variant="ghost" className="text-stone-300" onClick={() => setLocation('/warlords/heroes')}>
           Roster
