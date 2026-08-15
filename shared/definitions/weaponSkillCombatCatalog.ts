@@ -399,27 +399,12 @@ function applyGreatswordSamuraiOverrides(map: Map<string, ProductionSkillCombatD
   }
 }
 
-/** Gorehowl slot 1 = Meshy Scourge Skill_01 battle cry (clip on special). */
-function applyGorehowlBattleCryOverride(map: Map<string, ProductionSkillCombatDef>): void {
-  const def = map.get('axe_rending_chop');
-  if (!def) return;
-  def.animKey = 'special';
-  def.style = 'buff';
-  def.requiresTarget = false;
-  def.hitCollider = 'aoe_self';
-  def.aoeRadius = Math.max(def.aoeRadius, 6);
-  def.vfxKey = 'fire_aura';
-  def.name = 'Battle Howl';
-  def.description = 'Scourge Skill_01 battle cry — buff nearby allies, no Meshy play mesh';
-}
-
 export function ensureWeaponSkillCombatCatalog(): Map<string, ProductionSkillCombatDef> {
   if (!built) {
     for (const [k, v] of buildWeaponSkillCombatCatalog()) {
       catalog.set(k, v);
     }
     applyGreatswordSamuraiOverrides(catalog);
-    applyGorehowlBattleCryOverride(catalog);
     built = true;
   }
   return catalog;

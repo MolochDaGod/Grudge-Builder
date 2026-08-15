@@ -565,23 +565,23 @@ function CombatModePanel({
   hp: number;
   maxHp: number;
   level: number;
-  classHotbar: Array<{ key: string; label: string }>;
-  weaponHotbar: Array<{ key: string; label: string }>;
+  classHotbar: Array<{ key: string; label: string; icon?: string }>;
+  weaponHotbar: Array<{ key: string; label: string; icon?: string }>;
 }) {
   // Unit frame is rendered once in chrome-tl; status effects reserved for frame buffs later
   usePlayerStatusEffects();
-  const slots = [
-    ...weaponHotbar.slice(0, 3).map((s, i) => ({ ...s, key: s.key || String(i + 1) })),
-    ...classHotbar.slice(0, 2).map((s, i) => ({ ...s, key: s.key || String(i + 4) })),
-  ];
+  const slots = weaponHotbar.slice(0, 5).map((s, i) => ({
+    ...s,
+    key: s.key || String(i + 1),
+  }));
   while (slots.length < 5) {
-    slots.push({ key: String(slots.length + 1), label: `Skill ${slots.length + 1}` });
+    slots.push({ key: String(slots.length + 1), label: '—' });
   }
 
   return (
     <div className="p-3 space-y-3">
       <div className="uikit-panel__header flex items-center gap-1.5">
-        <Crosshair className="w-3 h-3" /> Combat skills · craftpix slots
+        <Crosshair className="w-3 h-3" /> Weapon skills · catalog names
       </div>
       <div className="uikit-slot-row" style={{ justifyContent: 'flex-start', padding: '4px 8px 8px' }}>
         {slots.slice(0, 5).map((s) => (
@@ -589,7 +589,7 @@ function CombatModePanel({
             key={s.key}
             keyLabel={s.key}
             label={s.label}
-            iconUrl={iconForSkillLabel(s.label) ?? UI_SLOTS.actionEmpty}
+            iconUrl={s.icon || iconForSkillLabel(s.label) || UI_SLOTS.actionEmpty}
             title={s.label}
             size={52}
           />

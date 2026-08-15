@@ -23,6 +23,7 @@ import type {
 } from "@shared/definitions/weaponSkillsNew";
 import { assetUrl } from "@/lib/assetConfig";
 import { getPackIconForCategory } from "@/lib/iconResolver";
+import { getWeaponSkillDisplay } from "@shared/definitions/weaponSkillDisplay.generated";
 
 const API_BASES = [
   "https://objectstore.grudge-studio.com/api/v1",
@@ -143,6 +144,11 @@ export function resolveSkillIcon(
   path: string | undefined,
   ctx: { weaponType?: string; skillName?: string; skillId?: string } = {},
 ): string {
+  const catalog = ctx.skillId ? getWeaponSkillDisplay(ctx.skillId) : null;
+  if (catalog?.icon) {
+    return catalog.icon.startsWith("http") ? catalog.icon : catalog.icon;
+  }
+
   const fallback = getPackIconForCategory({
     weaponType: ctx.weaponType,
     name: ctx.skillName || ctx.skillId,

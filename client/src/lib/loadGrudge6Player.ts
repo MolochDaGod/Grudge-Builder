@@ -15,6 +15,7 @@ import {
 } from '@/lib/hotbarLayout';
 import { weaponTypeFromModel3d, normalizeRaceId } from '@shared/fleet';
 import { defaultHotbarFromWeaponType } from '@/lib/viewerLaunchHandoff';
+import { getWeaponSkillDisplay } from '@shared/definitions/weaponSkillDisplay.generated';
 
 export interface Grudge6PlayerApplyOpts {
   /** Explicit character UUID (preferred) */
@@ -206,26 +207,28 @@ export async function applyGrudge6PlayerToController(
   };
 }
 
-/** Labels for ModePlayHUD combat bar */
+/** Labels + icons from official WEAPON_SKILLS catalog (not id tails). */
 export function hotbarLabelsForHud(hotbar: PlayerHotbar): {
-  weaponHotbar: Array<{ key: string; label: string; skillId?: string }>;
-  classHotbar: Array<{ key: string; label: string; skillId?: string }>;
+  weaponHotbar: Array<{ key: string; label: string; skillId?: string; icon?: string }>;
+  classHotbar: Array<{ key: string; label: string; skillId?: string; icon?: string }>;
 } {
-  const short = (id: string | null | undefined) => {
+  const labelOf = (id: string | null | undefined) => {
     if (!id) return '—';
-    const tail = id.split(/[._]/).pop() || id;
-    return tail.slice(0, 8);
+    return getWeaponSkillDisplay(id)?.name || id.replace(/[_-]+/g, ' ');
   };
+  const iconOf = (id: string | null | undefined) => getWeaponSkillDisplay(id)?.icon;
   return {
     weaponHotbar: WEAPON_SKILL_SLOTS.map((s) => ({
       key: String(s),
-      label: short(hotbar.weaponSkills[s]),
+      label: labelOf(hotbar.weaponSkills[s]),
       skillId: hotbar.weaponSkills[s] ?? undefined,
+      icon: iconOf(hotbar.weaponSkills[s]),
     })),
     classHotbar: WEAPON_SKILL_SLOTS.map((s) => ({
       key: `S${s}`,
-      label: short(hotbar.classAbilities[s]),
+      label: labelOf(hotbar.classAbilities[s]),
       skillId: hotbar.classAbilities[s] ?? undefined,
+      icon: iconOf(hotbar.classAbilities[s]),
     })),
   };
 }

@@ -7,6 +7,12 @@
 import { useState, useRef, useEffect } from 'react';
 import { Heart, Zap, MessageSquare, Users, MapPin, Swords, Leaf, X } from 'lucide-react';
 
+function skillIconSrc(icon?: string) {
+  if (!icon) return undefined;
+  if (icon.startsWith('http') || icon.startsWith('/')) return icon;
+  return `/${icon}`;
+}
+
 interface GameHUDProps {
   // Player stats
   hp: number;
@@ -35,7 +41,7 @@ interface GameHUDProps {
   /** Hostile telegraphs */
   enemyCasts?: Array<{ id: string; name: string; progress: number; remainingSec: number }>;
   /** Equipped-weapon skill labels (1–5). Falls back to generic slots. */
-  weaponHotbar?: Array<{ key: string; label: string; skillId?: string }>;
+  weaponHotbar?: Array<{ key: string; label: string; skillId?: string; icon?: string }>;
   onOpenMainPanel?: () => void;
 }
 
@@ -197,6 +203,7 @@ export function GameHUD(props: GameHUDProps) {
                   key: s.key || String(i + 1),
                   label: s.label,
                   color: SLOT_COLORS[i] ?? '#888',
+                  icon: s.icon,
                 })),
                 ...HOTBAR_SKILLS.slice(5),
               ]
@@ -204,12 +211,23 @@ export function GameHUD(props: GameHUDProps) {
           ).map(s => (
             <div
               key={s.slot}
-              className="relative w-12 h-12 rounded-xl border border-white/10 flex items-center justify-center cursor-pointer hover:border-white/30 transition-colors"
+              className="relative w-12 h-12 rounded-xl border border-white/10 flex items-center justify-center cursor-pointer hover:border-white/30 transition-colors overflow-hidden"
               style={{ background: `linear-gradient(180deg, ${s.color}22, ${s.color}08)` }}
               title={s.label || undefined}
             >
-              <span className="text-white/70 text-[10px] font-medium text-center leading-tight px-0.5">
-                {s.label || '—'}
+              {skillIconSrc(s.icon) ? (
+                <img
+                  src={skillIconSrc(s.icon)}
+                  alt=""
+                  className="w-8 h-8 object-contain pointer-events-none"
+                />
+              ) : (
+                <span className="text-white/70 text-[10px] font-medium text-center leading-tight px-0.5">
+                  {s.label || '—'}
+                </span>
+              )}
+              <span className="absolute bottom-0 inset-x-0 text-[8px] text-white/80 bg-black/50 text-center truncate px-0.5">
+                {s.label}
               </span>
               <span className="absolute top-0.5 left-1.5 text-[9px] text-white/30 font-bold">{s.key}</span>
             </div>
