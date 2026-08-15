@@ -450,24 +450,7 @@
 
   // Guest
   function doGuest() {
-    showSuccess('Entering as guest\u2026');
-    var deviceId = localStorage.getItem(DEVICE);
-    if (!deviceId) {
-      deviceId = crypto.randomUUID ? crypto.randomUUID() : 'dev-' + Date.now() + '-' + Math.random().toString(36).slice(2);
-      localStorage.setItem(DEVICE, deviceId);
-    }
-    fetch(AUTH_BASE + '/api/auth/puter', {
-      method: 'POST',
-      headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify({ puterId: 'guest_' + deviceId, displayName: 'Guest' }),
-    })
-      .then(function (r) { return r.json(); })
-      .then(function (data) {
-        if (!data.success && !data.token) return showError(data.error || 'Guest login failed');
-        data.type = 'guest';
-        onAuthSuccess(data, 'Playing as guest \u2014 upgrade anytime!');
-      })
-      .catch(function (e) { showError('Network error: ' + e.message); });
+    showError('Guest login is closed. Sign in with Grudge ID.');
   }
 
   // Phone

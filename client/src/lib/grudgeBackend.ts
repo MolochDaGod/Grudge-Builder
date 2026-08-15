@@ -568,33 +568,7 @@ export async function loginWithWallet(
 /** Guest login — device-based by default, upgrades to Puter if already signed in.
  *  Never opens a popup — that's `loginWithPuterSDK()`. */
 export async function loginAsGuest(): Promise<AuthResponse> {
-  // If the user already has a Puter session, use it (no popup)
-  if (isPuterReady()) {
-    try {
-      const puter = (window as any).puter;
-      if (puter.auth?.isSignedIn?.()) {
-        const user = await puter.auth.getUser();
-        if (user?.uuid) {
-          console.debug("[Auth] Guest → existing Puter session", user.username);
-          return loginWithPuter(user.uuid, user.username);
-        }
-      }
-    } catch (e) {
-      console.warn("[Auth] Puter session check failed, using device guest", e);
-    }
-  }
-
-  // Device-based guest — always works, no SDK needed
-  console.debug("[Auth] Guest → device-based", getDeviceId());
-  const res = await fetch(`${API_BASE}/auth/puter`, {
-    method: "POST",
-    headers: { "Content-Type": "application/json" },
-    body: JSON.stringify({
-      puterId: `guest_${getDeviceId()}`,
-      displayName: "Guest",
-    }),
-  });
-  return handleAuthResponse(res, "guest");
+  throw new Error("Guest product login is closed. Sign in with Grudge ID.");
 }
 
 /**

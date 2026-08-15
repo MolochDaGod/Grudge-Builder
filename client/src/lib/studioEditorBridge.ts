@@ -4,7 +4,6 @@
  */
 import { STUDIO_EDITOR_URL } from '@/lib/grudgeConfig';
 import { isAuthenticated } from '@/lib/grudgeBackend';
-import { loginAsGuest } from '@/lib/grudgeBackend';
 import { redirectToGrudgeAuth } from '@/lib/authRedirect';
 import type { HomeIslandState } from '@/lib/homeIslandApi';
 
@@ -142,12 +141,6 @@ export function openStudioEditorExplore(
 export async function ensureAuthForStudio(returnPath?: string): Promise<boolean> {
   if (isAuthenticated()) return true;
   const path = returnPath ?? `${window.location.pathname}${window.location.search}`;
-  try {
-    await loginAsGuest();
-    if (isAuthenticated()) return true;
-  } catch {
-    /* guest failed — use centralized SSO */
-  }
   redirectToGrudgeAuth(path);
   return false;
 }

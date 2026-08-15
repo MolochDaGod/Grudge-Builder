@@ -749,11 +749,16 @@ export function registerAuthRoutes(app: Express) {
       }
 
       const isGuest = puterUuid.startsWith("guest_");
-      const username = puterUsername || (isGuest ? `Guest_${puterUuid.slice(-8)}` : `Puter_${puterUuid.slice(-8)}`);
+      if (isGuest) {
+        return res.status(403).json({
+          success: false,
+          error: "Guest product login is closed. Sign in with Grudge ID.",
+          hint: "https://id.grudge-studio.com/login",
+        });
+      }
+      const username = puterUsername || `Puter_${puterUuid.slice(-8)}`;
 
-      const { user, account, isNew } = isGuest
-        ? await resolvePuterGrudgeAccount(puterUuid, username, email)
-        : await resolvePuterGrudgeAccount(puterUuid, puterUsername, email);
+      const { user, account, isNew } = await resolvePuterGrudgeAccount(puterUuid, puterUsername, email);
 
       const response = buildAuthResponse(user, account, puterUsername || username);
       if (!isGuest) setSessionCookie(res, response.token);
@@ -776,6 +781,13 @@ export function registerAuthRoutes(app: Express) {
       if (!puterId) {
         return res.status(400).json({ success: false, error: "puterId required" });
       }
+      if (String(puterId).startsWith("guest_")) {
+        return res.status(403).json({
+          success: false,
+          error: "Guest product login is closed. Sign in with Grudge ID.",
+          hint: "https://id.grudge-studio.com/login",
+        });
+      }
 
       const { user, account, isNew } = await resolvePuterGrudgeAccount(puterId, puterUsername, email);
       const response = buildAuthResponse(user, account, puterUsername);
@@ -791,27 +803,13 @@ export function registerAuthRoutes(app: Express) {
     }
   });
 
-  /** POST /api/auth/guest — quick guest Grudge ID (Puter cloud slot reserved). */
+  /** POST /api/auth/guest — closed. Product login is Grudge ID only. */
   app.post("/api/auth/guest", authRateLimit, async (_req: Request, res: Response) => {
-    try {
-      const guestId = `guest_${crypto.randomBytes(8).toString("hex")}`;
-      const { user, account, isNew } = await resolvePuterGrudgeAccount(guestId, "Guest");
-      const response = buildAuthResponse(
-        { id: user.id, username: user.username, grudgeId: user.grudgeId },
-        account,
-      );
-      setSessionCookie(res, response.token);
-      res.json({
-        ...buildSsoUserPayload(user, account, { isNew: isNew || true }),
-        success: true,
-        token: response.token,
-        sessionToken: response.sessionToken,
-        user: response.user,
-      });
-    } catch (e: any) {
-      console.error("[Auth/Guest]", e);
-      res.status(500).json({ success: false, error: e.message });
-    }
+    res.status(403).json({
+      success: false,
+      error: "Guest product login is closed. Sign in with Grudge ID.",
+      hint: "https://id.grudge-studio.com/login",
+    });
   });
 
   /**

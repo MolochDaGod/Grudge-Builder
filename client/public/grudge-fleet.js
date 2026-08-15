@@ -1163,16 +1163,7 @@
     },
 
     async guest() {
-      const res = await fleetFetch(FLEET.gameData + '/api/auth/guest', {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: '{}',
-      });
-      const data = await res.json().catch(() => ({}));
-      if (!res.ok) throw new Error(data.error || 'Guest login failed');
-      applyAuthResponse(data);
-      await syncFromBackend();
-      return data;
+      throw new Error('Guest product login is closed. Sign in with Grudge ID.');
     },
 
     /**

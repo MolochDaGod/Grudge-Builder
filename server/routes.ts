@@ -186,10 +186,21 @@ function isAdmin(req: Request): boolean {
   }
 }
 
+function isGuestProductIdentity(id?: string | null, name?: string | null): boolean {
+  const a = String(id || "").trim().toLowerCase();
+  const n = String(name || "").trim().toLowerCase();
+  return (
+    a === "guest" ||
+    a.startsWith("guest_") ||
+    n === "guest" ||
+    n.startsWith("guest_")
+  );
+}
+
 /** Middleware: require authenticated user (reject guests) */
 function requireAuth(req: Request, res: Response, next: NextFunction): void {
   const userId = extractUserId(req);
-  if (userId === "guest") {
+  if (userId === "guest" || isGuestProductIdentity(userId)) {
     res.status(401).json({ error: "Authentication required" });
     return;
   }
@@ -532,6 +543,17 @@ export async function registerRoutes(
         classId,
         model3d: req.body.model3d,
       });
+
+      if (
+        isGuestProductIdentity(userId) ||
+        isGuestProductIdentity(null, identity.name) ||
+        isGuestProductIdentity(null, accountDisplay)
+      ) {
+        return res.status(403).json({
+          error: "Guest product login is closed. Sign in with Grudge ID to create a hero.",
+          hint: "https://id.grudge-studio.com/login",
+        });
+      }
 
       // GCS unarmed race start: empty equipment unless the client sends explicit slots.
       const startingGear = skipStartingGear
