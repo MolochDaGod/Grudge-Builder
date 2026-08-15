@@ -1,3 +1,6 @@
+import { getWeaponSkillDisplay } from "@shared/definitions/weaponSkillDisplay.generated";
+import { findWeaponSkillById } from "@shared/definitions/weaponSkillsNew";
+
 export interface Skill {
   id: string;
   name: string;
@@ -866,6 +869,30 @@ export function getSkillById(id: string): Skill | null {
         if (found) return found;
       }
     }
+  }
+  const catalog = getWeaponSkillDisplay(id);
+  if (catalog) {
+    return {
+      id: catalog.id,
+      name: catalog.name,
+      icon: catalog.icon,
+      description: catalog.description,
+      effect: catalog.description,
+      maxPoints: 1,
+      requires: null,
+    };
+  }
+  const hit = findWeaponSkillById(id);
+  if (hit) {
+    return {
+      id: hit.skill.id,
+      name: hit.skill.name,
+      icon: hit.skill.icon,
+      description: hit.skill.description,
+      effect: hit.skill.description,
+      maxPoints: 1,
+      requires: null,
+    };
   }
   return null;
 }

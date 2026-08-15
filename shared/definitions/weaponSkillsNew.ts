@@ -790,7 +790,7 @@ export const WEAPON_TYPE_DEFINITIONS: Record<string, WeaponTypeDefinition> = {
         unlockTier: 1,
         label: "PRIMARY",
         skills: [
-          { id: "spear_thrust", name: "Piercing Thrust", description: "Long-range single, builds Impale Mark", icon: "🔱", tier: 1, damage: 48, cooldown: 0, effects: ["Range 4m", "Builds Mark"] },
+          { id: "spear_thrust", name: "Quick Thrust", description: "Long-range single, builds Impale Mark", icon: "🔱", tier: 1, damage: 48, cooldown: 0, effects: ["Range 4m", "Builds Mark"] },
           { id: "spear_lunging_stab", name: "Lunging Stab", description: "Extended range thrust", icon: "🏃", tier: 2, damage: 55, cooldown: 2, effects: ["Range 6m"] },
           { id: "spear_leg_sweep", name: "Leg Sweep", description: "AoE knockdown", icon: "🦶", tier: 3, damage: 40, cooldown: 5, effects: ["Knockdown 1s", "AoE 3m"] },
         ]
@@ -1031,7 +1031,7 @@ export const WEAPON_TYPE_DEFINITIONS: Record<string, WeaponTypeDefinition> = {
         unlockTier: 1,
         label: "PRIMARY",
         skills: [
-          { id: "scythe_reap", name: "Reap", description: "Wide sweeping cut, builds Soul stack", icon: "⚰️", tier: 1, damage: 50, cooldown: 0, effects: ["Builds Soul", "AoE 3m"] },
+          { id: "scythe_reap", name: "Reaping Slash", description: "Wide sweeping cut, builds Soul stack", icon: "⚰️", tier: 1, damage: 50, cooldown: 0, effects: ["Builds Soul", "AoE 3m"] },
           { id: "scythe_soul_rend", name: "Soul Rend", description: "Drain life from target", icon: "👻", tier: 2, damage: 45, cooldown: 3, effects: ["Lifesteal 30%"] },
           { id: "scythe_death_mark", name: "Death Mark", description: "Mark target for bonus damage", icon: "💀", tier: 3, damage: 35, cooldown: 5, effects: ["+25% Dmg Taken 6s"] },
         ]
@@ -1303,19 +1303,51 @@ export const CLASS_COMBAT_TREES: Record<string, ClassCombatTree> = {
   },
 };
 
+/** Master catalog ids that share an existing local tree (do not invent parallel types). */
+const WEAPON_TYPE_ALIASES: Record<string, string> = {
+  GREATSWORD: "TWO_HAND_SWORD",
+  TWO_HAND: "TWO_HAND_SWORD",
+  "2H_SWORD": "TWO_HAND_SWORD",
+  GREATAXE: "AXE",
+  TOME: "STAFF",
+  TOOL: "HAMMER",
+};
+
+export function normalizeWeaponTypeId(weaponType: string): string {
+  const u = String(weaponType || "")
+    .toUpperCase()
+    .replace(/-/g, "_");
+  return WEAPON_TYPE_ALIASES[u] ?? u;
+}
+
 export function getWeaponTypeDefinition(weaponType: string): WeaponTypeDefinition | undefined {
-  return WEAPON_TYPE_DEFINITIONS[weaponType.toUpperCase()];
+  return WEAPON_TYPE_DEFINITIONS[normalizeWeaponTypeId(weaponType)];
+}
+
+export function findWeaponSkillById(skillId: string): {
+  skill: WeaponSkillOption;
+  weaponType: string;
+  slotType: SlotType;
+} | undefined {
+  if (!skillId) return undefined;
+  for (const [tid, def] of Object.entries(WEAPON_TYPE_DEFINITIONS)) {
+    for (const slot of def.slots) {
+      const skill = slot.skills.find((s) => s.id === skillId);
+      if (skill) return { skill, weaponType: tid, slotType: slot.type };
+    }
+  }
+  return undefined;
 }
 
 export function getSkillById(weaponType: string, skillId: string): WeaponSkillOption | undefined {
   const weapon = getWeaponTypeDefinition(weaponType);
-  if (!weapon) return undefined;
-  
-  for (const slot of weapon.slots) {
-    const skill = slot.skills.find(s => s.id === skillId);
-    if (skill) return skill;
+  if (weapon) {
+    for (const slot of weapon.slots) {
+      const skill = slot.skills.find(s => s.id === skillId);
+      if (skill) return skill;
+    }
   }
-  return undefined;
+  return findWeaponSkillById(skillId)?.skill;
 }
 
 export function getAvailableSkillsForTier(weaponType: string, slotType: SlotType, playerTier: number): WeaponSkillOption[] {

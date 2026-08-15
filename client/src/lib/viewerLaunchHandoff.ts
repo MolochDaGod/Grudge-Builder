@@ -9,6 +9,7 @@
 import { normalizeRaceId } from "@shared/fleet";
 import {
   getWeaponTypeDefinition,
+  normalizeWeaponTypeId,
   type SlotType,
 } from "@shared/definitions/weaponSkillsNew";
 import {
@@ -161,7 +162,8 @@ export function weaponTypeFromLaunchBag(bagId: string | null | undefined): strin
 
 export function catalogKeyForPlayWeapon(weaponType: string): string {
   const key = String(weaponType || "").toLowerCase();
-  return PLAY_TO_CATALOG[key] ?? key.replace(/-/g, "_").toUpperCase();
+  const mapped = PLAY_TO_CATALOG[key] ?? key.replace(/-/g, "_").toUpperCase();
+  return normalizeWeaponTypeId(mapped);
 }
 
 /** 1–5 = primary · secondary · ability · leftover · ultimate for the equipped weapon. */

@@ -2,7 +2,11 @@
  * Smoke: every weaponSkillsNew option is a scriptable skill + storage prefab.
  * Run: npx tsx client/src/island3d/systems/scriptableWeaponSkills.smoke.ts
  */
-import { WEAPON_TYPE_DEFINITIONS } from '@shared/definitions/weaponSkillsNew.ts';
+import {
+  WEAPON_TYPE_DEFINITIONS,
+  getWeaponTypeDefinition,
+  findWeaponSkillById,
+} from '@shared/definitions/weaponSkillsNew.ts';
 import {
   ensureWeaponSkillCombatCatalog,
   getProductionSkillCombat,
@@ -11,6 +15,7 @@ import {
   PRODUCTION_WEAPON_TYPES,
   getWeaponPrefab,
 } from '@shared/definitions/weaponPrefabCatalog.ts';
+import { getWeaponSkillDisplay } from '@shared/definitions/weaponSkillDisplay.generated.ts';
 import { ScriptableSkillRuntime } from './ScriptableSkillRuntime.ts';
 
 function assert(c: boolean, m: string) {
@@ -61,6 +66,13 @@ for (const wt of PRODUCTION_WEAPON_TYPES) {
   if (!getWeaponPrefab(wt, 1)) missingPrefabType++;
 }
 assert(missingPrefabType === 0, `${missingPrefabType} weapon types have no storage prefab row`);
+
+assert(!!getWeaponTypeDefinition('GREATSWORD'), 'GREATSWORD aliases TWO_HAND_SWORD tree');
+assert(!!getWeaponPrefab('CROSSBOW', 1), 'CROSSBOW aliases BOW prefab row');
+assert(!!getWeaponPrefab('TWO_HAND_SWORD', 1), 'TWO_HAND_SWORD aliases GREATSWORD prefab');
+assert(findWeaponSkillById('axe_rending_chop')?.skill.name === 'Rending Chop', 'catalog name Rending Chop');
+assert(getWeaponSkillDisplay('axe_rending_chop')?.name === 'Rending Chop', 'display map official name');
+assert(!!getWeaponSkillDisplay('mace_battle_cry') || !!findWeaponSkillById('mace_battle_cry'), 'local-only mace cry still findable');
 
 console.log(
   `scriptable weapon skills ok · options=${optionCount} catalog=${catalog.size} registered=${n} prefabTypes=${PRODUCTION_WEAPON_TYPES.length}`,

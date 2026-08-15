@@ -960,11 +960,26 @@ export function getClassRoleForWeapon(
 
 // ── API ──────────────────────────────────────────────────────────────────────
 
+/** Skill-tree / master ids that share an existing prefab row. */
+const PREFAB_TYPE_ALIASES: Record<string, ProductionWeaponType> = {
+  TWO_HAND_SWORD: 'GREATSWORD',
+  TWO_HAND: 'GREATSWORD',
+  GREATAXE: 'AXE',
+  CROSSBOW: 'BOW',
+  TOME: 'STAFF',
+  TOOL: 'PICKAXE',
+};
+
+export function normalizePrefabWeaponType(weaponType: string): ProductionWeaponType {
+  const u = String(weaponType || '').toUpperCase().replace(/-/g, '_') as ProductionWeaponType;
+  return PREFAB_TYPE_ALIASES[u] ?? u;
+}
+
 export function getWeaponPrefab(
   weaponType: string,
   style: WeaponStyleIndex | WeaponStyleId = 1,
 ): WeaponPrefabEntry | null {
-  const key = weaponType.toUpperCase() as ProductionWeaponType;
+  const key = normalizePrefabWeaponType(weaponType);
   const row = WEAPON_PREFAB_MATRIX[key];
   if (!row) return null;
   if (typeof style === 'number') {
@@ -986,7 +1001,7 @@ export function resolveWeaponPrefabUrl(
 export function listPrefabsForType(
   weaponType: string,
 ): WeaponPrefabEntry[] {
-  const key = weaponType.toUpperCase() as ProductionWeaponType;
+  const key = normalizePrefabWeaponType(weaponType);
   return WEAPON_PREFAB_MATRIX[key] ?? [];
 }
 
