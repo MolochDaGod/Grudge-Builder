@@ -675,6 +675,17 @@
   ],
   "redirects": [
     {
+      "source": "/(.*)",
+      "has": [
+        {
+          "type": "host",
+          "value": "foundry.grudgewarlords.com"
+        }
+      ],
+      "destination": "https://character.grudge-studio.com/foundry",
+      "permanent": false
+    },
+    {
       "source": "/",
       "has": [
         {

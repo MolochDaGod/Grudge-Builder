@@ -161,8 +161,15 @@ export function warlordsZoneUrl(opts?: {
  * Hosts that are the Warlords play SPA (same deploy).
  * Used for returnTo allowlists and "is this our client?" checks.
  */
+/** Hosts on the Warlords zone that are NOT the play SPA. */
+const WARLORDS_NON_PLAY_HOSTS = new Set([
+  "foundry.grudgewarlords.com",
+  "craft.grudgewarlords.com",
+]);
+
 export function isWarlordsPlayHost(hostname: string): boolean {
   const h = hostname.toLowerCase().replace(/\.$/, "");
+  if (WARLORDS_NON_PLAY_HOSTS.has(h)) return false;
   if (h === "grudgewarlords.com" || h === "www.grudgewarlords.com") return true;
   if (h.endsWith(".grudgewarlords.com")) return true;
   if (h === "client.grudge-studio.com") return true;

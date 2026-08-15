@@ -108,7 +108,7 @@ export const FLEET_AUTH_PROXY_PATHS = {
 /** Railway auth routes (implementation). */
 export const FLEET_AUTH_RAILWAY_ROUTES = {
   page: "/api/auth/page",
-  guest: "POST /api/auth/guest",
+  guest: "POST /api/auth/guest (403 closed — Grudge ID only)",
   puterSso: "POST /api/auth/puter-sso",
   puter: "POST /api/auth/puter",
   popupToken: "POST /api/auth/popup-token",
@@ -172,7 +172,7 @@ export function buildAuthConnectProbes(): AuthConnectProbeSpec[] {
     },
     {
       id: "railway-guest",
-      label: "Railway guest (silent session)",
+      label: "Railway guest (closed — expect 403)",
       url: `${FLEET_AUTH_IMPLEMENTATION}/api/auth/guest`,
       mustNot404: true,
     },
@@ -342,10 +342,10 @@ export const FLEET_AUTH_SYMPTOM_FIXES: readonly AuthSymptomFix[] = [
   {
     id: "guest-fails",
     match: ["/api/auth/guest", "railway-guest", "guest session"],
-    symptom: "Silent guest session (POST /api/auth/guest) fails",
+    symptom: "Guest login is closed on purpose (403)",
     fix:
-      "Satellite app must proxy /api/auth/:path* to id.grudge-studio.com (or Railway on hub). " +
-      "Check Railway DATABASE_URL and auth route registration in server/routes/auth.ts.",
+      "Do not mint Guest heroes. Send the user to https://id.grudge-studio.com/login. " +
+      "POST /api/auth/guest and guest_ Puter ids stay 403.",
     probeId: "railway-guest",
   },
   {
@@ -397,7 +397,7 @@ export const FLEET_AUTH_WIRING_GUIDE = {
   browserApps: [
     "1. Load https://id.grudge-studio.com/grudge-game-bootstrap.js (or import @shared/fleet/authConnect).",
     "2. On boot: GrudgeAuth.pickup() — consumes ?grudge_token / ?sso_token from URL.",
-    "3. Silent guest (no UI): POST same-origin /api/auth/guest (Vercel → Railway).",
+    "3. No guest product login. Sign-in is Grudge ID only.",
     "4. Explicit sign-in: GrudgeAuth.loginPage('/auth/callback') — canonical /login?redirect_uri=.",
     "5. Game data: same-origin /api/characters, /api/account (Vercel → Railway). Never call Railway URL from browser CORS.",
   ],
