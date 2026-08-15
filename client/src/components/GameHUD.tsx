@@ -29,6 +29,11 @@ interface GameHUDProps {
   // Callbacks
   onSendChat?: (text: string) => void;
   onDisconnect?: () => void;
+  /** Player windup (catalog ≥ 0.12 s) */
+  castName?: string | null;
+  castProgress?: number;
+  /** Hostile telegraphs */
+  enemyCasts?: Array<{ id: string; name: string; progress: number; remainingSec: number }>;
 }
 
 interface ChatMsg {
@@ -109,6 +114,42 @@ export function GameHUD(props: GameHUDProps) {
           </div>
         </div>
       </div>
+
+      {props.castName && (props.castProgress ?? 0) > 0 && (props.castProgress ?? 0) < 1 && (
+        <div className="absolute bottom-24 left-1/2 -translate-x-1/2 pointer-events-none w-72">
+          <div className="text-amber-200/90 text-[10px] uppercase tracking-widest text-center mb-1">
+            {props.castName}
+          </div>
+          <div className="h-2 bg-black/60 rounded-full overflow-hidden border border-amber-500/30">
+            <div
+              className="h-full rounded-full"
+              style={{
+                width: `${Math.round((props.castProgress ?? 0) * 100)}%`,
+                background: 'linear-gradient(90deg, #f6c945, #fff3c2)',
+              }}
+            />
+          </div>
+        </div>
+      )}
+
+      {!!props.enemyCasts?.length && (
+        <div className="absolute top-28 left-4 pointer-events-none w-56 space-y-1.5">
+          {props.enemyCasts.slice(0, 4).map((e) => (
+            <div key={e.id} className="bg-black/70 rounded-lg border border-red-500/30 px-2 py-1">
+              <div className="flex justify-between text-[10px] text-red-200 mb-0.5">
+                <span className="truncate">{e.name}</span>
+                <span>{e.remainingSec.toFixed(1)}s</span>
+              </div>
+              <div className="h-1.5 bg-red-950/60 rounded-full overflow-hidden">
+                <div
+                  className="h-full bg-red-500"
+                  style={{ width: `${Math.round(e.progress * 100)}%` }}
+                />
+              </div>
+            </div>
+          ))}
+        </div>
+      )}
 
       {/* ── Top-right: Sector info + connection ── */}
       <div className="absolute top-4 right-4 pointer-events-auto">

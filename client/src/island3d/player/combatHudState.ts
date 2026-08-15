@@ -21,6 +21,12 @@ export interface CombatHudSnapshot {
   lastUsedSlot?: number;
   /** Cooldown progress per slot (0 = ready, 1 = on cooldown) for overlay */
   cooldowns?: Record<number, number>;
+  /** Player windup bar — only when catalog windup ≥ 0.12 s */
+  castName?: string | null;
+  castProgress?: number;
+  castRemainingSec?: number;
+  /** Hostile wind-ups (wildlife / camps) */
+  enemyCasts?: Array<{ id: string; name: string; progress: number; remainingSec: number }>;
   /** Soft-lock target frame (Tab cycle) — yellow border UI */
   softLock?: SoftLockScreenFrame | null;
   softLockTargetId?: string | null;
@@ -42,6 +48,10 @@ export const EMPTY_COMBAT_HUD: CombatHudSnapshot = {
   actionBar: { 1: null, 2: null, 3: null, 4: null, 5: null },
   lastUsedSlot: undefined,
   cooldowns: {},
+  castName: null,
+  castProgress: 0,
+  castRemainingSec: 0,
+  enemyCasts: [],
   softLock: null,
   softLockTargetId: null,
   softLockTargetName: null,

@@ -49,6 +49,10 @@ import {
   preloadSkeletonCorpses,
   skeletonScaleForBodyHeight,
 } from './SkeletonCorpse';
+import {
+  AttackWarningSystem,
+  pickWarningForRange,
+} from '../combat/AttackWarningSystem';
 
 // ── Types ────────────────────────────────────────────────────────────────────
 
@@ -57,6 +61,7 @@ type CreatureState =
   | 'wander'
   | 'flee'
   | 'chase'
+  | 'telegraph'
   | 'attack'
   | 'eat'
   | 'dead'
@@ -118,6 +123,13 @@ const IDLE_DURATION_MAX = 6;
 const DEATH_LINGER_TIME = CORPSE_TO_SKELETON_S;
 const FLEE_DURATION = 4;
 const BIRD_ALTITUDE = 30;
+/** Melee floor — grudge-ai-brains: no silent instant wildlife hit */
+const WILDLIFE_TELEGRAPH_SEC = 0.35;
+
+function creatureTelegraphSec(def: CreatureDef): number {
+  if (typeof def.telegraphSec === 'number' && def.telegraphSec > 0) return def.telegraphSec;
+  return WILDLIFE_TELEGRAPH_SEC;
+}
 
 // ── Seeded RNG ───────────────────────────────────────────────────────────────
 
@@ -140,6 +152,7 @@ export class CreatureManager {
   private nextId = 0;
   private navMesh: TerrainNavMesh | null = null;
   private sampleHeight: ((x: number, z: number) => number | null) | null = null;
+  private warnings: AttackWarningSystem;
 
   /** Called when a creature dies — provides loot data for the HUD */
   public onLootDrop?: (event: CreatureLootEvent) => void;
@@ -152,6 +165,8 @@ export class CreatureManager {
     this.scene = scene;
     this.waterLevel = waterLevel;
     this.rand = mulberry32(seed);
+    this.warnings = new AttackWarningSystem(scene);
+    void this.warnings.preload();
     preloadSkeletonCorpses();
   }
 
@@ -643,6 +658,9 @@ export class CreatureManager {
         case 'chase':
           this.updateChase(c, dt, playerPos);
           break;
+        case 'telegraph':
+          this.updateTelegraph(c, dt, playerPos);
+          break;
         case 'attack':
           this.updateAttack(c, dt, playerPos);
           break;
@@ -736,7 +754,8 @@ export class CreatureManager {
     }
 
     if (dist <= c.def.attackRange) {
-      this.setState(c, 'attack', c.def.attackRange > 0 ? 1.5 : 0);
+      const wind = creatureTelegraphSec(c.def);
+      this.setState(c, 'telegraph', wind);
       return;
     }
 
@@ -747,19 +766,62 @@ export class CreatureManager {
     this.playAnim(c, c.def.anims.run ? 'run' : 'walk');
   }
 
+  private updateTelegraph(c: CreatureInstance, dt: number, playerPos: THREE.Vector3): void {
+    c.stateTimer -= dt;
+    this.playAnim(c, c.def.anims.idle || 'idle');
+    const total = creatureTelegraphSec(c.def);
+    const remaining = Math.max(0, c.stateTimer);
+    const progress = 1 - remaining / Math.max(0.001, total);
+    const facing = Math.atan2(
+      playerPos.x - c.group.position.x,
+      playerPos.z - c.group.position.z,
+    );
+    this.warnings.showTelegraph({
+      id: c.id,
+      variant: pickWarningForRange(c.def.attackRange),
+      position: c.group.position.clone(),
+      facing,
+      range: Math.max(1.2, c.def.attackRange),
+      arc: Math.PI * 0.7,
+      totalSec: total,
+      remainingSec: remaining,
+      progress,
+    });
+
+    if (c.stateTimer <= 0) {
+      this.warnings.hide(c.id);
+      this.setState(c, 'attack', 0.35);
+    }
+  }
+
   private updateAttack(c: CreatureInstance, dt: number, playerPos: THREE.Vector3): void {
     c.stateTimer -= dt;
     this.playAnim(c, 'attack', false);
 
     if (c.stateTimer <= 0) {
-      // Deal damage
       const dist = c.group.position.distanceTo(playerPos);
       if (dist <= c.def.attackRange * 1.5 && c.def.damage > 0) {
         this.onPlayerDamage?.(c.def.damage, c.id);
       }
-      // Return to chase
+      this.warnings.hide(c.id);
       this.setState(c, 'chase');
     }
+  }
+
+  getEnemyCasts(): Array<{ id: string; name: string; progress: number; remainingSec: number }> {
+    const out: Array<{ id: string; name: string; progress: number; remainingSec: number }> = [];
+    for (const c of this.creatures.values()) {
+      if (c.state !== 'telegraph') continue;
+      const total = creatureTelegraphSec(c.def);
+      const remaining = Math.max(0, c.stateTimer);
+      out.push({
+        id: c.id,
+        name: c.def.name,
+        progress: 1 - remaining / Math.max(0.001, total),
+        remainingSec: remaining,
+      });
+    }
+    return out;
   }
 
   private updateEat(c: CreatureInstance, dt: number): void {
@@ -910,6 +972,7 @@ export class CreatureManager {
     // Killed — flesh corpse for up to 2 minutes (or until skinned).
     c.looted = false;
     c.isSkeleton = false;
+    this.warnings.hide(c.id);
     this.setState(c, 'dead', DEATH_LINGER_TIME);
     this.playAnim(c, 'death', false);
     return null;
@@ -1126,5 +1189,6 @@ export class CreatureManager {
       });
     }
     this.creatures.clear();
+    this.warnings.dispose();
   }
 }

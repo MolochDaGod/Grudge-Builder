@@ -73,6 +73,11 @@ export default function PlayPage() {
   const [lootNotification, setLootNotification] = useState<string | null>(null);
   const [buildPlacing, setBuildPlacing] = useState(false);
   const [buildSelectedAsset, setBuildSelectedAsset] = useState<string | null>(null);
+  const [castName, setCastName] = useState<string | null>(null);
+  const [castProgress, setCastProgress] = useState(0);
+  const [enemyCasts, setEnemyCasts] = useState<
+    Array<{ id: string; name: string; progress: number; remainingSec: number }>
+  >([]);
 
   // Player info — loaded from backend DB (no hardcoded fallback)
   const [playerInfo, setPlayerInfo] = useState<PlayerInfo | null>(null);
@@ -356,6 +361,17 @@ export default function PlayPage() {
       engineRef.current = null;
     };
   }, []);
+
+  useEffect(() => {
+    if (!loaded) return;
+    const id = setInterval(() => {
+      const snap = engineRef.current?.character?.getCombatHudSnapshot();
+      setCastName(snap?.castName ?? null);
+      setCastProgress(snap?.castProgress ?? 0);
+      setEnemyCasts(engineRef.current?.creatures?.getEnemyCasts?.() ?? []);
+    }, 80);
+    return () => clearInterval(id);
+  }, [loaded]);
 
   // ── Send position updates at 15Hz ─────────────────────────
 
@@ -810,6 +826,9 @@ export default function PlayPage() {
           error={colyseus.error}
           onSendChat={colyseus.sendChat}
           onDisconnect={() => setLocation('/home')}
+          castName={castName}
+          castProgress={castProgress}
+          enemyCasts={enemyCasts}
         />
       )}
     </div>

@@ -4,8 +4,7 @@
  * Models: warning_01 (incoming), warning_02 (cone arc), warning_03 (ground AoE).
  */
 import * as THREE from 'three';
-import { GLTFLoader } from 'three/addons/loaders/GLTFLoader.js';
-import { assetUrl } from '@/lib/assetConfig';
+import { loadAssetGltf } from '@/lib/three/SharedGltfPipeline';
 import type { AttackPattern } from '@shared/definitions/orcWarriorBoss';
 
 export type WarningVariant = 'incoming' | 'cone' | 'aoe';
@@ -29,7 +28,6 @@ export interface AttackTelegraphState {
 }
 
 const templateCache = new Map<WarningVariant, THREE.Group>();
-const loader = new GLTFLoader();
 
 function prepareWarningMesh(root: THREE.Object3D): void {
   root.traverse((child) => {
@@ -51,15 +49,23 @@ function prepareWarningMesh(root: THREE.Object3D): void {
   });
 }
 
-async function loadTemplate(variant: WarningVariant): Promise<THREE.Group> {
+async function loadTemplate(variant: WarningVariant): Promise<THREE.Group | null> {
   const cached = templateCache.get(variant);
   if (cached) return cached;
 
-  const gltf = await loader.loadAsync(assetUrl(WARNING_MODEL_PATHS[variant]));
+  const gltf = await loadAssetGltf(WARNING_MODEL_PATHS[variant], 'low');
+  if (!gltf) return null;
   const template = gltf.scene as THREE.Group;
   prepareWarningMesh(template);
   templateCache.set(variant, template);
   return template;
+}
+
+/** Melee wildlife / short range → cone; long range → incoming. */
+export function pickWarningForRange(rangeM: number): WarningVariant {
+  if (rangeM >= 12) return 'incoming';
+  if (rangeM <= 3.5) return 'cone';
+  return 'aoe';
 }
 
 /** Map boss attack geometry to the best warning decal variant. */

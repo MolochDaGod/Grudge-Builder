@@ -63,6 +63,8 @@ export interface CreatureDef {
   alertRadius: number;
   /** For aggressive/neutral: attack range */
   attackRange: number;
+  /** Wind-up before damage (seconds). Default 0.35 melee floor. */
+  telegraphSec?: number;
   /** 0-1 chance neutral wildlife attacks on sight (else alert/roam) */
   aggroChance?: number;
   /** Player can hunt / harvest this species */

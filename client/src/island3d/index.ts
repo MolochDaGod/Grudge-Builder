@@ -398,7 +398,7 @@ export { buildZoneScene } from './engine/ZoneSceneBuilder';
 export type { ZoneSceneResult } from './engine/ZoneSceneBuilder';
 
 // Attack telegraphs (warning GLB decals)
-export { AttackWarningSystem, pickWarningVariant, WARNING_MODEL_PATHS } from './combat/AttackWarningSystem';
+export { AttackWarningSystem, pickWarningVariant, pickWarningForRange, WARNING_MODEL_PATHS } from './combat/AttackWarningSystem';
 export type { WarningVariant, AttackTelegraphState } from './combat/AttackWarningSystem';
 
 // Orc boss

@@ -125,6 +125,12 @@ export class ProductionSkillCombatRuntime {
   private flights: Flight[] = [];
   private pendingTimers: Array<ReturnType<typeof setTimeout>> = [];
   private root = new THREE.Group();
+  private currentCast: {
+    skillId: string;
+    name: string;
+    windupSec: number;
+    startedAt: number;
+  } | null = null;
 
   onAnim: OnAnim | null = null;
   onHit: OnHit | null = null;
@@ -210,6 +216,30 @@ export class ProductionSkillCombatRuntime {
     return Math.min(1, rem / skillCd);
   }
 
+  /** Windup 0→1 while catalog windup ≥ 0.12 s; otherwise null. */
+  getCastSnapshot(now = performance.now()): {
+    skillId: string;
+    name: string;
+    progress: number;
+    remainingSec: number;
+    totalSec: number;
+  } | null {
+    const c = this.currentCast;
+    if (!c || c.windupSec < 0.12) return null;
+    const elapsed = (now - c.startedAt) / 1000;
+    if (elapsed >= c.windupSec) {
+      this.currentCast = null;
+      return null;
+    }
+    return {
+      skillId: c.skillId,
+      name: c.name,
+      progress: Math.min(1, elapsed / c.windupSec),
+      remainingSec: Math.max(0, c.windupSec - elapsed),
+      totalSec: c.windupSec,
+    };
+  }
+
   getDef(skillId: string): ProductionSkillCombatDef | null {
     return getProductionSkillCombat(skillId);
   }
@@ -253,6 +283,16 @@ export class ProductionSkillCombatRuntime {
 
     // Commit CD
     this.cooldowns.set(skillId, now + skill.cooldown * 1000);
+    if (skill.windup >= 0.12) {
+      this.currentCast = {
+        skillId: skill.id,
+        name: skill.name,
+        windupSec: skill.windup,
+        startedAt: now,
+      };
+    } else {
+      this.currentCast = null;
+    }
 
     // Anim
     this.onAnim?.(skill.animKey, skill);

@@ -267,7 +267,6 @@ export class CharacterController3D {
   };
   public lastUsedSlot: number | undefined = undefined;
   private lastUsedTime = 0;
-  private skillCooldowns: Record<number, number> = {};
 
   public loadActionBar(bar: Record<number, string | null>) {
     if (bar && Object.keys(bar).length) {
@@ -868,12 +867,25 @@ export class CharacterController3D {
       lastUsedSlot: this.lastUsedSlot,
       cooldowns: (() => {
         const out: Record<number, number> = {};
-        const now = performance.now();
-        Object.keys(this.skillCooldowns || {}).forEach((k) => {
-          const end = this.skillCooldowns[Number(k)];
-          out[Number(k)] = Math.max(0, Math.min(1, (end - now) / 650));
-        });
+        this.ensureSkillCombat();
+        const rt = this.skillCombat;
+        if (!rt) return out;
+        for (let s = 1; s <= 5; s++) {
+          const id = this.actionBar[s];
+          if (!id) continue;
+          const def = rt.getDef(id);
+          if (!def || def.cooldown <= 0) continue;
+          out[s] = rt.cooldownProgress(id, def.cooldown);
+        }
         return out;
+      })(),
+      ...(() => {
+        const snap = this.skillCombat?.getCastSnapshot() ?? null;
+        return {
+          castName: snap?.name ?? null,
+          castProgress: snap?.progress ?? 0,
+          castRemainingSec: snap?.remainingSec ?? 0,
+        };
       })(),
       softLock: this.softLockFrame,
       softLockTargetId: sl?.id ?? null,
@@ -1440,36 +1452,20 @@ export class CharacterController3D {
       return;
     }
 
-    // Cooldown to feel like real game (no spam during test)
-    const now = performance.now();
-    if (this.skillCooldowns[slot] && now < this.skillCooldowns[slot]) return;
-    this.skillCooldowns[slot] = now + 650; // ~0.65s test cooldown
+    this.ensureSkillCombat();
+    const combatDef = this.skillCombat?.getDef(skillId) ?? null;
+    if (combatDef && this.skillCombat && !this.skillCombat.isReady(skillId)) return;
 
+    const now = performance.now();
     const skill = getSkillById(skillId);
     const display = skill ? skill.name : skillId;
-    console.log(`[Game Flow] Slot ${slot} → ${display} (id:${skillId}) form:${this.currentForm}`);
 
-    this.lastUsedSlot = slot;
-    this.lastUsedTime = now;
-
-    // Auto-draw weapons for combat skills
-    if (this.mode === 'combat' && !this.weaponsDrawn) {
-      this.beginDrawWeapons(true);
-    }
-
-    if (this.orchestrator) {
-      this.orchestrator.playSkill(skillId, this.currentForm);
-    }
-
-    // Production cast: range gate, projectiles, hit windows, impact VFX
-    this.ensureSkillCombat();
-    if (this.skillCombat) {
+    if (this.skillCombat && combatDef) {
       const lock = this.softLock.getCurrent();
       const hostiles = this.skillCombatHostiles?.() ?? [];
       const lockTarget: SkillCombatTarget | null = lock
         ? { id: lock.id, position: lock.position.clone(), hpFrac: lock.hp != null && lock.maxHp ? lock.hp / lock.maxHp : undefined }
         : null;
-      // Prefer hand height for projectile origin (not chest)
       const hand =
         this.loadedModelScene?.getObjectByName('R_hand_container')
         ?? this.loadedModelScene?.getObjectByName('L_hand_container');
@@ -1478,19 +1474,32 @@ export class CharacterController3D {
       else handPos.copy(this.model.position).add(new THREE.Vector3(0, 1.35, 0));
 
       try {
-        this.skillCombat.cast(skillId, {
+        const result = this.skillCombat.cast(skillId, {
           casterPos: handPos,
           casterYaw: this.cameraYaw,
           lockTarget,
           hostiles: hostiles.length ? hostiles : (lockTarget ? [lockTarget] : []),
           weaponType: this.weaponType,
         });
+        if (!result.ok) return;
       } catch (err) {
         console.warn('[Skill] cast failed', skillId, err);
+        return;
       }
     }
 
-    // Feedback + hit marker like DangerRoom
+    console.log(`[Game Flow] Slot ${slot} → ${display} (id:${skillId}) form:${this.currentForm}`);
+    this.lastUsedSlot = slot;
+    this.lastUsedTime = now;
+
+    if (this.mode === 'combat' && !this.weaponsDrawn) {
+      this.beginDrawWeapons(true);
+    }
+
+    if (this.orchestrator) {
+      this.orchestrator.playSkill(skillId, this.currentForm);
+    }
+
     this.hitMarker = (this.hitMarker || 0) + 1;
   }
 

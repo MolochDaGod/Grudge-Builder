@@ -446,7 +446,8 @@ export function Island3DRenderer({
       const ch = engineRef.current?.character;
       const snap = ch?.getCombatHudSnapshot();
       if (snap) {
-        setCombatHud(snap);
+        const enemyCasts = engineRef.current?.creatures?.getEnemyCasts?.() ?? [];
+        setCombatHud({ ...snap, enemyCasts });
         setSoftLockFrame(snap.softLock ?? null);
       }
       if (ch) {

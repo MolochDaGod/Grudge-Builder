@@ -49,6 +49,35 @@ export function DangerRoomHud({ hud }: DangerRoomHudProps) {
         <div className="dr-focus-badge">◎ Hard Focus — Strafe Lock</div>
       )}
 
+      {hud.castName && (hud.castProgress ?? 0) > 0 && (hud.castProgress ?? 0) < 1 && (
+        <div className="absolute bottom-28 left-1/2 -translate-x-1/2 w-64 pointer-events-none z-40">
+          <div className="text-cyan-200/80 text-[10px] tracking-widest text-center mb-1 uppercase">
+            {hud.castName}
+          </div>
+          <div className="h-1.5 bg-black/50 rounded-full overflow-hidden border border-cyan-400/30">
+            <div
+              className="h-full bg-cyan-400"
+              style={{ width: `${Math.round((hud.castProgress ?? 0) * 100)}%` }}
+            />
+          </div>
+        </div>
+      )}
+      {!!hud.enemyCasts?.length && (
+        <div className="absolute top-24 left-4 w-52 space-y-1 pointer-events-none z-40">
+          {hud.enemyCasts.slice(0, 4).map((e) => (
+            <div key={e.id} className="bg-black/70 border border-red-500/40 rounded px-2 py-1">
+              <div className="flex justify-between text-[10px] text-red-200">
+                <span className="truncate">{e.name}</span>
+                <span>{e.remainingSec.toFixed(1)}s</span>
+              </div>
+              <div className="h-1 bg-red-950 rounded-full overflow-hidden mt-0.5">
+                <div className="h-full bg-red-500" style={{ width: `${Math.round(e.progress * 100)}%` }} />
+              </div>
+            </div>
+          ))}
+        </div>
+      )}
+
       <DangerRoomCrosshair hud={hud} />
 
       <div className="dr-mm-panel">
