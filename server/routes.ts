@@ -6449,6 +6449,63 @@ Also suggest metadata values in this exact JSON format:
     }
   });
 
+  /**
+   * Poker edge → Jupiter swap from BUDBai (sale proceeds → GBUX on Raydium).
+   * Auth: X-Arb-Secret / X-Fleet-Play-Secret matching FLEET_PLAY_CREDIT_SECRET
+   * or SESSION_SECRET. Not a player bag write.
+   */
+  app.post("/api/wallet/agent-jupiter-swap", async (req, res) => {
+    try {
+      const secret =
+        String(req.headers["x-arb-secret"] || req.headers["x-fleet-play-secret"] || "");
+      const expected =
+        process.env.FLEET_PLAY_CREDIT_SECRET ||
+        process.env.POKER_ARB_SECRET ||
+        process.env.SESSION_SECRET ||
+        "";
+      const fromEdge = String(req.headers["x-poker-edge"] || "") === "cloudflare-workers";
+      if (!fromEdge || !expected || secret !== expected) {
+        return res.status(401).json({ error: "Unauthorized agent swap" });
+      }
+      const body = req.body as {
+        agent?: string;
+        swapTransaction?: string;
+        saleTx?: string;
+        asset?: string;
+        dexGbux?: number;
+      };
+      const tx = String(body.swapTransaction || "");
+      const agent =
+        body.agent ||
+        process.env.AI_AGENT_SOL_ADDRESS ||
+        "6P7Pp5eHzPAVjnbNLkW8DzAuuc7gj9Sm5XiprwnjzvRs";
+      if (tx.length < 40) {
+        return res.status(400).json({ error: "swapTransaction required (Jupiter base64)" });
+      }
+      const result = await crossmintService.submitSerializedSolanaTx(agent, tx);
+      if (!result.success) {
+        return res.status(502).json({
+          success: false,
+          error: result.error || "Crossmint submit failed",
+        });
+      }
+      res.json({
+        success: true,
+        swapTx: result.swapTx,
+        pending: result.pending || false,
+        saleTx: body.saleTx,
+        asset: body.asset,
+        dexGbux: body.dexGbux,
+        note: result.pending
+          ? "Submitted — Crossmint signer approval may still be required"
+          : "Submitted to Crossmint",
+      });
+    } catch (error) {
+      console.error("agent-jupiter-swap", error);
+      res.status(500).json({ error: "Failed to submit agent Jupiter swap" });
+    }
+  });
+
   // ==================== ISLAND NFT Routes ====================
 
   // GET /api/island-nfts - Get all island NFTs for account

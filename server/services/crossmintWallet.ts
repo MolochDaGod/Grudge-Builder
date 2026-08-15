@@ -787,6 +787,68 @@ export class CrossmintWalletService {
     }
   }
 
+  /**
+   * Submit a serialized Solana VersionedTransaction from BUDBai (Jupiter swap).
+   * Uses Wallets API 2025-06-09; falls back to v1-alpha2 locator.
+   * Server-signer approval may still be pending — caller records that status.
+   */
+  async submitSerializedSolanaTx(
+    walletAddress: string,
+    swapTransactionBase64: string,
+  ): Promise<{ success: boolean; swapTx?: string; pending?: boolean; error?: string }> {
+    if (!this.apiKey) {
+      return { success: false, error: "Crossmint API key not configured" };
+    }
+    const locators = [
+      walletAddress,
+      "email:poker-ai-agent@grudge-studio.com:solana",
+    ];
+    let last = "no locator accepted";
+    for (const loc of locators) {
+      const paths = [
+        `${this.baseUrl}/api/2025-06-09/wallets/${encodeURIComponent(loc)}/transactions`,
+        `${this.baseUrl}/api/v1-alpha2/wallets/${encodeURIComponent(loc)}/transactions`,
+      ];
+      for (const url of paths) {
+        try {
+          const response = await fetch(url, {
+            method: "POST",
+            headers: {
+              "X-API-KEY": this.apiKey,
+              "Content-Type": "application/json",
+            },
+            body: JSON.stringify({
+              params: { transaction: swapTransactionBase64 },
+            }),
+          });
+          const text = await response.text();
+          let j: {
+            id?: string;
+            onChain?: { txId?: string };
+            status?: string;
+            error?: string;
+            message?: string;
+          } = {};
+          try {
+            j = JSON.parse(text) as typeof j;
+          } catch {
+            last = `${response.status} ${text.slice(0, 120)}`;
+            continue;
+          }
+          if (response.ok) {
+            const sig = j.onChain?.txId || j.id;
+            const pending = /pending|awaiting/i.test(String(j.status || ""));
+            return { success: true, swapTx: sig, pending };
+          }
+          last = j.error || j.message || `${response.status} ${text.slice(0, 120)}`;
+        } catch (e) {
+          last = e instanceof Error ? e.message : String(e);
+        }
+      }
+    }
+    return { success: false, error: last };
+  }
+
   // ==================== TRANSFER (escrow → player) ====================
 
   /**
