@@ -14,6 +14,7 @@ import { DRACOLoader } from 'three/examples/jsm/loaders/DRACOLoader.js';
 import { MeshoptDecoder } from 'three/examples/jsm/libs/meshopt_decoder.module.js';
 import * as SkeletonUtils from 'three/examples/jsm/utils/SkeletonUtils.js';
 import { refreshSkinnedBounds, optimizeAnimationClip } from './WorldMath';
+import { assetUrl, shouldSkipPlayMesh } from '@/lib/assetConfig';
 
 // Prefer same-origin decoder (cached by CDN worker / public/) then Google CDN fallback
 const DRACO_DECODER_CANDIDATES = [
@@ -145,6 +146,23 @@ function loadOnce(url: string): Promise<GLTF> {
  * Load a GLTF/GLB once; subsequent calls reuse the parsed document.
  * Does not clone — callers that need independent scenes should cloneGltfScene().
  */
+/**
+ * Island3D / Warlords play mesh: one URL (assetUrl) + one loader (this file).
+ * Returns null for catalog keys not on R2 — do not invent a second renderer.
+ */
+export async function loadAssetGltf(
+  path: string,
+  priority: LoadPriority = 'medium',
+): Promise<GLTF | null> {
+  if (!path || shouldSkipPlayMesh(path)) return null;
+  try {
+    return await loadGltfCached(assetUrl(path), priority);
+  } catch (err) {
+    console.warn('[SharedGltf] play mesh skip', path, err);
+    return null;
+  }
+}
+
 export async function loadGltfCached(
   url: string,
   priority: LoadPriority = 'medium',

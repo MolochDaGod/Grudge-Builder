@@ -33,13 +33,26 @@ document.body.style.fontFamily = resolveDisplayFont(); // 'Kaph', sans-serif
 
 ```ts
 import { assetUrl } from '@/lib/assetConfig';
+import { loadAssetGltf } from '@/lib/three/SharedGltfPipeline';
 import { FLEET_VIDEO_CATALOG } from '@shared/fleet/videoCatalog';
 
-assetUrl('/sprites/gbux-token.png');  // → assets.grudge-studio.com
+assetUrl('/sprites/gbux-token.png');  // browser → /api/assets/... → R2
+await loadAssetGltf('/models/creatures/land/drake.glb');
 FLEET_VIDEO_CATALOG.warlordsIntro.r2_url;
 ```
 
 **Never** use bare `/sprites/...` or `/icons/...` in TSX — those used to hit the Vercel bundle. Rewrites still proxy to CDN for legacy HTML, but code should use `assetUrl()`.
+
+### Warlords play mesh law (one path)
+
+| Layer | Use |
+|-------|-----|
+| URL | `assetUrl()` / `resolveModelUrl()` → same-origin `/api/assets/*` |
+| Loader | `loadAssetGltf` / `loadGltfCached` in `SharedGltfPipeline` |
+| Catalog | relative `/models/...` keys — not `https://assets.grudge-studio.com/...` |
+| Missing R2 key | `shouldSkipPlayMesh` — omit, do not fetch SPA HTML or ship a capsule |
+
+Do **not** add a second CDN, a second GLTFLoader, or a primitive stand-in for a missing island mesh. Upload the key (`upload-session-warlords-assets-to-r2.mjs`) or skip. Place only on a real ground sample (never `waterLevel + 2`).
 
 Deprecated hosts (`molochdagod.github.io`, `grudge-objectstore.pages.dev`) are rewritten at runtime in `iconResolver.ts`.
 

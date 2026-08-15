@@ -1899,7 +1899,7 @@ export class Island3DEngine {
         const hits = ray.intersectObject(mesh, true);
         if (hits.length > 0) return hits[0].point.y;
       }
-      return cfg.waterLevel + 2;
+      return null;
     };
 
     // 2e. Hidden Mountain City — top-right biome (thornwood_wilds)
@@ -2194,9 +2194,11 @@ export class Island3DEngine {
           landmarks: prod.events.landmarks,
           sampleGround,
           skipIds: [
-            // Handled by dedicated systems
             'hidden_mountain_city',
-            'fabledzone_core', // FabledZoneFoundationLoader
+            'fabledzone_core',
+            // Not on R2 — EtherealFloatingIslandSystem owns this sector look
+            'event_falls',
+            'starting_falls',
           ],
         });
         if (this.sectorEventLandmarks) {

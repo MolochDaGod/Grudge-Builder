@@ -11,9 +11,8 @@
  *   Predators    → models/creatures/predator/{name}.glb
  */
 
-import { ASSET_CDN_BASE } from '@/lib/assetConfig';
-
-const CDN = ASSET_CDN_BASE;
+/** Relative keys only — load via assetUrl() / loadAssetGltf (one R2 path). */
+const CDN = '';
 
 // ── Types ────────────────────────────────────────────────────────────────────
 

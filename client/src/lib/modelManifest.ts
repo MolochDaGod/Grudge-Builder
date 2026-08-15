@@ -16,7 +16,7 @@
  *   getAnimationSet(weaponType)           → Record<AnimState3D, string>
  */
 
-import { ASSET_CDN_BASE } from "@/lib/assetConfig";
+import { ASSET_CDN_BASE, assetUrl } from "@/lib/assetConfig";
 import {
   RACE_GRUDGE6,
   resolveCanonicalRaceModelPath,
@@ -500,17 +500,8 @@ export function resolveModelUrl(path: string): string {
   const canonical = resolveCanonicalRaceModelPath(path);
   path = canonical;
 
-  if (/^https?:\/\//i.test(path)) return path;
-  if (path.startsWith('//')) return `https:${path}`;
-
-  const host = String(CDN).replace(/^https?:\/\//i, '').replace(/\/$/, '');
-  if (path.includes(host)) {
-    return path.startsWith('http') ? path : `https://${path.replace(/^\/+/, '')}`;
-  }
-
-  const rel = path.startsWith('/') ? path : `/${path}`;
-  const base = String(CDN).replace(/\/$/, '');
-  return `${base}${rel}`;
+  // One browser URL: same-origin /api/assets → R2 (never raw CDN + SPA /models split)
+  return assetUrl(path);
 }
 
 /** List all available animation states for a weapon type */

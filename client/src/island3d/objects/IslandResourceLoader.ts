@@ -4,8 +4,7 @@
  * Square-leaf island_tree / billboard forests banned.
  */
 import * as THREE from 'three';
-import { GLTFLoader } from 'three/addons/loaders/GLTFLoader.js';
-import { assetUrl } from '@/lib/assetConfig';
+import { loadAssetGltf } from '@/lib/three/SharedGltfPipeline';
 import {
   BATTLE_NATURE_PACK,
   harvestCrystalPack,
@@ -39,7 +38,6 @@ export const ISLAND_RESOURCE_MODELS = {
 export type IslandResourceType = keyof typeof ISLAND_RESOURCE_MODELS;
 
 const templateCache = new Map<string, THREE.Group>();
-const loader = new GLTFLoader();
 
 function prepareShadows(root: THREE.Object3D): void {
   root.traverse((child) => {
@@ -57,7 +55,8 @@ export async function loadIslandResourceTemplate(path: string): Promise<THREE.Gr
   const cached = templateCache.get(path);
   if (cached) return cached;
 
-  const gltf = await loader.loadAsync(assetUrl(path));
+  const gltf = await loadAssetGltf(path, 'medium');
+  if (!gltf) throw new Error(`island resource not on CDN: ${path}`);
   const template = gltf.scene as THREE.Group;
   prepareShadows(template);
   templateCache.set(path, template);

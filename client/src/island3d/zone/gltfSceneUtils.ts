@@ -2,28 +2,17 @@
  * Shared GLTF scene helpers for zone landmark / boss / floating island loads.
  */
 import * as THREE from 'three';
-import { GLTFLoader } from 'three/examples/jsm/loaders/GLTFLoader.js';
-import { assetUrl } from '@/lib/assetConfig';
-
-const _loader = new GLTFLoader();
+import { loadAssetGltf } from '@/lib/three/SharedGltfPipeline';
 
 /**
- * Load first successful URL from a list (CDN then same-origin).
+ * Load first successful play mesh (assetUrl + SharedGltf).
  */
 export async function loadGlbFirst(
   urls: readonly string[],
 ): Promise<THREE.Group | null> {
   for (const raw of urls) {
-    try {
-      const url =
-        raw.startsWith('http://') || raw.startsWith('https://')
-          ? raw
-          : assetUrl(raw);
-      const gltf = await _loader.loadAsync(url);
-      return gltf.scene as THREE.Group;
-    } catch {
-      /* try next */
-    }
+    const gltf = await loadAssetGltf(raw, 'medium');
+    if (gltf?.scene) return gltf.scene as THREE.Group;
   }
   return null;
 }

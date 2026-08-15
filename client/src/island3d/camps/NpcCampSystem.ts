@@ -5,7 +5,6 @@
  * Upgrades: benches, storage, towers (BuildAssetManifest models).
  */
 import * as THREE from 'three';
-import { GLTFLoader } from 'three/addons/loaders/GLTFLoader.js';
 import {
   NPC_CAMP_DEFS,
   STYLIZED_CAMP,
@@ -24,17 +23,16 @@ import {
 import { ENEMY_CAMP_TRAP_SEED } from '@shared/definitions/mobileGameObstacles';
 import { getBuildAsset } from '../building/BuildAssetManifest';
 import { loadBuildAssetModel } from '../building/PackModelLoader';
-import { assetUrl } from '@/lib/assetConfig';
+import { loadAssetGltf } from '@/lib/three/SharedGltfPipeline';
 
-const gltfLoader = new GLTFLoader();
 const campTemplateCache = new Map<string, THREE.Group>();
 
 async function loadCampTemplate(modelPath: string): Promise<THREE.Group> {
-  const url = assetUrl(modelPath);
-  const cached = campTemplateCache.get(url);
+  const cached = campTemplateCache.get(modelPath);
   if (cached) return cached.clone(true) as THREE.Group;
 
-  const gltf = await gltfLoader.loadAsync(url);
+  const gltf = await loadAssetGltf(modelPath, 'medium');
+  if (!gltf) throw new Error(`camp mesh not on CDN: ${modelPath}`);
   const root = gltf.scene as THREE.Group;
   root.traverse((c) => {
     if ((c as THREE.Mesh).isMesh) {
@@ -42,7 +40,7 @@ async function loadCampTemplate(modelPath: string): Promise<THREE.Group> {
       c.receiveShadow = true;
     }
   });
-  campTemplateCache.set(url, root);
+  campTemplateCache.set(modelPath, root);
   return root.clone(true) as THREE.Group;
 }
 

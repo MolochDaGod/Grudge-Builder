@@ -47,32 +47,6 @@ function fitHeight(obj: THREE.Object3D, targetH: number): void {
   obj.position.y -= box2.min.y;
 }
 
-function proceduralFallback(kind: SectorLandmarkAsset['kind']): THREE.Object3D {
-  const g = new THREE.Group();
-  if (kind === 'event') {
-    const falls = new THREE.Mesh(
-      new THREE.CylinderGeometry(8, 14, 90, 10),
-      new THREE.MeshStandardMaterial({
-        color: 0x00e5ff,
-        emissive: 0xbf40ff,
-        emissiveIntensity: 0.4,
-        transparent: true,
-        opacity: 0.75,
-      }),
-    );
-    falls.position.y = 45;
-    g.add(falls);
-  } else {
-    const rock = new THREE.Mesh(
-      new THREE.DodecahedronGeometry(18, 0),
-      new THREE.MeshStandardMaterial({ color: 0x6b7280, roughness: 0.9 }),
-    );
-    rock.position.y = 12;
-    g.add(rock);
-  }
-  return g;
-}
-
 export async function createSectorEventLandmarks(
   opts: SectorEventLandmarksOpts,
 ): Promise<SectorEventLandmarksRuntime | null> {
@@ -89,10 +63,15 @@ export async function createSectorEventLandmarks(
   for (const lm of list) {
     const ax = lm.zoneAnchorFrac.ox * size;
     const az = lm.zoneAnchorFrac.oz * size;
-    let ay = 0;
+    let ay: number | null = null;
     if (opts.sampleGround) {
       const h = opts.sampleGround(ax, az);
-      if (h != null) ay = h;
+      if (h != null && Number.isFinite(h)) ay = h;
+    }
+    if (ay === null) {
+      console.warn(`[SectorEventLandmarks] ${lm.id} skipped — no walkable ground`);
+      failed.push(lm.id);
+      continue;
     }
 
     const group = new THREE.Group();
@@ -101,9 +80,9 @@ export async function createSectorEventLandmarks(
 
     let mesh = await loadGlb(lm.localPath, lm.cdnUrl);
     if (!mesh) {
-      console.warn(`[SectorEventLandmarks] ${lm.id} GLB failed — procedural fallback`);
-      mesh = proceduralFallback(lm.kind);
+      console.warn(`[SectorEventLandmarks] ${lm.id} not on CDN — skip (no primitive stand-in)`);
       failed.push(lm.id);
+      continue;
     } else {
       fitHeight(mesh, lm.targetHeightM);
       mesh.traverse((c) => {

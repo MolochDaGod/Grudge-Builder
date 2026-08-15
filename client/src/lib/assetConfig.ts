@@ -155,6 +155,27 @@ export function cdnAssetUrl(path: string): string {
 }
 
 /**
+ * Play meshes that are catalogued but not on R2 yet.
+ * Do not fetch — skip (dedicated systems or omit). Never SPA HTML / primitives.
+ */
+const PLAY_MESH_SKIP = new Set([
+  'models/biomes/ethereal/event-falls.glb',
+  'models/biomes/ethereal/starting-falls.glb',
+  'models/camps/stylized_enemy_camp_scene.glb',
+  'models/towns/fabled/dwarf_gate.glb',
+  'models/weapons/projectiles/arrow.glb',
+]);
+
+export function playMeshKey(path: string): string {
+  return toCdnRelativePath(path || '').replace(/^\/+/, '').toLowerCase();
+}
+
+/** True when Island3D must not request this key (missing on R2). */
+export function shouldSkipPlayMesh(path: string): boolean {
+  return PLAY_MESH_SKIP.has(playMeshKey(path));
+}
+
+/**
  * Build a full ObjectStore API URL for a given JSON data endpoint.
  * Browser: same-origin /api/objectstore/v1 (Vercel → objectstore.grudge-studio.com).
  *
