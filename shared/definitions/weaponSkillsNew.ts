@@ -164,7 +164,7 @@ export const WEAPON_TYPE_DEFINITIONS: Record<string, WeaponTypeDefinition> = {
         unlockTier: 1,
         label: "PRIMARY",
         skills: [
-          { id: "axe_rending_chop", name: "Rending Chop", description: "Single target, applies Bleed stack", icon: "🪓", tier: 1, damage: 50, cooldown: 0, effects: ["Applies Bleed"] },
+          { id: "axe_rending_chop", name: "Battle Howl", description: "Scourge Skill_01 battle cry — AoE shout, applies Bleed stack", icon: "📯", tier: 1, damage: 50, cooldown: 0, effects: ["Applies Bleed", "Battle Cry"] },
           { id: "axe_lunging_chop", name: "Lunging Chop", description: "Extended range chop", icon: "🏃", tier: 2, damage: 55, cooldown: 2, effects: ["Extended Range"] },
           { id: "axe_ground_slam", name: "Ground Slam", description: "AoE slow attack", icon: "💥", tier: 3, damage: 45, cooldown: 4, effects: ["AoE Slow 30%"] },
         ]

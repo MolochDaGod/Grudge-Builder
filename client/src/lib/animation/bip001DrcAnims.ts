@@ -79,6 +79,12 @@ const MAGIC: Bip001PackSet = {
   death: "dual_wield/death",
 };
 
+/** 1H axe — same 1H loco as sword; skill1 = Meshy Scourge battle cry (clip only). */
+const AXE: Bip001PackSet = {
+  ...SWORD_1H,
+  special: "meshy_scourge/skill1",
+};
+
 const UNARMED: Bip001PackSet = {
   idle: "unarmed/fight_idle",
   walk: "magic/Standing Walk Forward",
@@ -129,8 +135,10 @@ export function bip001PackForWeapon(weaponType: WeaponType): Bip001PackSet {
       return MAGIC;
     case "unarmed":
       return UNARMED;
+    case "axe":
+      return AXE;
     default:
-      // sword, axe, dagger, hammer1h, mace, sword-shield
+      // sword, dagger, hammer1h, mace, sword-shield
       return SWORD_1H;
   }
 }
@@ -170,7 +178,12 @@ export function buildBip001AnimLoadMap(
   if (pack.attack2) paths.attack2 = urls(pack.attack2);
   if (pack.attack3) paths.attack3 = urls(pack.attack3);
   if (pack.dodge) paths.dodge = urls(pack.dodge);
-  if (pack.special) paths.special = urls(pack.special);
+  if (pack.special) {
+    paths.special =
+      pack.special === "meshy_scourge/skill1"
+        ? "/anims/baked/meshy_scourge/skill1.json"
+        : urls(pack.special);
+  }
   if (pack.death) paths.death = urls(pack.death);
   if (pack.jump) paths.jump = urls(pack.jump);
 

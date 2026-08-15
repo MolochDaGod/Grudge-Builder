@@ -28,6 +28,7 @@ import {
   moveDurationSec,
   type MoveSpec,
 } from "@shared/animation/moveLanguage";
+import { getProductionSkillCombat } from "@shared/definitions/weaponSkillCombatCatalog";
 
 export interface OrchestratorCallbacks {
   onMoveBeat?: (emit: string, primary?: boolean) => void;
@@ -131,6 +132,24 @@ export class CharacterAnimOrchestrator {
    */
   playSkill(skillId: string, _form: number = 0): PlaybackSlot | null {
     const sid = (skillId || '').toLowerCase();
+
+    const prod = getProductionSkillCombat(skillId);
+    const catalogSlot = prod?.animKey as PlaybackSlot | undefined;
+    if (
+      catalogSlot &&
+      (catalogSlot === 'special' ||
+        catalogSlot === 'cast' ||
+        catalogSlot === 'attack' ||
+        catalogSlot === 'attack2' ||
+        catalogSlot === 'attack3' ||
+        catalogSlot === 'dodge' ||
+        catalogSlot === 'slash1')
+    ) {
+      this.activityOverride = true;
+      this.activityTimer = Math.max(0.7, prod?.windup ?? 0.2) + (prod?.active ?? 0.4);
+      this.playSlot(catalogSlot, false, 'attack');
+      return catalogSlot;
+    }
 
     // Slot 1 basic / strike / warrior default -> use the rich combo system (like LMB)
     if (sid.includes('strike') || sid.includes('basic') || sid.includes('warrior_0') || sid === 'slot1' || sid.includes('power_strike')) {

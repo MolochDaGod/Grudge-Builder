@@ -242,7 +242,9 @@ export async function loadBakedAnimationClip(path: string): Promise<THREE.Animat
       .split("/")
       .map((s) => encodeURIComponent(s))
       .join("/");
+    const sameOrigin = `/anims/baked/${enc}.json`;
     candidates.push(
+      sameOrigin,
       `https://open.grudge-studio.com/anims/baked/${enc}.json`,
       `https://gameopen.vercel.app/anims/baked/${enc}.json`,
       `${ASSET_CDN_BASE}/anims/baked/${enc}.json`,
