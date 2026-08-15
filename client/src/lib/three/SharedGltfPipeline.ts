@@ -98,35 +98,47 @@ function drainQueue(): void {
   }
 }
 
+function isGltfBuffer(buf: ArrayBuffer): boolean {
+  if (buf.byteLength < 4) return false;
+  const head = new Uint8Array(buf, 0, 4);
+  // GLB magic "glTF"
+  if (head[0] === 0x67 && head[1] === 0x6c && head[2] === 0x54 && head[3] === 0x46) {
+    return true;
+  }
+  // JSON glTF starts with '{' — never HTML '<!DO'
+  return head[0] === 0x7b;
+}
+
 function loadOnce(url: string): Promise<GLTF> {
   const loader = ensureLoader();
-  return new Promise<GLTF>((resolve, reject) => {
-    loader.load(
-      url,
-      (gltf) => {
-        // Optimize embedded clips once at cache time
-        for (const clip of gltf.animations) {
-          try {
-            optimizeAnimationClip(clip);
-          } catch {
-            /* ignore */
-          }
-        }
-        resolve(gltf);
-      },
-      undefined,
-      (err) => {
-        if (_draco && DRACO_DECODER_CANDIDATES[1]) {
-          try {
-            _draco.setDecoderPath(DRACO_DECODER_CANDIDATES[1]);
-          } catch {
-            /* ignore */
-          }
-        }
-        reject(err instanceof Error ? err : new Error(String(err)));
-      },
-    );
-  });
+  return fetch(url, { mode: 'cors' })
+    .then(async (res) => {
+      if (!res.ok) {
+        throw new Error(`GLB ${res.status} ${url}`);
+      }
+      const buf = await res.arrayBuffer();
+      if (!isGltfBuffer(buf)) {
+        throw new Error(`Not a glTF (HTML/404 page): ${url}`);
+      }
+      return new Promise<GLTF>((resolve, reject) => {
+        const base = url.replace(/[^/]+$/, '');
+        loader.parse(
+          buf,
+          base,
+          (gltf) => {
+            for (const clip of gltf.animations) {
+              try {
+                optimizeAnimationClip(clip);
+              } catch {
+                /* ignore */
+              }
+            }
+            resolve(gltf);
+          },
+          (err) => reject(err instanceof Error ? err : new Error(String(err))),
+        );
+      });
+    });
 }
 
 /**

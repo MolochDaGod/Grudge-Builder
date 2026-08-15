@@ -284,7 +284,22 @@ export async function ensureFleetSessionClaim(): Promise<boolean> {
  * Read JWT from all fleet SSO keys (Foundry, id gateway, RTS, legacy).
  * Without this, home thinks the user is logged out while other tabs hold sso_token.
  */
+/**
+ * In-memory: Railway 401'd this page load. Stop sending the dead Bearer
+ * (no auto-login). Token stays in localStorage until the user signs in again.
+ */
+let authRejectedThisLoad = false;
+
+export function markAuthRejected(): void {
+  authRejectedThisLoad = true;
+}
+
+export function isAuthRejected(): boolean {
+  return authRejectedThisLoad;
+}
+
 export function getToken(): string | null {
+  if (authRejectedThisLoad) return null;
   if (typeof localStorage === "undefined") return null;
   const keys = [
     AUTH_TOKEN_KEY, // grudge_auth_token
@@ -328,6 +343,7 @@ function clearCookie(name: string): void {
 }
 
 export function setToken(token: string): void {
+  authRejectedThisLoad = false;
   localStorage.setItem(AUTH_TOKEN_KEY, token);
   localStorage.setItem(LEGACY_SESSION_TOKEN_KEY, token);
   // RTS / GrudgeSession cross-app keys

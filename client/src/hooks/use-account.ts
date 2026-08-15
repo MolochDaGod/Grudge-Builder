@@ -4,6 +4,7 @@ import {
   authHeaders,
   ensureFleetSessionClaim,
   getToken,
+  markAuthRejected,
   waitForAuthReady,
 } from '@/lib/grudgeBackend';
 
@@ -47,6 +48,7 @@ export function useAccount() {
       try {
         const meRes = await fetch('/api/auth/me', { headers, credentials: 'include' });
         if (meRes.status === 401 || meRes.status === 403) {
+          markAuthRejected();
           setAccount(null);
           setError(null);
           return;
@@ -65,6 +67,7 @@ export function useAccount() {
 
       const response = await fetch('/api/account', { headers, credentials: 'include' });
       if (response.status === 401 || response.status === 403) {
+        markAuthRejected();
         setAccount(null);
         setError(null);
         return;

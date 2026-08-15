@@ -490,14 +490,12 @@ export class CreatureManager {
       try {
         loaded = await loadCharacterModel(instance.def.modelPath);
       } catch (cdnErr) {
-        // Same-origin public/ staging (Belerick etc.) before R2 upload
-        const rel = instance.def.modelPath.replace(/^https?:\/\/[^/]+/, '');
-        const origin =
-          typeof window !== 'undefined' && window.location?.origin
-            ? window.location.origin
-            : '';
-        if (!origin) throw cdnErr;
-        loaded = await loadCharacterModel(`${origin}${rel.startsWith('/') ? rel : `/${rel}`}`);
+        // Relative /models/… may exist in public/. Never retry a CDN miss
+        // against this origin — Vercel serves index.html and GLTFLoader crashes.
+        const src = instance.def.modelPath;
+        if (/^https?:\/\//i.test(src)) throw cdnErr;
+        const rel = src.startsWith('/') ? src : `/${src}`;
+        loaded = await loadCharacterModel(rel);
       }
       instance.model = loaded;
 

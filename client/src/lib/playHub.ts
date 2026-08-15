@@ -191,6 +191,9 @@ export function characterToPlayerInfo(char: Character): PlayerInfo {
 export async function resolveActiveCharacterForPlay(
   explicitCharacterId?: string | null,
 ): Promise<Character | null> {
+  // Guest / rejected session: never hit Railway roster (avoids 401 storm on /play)
+  if (!getToken()) return null;
+
   const fromUrl =
     explicitCharacterId ??
     (typeof window !== 'undefined'

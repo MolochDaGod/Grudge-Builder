@@ -73,11 +73,11 @@ export function useColyseus(playerInfo: PlayerInfo | null) {
       clientRef.current = client;
 
       const worldRoom = await client.joinOrCreate('world', {
-        characterName: playerInfo.characterName,
-        heroClass: playerInfo.heroClass,
-        heroRace: playerInfo.heroRace,
-        faction: playerInfo.faction,
-        level: playerInfo.level,
+        characterName: playerInfo.characterName || 'Guest',
+        heroClass: playerInfo.heroClass || 'warrior',
+        heroRace: playerInfo.heroRace || 'human',
+        faction: playerInfo.faction || 'crusade',
+        level: playerInfo.level || 1,
         accountId: playerInfo.accountId,
         characterId: playerInfo.characterId,
         sourceGame: 'warlords',
@@ -105,11 +105,17 @@ export function useColyseus(playerInfo: PlayerInfo | null) {
         setState(s => ({ ...s, error: `WorldRoom error: ${message}` }));
       });
     } catch (err: any) {
-      console.error('[Colyseus] Connection failed:', err);
+      // Matchmake HTML/empty reservation → consumeSeatReservation reads .name of undefined
+      const msg = err?.message || String(err);
+      console.warn('[Colyseus] World join skipped (solo play continues):', msg);
+      clientRef.current = client;
       setState(s => ({
         ...s,
         connecting: false,
-        error: err.message || 'Connection failed',
+        connected: false,
+        error: /name|reservation|matchmake/i.test(msg)
+          ? 'Realtime lobby offline — playing solo'
+          : msg,
       }));
     }
   }, [playerInfo]);
@@ -227,8 +233,14 @@ export function useColyseus(playerInfo: PlayerInfo | null) {
         localSessionId: sectorRoom.sessionId,
       }));
     } catch (err: any) {
-      console.error('[Colyseus] Sector join failed:', err);
-      setState(s => ({ ...s, error: `Sector join failed: ${err.message}` }));
+      const msg = err?.message || String(err);
+      console.warn('[Colyseus] Sector join skipped (solo):', msg);
+      setState(s => ({
+        ...s,
+        error: /name|reservation|matchmake/i.test(msg)
+          ? 'Realtime lobby offline — playing solo'
+          : `Sector join failed: ${msg}`,
+      }));
     }
   }, [playerInfo]);
 

@@ -1,5 +1,5 @@
 import { QueryClient, QueryFunction } from "@tanstack/react-query";
-import { authHeaders, clearToken, logout, getToken } from "./grudgeBackend";
+import { authHeaders, clearToken, logout, getToken, markAuthRejected } from "./grudgeBackend";
 
 async function throwIfResNotOk(res: Response) {
   if (!res.ok) {
@@ -7,6 +7,7 @@ async function throwIfResNotOk(res: Response) {
     // Guest home still hits /api/characters|wallet — 401 there must NOT call logout()
     // or throw-hard cascades that take down the shell (Sentry "Something went wrong").
     if (res.status === 401 && getToken()) {
+      markAuthRejected();
       logout();
     }
     const text = (await res.text()) || res.statusText;

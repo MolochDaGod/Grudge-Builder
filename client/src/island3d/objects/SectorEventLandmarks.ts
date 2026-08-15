@@ -5,8 +5,8 @@
  * sectorProductionContent.events.landmarks (local path → CDN fallback).
  */
 import * as THREE from 'three';
-import { GLTFLoader } from 'three/examples/jsm/loaders/GLTFLoader.js';
 import { assetUrl } from '@/lib/assetConfig';
+import { loadGltfCached } from '@/lib/three/SharedGltfPipeline';
 import type { SectorLandmarkAsset } from '@shared/definitions/sectorProductionContent';
 
 export interface SectorEventLandmarksOpts {
@@ -25,17 +25,15 @@ export interface SectorEventLandmarksRuntime {
   dispose: () => void;
 }
 
-const loader = new GLTFLoader();
-
 async function loadGlb(localPath: string, cdnUrl: string): Promise<THREE.Object3D | null> {
-  const paths = [localPath, cdnUrl];
+  const paths = [cdnUrl, localPath];
   for (const p of paths) {
     try {
       const url = p.startsWith('http') ? p : assetUrl(p);
-      const gltf = await new Promise<any>((res, rej) => loader.load(url, res, undefined, rej));
+      const gltf = await loadGltfCached(url, 'low');
       return gltf.scene as THREE.Object3D;
     } catch {
-      /* try next */
+      /* missing landmark — caller uses procedural fallback */
     }
   }
   return null;

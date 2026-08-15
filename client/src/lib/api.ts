@@ -61,7 +61,8 @@ async function apiFetch<T>(path: string, options: RequestInit = {}): Promise<T> 
     // on transient 401 / secret mismatch (that made /home look "empty" forever).
     if (res.status === 401 || res.status === 403) {
       try {
-        const { getToken, clearToken } = await import("./grudgeBackend");
+        const { getToken, clearToken, markAuthRejected } = await import("./grudgeBackend");
+        markAuthRejected();
         const t = getToken();
         if (t && isJwtExpired(t)) clearToken();
       } catch {

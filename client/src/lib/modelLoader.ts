@@ -123,7 +123,7 @@ export async function loadCharacterModel(path: string): Promise<LoadedModel> {
   try {
     gltf = await loadGltfCached(url);
   } catch (err) {
-    console.error(`[modelLoader] Failed to load character model: ${url}`, err);
+    console.warn(`[modelLoader] GLB missing or not glTF: ${url}`);
     throw err instanceof Error ? err : new Error(`Failed to load ${url}`);
   }
 

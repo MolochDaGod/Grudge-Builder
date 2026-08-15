@@ -227,7 +227,12 @@ export interface ParticleEmitter {
 
 export function createParticleEmitter(opts: ParticleEmitterOpts): ParticleEmitter {
   const preset =
-    typeof opts.preset === 'string' ? FX_PRESETS[opts.preset] : opts.preset;
+    typeof opts.preset === 'string'
+      ? FX_PRESETS[opts.preset] ?? FX_PRESETS.attack_burst
+      : opts.preset;
+  if (!preset || typeof preset.count !== 'number') {
+    throw new Error(`[FX] unknown preset: ${String(opts.preset)}`);
+  }
   const count = preset.count;
   const positions = new Float32Array(count * 3);
   const colors = new Float32Array(count * 3);

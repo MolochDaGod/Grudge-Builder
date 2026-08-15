@@ -9,6 +9,7 @@
 import * as THREE from 'three';
 import {
   createParticleEmitter,
+  FX_PRESETS,
   type FxPresetId,
   type ParticleEmitter,
 } from './FireSmokeParticles';
@@ -110,7 +111,7 @@ export class WorldFxBus {
   ): ParticleEmitter {
     const em = createParticleEmitter({
       scene: this.root,
-      preset,
+      preset: preset in FX_PRESETS ? preset : 'attack_burst',
       position: opts?.position,
       attachTo: opts?.attachTo,
       localOffset: opts?.localOffset,

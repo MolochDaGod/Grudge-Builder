@@ -130,11 +130,15 @@ export class BossCinemaFx {
       origin: origin.clone(),
       innerSafe: motion?.innerSafe ?? 0,
     });
-    this.worldFx?.spawn?.('fire_burst' as any, {
-      position: origin.clone(),
-      burst: true,
-      burstCount: 12,
-    });
+    try {
+      this.worldFx?.spawn?.('attack_burst', {
+        position: origin.clone(),
+        burst: true,
+        burstCount: 12,
+      });
+    } catch (err) {
+      console.warn('[BossCinemaFx] shockwave burst skipped', err);
+    }
   }
 
   /**

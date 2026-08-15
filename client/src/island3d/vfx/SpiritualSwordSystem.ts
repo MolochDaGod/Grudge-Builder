@@ -23,6 +23,7 @@ import {
   type SpiritualSwordColor,
   type SpiritualSwordMode,
 } from '@shared/definitions/spiritualSwords';
+import { assetUrl } from '@/lib/assetConfig';
 
 export interface SpiritualSwordSpawnOpts {
   mode: SpiritualSwordMode;
@@ -75,13 +76,16 @@ const matCache = new Map<string, THREE.MeshStandardMaterial>();
 const texCache = new Map<string, THREE.Texture>();
 
 function loadTex(url: string): THREE.Texture {
-  let t = texCache.get(url);
+  const resolved = assetUrl(url);
+  let t = texCache.get(resolved);
   if (t) return t;
-  t = texLoader.load(url);
+  t = texLoader.load(resolved, undefined, undefined, () => {
+    /* missing pack — blade still renders with emissive color */
+  });
   t.colorSpace = THREE.SRGBColorSpace;
   t.wrapS = t.wrapT = THREE.ClampToEdgeWrapping;
   t.anisotropy = 4;
-  texCache.set(url, t);
+  texCache.set(resolved, t);
   return t;
 }
 
