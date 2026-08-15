@@ -2,16 +2,19 @@
  * Grudge Fleet Bridge — vanilla JS auth + character sync for Puter/external apps.
  * Mirrors GrudgeAccountSDK + wireGrudgeFleet from grudge-builder.
  *
- * @version 2.9.1
+ * @version 2.10.0
  * Character progress SSOT + account inventory/resources on Railway only (same DB as Warlords).
  * ONE TRUTH: grudge_id account · Warlords character UUID · Railway Postgres only.
  * Hard-fail when JWT grudge_id ≠ stored account; roster is era=warlords only.
  * Active character must be a UUID owned by the signed-in account.
  * Sign-in defaults to Grudge ID (id.grudge-studio.com) — never puter:* as primary.
  * SSO: prefer sso_token (full JWT) over grudge_token bridge.
+ * Token keys MUST match SPA (grudgeBackend getToken): grudge_auth_token, sso_token, grudge.token, …
+ * On grudgewarlords.com/craft: same-origin /api + session claim + dual return params.
  * Identity + auth bridge hosts: id.grudge-studio.com only (never auth.*).
  * Profession levels: Railway forceRemote merge (never let Puter KV regress XP).
- * @see docs/CHARACTER_PROGRESS_SSOT.md · docs/CANONICAL_IDENTITY.md
+ * Harvest deposit: depositHarvestLoot → Railway batch add; offline → Puter KV queue.
+ * @see docs/CHARACTER_PROGRESS_SSOT.md · docs/CANONICAL_IDENTITY.md · docs/CRAFT_HARVEST_WIRING_SSOT.md
  */
 (function (global) {
   'use strict';
@@ -64,11 +67,22 @@
     gamesLibrary: resolveObjectStoreBase() + '/games-library.json',
   };
 
-  // Canonical keys + SDK aliases so we never multi-login across fleet apps
+  // Canonical keys + SDK aliases — MUST match client/src/lib/grudgeBackend.ts getToken()
   const TOKEN_KEY = 'grudge_auth_token';
   const LEGACY_TOKEN_KEY = 'grudge_session_token';
   const STUDIO_TOKEN_KEY = 'grudge_studio_session';
   const SDK_TOKEN_KEY = 'grudge_auth_token'; // ObjectStore SDK
+  /** All JWT storage keys used across SPA / Foundry / craft (read order). */
+  const FLEET_TOKEN_KEYS = [
+    'grudge_auth_token',
+    'grudge_session_token',
+    'grudge_studio_session',
+    'grudge.token',
+    'sso_token',
+    'access_token',
+    'grudge_token',
+    'grudge_jwt',
+  ];
   const GRUDGE_ID_KEY = 'grudge_id';
   const SDK_USER_ID_KEY = 'grudge_user_id';
   const USERNAME_KEY = 'grudge_username';
@@ -96,42 +110,133 @@
   function ssGet(k) { try { return sessionStorage.getItem(k); } catch { return null; } }
   function ssSet(k, v) { try { sessionStorage.setItem(k, v); } catch {} }
 
+  function readCookie(name) {
+    if (typeof document === 'undefined') return '';
+    try {
+      const m = document.cookie.match(
+        new RegExp('(?:^|; )' + name.replace(/([.$?*|{}()[\]\\/+^])/g, '\\$1') + '=([^;]*)'),
+      );
+      return m ? decodeURIComponent(m[1]) : '';
+    } catch {
+      return '';
+    }
+  }
+
+  function setHostCookie(name, value, maxAge) {
+    if (typeof document === 'undefined' || !value) return;
+    maxAge = maxAge || 60 * 60 * 24 * 14;
+    try {
+      var host = location.hostname || '';
+      var secure = location.protocol === 'https:' ? '; Secure' : '';
+      var domain = '';
+      if (host === 'grudgewarlords.com' || host.endsWith('.grudgewarlords.com')) {
+        domain = '; Domain=.grudgewarlords.com';
+      } else if (host === 'grudge-studio.com' || host.endsWith('.grudge-studio.com')) {
+        domain = '; Domain=.grudge-studio.com';
+      }
+      document.cookie =
+        name +
+        '=' +
+        encodeURIComponent(value) +
+        '; path=/; max-age=' +
+        maxAge +
+        '; SameSite=Lax' +
+        secure +
+        domain;
+    } catch (_) {}
+  }
+
   function readToken() {
-    if (_token) return _token;
-    return (
-      lsGet(TOKEN_KEY) ||
-      lsGet(LEGACY_TOKEN_KEY) ||
-      lsGet(STUDIO_TOKEN_KEY) ||
-      lsGet(SDK_TOKEN_KEY) ||
-      ssGet(TOKEN_KEY) ||
-      (() => {
-        try {
-          const blob = JSON.parse(lsGet(SESSION_BLOB_KEY) || '{}');
-          return blob.token || blob.sessionToken || null;
-        } catch { return null; }
-      })()
-    );
+    if (_token && String(_token).length > 20) return _token;
+    for (var i = 0; i < FLEET_TOKEN_KEYS.length; i++) {
+      var v = lsGet(FLEET_TOKEN_KEYS[i]);
+      if (v && String(v).length > 20) return String(v).trim();
+    }
+    try {
+      var ss = ssGet(TOKEN_KEY) || ssGet('sso_token');
+      if (ss && ss.length > 20) return ss.trim();
+    } catch (_) {}
+    try {
+      var blob = JSON.parse(lsGet(SESSION_BLOB_KEY) || '{}');
+      var bt = blob.token || blob.sessionToken || null;
+      if (bt && String(bt).length > 20) return String(bt).trim();
+    } catch (_) {}
+    // Same-host cookie (SPA setToken) — critical for /craft after SPA login
+    var c =
+      readCookie('grudge_auth_token') ||
+      readCookie('sso_token') ||
+      readCookie('grudge_session_token');
+    if (c && c.length > 20) return c.trim();
+    return null;
   }
 
   function saveToken(t) {
     _token = t;
     if (t) {
-      lsSet(TOKEN_KEY, t);
-      lsSet(LEGACY_TOKEN_KEY, t);
-      lsSet(STUDIO_TOKEN_KEY, t);
+      FLEET_TOKEN_KEYS.forEach(function (k) {
+        lsSet(k, t);
+      });
       ssSet(TOKEN_KEY, t);
       try {
-        const blob = JSON.parse(lsGet(SESSION_BLOB_KEY) || '{}');
+        ssSet('sso_token', t);
+      } catch (_) {}
+      try {
+        var blob = JSON.parse(lsGet(SESSION_BLOB_KEY) || '{}');
         blob.token = t;
         blob.updatedAt = Date.now();
         lsSet(SESSION_BLOB_KEY, JSON.stringify(blob));
       } catch {
         lsSet(SESSION_BLOB_KEY, JSON.stringify({ token: t, updatedAt: Date.now() }));
       }
+      setHostCookie('grudge_auth_token', t);
+      setHostCookie('sso_token', t);
     } else {
-      [TOKEN_KEY, LEGACY_TOKEN_KEY, STUDIO_TOKEN_KEY].forEach(lsDel);
-      try { sessionStorage.removeItem(TOKEN_KEY); } catch {}
+      FLEET_TOKEN_KEYS.forEach(lsDel);
+      try {
+        sessionStorage.removeItem(TOKEN_KEY);
+        sessionStorage.removeItem('sso_token');
+      } catch (_) {}
     }
+  }
+
+  /**
+   * Recover Railway JWT from fleet cookie / session claim (same-origin /api).
+   * Needed when SPA logged in on grudgewarlords.com but craft only sees cookies,
+   * or after id redirect without URL token (cookie-only SSO).
+   */
+  async function claimFleetSession() {
+    if (readToken()) return true;
+    var cookieTok =
+      readCookie('grudge_auth_token') ||
+      readCookie('sso_token') ||
+      readCookie('grudge_session_token');
+    if (cookieTok && cookieTok.length > 20) {
+      saveToken(cookieTok);
+      return true;
+    }
+    var claimUrls = [
+      (FLEET.gameData || '') + '/api/auth/session/claim',
+      (FLEET.gameData || '') + '/api/auth/session/exchange',
+    ];
+    for (var i = 0; i < claimUrls.length; i++) {
+      try {
+        var res = await fleetFetch(claimUrls[i], {
+          method: 'POST',
+          credentials: 'include',
+          headers: { 'Content-Type': 'application/json' },
+          body: '{}',
+        });
+        if (!res || !res.ok) continue;
+        var data = await res.json().catch(function () {
+          return null;
+        });
+        if (data) {
+          applyAuthResponse(data);
+          if (readToken()) return true;
+        }
+      } catch (_) {}
+    }
+    return !!readToken();
   }
 
   /** Decode JWT payload (no verify — Railway verifies). Returns null if not a JWT. */
@@ -290,6 +395,10 @@
       c.name && !(typeof c.name === 'string' && /^GRDG-/i.test(c.name) && grudgeCode && c.name === grudgeCode)
         ? c.name
         : (c.displayName || c.name || grudgeCode || 'Warlord');
+    var cnft = c.cnft || c.nft || {};
+    var imageUrl =
+      c.avatarUrl || c.imageUrl || c.portrait || c.imageUri || c.cnftImage ||
+      cnft.image || cnft.imageUrl || cnft.imageUri || '';
     return {
       ...c,
       name,
@@ -300,6 +409,10 @@
       classId: c.classId || c.class || '',
       stats: c.stats || c.attributes || {},
       attributes: c.attributes || c.stats || {},
+      avatarUrl: c.avatarUrl || imageUrl || '',
+      imageUrl: imageUrl || '',
+      cnftId: c.cnftId || cnft.id || cnft.tokenId || null,
+      cnftAddress: c.cnftAddress || cnft.address || cnft.mint || null,
     };
   }
 
@@ -337,9 +450,46 @@
     return data;
   }
 
+  /** Production NPCs / purged Grudachain vault names — not a player craft roster. */
+  var PURGED_HERO_NAME = {
+    'aurion solbrand': 1, 'sigurd ironcrown': 1, 'kael nightwhisper': 1, 'theron greyclaw': 1,
+    'thrax bloodmaw': 1, 'grok stormhowl': 1, 'kira redfang': 1, 'vox skysplit': 1,
+    'gruk blacktusk': 1, 'nazgrim voidhand': 1, 'vexol quietblade': 1, 'morgash ashborn': 1,
+    'silesh dreadmire': 1, 'bone rattlebone': 1, 'whisper pale': 1, 'dredge gravewake': 1,
+    'aelindor swiftwind': 1, 'silvaine moonsong': 1, 'lyra threadweaver': 1, 'fenwick darkbough': 1,
+    'durgin stonefist': 1, 'brenna forgehammer': 1, 'thordak runebinder': 1, 'helga hearthhand': 1,
+    'sir aldric valorheart': 1, 'gareth moonshadow': 1, 'archmage elara brightspire': 1, 'kael shadowblade': 1,
+    'ulfgar bonecrusher': 1, 'hrothgar fangborn': 1, 'volka stormborn': 1, 'syala windrider': 1,
+    'thane ironshield': 1, 'bromm earthshaker': 1, 'runa forgekeeper': 1, 'durin tunnelwatcher': 1,
+    'thalion bladedancer': 1, 'sylara wildheart': 1, 'lyra stormweaver': 1, 'aelindra swiftbow': 1,
+    'grommash ironjaw': 1, 'fenris bloodfang': 1, 'zuejin the hexmaster': 1, 'razak deadeye': 1,
+    'lord malachar': 1, 'the ghoulfather': 1, 'necromancer vexis': 1, 'shade whisper': 1,
+    'racalvin': 1, 'cpt. john wayne': 1, 'captain john wayne': 1, 'scourge faithbearer': 1
+  };
+  var PURGED_HERO_ID = {
+    aurion: 1, sigurd: 1, kael: 1, theron: 1, thrax: 1, grok: 1, kira: 1, vox: 1,
+    gruk: 1, nazgrim: 1, vexol: 1, morgash: 1, silesh: 1, bone: 1, whisper: 1, dredge: 1,
+    aelindor: 1, silvaine: 1, lyra: 1, fenwick: 1, durgin: 1, brenna: 1, thordak: 1, helga: 1,
+    racalvin: 1, 'john-wayne': 1, johnwayne: 1, scourge: 1, 'scourge-faithbearer': 1,
+    'sir-aldric-valorheart': 1, 'gareth-moonshadow': 1, 'archmage-elara-brightspire': 1,
+    'sir aldric valorheart': 1
+  };
+  function isPurgedProductionHero(c) {
+    if (!c) return false;
+    if (c.isProductionNpc || c.isCanonical || c.deployRole === 'faction_hero_npc' || c.deployRole === 'legend_npc') return true;
+    var n = String(c.name || c.displayName || '').toLowerCase().replace(/\s+/g, ' ').trim();
+    if (n && PURGED_HERO_NAME[n]) return true;
+    var ids = [c.id, c.codexId, c.slug, c.prefabId, c.heroId, c.rosterId];
+    for (var i = 0; i < ids.length; i++) {
+      var id = String(ids[i] || '').toLowerCase().trim();
+      if (id && PURGED_HERO_ID[id]) return true;
+    }
+    return false;
+  }
+
   function parseCharactersPayload(raw) {
     const list = Array.isArray(raw) ? raw : (raw && raw.characters) || [];
-    return list.map(normalizeCharacter);
+    return list.map(normalizeCharacter).filter((c) => !isPurgedProductionHero(c));
   }
 
   /** On *.puter.site, puter.net.fetch bypasses CORS for Grudge API calls. */
@@ -571,10 +721,59 @@
     }
 
     try {
-      const userRes = await fleetFetch(FLEET.gameData + '/api/account', { headers: authHeaders() });
-      if (userRes.ok) {
-        const userData = await userRes.json();
-        const apiGid = String(userData.grudgeId || userData.grudge_id || userData.id || '').trim();
+      // Prefer /api/auth/me (true session). /api/account often returns GRUDGE_GUEST 200 without auth.
+      let userData = null;
+      let userOk = false;
+      const idUrls = [
+        FLEET.gameData + '/api/auth/me',
+        FLEET.gameData + '/api/account',
+      ];
+      for (let ui = 0; ui < idUrls.length; ui++) {
+        try {
+          const userRes = await fleetFetch(idUrls[ui], { headers: authHeaders() });
+          if (!userRes) continue;
+          if (userRes.status === 401 || userRes.status === 403) {
+            if (ui === 0) {
+              // me rejected — real auth fail
+              console.warn('[GrudgeFleet] /api/auth/me unauthorized — clearing session');
+              clearSessionLocal('me_unauthorized');
+              dispatch('grudge:auth:logout');
+              return;
+            }
+            continue;
+          }
+          if (!userRes.ok) continue;
+          const body = await userRes.json();
+          const apiGid = String(
+            body.grudgeId || body.grudge_id || (body.user && (body.user.grudgeId || body.user.id)) || body.id || '',
+          ).trim();
+          // Reject anonymous guest payload when we sent a Bearer
+          if (
+            !apiGid ||
+            /^GRUDGE_GUEST$/i.test(apiGid) ||
+            /^guest/i.test(apiGid) ||
+            body.userId === 'guest'
+          ) {
+            if (ui === 0) {
+              console.warn('[GrudgeFleet] auth/me returned guest — clearing session');
+              clearSessionLocal('me_guest');
+              dispatch('grudge:auth:logout');
+              return;
+            }
+            // /api/account guest without Bearer mirror — skip, try next
+            continue;
+          }
+          userData = body.user && typeof body.user === 'object' ? { ...body, ...body.user } : body;
+          userOk = true;
+          break;
+        } catch (e) {
+          console.warn('[GrudgeFleet] identity fetch failed', idUrls[ui], e);
+        }
+      }
+      if (userOk && userData) {
+        const apiGid = String(
+          userData.grudgeId || userData.grudge_id || userData.id || '',
+        ).trim();
         if (!enforceAccountConsistency(jwtGid, apiGid, 'account_sync')) {
           return;
         }
@@ -592,11 +791,6 @@
           lsSet(SDK_USER_ID_KEY, gid);
         }
         if (_user.username) lsSet(USERNAME_KEY, _user.username);
-      } else if (userRes.status === 401 || userRes.status === 403) {
-        console.warn('[GrudgeFleet] /api/account unauthorized — clearing session');
-        clearSessionLocal('account_unauthorized');
-        dispatch('grudge:auth:logout');
-        return;
       }
 
       // Characters — Railway Warlords era only
@@ -648,15 +842,32 @@
    */
   function buildLoginUrl(returnUrl) {
     const base = (returnUrl || (typeof window !== 'undefined'
-      ? (window.location.origin + window.location.pathname)
+      ? (window.location.origin + window.location.pathname + (window.location.search || ''))
       : FLEET.crafting)).split('#')[0];
     let clean = base;
+    let origin =
+      typeof window !== 'undefined' ? window.location.origin : 'https://grudgewarlords.com';
     try {
-      const u = new URL(base, typeof window !== 'undefined' ? window.location.origin : FLEET.crafting);
-      ['token', 'sso_token', 'jwt', 'access_token', 'grudge_token', 'launch_token'].forEach((k) => u.searchParams.delete(k));
-      clean = u.origin + u.pathname + (u.search || '');
+      const u = new URL(base, origin);
+      ['token', 'sso_token', 'jwt', 'access_token', 'grudge_token', 'launch_token'].forEach((k) =>
+        u.searchParams.delete(k),
+      );
+      u.hash = '';
+      clean = u.toString();
+      origin = u.origin;
     } catch { /* keep base */ }
-    return FLEET.auth.replace(/\/$/, '') + '/login?redirect_uri=' + encodeURIComponent(clean);
+    // Dual return params — id hub + Foundry/SPA pattern (token handoff to grudgewarlords.com/craft/)
+    const q =
+      'return=' +
+      encodeURIComponent(clean) +
+      '&redirect_uri=' +
+      encodeURIComponent(clean) +
+      '&redirect=' +
+      encodeURIComponent(clean) +
+      '&origin=' +
+      encodeURIComponent(origin) +
+      '&app=warlords-craft';
+    return FLEET.auth.replace(/\/$/, '') + '/login?' + q;
   }
 
   /** Create-account entry on Grudge ID (same redirect_uri). */
@@ -676,6 +887,138 @@
     _pollTimer = setInterval(() => {
       if (readToken()) syncFromBackend();
     }, POLL_MS);
+  }
+
+  // ── Offline harvest queue (Puter KV cache only — Railway is bag SSOT) ──
+  const OFFLINE_HARVEST_KV = 'grudge-offline-harvest-queue';
+  const OFFLINE_HARVEST_LS = 'grudge_offline_harvest_queue';
+
+  /** Map play-surface resource labels → craft bag material ids. */
+  const HARVEST_RESOURCE_ALIASES = {
+    wood: 't0_wood',
+    stick: 't0_wood',
+    sticks: 't0_wood',
+    forest: 't0_wood',
+    timber: 't0_wood',
+    driftwood: 't0_wood',
+    log: 't0_wood',
+    tree: 't0_wood',
+    stone: 't0_stone',
+    stones: 't0_stone',
+    rock: 't0_stone',
+    rocks: 't0_stone',
+    ore: 't0_copper',
+    copper: 't0_copper',
+    iron: 't0_iron',
+    crystal: 't0_crystal',
+    crystals: 't0_crystal',
+    gem: 't0_crystal',
+    fiber: 't0_fiber',
+    herb: 't0_herb',
+    herbs: 't0_herb',
+    fish: 't0_fish',
+    hide: 't0_hide',
+    meat: 't0_meat',
+  };
+
+  function canonicalizeResourceId(raw) {
+    const s = String(raw || '').trim();
+    if (!s) return '';
+    const lower = s.toLowerCase();
+    if (HARVEST_RESOURCE_ALIASES[lower]) return HARVEST_RESOURCE_ALIASES[lower];
+    // Already a craft mat id (t0_wood, etc.)
+    if (/^t\d+_/i.test(s)) return s;
+    return lower.replace(/\s+/g, '_');
+  }
+
+  function normalizeHarvestLoot(loot) {
+    const out = [];
+    if (!loot) return out;
+    if (Array.isArray(loot)) {
+      for (let i = 0; i < loot.length; i++) {
+        const row = loot[i] || {};
+        const id = canonicalizeResourceId(row.resourceId || row.id || row.itemId || row.name || row.material);
+        const amt = Math.floor(Number(row.amount != null ? row.amount : row.qty != null ? row.qty : row.quantity) || 0);
+        if (id && amt > 0) out.push({ resourceId: id, amount: amt });
+      }
+      return out;
+    }
+    if (typeof loot === 'object') {
+      const keys = Object.keys(loot);
+      for (let i = 0; i < keys.length; i++) {
+        const id = canonicalizeResourceId(keys[i]);
+        const amt = Math.floor(Number(loot[keys[i]]) || 0);
+        if (id && amt > 0) out.push({ resourceId: id, amount: amt });
+      }
+    }
+    return out;
+  }
+
+  async function puterKvGet(key) {
+    try {
+      if (typeof puter !== 'undefined' && puter.kv && typeof puter.kv.get === 'function') {
+        return await puter.kv.get(key);
+      }
+    } catch (_) {}
+    return null;
+  }
+
+  async function puterKvSet(key, value) {
+    try {
+      if (typeof puter !== 'undefined' && puter.kv && typeof puter.kv.set === 'function') {
+        await puter.kv.set(key, value);
+        return true;
+      }
+    } catch (_) {}
+    return false;
+  }
+
+  async function readOfflineHarvestQueue() {
+    let raw = null;
+    try {
+      raw = await puterKvGet(OFFLINE_HARVEST_KV);
+    } catch (_) {}
+    if (raw == null) {
+      try {
+        raw = lsGet(OFFLINE_HARVEST_LS);
+      } catch (_) {}
+    }
+    if (!raw) return [];
+    try {
+      const parsed = typeof raw === 'string' ? JSON.parse(raw) : raw;
+      return Array.isArray(parsed) ? parsed : [];
+    } catch (_) {
+      return [];
+    }
+  }
+
+  async function writeOfflineHarvestQueue(queue) {
+    const payload = JSON.stringify(Array.isArray(queue) ? queue : []);
+    try {
+      lsSet(OFFLINE_HARVEST_LS, payload);
+    } catch (_) {}
+    await puterKvSet(OFFLINE_HARVEST_KV, payload);
+  }
+
+  async function enqueueOfflineHarvest(items, source) {
+    const queue = await readOfflineHarvestQueue();
+    queue.push({
+      ts: Date.now(),
+      source: source || 'harvest',
+      items: items.slice(),
+    });
+    // Cap queue growth
+    while (queue.length > 200) queue.shift();
+    await writeOfflineHarvestQueue(queue);
+    try {
+      if (typeof window !== 'undefined') {
+        window.dispatchEvent(
+          new CustomEvent('grudge:harvest:queued', {
+            detail: { items, source: source || 'harvest', queueLen: queue.length },
+          }),
+        );
+      }
+    } catch (_) {}
   }
 
   const fleet = {
@@ -715,6 +1058,20 @@
         }
 
         if (handoff.sso || handoff.launch) scrubAuthFromUrl();
+
+        // 3) Pending launch from early HTML capture
+        try {
+          var pending = sessionStorage.getItem('grudge_pending_launch_token');
+          if (pending && !readToken()) {
+            await bridgeGrudgeLaunchToken(pending);
+            sessionStorage.removeItem('grudge_pending_launch_token');
+          }
+        } catch (_) {}
+
+        // 4) Cookie / session claim (SPA login on same host, or Domain cookie)
+        if (!readToken()) {
+          await claimFleetSession();
+        }
       }
 
       _token = readToken();
@@ -878,6 +1235,10 @@
 
     async tryAutoAuth(opts) {
       opts = opts || {};
+      // Recover cookie / claim before giving up (grudgewarlords.com/craft after SPA login)
+      if (!readToken()) {
+        await claimFleetSession();
+      }
       if (readToken()) {
         await syncFromBackend();
         // If token was cleared as invalid, treat as logged out
@@ -939,13 +1300,15 @@
     /** True when JWT present, roster loaded, and active UUID is owned. */
     isReady: () => !!readToken() && !!readActiveId() && isOwnedCharacterId(readActiveId()),
     getCharacters: () => _characters.slice(),
+    isPurgedProductionHero,
     getActiveId: () => {
       const id = readActiveId();
       return id && isOwnedCharacterId(id) ? id : null;
     },
     getActiveCharacter: getActiveCharacterLocal,
+    claimFleetSession,
     warlordsEra: WARLORDS_ERA,
-    version: '2.9.1',
+    version: '2.11.0',
 
     /** Select first character matching race id/name (for VFX Character Lab sync) */
     selectCharacterByRace(race) {
@@ -1165,6 +1528,127 @@
     /** @deprecated use saveAccountInventory — kept for callers */
     async saveInventory(_charId, inventoryMap) {
       return fleet.saveAccountInventory(inventoryMap);
+    },
+
+    /**
+     * Deposit harvest loot into Railway account resources (craft bag SSOT).
+     * Prefer batch add (delta) so concurrent harvests do not clobber each other.
+     * When offline / no JWT: queue in Puter KV `grudge-offline-harvest-queue`.
+     *
+     * @param {Record<string,number>|Array<{resourceId?:string,id?:string,amount?:number,qty?:number}>} loot
+     * @param {{ source?: string }} [opts]
+     * @returns {Promise<{ ok: boolean, queued?: boolean, result?: unknown, error?: string }>}
+     */
+    async depositHarvestLoot(loot, opts) {
+      opts = opts || {};
+      const items = normalizeHarvestLoot(loot);
+      if (!items.length) return { ok: false, error: 'empty_loot' };
+
+      if (!readToken() || (typeof navigator !== 'undefined' && navigator.onLine === false)) {
+        await enqueueOfflineHarvest(items, opts.source || 'harvest');
+        return { ok: true, queued: true };
+      }
+
+      try {
+        const batch = await fleetFetch(FLEET.gameData + '/api/account/resources/batch', {
+          method: 'POST',
+          headers: authHeaders(),
+          body: JSON.stringify({ items }),
+        });
+        if (batch.ok) {
+          const result = await batch.json().catch(() => ({}));
+          try {
+            if (typeof window !== 'undefined') {
+              window.dispatchEvent(
+                new CustomEvent('grudge:harvest:deposited', {
+                  detail: { items, source: opts.source || 'harvest', result },
+                }),
+              );
+            }
+          } catch (_) {}
+          return { ok: true, result };
+        }
+        // Single-item fallbacks
+        let any = false;
+        for (let i = 0; i < items.length; i++) {
+          const one = await fleetFetch(FLEET.gameData + '/api/account/resources/add', {
+            method: 'POST',
+            headers: authHeaders(),
+            body: JSON.stringify({
+              resourceId: items[i].resourceId,
+              amount: items[i].amount,
+            }),
+          });
+          if (one.ok) any = true;
+        }
+        if (any) return { ok: true };
+        console.warn('[GrudgeFleet] depositHarvestLoot HTTP', batch.status);
+        await enqueueOfflineHarvest(items, opts.source || 'harvest');
+        return { ok: true, queued: true, error: 'batch_failed_queued' };
+      } catch (e) {
+        console.warn('[GrudgeFleet] depositHarvestLoot', e);
+        await enqueueOfflineHarvest(items, opts.source || 'harvest');
+        return { ok: true, queued: true, error: String(e && e.message ? e.message : e) };
+      }
+    },
+
+    /**
+     * Flush Puter KV offline harvest queue into Railway bag.
+     * Call on craft init, home-island load, and window online.
+     * Does not re-enqueue on failure (keeps existing queue for next retry).
+     */
+    async flushOfflineHarvestQueue() {
+      const queue = await readOfflineHarvestQueue();
+      if (!queue.length) return { ok: true, flushed: 0 };
+      if (!readToken()) return { ok: false, flushed: 0, error: 'no_token' };
+      if (typeof navigator !== 'undefined' && navigator.onLine === false) {
+        return { ok: false, flushed: 0, error: 'offline' };
+      }
+
+      const merged = {};
+      for (let i = 0; i < queue.length; i++) {
+        const entry = queue[i];
+        const list = entry.items || entry.loot || [];
+        for (let j = 0; j < list.length; j++) {
+          const it = list[j];
+          const id = canonicalizeResourceId(it.resourceId || it.id || it.name);
+          const amt = Math.floor(Number(it.amount != null ? it.amount : it.qty) || 0);
+          if (!id || amt <= 0) continue;
+          merged[id] = (merged[id] || 0) + amt;
+        }
+      }
+      const items = Object.keys(merged).map(function (k) {
+        return { resourceId: k, amount: merged[k] };
+      });
+      if (!items.length) {
+        await writeOfflineHarvestQueue([]);
+        return { ok: true, flushed: 0 };
+      }
+
+      try {
+        const batch = await fleetFetch(FLEET.gameData + '/api/account/resources/batch', {
+          method: 'POST',
+          headers: authHeaders(),
+          body: JSON.stringify({ items }),
+        });
+        if (batch.ok) {
+          const result = await batch.json().catch(function () { return {}; });
+          await writeOfflineHarvestQueue([]);
+          try {
+            if (typeof window !== 'undefined') {
+              window.dispatchEvent(
+                new CustomEvent('grudge:harvest:flushed', {
+                  detail: { items, count: items.length, result },
+                }),
+              );
+            }
+          } catch (_) {}
+          return { ok: true, flushed: items.length, result: result };
+        }
+        return { ok: false, flushed: 0, error: 'batch_http_' + batch.status };
+      } catch (e) {
+        return { ok: false, flushed: 0, error: String(e && e.message ? e.message : e) };
+      }
     },
 
     getProgressRevision(id) {

@@ -135,7 +135,7 @@
       OBJECTSTORE_URL: 'https://info.grudge-studio.com/api/v1',
       ASSETS: 'https://assets.grudge-studio.com',
       INFO_ORIGIN: 'https://info.grudge-studio.com',
-      VERSION: '5.13.1',
+      VERSION: '5.14.1',
       /** Canonical craft URL on Warlords product domain */
       CRAFTING_URL: CANONICAL_CRAFT,
       CRAFT_HOST_URL: CRAFT_HOST,
@@ -2354,13 +2354,18 @@ function craftSessionDisplayName() {
 
 /** Characters owned by the current Grudge account (Railway roster). */
 function getOwnedCharacters() {
+  let list = [];
   try {
     if (typeof GrudgeFleet !== 'undefined' && typeof GrudgeFleet.getCharacters === 'function') {
       const fleet = GrudgeFleet.getCharacters() || [];
-      if (fleet.length) return fleet;
+      if (fleet.length) list = fleet;
     }
   } catch { /* fleet optional during boot */ }
-  return Array.isArray(STATE.grudgeCharacters) ? STATE.grudgeCharacters : [];
+  if (!list.length && Array.isArray(STATE.grudgeCharacters)) list = STATE.grudgeCharacters;
+  const purge = typeof GrudgeFleet !== 'undefined' && typeof GrudgeFleet.isPurgedProductionHero === 'function'
+    ? GrudgeFleet.isPurgedProductionHero
+    : function () { return false; };
+  return list.filter((c) => !purge(c));
 }
 
 /**
@@ -3445,8 +3450,43 @@ function updateSidebarBadges() {
 }
 
 // ── Character UI helpers ──────────────────────────────────────────────────────
-const CLASS_ICONS  = { warrior:'⚔️', mage:'🔮', rogue:'🗡️', cleric:'✨', worg:'🐺', ranger:'🏹' };
-const RACE_COLORS  = { human:'#60a5fa', orc:'#22c55e', elf:'#a78bfa', dwarf:'#f59e0b', undead:'#8b5cf6', barbarian:'#ef4444', demon:'#dc2626' };
+const FOUNDRY_ORIGIN = 'https://character.grudge-studio.com';
+const RACE_COLORS  = { human:'#60a5fa', orc:'#22c55e', elf:'#a78bfa', dwarf:'#f59e0b', undead:'#8b5cf6', barbarian:'#ef4444' };
+function productRaceId(r) {
+  const x = String(r || '').toLowerCase().replace(/_/g, '-');
+  if (x === 'western-kingdoms' || x === 'wk' || x === 'human') return 'human';
+  if (x === 'high-elves' || x === 'high-elf' || x === 'elves') return 'elf';
+  if (x === 'orcs') return 'orc';
+  if (x === 'dwarves') return 'dwarf';
+  if (x === 'barbarians' || x === 'brb') return 'barbarian';
+  if (x === 'undead' || x === 'ud') return 'undead';
+  return x || 'human';
+}
+function productClassId(c) {
+  const x = String(c || '').toLowerCase();
+  if (x === 'knight' || x === 'worg' || x === 'worges') return 'worge';
+  if (x === 'mage' || x === 'warrior' || x === 'ranger' || x === 'worge') return x;
+  return '';
+}
+function raceEmblemUrl(r) { return FOUNDRY_ORIGIN + '/assets/emblems/' + productRaceId(r) + '.webp'; }
+function classEmblemUrl(c) {
+  const id = productClassId(c);
+  return id ? FOUNDRY_ORIGIN + '/assets/class-emblems/' + id + '.webp' : '';
+}
+function cnftImageUrl(c) {
+  const nft = (c && (c.cnft || c.nft)) || {};
+  return (c && (c.avatarUrl || c.imageUrl || c.portrait || c.imageUri || c.cnftImage)) || nft.image || nft.imageUrl || nft.imageUri || '';
+}
+function charPortraitHtml(c, size, border) {
+  const src = cnftImageUrl(c) || raceEmblemUrl(c.race || c.raceId);
+  const cls = classEmblemUrl(c.class || c.classId);
+  const badge = Math.max(16, Math.round(size * 0.4));
+  const hide = "this.style.display='none'";
+  return `<div style="position:relative;width:${size}px;height:${size}px;flex-shrink:0">
+    <img referrerpolicy="no-referrer" src="${src}" alt="" onerror="${hide}" style="width:${size}px;height:${size}px;border-radius:8px;object-fit:cover;border:2px solid ${border};background:#111">
+    ${cls ? `<img referrerpolicy="no-referrer" src="${cls}" alt="" onerror="${hide}" style="position:absolute;right:-4px;bottom:-4px;width:${badge}px;height:${badge}px;border-radius:4px;object-fit:cover;border:1px solid var(--gold);background:#0a0a10">` : ''}
+  </div>`;
+}
 
 /** Updates the sidebar character panel and the dashboard banner. */
 function updateCharacterUI() {
@@ -3469,19 +3509,19 @@ function updateCharacterUI() {
     return;
   }
 
-  const classIcon  = CLASS_ICONS[char.class?.toLowerCase()]  || '⚔️';
-  const raceColor  = RACE_COLORS[char.race?.toLowerCase()]   || 'var(--gold)';
+  const raceColor  = RACE_COLORS[productRaceId(char.race || char.raceId)]   || 'var(--gold)';
   const lvl        = char.level || 1;
   // XP bar: use a rough 0-100% based on level progress if available
   const xpPct      = char.xp_percent ?? Math.min(100, ((lvl % 10) / 10) * 100);
+  const classLabel = productClassId(char.class || char.classId) || 'RTS spawn';
 
   panel.style.display = 'block';
   panel.innerHTML = `
     <div class="char-panel-inner">
-      <div class="char-avatar" style="border-color:${raceColor};box-shadow:0 0 8px ${raceColor}40">${classIcon}</div>
+      <div class="char-avatar" style="border:none;padding:0;background:transparent;box-shadow:none">${charPortraitHtml(char, 40, raceColor)}</div>
       <div class="char-info">
         <div class="char-name">${char.name}</div>
-        <div class="char-sub">${char.race} ${char.class} · Lv ${lvl}</div>
+        <div class="char-sub">${productRaceId(char.race || char.raceId)} ${classLabel} · Lv ${lvl}</div>
         <div class="char-lvl-bar">
           <div class="char-lvl-fill" style="width:${xpPct}%;background:${raceColor}"></div>
         </div>
@@ -3496,8 +3536,8 @@ function renderDashboard() {
   if (bannerEl) {
     const char = STATE.grudgeCharacters.find(c => c.id === STATE.activeCharacterId);
     if (char) {
-      const classIcon = CLASS_ICONS[char.class?.toLowerCase()] || '⚔️';
-      const raceColor = RACE_COLORS[char.race?.toLowerCase()]   || 'var(--gold)';
+      const raceColor = RACE_COLORS[productRaceId(char.race || char.raceId)]   || 'var(--gold)';
+      const classLabel = productClassId(char.class || char.classId) || 'RTS spawn';
       const stats     = char.stats || {};
       const attrMap   = [
         {k:'strength',a:'STR',col:'#e74c3c'}, {k:'vitality',a:'VIT',col:'#27ae60'},
@@ -3510,10 +3550,10 @@ function renderDashboard() {
         : '';
       bannerEl.innerHTML = `
         <div class="char-banner" onclick="navigate('account')">
-          <div class="char-banner-avatar" style="border-color:${raceColor};box-shadow:0 0 16px ${raceColor}40">${classIcon}</div>
+          <div class="char-banner-avatar" style="border:none;padding:0;background:transparent;box-shadow:none">${charPortraitHtml(char, 56, raceColor)}</div>
           <div class="char-banner-info">
             <div class="char-banner-name">${char.name}</div>
-            <div class="char-banner-sub">${char.race} · ${char.class} · Level ${char.level || 1} · ${char.gold || 0} Gold</div>
+            <div class="char-banner-sub">${productRaceId(char.race || char.raceId)} · ${classLabel} · Level ${char.level || 1} · ${char.gold || 0} Gold</div>
             ${attrHtml ? `<div class="char-banner-attrs">${attrHtml}</div>` : ''}
           </div>
           <div style="flex-shrink:0;text-align:right">
@@ -4235,7 +4275,7 @@ async function fetchGrudgeCharacters() {
   }
   await GrudgeFleet.syncFromBackend();
   STATE.grudgeToken = GrudgeFleet.getToken();
-  STATE.grudgeCharacters = GrudgeFleet.getCharacters() || [];
+  STATE.grudgeCharacters = getOwnedCharacters();
   const fleetActive = GrudgeFleet.getActiveId();
   const ownedActive = fleetActive && STATE.grudgeCharacters.some((c) => String(c.id) === String(fleetActive))
     ? fleetActive
@@ -4615,13 +4655,57 @@ function renderCharactersList() {
     }
     return;
   }
-  const classIcons = { warrior:'⚔️', mage:'🔮', rogue:'🗡️', cleric:'✨', worg:'🐺', ranger:'🏹' };
-  const raceColors = { human:'#60a5fa', orc:'#22c55e', elf:'#a78bfa', dwarf:'#f59e0b', undead:'#8b5cf6', barbarian:'#ef4444', demon:'#dc2626' };
-  el.innerHTML = '<div style="display:grid;grid-template-columns:repeat(auto-fill,minmax(200px,1fr));gap:8px">' +
-    STATE.grudgeCharacters.map(c => {
+  const FOUNDRY = 'https://character.grudge-studio.com';
+  const raceColors = { human:'#60a5fa', orc:'#22c55e', elf:'#a78bfa', dwarf:'#f59e0b', undead:'#8b5cf6', barbarian:'#ef4444' };
+  function productRaceId(r) {
+    const x = String(r || '').toLowerCase().replace(/_/g, '-');
+    if (x === 'western-kingdoms' || x === 'wk' || x === 'human') return 'human';
+    if (x === 'high-elves' || x === 'high-elf' || x === 'elves') return 'elf';
+    if (x === 'orcs') return 'orc';
+    if (x === 'dwarves') return 'dwarf';
+    if (x === 'barbarians' || x === 'brb') return 'barbarian';
+    if (x === 'undead' || x === 'ud') return 'undead';
+    return x || 'human';
+  }
+  function productClassId(c) {
+    const x = String(c || '').toLowerCase();
+    if (x === 'knight' || x === 'worg' || x === 'worges') return 'worge';
+    if (x === 'mage' || x === 'warrior' || x === 'ranger' || x === 'worge') return x;
+    return '';
+  }
+  function productClassLabel(c) {
+    const id = productClassId(c);
+    if (id) return id.charAt(0).toUpperCase() + id.slice(1);
+    const raw = String(c || '').trim();
+    if (!raw || raw === 'unarmed' || raw === 'harvest' || raw === 'worker') return 'RTS spawn';
+    return raw;
+  }
+  function productRaceLabel(r) {
+    const id = productRaceId(r);
+    return id ? id.charAt(0).toUpperCase() + id.slice(1) : '';
+  }
+  function raceEmblem(r) { return FOUNDRY + '/assets/emblems/' + productRaceId(r) + '.webp'; }
+  function classEmblem(c) {
+    const id = productClassId(c);
+    return id ? FOUNDRY + '/assets/class-emblems/' + id + '.webp' : '';
+  }
+  function cnftImg(c) {
+    const nft = c.cnft || c.nft || {};
+    return c.avatarUrl || c.imageUrl || c.portrait || c.imageUri || c.cnftImage ||
+      nft.image || nft.imageUrl || nft.imageUri || '';
+  }
+  const roster = (typeof getOwnedCharacters === 'function') ? getOwnedCharacters() : STATE.grudgeCharacters;
+  STATE.grudgeCharacters = roster;
+  el.innerHTML = '<div style="display:grid;grid-template-columns:repeat(auto-fill,minmax(220px,1fr));gap:8px">' +
+    roster.map(c => {
       const active = STATE.activeCharacterId === c.id;
-      const raceColor = raceColors[c.race?.toLowerCase()] || '#888';
-      const classIcon = classIcons[c.class?.toLowerCase()] || '⚔️';
+      const raceId = productRaceId(c.race || c.raceId);
+      const classId = productClassId(c.class || c.classId);
+      const raceColor = raceColors[raceId] || '#888';
+      const portrait = cnftImg(c);
+      const classSrc = classEmblem(c.class || c.classId);
+      const raceSrc = raceEmblem(c.race || c.raceId);
+      const hide = 'this.style.display=\'none\'';
       return `<div onclick="selectCharacter('${c.id}')" style="
         padding:12px;border-radius:8px;cursor:pointer;transition:all 0.15s;
         background:${active ? 'rgba(212,168,67,0.15)' : 'rgba(255,255,255,0.02)'};
@@ -4629,10 +4713,20 @@ function renderCharactersList() {
         ${active ? 'box-shadow:0 0 12px rgba(212,168,67,0.2);' : ''}
       ">
         <div style="display:flex;align-items:center;gap:10px">
-          <div style="width:40px;height:40px;border-radius:50%;background:rgba(${active?'212,168,67':'255,255,255'},0.08);border:2px solid ${active?'var(--gold)':raceColor};display:flex;align-items:center;justify-content:center;font-size:18px">${classIcon}</div>
+          <div style="position:relative;width:48px;height:48px;flex-shrink:0">
+            ${portrait
+              ? `<img referrerpolicy="no-referrer" src="${portrait}" alt="" onerror="${hide}" style="width:48px;height:48px;border-radius:8px;object-fit:cover;border:2px solid ${active?'var(--gold)':raceColor};background:#111">`
+              : `<img referrerpolicy="no-referrer" src="${raceSrc}" alt="" onerror="${hide}" style="width:48px;height:48px;border-radius:8px;object-fit:cover;border:2px solid ${active?'var(--gold)':raceColor};background:#111">`}
+            ${classSrc ? `<img referrerpolicy="no-referrer" src="${classSrc}" alt="" onerror="${hide}" style="position:absolute;right:-4px;bottom:-4px;width:20px;height:20px;border-radius:4px;object-fit:cover;border:1px solid var(--gold);background:#0a0a10">` : ''}
+          </div>
           <div style="flex:1;min-width:0">
             <div style="font-size:13px;font-weight:700;color:${active?'var(--gold)':'var(--text)'};white-space:nowrap;overflow:hidden;text-overflow:ellipsis">${c.name || c.grudgeCode || 'Warlord'}</div>
-            <div style="font-size:10px;color:${raceColor}">${c.race || c.raceId || ''} ${c.class || c.classId || ''} · Lv ${c.level || 1}</div>
+            <div style="display:flex;align-items:center;gap:6px;margin-top:3px;font-size:10px;color:${raceColor}">
+              <img referrerpolicy="no-referrer" src="${raceSrc}" alt="" onerror="${hide}" style="width:14px;height:14px;border-radius:3px;object-fit:cover">
+              <span>${productRaceLabel(c.race || c.raceId)}</span>
+              ${classSrc ? `<img referrerpolicy="no-referrer" src="${classSrc}" alt="" onerror="${hide}" style="width:14px;height:14px;border-radius:3px;object-fit:cover">` : ''}
+              <span>${productClassLabel(c.class || c.classId)} · Lv ${c.level || 1}</span>
+            </div>
             ${c.grudgeCode ? `<div style="font-size:9px;font-family:monospace;color:var(--gold-dim);margin-top:2px;opacity:0.85">${c.grudgeCode}</div>` : ''}
           </div>
         </div>
@@ -4655,12 +4749,42 @@ function renderActiveCharacter() {
 
   const hasAttrs = attrNames.some(a => (stats[a] || 0) > 0);
 
+  const FOUNDRY = 'https://character.grudge-studio.com';
+  function rid(r) {
+    const x = String(r || '').toLowerCase().replace(/_/g, '-');
+    if (x === 'western-kingdoms' || x === 'wk') return 'human';
+    if (x === 'high-elves' || x === 'elves') return 'elf';
+    if (x === 'orcs') return 'orc';
+    if (x === 'dwarves') return 'dwarf';
+    if (x === 'barbarians') return 'barbarian';
+    return x || 'human';
+  }
+  function cid(c) {
+    const x = String(c || '').toLowerCase();
+    if (x === 'knight' || x === 'worg' || x === 'worges') return 'worge';
+    if (x === 'mage' || x === 'warrior' || x === 'ranger' || x === 'worge') return x;
+    return '';
+  }
+  const nft = char.cnft || char.nft || {};
+  const portrait = char.avatarUrl || char.imageUrl || char.portrait || char.imageUri || nft.image || '';
+  const raceSrc = FOUNDRY + '/assets/emblems/' + rid(char.race || char.raceId) + '.webp';
+  const classId = cid(char.class || char.classId);
+  const classSrc = classId ? FOUNDRY + '/assets/class-emblems/' + classId + '.webp' : '';
+  const hide = 'this.style.display=\'none\'';
   el.innerHTML = `
     <div style="display:flex;align-items:center;gap:16px;margin-bottom:12px">
-      <div style="width:56px;height:56px;border-radius:50%;background:linear-gradient(135deg,rgba(212,168,67,0.2),rgba(212,168,67,0.05));border:2px solid var(--gold);display:flex;align-items:center;justify-content:center;font-size:24px">⚔</div>
+      <div style="position:relative;width:56px;height:56px;flex-shrink:0">
+        <img referrerpolicy="no-referrer" src="${portrait || raceSrc}" alt="" onerror="this.onerror=null;this.src='${raceSrc}'" style="width:56px;height:56px;border-radius:10px;object-fit:cover;border:2px solid var(--gold);background:#111">
+        ${classSrc ? `<img referrerpolicy="no-referrer" src="${classSrc}" alt="" onerror="${hide}" style="position:absolute;right:-6px;bottom:-6px;width:22px;height:22px;border-radius:4px;object-fit:cover;border:1px solid var(--gold);background:#0a0a10">` : ''}
+      </div>
       <div>
         <div style="font-size:16px;font-weight:700;color:var(--gold);font-family:Cinzel,serif">${char.name}</div>
-        <div style="font-size:11px;color:var(--text-dim)">${char.race} ${char.class} · Level ${char.level || 1}</div>
+        <div style="display:flex;align-items:center;gap:6px;font-size:11px;color:var(--text-dim)">
+          <img referrerpolicy="no-referrer" src="${raceSrc}" alt="" onerror="${hide}" style="width:14px;height:14px;border-radius:3px;object-fit:cover">
+          <span>${rid(char.race || char.raceId)}</span>
+          ${classSrc ? `<img referrerpolicy="no-referrer" src="${classSrc}" alt="" onerror="${hide}" style="width:14px;height:14px;border-radius:3px;object-fit:cover">` : ''}
+          <span>${classId || 'RTS spawn'} · Level ${char.level || 1}</span>
+        </div>
         <div style="font-size:10px;color:var(--gold-dim);margin-top:2px">${char.gold || 0} Gold</div>
       </div>
     </div>
