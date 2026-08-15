@@ -34,6 +34,9 @@ interface GameHUDProps {
   castProgress?: number;
   /** Hostile telegraphs */
   enemyCasts?: Array<{ id: string; name: string; progress: number; remainingSec: number }>;
+  /** Equipped-weapon skill labels (1–5). Falls back to generic slots. */
+  weaponHotbar?: Array<{ key: string; label: string; skillId?: string }>;
+  onOpenMainPanel?: () => void;
 }
 
 interface ChatMsg {
@@ -53,6 +56,8 @@ const HOTBAR_SKILLS = [
   { slot: 7, key: '7', label: 'Potion', color: '#ff4466' },
   { slot: 8, key: '8', label: 'Relic', color: '#9966ff' },
 ];
+
+const SLOT_COLORS = ['#ff6b57', '#6aa9ff', '#6bdc8b', '#c792ff', '#f6c945'];
 
 export function GameHUD(props: GameHUDProps) {
   const [chatOpen, setChatOpen] = useState(false);
@@ -185,17 +190,40 @@ export function GameHUD(props: GameHUDProps) {
       {/* ── Bottom-center: Hotbar ── */}
       <div className="absolute bottom-6 left-1/2 -translate-x-1/2 pointer-events-auto">
         <div className="flex gap-1.5 bg-black/60 backdrop-blur-sm rounded-2xl border border-white/10 p-2">
-          {HOTBAR_SKILLS.map(s => (
+          {(props.weaponHotbar?.length
+            ? [
+                ...props.weaponHotbar.slice(0, 5).map((s, i) => ({
+                  slot: i + 1,
+                  key: s.key || String(i + 1),
+                  label: s.label,
+                  color: SLOT_COLORS[i] ?? '#888',
+                })),
+                ...HOTBAR_SKILLS.slice(5),
+              ]
+            : HOTBAR_SKILLS
+          ).map(s => (
             <div
               key={s.slot}
               className="relative w-12 h-12 rounded-xl border border-white/10 flex items-center justify-center cursor-pointer hover:border-white/30 transition-colors"
               style={{ background: `linear-gradient(180deg, ${s.color}22, ${s.color}08)` }}
+              title={s.label || undefined}
             >
-              <span className="text-white/70 text-[10px] font-medium">{s.label || '—'}</span>
+              <span className="text-white/70 text-[10px] font-medium text-center leading-tight px-0.5">
+                {s.label || '—'}
+              </span>
               <span className="absolute top-0.5 left-1.5 text-[9px] text-white/30 font-bold">{s.key}</span>
             </div>
           ))}
         </div>
+        {props.onOpenMainPanel && (
+          <button
+            type="button"
+            onClick={props.onOpenMainPanel}
+            className="mt-1 mx-auto block text-[10px] uppercase tracking-widest text-amber-300/70 hover:text-amber-200"
+          >
+            I · Main Panel
+          </button>
+        )}
       </div>
 
       {/* ── Bottom-left: Chat ── */}

@@ -14,6 +14,7 @@ import {
   WEAPON_SKILL_SLOTS,
 } from '@/lib/hotbarLayout';
 import { weaponTypeFromModel3d, normalizeRaceId } from '@shared/fleet';
+import { defaultHotbarFromWeaponType } from '@/lib/viewerLaunchHandoff';
 
 export interface Grudge6PlayerApplyOpts {
   /** Explicit character UUID (preferred) */
@@ -25,6 +26,8 @@ export interface Grudge6PlayerApplyOpts {
   equipment?: Record<string, string | null>;
   /** When true, always load a race mesh even with no account (human warrior default). */
   forceDefault?: boolean;
+  /** Skip roster fetch — use this character (launch hash / guest). */
+  character?: Character | null;
 }
 
 export interface Grudge6PlayerApplyResult {
@@ -112,11 +115,13 @@ export async function applyGrudge6PlayerToController(
   character: CharacterController3D,
   opts: Grudge6PlayerApplyOpts = {},
 ): Promise<Grudge6PlayerApplyResult> {
-  let char: Character | null = null;
-  try {
-    char = await resolveActiveWarlordsCharacter(opts.characterId);
-  } catch (e) {
-    console.warn('[Grudge6Player] resolve failed', e);
+  let char: Character | null = opts.character ?? null;
+  if (!char) {
+    try {
+      char = await resolveActiveWarlordsCharacter(opts.characterId);
+    } catch (e) {
+      console.warn('[Grudge6Player] resolve failed', e);
+    }
   }
 
   const raceId = normalizeRaceId(
@@ -175,16 +180,11 @@ export async function applyGrudge6PlayerToController(
     }
   }
 
-  // Default combat bar if still empty (playable without spellbook assignment)
+  // Empty bar → this weapon's weaponSkillsNew slots (not a class / grimoire demo bar)
   const hasWeaponSkills = WEAPON_SKILL_SLOTS.some((s) => hotbar.weaponSkills[s]);
   if (!hasWeaponSkills) {
-    hotbar.weaponSkills = {
-      1: 'warrior_0_strike',
-      2: 'grim_dest_blast',
-      3: 'grim_prot_ward',
-      4: 'grim_conj_minion',
-      5: 'grim_conj_lord',
-    };
+    const fromWeapon = defaultHotbarFromWeaponType(weaponType);
+    hotbar.weaponSkills = fromWeapon.weaponSkills;
   }
 
   character.loadHotbar(hotbar);

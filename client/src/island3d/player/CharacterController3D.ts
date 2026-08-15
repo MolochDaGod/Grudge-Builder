@@ -447,8 +447,9 @@ export class CharacterController3D {
 
       const modelUnit = getModelForCharacter(raceKey, classId);
       const race = RACE_GRUDGE6[raceKey] ?? RACE_GRUDGE6.human;
-      // Prefer RACE_GRUDGE6.cdnPath (canonical) over manifest when they diverge
-      const modelPath = race.cdnPath || modelUnit.modelPath;
+      // Play kit is Toon RTS GLB (grudge6-cdn-ssot). Modular BRB_/WK_ paths stay fallbacks.
+      const { getToonRtsPlayKitPath } = await import('@/lib/objectStoreApi');
+      const modelPath = getToonRtsPlayKitPath(raceKey) || race.cdnPath || modelUnit.modelPath;
 
       const resolvedModel3d = (model3d || equipment)
         ? parseModel3d({ raceId: raceKey, classId, equipment: this.equipment, model3d } as any)
@@ -528,15 +529,8 @@ export class CharacterController3D {
         );
       }
 
-      // Foot IK layer (dash plant + terrain) — after skinned mesh is in place
-      try {
-        const { CharacterIK } = await import('./CharacterIK');
-        this.characterIk = new CharacterIK(this.model);
-      } catch {
-        this.characterIk = null;
-      }
-
-      // IK debug / slow-mo from URL or localStorage (threejs-games mouse timeScale)
+      // Foot IK is opt-in (?ikdebug=1). Play kit is Toon RTS GLB + existing
+      // ground sampler — do not attach a second IK/terrain layer by default.
       try {
         const q = new URLSearchParams(window.location.search);
         this.ikDebug =
@@ -544,6 +538,16 @@ export class CharacterController3D {
           localStorage.getItem('grudge_ik_debug') === '1';
       } catch {
         this.ikDebug = false;
+      }
+      if (this.ikDebug) {
+        try {
+          const { CharacterIK } = await import('./CharacterIK');
+          this.characterIk = new CharacterIK(this.model);
+        } catch {
+          this.characterIk = null;
+        }
+      } else {
+        this.characterIk = null;
       }
 
       this.initHolsterController(weaponType);

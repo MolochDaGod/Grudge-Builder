@@ -326,6 +326,20 @@ export function fetchRaceModels() {
 
 const RACE_CDN_BASE = 'https://assets.grudge-studio.com/asset-packs/toon-rts-characters';
 
+/** Same-origin / assetUrl-relative play kit (Toon RTS GLB). */
+export function getToonRtsPlayKitPath(raceId: string): string {
+  const raw = String(raceId || 'human').toLowerCase();
+  const playId = (
+    raw === 'barbarian' || raw.includes('barb') ? 'barbarian'
+    : raw === 'elf' || raw.includes('elf') ? 'elf'
+    : raw === 'dwarf' || raw.includes('dwarf') || raw.includes('dwf') ? 'dwarf'
+    : raw === 'orc' || raw.includes('orc') ? 'orc'
+    : raw === 'undead' || raw.includes('undead') || raw.startsWith('ud') ? 'undead'
+    : 'human'
+  );
+  return `/asset-packs/toon-rts-characters/glb/characters/${playId}.glb`;
+}
+
 /** Get the CDN URL for a race's character GLB (texture-baked, ready to load with GLTFLoader) */
 export function getRaceCharacterUrl(raceId: string): string {
   return `${RACE_CDN_BASE}/glb/characters/${raceId}.glb`;

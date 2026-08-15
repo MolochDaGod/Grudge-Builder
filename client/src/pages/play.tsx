@@ -17,6 +17,12 @@ import { characterToPlayerInfo, resolveActiveCharacterForPlay } from '@/lib/play
 import type { CreatureLootEvent } from '@/island3d/creatures/CreatureManager';
 import { WarlordsPvpLoadscreen } from '@/components/WarlordsPvpLoadscreen';
 import type { Character } from '@/lib/characterManager';
+import MainPanelHost from '@/components/MainPanelHost';
+import {
+  characterFromLaunch,
+  readViewerLaunchBuild,
+} from '@/lib/viewerLaunchHandoff';
+import { hotbarLabelsForHud } from '@/lib/loadGrudge6Player';
 import {
   resolvePlaySectorFromUrl,
   resolvePlayEngineMode,
@@ -82,6 +88,14 @@ export default function PlayPage() {
   // Player info — loaded from backend DB (no hardcoded fallback)
   const [playerInfo, setPlayerInfo] = useState<PlayerInfo | null>(null);
   const [characterLoaded, setCharacterLoaded] = useState(false);
+  const [mainPanelOpen, setMainPanelOpen] = useState(false);
+  const [authToken, setAuthToken] = useState<string | null>(null);
+  const [weaponHotbar, setWeaponHotbar] = useState<
+    Array<{ key: string; label: string; skillId?: string }>
+  >([]);
+  const [classHotbar, setClassHotbar] = useState<
+    Array<{ key: string; label: string; skillId?: string }>
+  >([]);
 
   // Load real DB character + warm zone catalog
   useEffect(() => {
@@ -111,7 +125,14 @@ export default function PlayPage() {
         params.get('guest') === '1';
 
       const handoffId = params.get('characterId');
+      const launch = readViewerLaunchBuild();
       let char = await resolveActiveCharacterForPlay(handoffId);
+      if (launch) {
+        char = characterFromLaunch(launch, char);
+        console.info(
+          `[Play] Launch hash · race=${char.raceId} class=${char.classId} weapon=${launch.weaponBagId}`,
+        );
+      }
       if (!char && gcsHandoff) {
         await new Promise((r) => setTimeout(r, 800));
         char = await resolveActiveCharacterForPlay(handoffId);
@@ -186,21 +207,57 @@ export default function PlayPage() {
     applyCharacterFactionToEngine(engineRef.current, playerInfo.faction);
     if (!engineRef.current.character) return;
     const char = characterRef.current;
-    engineRef.current.character.loadCharacterFromManifest(
-      playerInfo.heroRace,
-      playerInfo.heroClass,
-      playerInfo.characterId,
-      undefined,
-      {
-        equippedMeshes: playerInfo.equippedMeshes,
-        weaponSlots: playerInfo.weaponSlots,
-        skinColor: playerInfo.skinColor,
-        armorColor: playerInfo.armorColor,
-        baseModelId: playerInfo.baseModelId,
-      },
-      char?.equipment,
-    ).catch(() => {});
+    void (async () => {
+      try {
+        const { applyGrudge6PlayerToController } = await import('@/lib/loadGrudge6Player');
+        const result = await applyGrudge6PlayerToController(engineRef.current!.character!, {
+          characterId: playerInfo.characterId,
+          raceId: playerInfo.heroRace,
+          classId: playerInfo.heroClass,
+          model3d: {
+            equippedMeshes: playerInfo.equippedMeshes,
+            weaponSlots: playerInfo.weaponSlots,
+            skinColor: playerInfo.skinColor,
+            armorColor: playerInfo.armorColor,
+            baseModelId: playerInfo.baseModelId,
+          },
+          equipment: char?.equipment,
+          character: char,
+          forceDefault: true,
+        });
+        const labels = hotbarLabelsForHud(result.hotbar);
+        setWeaponHotbar(labels.weaponHotbar);
+        setClassHotbar(labels.classHotbar);
+      } catch (err) {
+        console.warn('[Play] Grudge6 apply failed', err);
+      }
+    })();
   }, [loaded, playerInfo]);
+
+  // I = Warlords main panel (equipment / inventory / skills)
+  useEffect(() => {
+    if (!loaded) return;
+    try {
+      for (const k of ['grudge_auth_token', 'grudge_session_token', 'grudge.token', 'sso_token']) {
+        const v = localStorage.getItem(k);
+        if (v) {
+          setAuthToken(v);
+          break;
+        }
+      }
+    } catch {
+      /* private mode */
+    }
+    const onKey = (e: KeyboardEvent) => {
+      const tag = (e.target as HTMLElement)?.tagName;
+      if (tag === 'INPUT' || tag === 'TEXTAREA') return;
+      if (e.key.toLowerCase() !== 'i' || e.ctrlKey || e.metaKey || e.altKey) return;
+      e.preventDefault();
+      setMainPanelOpen((o) => !o);
+    };
+    window.addEventListener('keydown', onKey);
+    return () => window.removeEventListener('keydown', onKey);
+  }, [loaded]);
 
   // Live mesh refresh when character-builder updates equipment/model3d
   useEffect(() => {
@@ -796,6 +853,8 @@ export default function PlayPage() {
           level={playerInfo?.level ?? 1}
           selectedBuildId={buildSelectedAsset}
           isPlacing={buildPlacing}
+          weaponHotbar={weaponHotbar}
+          classHotbar={classHotbar}
           onBuildSelect={(id) => {
             setBuildPlacing(true);
             setBuildSelectedAsset(id);
@@ -829,8 +888,19 @@ export default function PlayPage() {
           castName={castName}
           castProgress={castProgress}
           enemyCasts={enemyCasts}
+          weaponHotbar={weaponHotbar}
+          onOpenMainPanel={() => setMainPanelOpen(true)}
         />
       )}
+
+      <MainPanelHost
+        open={mainPanelOpen}
+        onClose={() => setMainPanelOpen(false)}
+        characterId={characterRef.current?.id}
+        token={authToken}
+        tab="equipment"
+        era="warlords"
+      />
     </div>
   );
 }
