@@ -509,9 +509,14 @@ export default function HomeIslandPage() {
       }
       setMountainDungeonName(engine.mountainDungeonName);
       setAllyMessage('Welcome home. Head north to the evil mountains — a dungeon hides behind one of three peaks.');
-    }).catch(() => {
-      engine.start();
-      setLoaded(true);
+    }).catch((err) => {
+      console.error('[HomeIsland] init failed', err);
+      const msg = err instanceof Error ? err.message : String(err);
+      setLoadError(
+        /walkable|physics/i.test(msg)
+          ? 'Terrain / physics layer not ready — staying on loadscreen.'
+          : msg.slice(0, 180),
+      );
     });
 
     const handleResize = () => engine.resize(window.innerWidth, window.innerHeight);

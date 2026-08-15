@@ -593,6 +593,26 @@ export class PhysicsWorld {
     return this.bodies.size;
   }
 
+  /** True after at least one static terrain / pad collider exists. */
+  get hasTerrainLayer(): boolean {
+    for (const body of this.bodies.values()) {
+      if (body.type === 'static') return true;
+    }
+    return false;
+  }
+
+  /**
+   * Thin fixed box under spawn — last-resort floor so gravity cannot
+   * drop the captain through a missing trimesh on first frame.
+   */
+  addSpawnPad(center: THREE.Vector3, half = { x: 48, y: 0.4, z: 48 }): PhysicsBody {
+    return this.addBoxCollider(
+      new THREE.Vector3(half.x, half.y, half.z),
+      new THREE.Vector3(center.x, center.y - half.y, center.z),
+      'static',
+    );
+  }
+
   // ── Geometry extraction helpers ────────────────────────────────────────
 
   private extractMeshGeometry(mesh: THREE.Mesh, scale?: number): { vertices: Float32Array; indices: Uint32Array } {

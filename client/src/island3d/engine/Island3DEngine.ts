@@ -63,7 +63,25 @@ import {
   type LobbyShipSystem,
 } from './LobbyGameplay';
 import { applyLobbySurfaceLayers } from '../terrain/LobbySurfaceLayers';
-import { buildLobbyCollider, type LobbyColliderResult } from '../physics/LobbyColliderSystem';
+import {
+  buildLobbyCollider,
+  buildWalkableColliderFromMeshes,
+  meshTriangleCount,
+  selectNearMeshes,
+  type LobbyColliderResult,
+} from '../physics/LobbyColliderSystem';
+import { PhysicsWorld } from '../physics/PhysicsWorld';
+import { RAPIER_FLEET } from '../physics/fleet';
+import {
+  PHYSICS_NEAR_SPAWN_M,
+  RAPIER_TRIMESH_TRI_BUDGET,
+  SPAWN_PAD_HALF,
+  isPhysicsReadyForEntry,
+  sceneLoadLabel,
+  waitForGroundSample,
+  yieldToBrowser,
+  type SceneLoadStage,
+} from '../physics/sceneLoadGate';
 import { createLobbyPlayZone, type LobbyPlayZoneResult } from './LobbyPlayZone';
 import {
   createFactionLobbyIslands,
@@ -266,6 +284,7 @@ import { MineEntranceSystem } from '../objects/MineEntranceSystem';
 import type { MineLootItem } from '@shared/definitions/homeIslandMines';
 
 export type Island3DMode = 'procedural' | 'lobby' | 'zone';
+export type { SceneLoadStage };
 
 /**
  * Free-surface Y for procedural home-island ocean.
@@ -295,8 +314,10 @@ export interface Island3DEngineConfig {
   sectorId?: string;
   /** World seed shared across all zone instances for determinism. */
   worldSeed?: string;
-  /** Progress callback for lobby map loading (0-100) */
+  /** Progress callback for lobby / zone / procedural loading (0-100) */
   onLoadProgress?: (pct: number) => void;
+  /** Staged load-gate labels (rest → terrain → physics → player) */
+  onLoadStage?: (stage: SceneLoadStage, label: string) => void;
   /** Post-processing quality (default 'medium') */
   quality?: QualityPreset;
   /** Day/night cycle config (omit to disable) */
@@ -493,6 +514,15 @@ export class Island3DEngine {
   private gmapOverlayRoot: THREE.Group | null = null;
   private lobbyCollider: LobbyColliderResult | null = null;
   private lobbyCapturing = false;
+  /**
+   * Rapier world — fleet PhysicsWorld. Armed before player spawn.
+   * Walkable BVH is `walkCollider` / `lobbyCollider`.
+   */
+  public physics: PhysicsWorld | null = null;
+  /** True only after terrain walkable + valid ground sample at spawn. */
+  public physicsReady = false;
+  /** Zone / procedural BVH walk layer (lobby reuses lobbyCollider). */
+  private walkCollider: LobbyColliderResult | null = null;
 
   // Zone mode
   public zoneScene: ZoneSceneResult | null = null;
@@ -779,6 +809,29 @@ export class Island3DEngine {
 
   /** Generate terrain, water, nodes, decorations — or load a lobby/zone map */
   async init(): Promise<void> {
+    this.reportLoad('rest', 4);
+    await yieldToBrowser();
+
+    // Rapier WASM in parallel with meshopt — must finish before player spawn
+    const rapierWarm = PhysicsWorld.create({ gravity: RAPIER_FLEET.gravityY })
+      .then((world) => {
+        this.physics = world;
+      })
+      .catch((err) => {
+        console.warn('[Island3D] Rapier WASM init failed — BVH walk layer only', err);
+      });
+
+    try {
+      const { ensureSharedGltfReady } = await import('@/lib/three/SharedGltfPipeline');
+      await ensureSharedGltfReady();
+    } catch (e) {
+      console.warn('[Island3D] SharedGltf ready failed — meshopt GLBs may error', e);
+    }
+
+    this.reportLoad('assets', 10);
+    await yieldToBrowser();
+    await rapierWarm;
+
     let mode = this.config.mode || 'procedural';
 
     // Production open-world: mode=zone&sector=lobby → pirate lobby systems
@@ -804,11 +857,207 @@ export class Island3DEngine {
       await this.initProcedural();
     }
 
+    if (this.config.enableCharacter !== false && !this.physicsReady) {
+      throw new Error(
+        '[Island3D] Physics layer not ready — refusing player entry (no walkable ground)',
+      );
+    }
+
     // Multiplayer (if configured) — works with both modes
     if (this.config.multiplayer) {
       this.multiplayer = new MultiplayerSync(this.config.multiplayer, this.scene);
       this.multiplayer.connect();
     }
+  }
+
+  private reportLoad(stage: SceneLoadStage, progress: number, extra?: string): void {
+    const label = sceneLoadLabel(stage, extra);
+    this.config.onLoadProgress?.(progress);
+    this.config.onLoadStage?.(stage, label);
+  }
+
+  /**
+   * Arm BVH walkable + Rapier terrain/pad, then wait for a dry ground sample.
+   * All Warlords modes call this before constructing CharacterController3D.
+   */
+  private async armPhysicsLayer(opts: {
+    meshes: THREE.Mesh[];
+    spawn: THREE.Vector3;
+    waterLevel: number;
+    existingSampler?: (x: number, z: number) => number | null;
+    label: string;
+  }): Promise<(x: number, z: number) => number | null> {
+    this.reportLoad('physics', 84, opts.label);
+    await yieldToBrowser();
+
+    if (!this.physics) {
+      try {
+        this.physics = await PhysicsWorld.create({ gravity: RAPIER_FLEET.gravityY });
+      } catch (err) {
+        console.warn('[Island3D] Rapier create failed', err);
+      }
+    }
+
+    const near = selectNearMeshes(opts.meshes, opts.spawn, PHYSICS_NEAR_SPAWN_M);
+    const forCollider = near.length ? near : opts.meshes;
+
+    if (!opts.existingSampler && forCollider.length > 0) {
+      try {
+        this.walkCollider?.dispose();
+        if (this.walkCollider?.colliderMesh.parent) {
+          this.scene.remove(this.walkCollider.colliderMesh);
+        }
+        this.walkCollider = buildWalkableColliderFromMeshes(
+          forCollider,
+          `${opts.label}-walk-collider`,
+        );
+        this.scene.add(this.walkCollider.colliderMesh);
+      } catch (err) {
+        console.warn('[Island3D] BVH walk collider failed', err);
+      }
+    }
+
+    await yieldToBrowser();
+
+    const sampler = (x: number, z: number): number | null => {
+      const fromExisting = opts.existingSampler?.(x, z);
+      if (fromExisting !== null && fromExisting !== undefined && Number.isFinite(fromExisting)) {
+        if (fromExisting > opts.waterLevel + 0.4) return fromExisting;
+      }
+      const fromBvh = this.walkCollider?.sampleHeight(x, z) ?? null;
+      if (fromBvh !== null) return fromBvh;
+      if (this.physics) return this.physics.groundCheck(x, z, 800);
+      return null;
+    };
+
+    let groundY = await waitForGroundSample({
+      sample: sampler,
+      x: opts.spawn.x,
+      z: opts.spawn.z,
+      waterLevel: opts.waterLevel,
+    });
+
+    if (this.physics) {
+      if (groundY !== null) {
+        try {
+          this.physics.addSpawnPad(
+            new THREE.Vector3(opts.spawn.x, groundY, opts.spawn.z),
+            SPAWN_PAD_HALF,
+          );
+        } catch (err) {
+          console.warn('[Island3D] spawn pad failed', err);
+        }
+      }
+      for (const mesh of forCollider) {
+        const tris = meshTriangleCount(mesh);
+        if (tris <= 0 || tris > RAPIER_TRIMESH_TRI_BUDGET) continue;
+        try {
+          mesh.updateMatrixWorld(true);
+          this.physics.addTerrainCollider(mesh);
+        } catch (err) {
+          console.warn('[Island3D] terrain trimesh skipped', mesh.name, err);
+        }
+      }
+      this.physics.update(1 / 60);
+    }
+
+    if (groundY === null) {
+      groundY = await waitForGroundSample({
+        sample: sampler,
+        x: opts.spawn.x,
+        z: opts.spawn.z,
+        waterLevel: opts.waterLevel,
+        attempts: 4,
+      });
+    }
+    if (groundY === null) {
+      const box = new THREE.Box3();
+      const center = new THREE.Vector3();
+      for (const mesh of forCollider) {
+        try {
+          box.setFromObject(mesh);
+          box.getCenter(center);
+        } catch {
+          continue;
+        }
+        groundY = await waitForGroundSample({
+          sample: sampler,
+          x: center.x,
+          z: center.z,
+          waterLevel: opts.waterLevel,
+          attempts: 2,
+          offsetsM: [0, 8],
+        });
+        if (groundY !== null) {
+          opts.spawn.x = center.x;
+          opts.spawn.z = center.z;
+          break;
+        }
+      }
+    }
+
+    this.physicsReady = isPhysicsReadyForEntry({
+      rapierWorld: !!this.physics,
+      walkableReady: !!(this.walkCollider || opts.existingSampler || this.lobbyCollider),
+      groundY,
+      walkableCount: forCollider.length,
+      waterLevel: opts.waterLevel,
+    });
+
+    if (groundY !== null) {
+      opts.spawn.y = groundY;
+    }
+
+    console.log(
+      `[Island3D] Physics layer ${this.physicsReady ? 'ready' : 'BLOCKED'} ` +
+        `rapier=${!!this.physics} walk=${forCollider.length} ` +
+        `groundY=${groundY ?? 'null'} spawn=(${opts.spawn.x.toFixed(1)},${opts.spawn.z.toFixed(1)})`,
+    );
+
+    if (!this.physicsReady) {
+      throw new Error(
+        `[Island3D] No walkable ground at spawn in ${opts.label} — holding loadscreen`,
+      );
+    }
+
+    this.reportLoad('player', 94);
+    return sampler;
+  }
+
+  /** Island + foundation + climb/float decks — never ocean, sprites, or markers. */
+  private collectZoneWalkableMeshes(): THREE.Mesh[] {
+    const out: THREE.Mesh[] = [];
+    const seen = new Set<THREE.Mesh>();
+    const pushMesh = (m: THREE.Object3D | null | undefined) => {
+      const mesh = m as THREE.Mesh | null;
+      if (!mesh?.isMesh || !mesh.geometry || seen.has(mesh)) return;
+      const n = (mesh.name || '').toLowerCase();
+      if (n.includes('water') || n.includes('ocean') || n.includes('marker')) return;
+      seen.add(mesh);
+      out.push(mesh);
+    };
+    const walkRoot = (root: THREE.Object3D | null | undefined) => {
+      if (!root) return;
+      try {
+        root.updateMatrixWorld(true);
+      } catch {
+        /* incomplete */
+      }
+      root.traverse((o) => {
+        if ((o as THREE.Sprite).isSprite) return;
+        pushMesh(o);
+      });
+    };
+    if (this.zoneScene) {
+      for (const mesh of this.zoneScene.islandMeshes.values()) pushMesh(mesh);
+    }
+    if (this.havenFoundation?.groundMeshes) {
+      for (const g of this.havenFoundation.groundMeshes) pushMesh(g);
+    }
+    // Climb / floating decks are the walk surface — do not merge whole village GLBs
+    walkRoot(this.volcanicClimb?.root);
+    walkRoot(this.etherealFloatIslands?.root);
+    return out;
   }
 
   /** Load a pre-built GLTF lobby map + open-world gameplay layer */
@@ -962,7 +1211,7 @@ export class Island3DEngine {
     // Hot-reload production .gmap (publish API / static package) → overlays + HUD
     await this.reloadProductionGmap();
 
-    this.config.onLoadProgress?.(92);
+    this.reportLoad('terrain', 88);
 
     // Playable Grudge6 character on lobby terrain
     if (this.config.enableCharacter !== false) {
@@ -1025,16 +1274,25 @@ export class Island3DEngine {
 
     const sampleGround = this.lobbyCollider?.sampleHeight;
     const startPos = getLobbySpawnPosition(this.lobbyResult, sampleGround);
+    const walkMeshes: THREE.Mesh[] = [];
+    if (this.lobbyCollider?.colliderMesh) walkMeshes.push(this.lobbyCollider.colliderMesh);
+    const physicsSampler = await this.armPhysicsLayer({
+      meshes: walkMeshes,
+      spawn: startPos,
+      waterLevel: LOBBY_WATER_LEVEL,
+      existingSampler: sampleGround,
+      label: 'lobby',
+    });
     this.character = new CharacterController3D({
       scene: this.scene,
       camera: this.camera,
-      terrainMesh: lobbyGround,
-      groundObject: this.lobbyResult.scene,
-      groundSampler: sampleGround,
+      terrainMesh: this.lobbyCollider?.colliderMesh ?? lobbyGround,
+      groundSampler: physicsSampler,
       startPosition: startPos,
       physics: { waterLevel: LOBBY_WATER_LEVEL, doubleJump: true },
       callbacks: this.config.physicsCallbacks,
     });
+    this.character.setEntryLocked(false);
     this.character.setWorldFxBus?.(this.worldFx);
 
     // Grudge6 race prefab + main-panel meshes + weapon skills (uMMORPG parity)
@@ -1306,9 +1564,9 @@ export class Island3DEngine {
     });
     progress(84);
 
-    // 11. Character — snapped to board XY cell, feet on terrain
+    // 11. Character — snapped to board XY cell, feet on terrain (after physics)
     if (this.config.enableCharacter !== false) {
-      this.spawnCharacter();
+      await this.spawnCharacter();
     }
 
     // 12. Wildlife — land only when ocean disabled (no fish over dry board)
@@ -1386,6 +1644,7 @@ export class Island3DEngine {
 
   /** Build a full ocean sector (10–14 km) with islands, NPCs, hazards, docks */
   private async initZone(): Promise<void> {
+    this.reportLoad('terrain', 18);
     const sectorId = this.config.sectorId;
     const worldSeed = this.config.worldSeed || 'grudge-world-1';
 
@@ -1448,6 +1707,8 @@ export class Island3DEngine {
         ?? 0;
       this.setupOceanPolish(wl);
     }
+    this.reportLoad('terrain', 32);
+    await yieldToBrowser();
 
     // 2b. Interactive harvest meshes on zone nodes (Warlords era open world)
     await preloadIslandResources().catch(() => undefined);
@@ -2080,7 +2341,8 @@ export class Island3DEngine {
     }
     const firstIslandMesh = foundationMesh ?? zoneIslandMesh;
 
-    // 8. Character controller (spawns on foundation ground, not under ocean)
+    // 8. Physics layer then character — never spawn on the raw zone root
+    // (full-sector raycast = hitch + fall-through when groundHeight is null).
     if (this.config.enableCharacter !== false && firstIslandMesh) {
       this.terrain = {
         terrainScene: this.zoneScene.root,
@@ -2093,25 +2355,37 @@ export class Island3DEngine {
       };
       this.ensureFarmSystems();
       const spawnPos = new THREE.Vector3(entryPoint[0], entryPoint[1], entryPoint[2]);
-      // Climb-first ground sampler (SSOT on VolcanicClimbIslandSystem)
+      if (this.volcanicClimb) {
+        const f0 = layoutVolcanicClimbFloor(0);
+        const origin = volcanicClimbOrigin(sectorId);
+        spawnPos.set(
+          origin.x + f0.x,
+          volcanicClimbSpawnY(cfg.waterLevel),
+          origin.z + f0.z,
+        );
+      }
       const climbGround = this.volcanicClimb
         ? this.volcanicClimb.makeGroundSampler(islandMeshes.values())
         : undefined;
+      const walkable = this.collectZoneWalkableMeshes();
+      const physicsSampler = await this.armPhysicsLayer({
+        meshes: walkable.length ? walkable : [firstIslandMesh],
+        spawn: spawnPos,
+        waterLevel: cfg.waterLevel,
+        existingSampler: climbGround,
+        label: sectorId,
+      });
 
       this.character = new CharacterController3D({
         scene: this.scene,
         camera: this.camera,
         terrainMesh: firstIslandMesh,
-        groundObject:
-          this.volcanicClimb?.root ??
-          this.havenFoundation?.root ??
-          this.fabledFoundation?.root ??
-          this.zoneScene.root,
-        groundSampler: climbGround,
+        groundSampler: physicsSampler,
         startPosition: spawnPos,
         physics: { waterLevel: cfg.waterLevel, characterHeight: 2.0 },
         callbacks: this.config.physicsCallbacks,
       });
+      this.character.setEntryLocked(false);
       this.character.setWorldFxBus?.(this.worldFx);
 
       // Hold-to-jump — single sector resolver (volcanic / ethereal)
@@ -2119,33 +2393,26 @@ export class Island3DEngine {
       if (jumpCfg) {
         this.character.setPlatformerJump(true, jumpCfg);
       }
-      if (this.volcanicClimb) {
-        const f0 = layoutVolcanicClimbFloor(0);
-        const origin = volcanicClimbOrigin(sectorId);
-        this.character.model.position.set(
-          origin.x + f0.x,
-          volcanicClimbSpawnY(cfg.waterLevel),
-          origin.z + f0.z,
-        );
-      }
 
       this.setCameraMode('play_tps');
       console.log(
         '[Island3DEngine] Zone character ready at (' +
-          entryPoint[0].toFixed(1) +
+          spawnPos.x.toFixed(1) +
           ', ' +
-          entryPoint[1].toFixed(1) +
+          spawnPos.y.toFixed(1) +
           ', ' +
-          entryPoint[2].toFixed(1) +
+          spawnPos.z.toFixed(1) +
           ') haven=' +
           !!this.havenFoundation +
           ' climb=' +
           !!this.volcanicClimb +
+          ' physics=' +
+          this.physicsReady +
           ' ground=' +
           (firstIslandMesh.name || 'mesh'),
       );
     } else if (this.config.enableCharacter !== false) {
-      console.warn('[Island3DEngine] Zone character skipped — no ground mesh');
+      throw new Error('[Island3DEngine] Zone character blocked — no walkable island mesh');
     }
 
     // 9. Building system works in zone mode too
@@ -2760,7 +3027,7 @@ export class Island3DEngine {
   }
 
   /** Spawn or respawn the playable character on a labeled board cell */
-  private spawnCharacter(): void {
+  private async spawnCharacter(): Promise<void> {
     if (!this.terrain) return;
 
     const campPct = this.config.campPositionPercent ?? HOME_ISLAND_DEFAULT_CAMP_PERCENT;
@@ -2777,20 +3044,31 @@ export class Island3DEngine {
 
     const noOcean =
       this.config.disableOcean !== false && HOME_ISLAND_DISABLE_OCEAN !== false;
+    const waterLevel = noOcean ? -999 : PROCEDURAL_WATER_LEVEL;
+
+    const physicsSampler = await this.armPhysicsLayer({
+      meshes: [this.terrain.terrainMesh],
+      spawn: startPos,
+      waterLevel,
+      existingSampler: (x, z) => getTerrainHeightAt(this.terrain!.terrainMesh, x, z),
+      label: 'home-island',
+    });
 
     this.character = new CharacterController3D({
       scene: this.scene,
       camera: this.camera,
       terrainMesh: this.terrain.terrainMesh,
+      groundSampler: physicsSampler,
       startPosition: startPos,
       physics: {
         // Far below map when dry board so walk never enters swim state
-        waterLevel: noOcean ? -999 : PROCEDURAL_WATER_LEVEL,
+        waterLevel,
         // SI: adult human yardstick (not 100× giant capsule)
         characterHeight: HUMAN_HEIGHT_M,
       },
       callbacks: this.config.physicsCallbacks,
     });
+    this.character.setEntryLocked(false);
     this.character.setWorldFxBus?.(this.worldFx);
 
     console.log(
@@ -3204,6 +3482,9 @@ export class Island3DEngine {
     const dt = Math.min(this.timer.getDelta(), 0.05);
     const elapsed = this.timer.getElapsed();
     const simDt = dt * this.simTickRate;
+
+    // Rapier fixed 1/60 — after load-gate; harvest fragments + CCT pad
+    this.physics?.update(dt);
 
     // Camera ownership: one mode writes the lens (TPC vs Orbit vs cinematic)
     if (this.cameraMode === 'cinematic') {
@@ -4834,6 +5115,18 @@ export class Island3DEngine {
     if (this.lobbyCollider?.colliderMesh.parent) {
       this.scene.remove(this.lobbyCollider.colliderMesh);
     }
+    this.walkCollider?.dispose();
+    if (this.walkCollider?.colliderMesh.parent) {
+      this.scene.remove(this.walkCollider.colliderMesh);
+    }
+    this.walkCollider = null;
+    try {
+      this.physics?.dispose();
+    } catch {
+      /* wasm */
+    }
+    this.physics = null;
+    this.physicsReady = false;
     this.havenFoundation?.dispose();
     this.havenFoundation = null;
     this.fabledFoundation?.dispose();

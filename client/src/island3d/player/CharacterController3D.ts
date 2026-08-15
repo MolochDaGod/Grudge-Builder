@@ -359,6 +359,11 @@ export class CharacterController3D {
   /** Tutorial wake cinematic — no move / no camera mouse until stand-up */
   public cinematicLock = false;
   /**
+   * Load-gate: freeze locomotion + gravity until terrain/physics layer is
+   * ready (Island3DEngine.armPhysicsLayer). Prevents fall-through on /play.
+   */
+  public entryLocked = false;
+  /**
    * Tutorial shipwreck: use ONLY injured Mixamo pack for locomotion/reactions.
    * When true, idle/walk/run come from injured clips; invincible for opener UX.
    */
@@ -1381,7 +1386,7 @@ export class CharacterController3D {
     window.addEventListener(
       'wheel',
       (e) => {
-        if (this.cinematicLock) return;
+        if (this.cinematicLock || this.entryLocked) return;
         this.thirdPersonCam?.applyZoom(e.deltaY);
       },
       { passive: true },
@@ -1537,9 +1542,10 @@ export class CharacterController3D {
       return;
     }
 
-    if (this.cinematicLock) {
-      // Tutorial slow-zoom / prone — freeze locomotion; external cam drives
+    if (this.cinematicLock || this.entryLocked) {
+      // Tutorial / load-gate — freeze locomotion; do not apply gravity
       this.velocity.set(0, 0, 0);
+      this.verticalVelocity = 0;
       this.keys.clear();
       if (this.stateMachine) {
         this.stateMachine.update(dt);
@@ -2330,6 +2336,31 @@ export class CharacterController3D {
     return this.platformerJumpEnabled;
   }
 
+  /** Swap BVH / Rapier height sampler after the physics layer arms. */
+  setGroundSampler(sampler: ((x: number, z: number) => number | null) | null): void {
+    this.groundSampler = sampler;
+  }
+
+  /**
+   * Hold the captain still until Island3D reports physicsReady.
+   * When unlocking, snap feet to a valid ground sample if one exists.
+   */
+  setEntryLocked(locked: boolean): void {
+    this.entryLocked = locked;
+    if (locked) {
+      this.verticalVelocity = 0;
+      this.velocity.set(0, 0, 0);
+      return;
+    }
+    const y = this.sampleGroundHeight(this.model.position.x, this.model.position.z);
+    if (y !== null && Number.isFinite(y)) {
+      this.model.position.y = y;
+      this.isGrounded = true;
+      this.verticalVelocity = 0;
+      this.setMovementState('ground');
+    }
+  }
+
   /**
    * Apply boss / skill combat hit: horizontal knockback, optional knock-up, stun lockout.
    * `deltaVel` is m/s (X/Z push + Y launch). Stun blocks WASD for `stunSec`.
@@ -2340,7 +2371,7 @@ export class CharacterController3D {
     stunSec = 0.3,
     opts?: { knockdown?: boolean; anim?: string },
   ): void {
-    if (this.invincible || this.cinematicLock) return;
+    if (this.invincible || this.cinematicLock || this.entryLocked) return;
 
     this.knockVel.x += deltaVel.x;
     this.knockVel.z += deltaVel.z;

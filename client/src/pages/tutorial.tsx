@@ -752,12 +752,9 @@ export default function TutorialPage() {
         wakeCinematicRef.current = cinematic;
         cinematic.start();
       }
-    }).catch(() => {
-      engine.start();
-      setLoaded(true);
-      setWakePhase('playable');
-      setIntroPlaying(false);
-      setSegmentPhase('gather_basics');
+    }).catch((err) => {
+      console.error('[Tutorial] Engine init failed:', err);
+      // Fail closed — do not start gravity without lobby walk layer
     });
 
     // Drive cinematic + harvest + scene runtime

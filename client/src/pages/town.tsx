@@ -155,8 +155,6 @@ export default function TownPage() {
       engine.start();
     }).catch((err) => {
       console.error('[Town] Init failed:', err);
-      engine.start();
-      setLoaded(true);
     });
 
     const handleResize = () => engine.resize(window.innerWidth, window.innerHeight);

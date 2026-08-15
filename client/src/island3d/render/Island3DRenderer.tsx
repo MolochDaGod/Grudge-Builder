@@ -107,6 +107,7 @@ export function Island3DRenderer({
   const [engineReady, setEngineReady] = useState<Island3DEngine | null>(null);
   const [loading, setLoading] = useState(true);
   const [loadProgress, setLoadProgress] = useState(0);
+  const [loadStage, setLoadStage] = useState('Resting the browser…');
   const [error, setError] = useState<string | null>(null);
 
   // HUD state driven by physics callbacks
@@ -247,6 +248,7 @@ export function Island3DRenderer({
             setLoadProgress(pct);
             sessionSend({ type: 'PROGRESS', progress: pct });
           },
+          onLoadStage: (_stage, label) => setLoadStage(label),
           onHarvest: (evt) => onHarvestRef.current?.(evt),
           accountId,
           captainId: characterId ?? null,
@@ -273,6 +275,9 @@ export function Island3DRenderer({
         .init()
         .then(async () => {
           if (cancelled || !engine) return;
+          if (enableCharacter !== false && !engine.physicsReady) {
+            throw new Error('Physics layer not ready — holding loadscreen');
+          }
           setLoading(false);
           setError(null);
           sessionSend({ type: 'READY' });
@@ -314,15 +319,9 @@ export function Island3DRenderer({
           console.error('Island3D init failed:', err);
           const msg = err instanceof Error ? err.message : 'Failed to initialize 3D island';
           sessionSend({ type: 'FAIL', error: msg });
-          try {
-            engine.start();
-            setEngineReady(engine);
-            onEngineReady?.(engine);
-          } catch {
-            /* ignore */
-          }
           setError(msg);
-          setLoading(false);
+          setLoadStage('Waiting for terrain + physics…');
+          // Fail closed — do not start gravity without a walk layer
         });
     };
 
@@ -557,22 +556,21 @@ export function Island3DRenderer({
         onMouseMove={handleMouseMove}
       />
 
-      {loading && (mode === 'lobby' || multiplayer) ? (
+      {loading && (mode === 'lobby' || mode === 'zone' || multiplayer) ? (
         <WarlordsPvpLoadscreen
           className="z-10"
           videoOpacity={0.65}
-          progress={mode === 'lobby' ? loadProgress : undefined}
-          label={
-            mode === 'lobby'
-              ? `Loading lobby · ${lobbyMapId || 'pirate-islands'}`
-              : mode === 'zone'
-                ? `Loading PvP zone · ${sectorId || 'unknown'}`
-                : 'Connecting to world...'
-          }
+          progress={loadProgress}
+          label={error || loadStage}
         >
           <p className="text-emerald-300 font-cinzel font-bold text-lg tracking-[4px] uppercase">
-            {mode === 'lobby' ? 'PvP Lobby' : 'Entering Battle'}
+            {mode === 'lobby' ? 'PvP Lobby' : mode === 'zone' ? 'Entering Sector' : 'Entering Battle'}
           </p>
+          {mode === 'zone' && sectorId && (
+            <p className="text-white/40 text-xs mt-2 tracking-widest uppercase">
+              {sectorId.replace(/_/g, ' ')}
+            </p>
+          )}
         </WarlordsPvpLoadscreen>
       ) : loading && mode === 'procedural' ? (
         <HomeIslandLoadscreen

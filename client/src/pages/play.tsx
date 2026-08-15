@@ -68,6 +68,8 @@ export default function PlayPage() {
   const characterRef = useRef<Character | null>(null);
   const [loaded, setLoaded] = useState(false);
   const [loadProgress, setLoadProgress] = useState(0);
+  const [loadStage, setLoadStage] = useState('Resting the browser…');
+  const [loadError, setLoadError] = useState<string | null>(null);
   const [lootNotification, setLootNotification] = useState<string | null>(null);
   const [buildPlacing, setBuildPlacing] = useState(false);
   const [buildSelectedAsset, setBuildSelectedAsset] = useState<string | null>(null);
@@ -257,6 +259,7 @@ export default function PlayPage() {
         : undefined,
       captainId: characterRef.current?.id ?? null,
       onLoadProgress: (pct) => setLoadProgress(pct),
+      onLoadStage: (_stage, label) => setLoadStage(label),
       dayNight: { dayDurationSeconds: 10 * 60 },
       onHarvest: ({ nodeId, resourceType }) => {
         if (!nodeId) return;
@@ -291,6 +294,9 @@ export default function PlayPage() {
     engineRef.current = engine;
 
     engine.init().then(() => {
+      if (!engine.physicsReady && engine.character) {
+        throw new Error('Physics layer not ready — holding loadscreen');
+      }
       // Faction camps: same faction ally, others enemy
       const faction =
         playerInfo?.faction ||
@@ -298,6 +304,9 @@ export default function PlayPage() {
         'crusade';
       applyCharacterFactionToEngine(engine, faction);
 
+      setLoadError(null);
+      setLoadStage('Entering world');
+      setLoadProgress(100);
       setLoaded(true);
       engine.start();
 
@@ -328,8 +337,10 @@ export default function PlayPage() {
       }
     }).catch((err) => {
       console.error('[Play] Engine init failed:', err);
-      engine.start();
-      setLoaded(true);
+      const msg = err instanceof Error ? err.message : String(err);
+      setLoadError(msg.slice(0, 220));
+      setLoadStage('Waiting for terrain + physics…');
+      // Fail closed: do not start gravity on a world with no walk layer
     });
 
     // Handle resize
@@ -667,9 +678,14 @@ export default function PlayPage() {
         <WarlordsPvpLoadscreen
           progress={loadProgress}
           label={
-            colyseus.connecting ? 'Connecting to server...' :
-            colyseus.connected ? `Joined world · Loading sector ${activeSector}...` :
-            'Initializing...'
+            loadError
+              ? 'Terrain / physics not ready'
+              : colyseus.connecting
+                ? 'Connecting to server…'
+                : loadStage ||
+                  (colyseus.connected
+                    ? `Joined world · Loading ${activeSector}…`
+                    : 'Initializing…')
           }
         >
           <h1
@@ -682,6 +698,13 @@ export default function PlayPage() {
           >
             ENTERING WORLD
           </h1>
+          <p className="text-white/40 text-xs mt-2 tracking-widest uppercase">
+            {engineMode === 'zone' ? activeSector.replace(/_/g, ' ') : 'home island'}
+            {worldSeed ? ` · ${worldSeed}` : ''}
+          </p>
+          {loadError && (
+            <p className="text-red-400 text-sm mt-3 max-w-md">{loadError}</p>
+          )}
           {colyseus.error && (
             <p className="text-red-400 text-sm mt-2">{colyseus.error}</p>
           )}
