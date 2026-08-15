@@ -20,6 +20,15 @@ import {
   resolveSupernovaVariant,
   type SupernovaImpactVariant,
 } from '@shared/definitions/supernovaImpactVfx';
+import {
+  listProductionSkillCombat,
+  getProductionSkillCombat,
+  type ProductionSkillCombatDef,
+} from '@shared/definitions/weaponSkillCombatCatalog';
+import {
+  getWeaponPrefab,
+  resolveWeaponPrefabUrl,
+} from '@shared/definitions/weaponPrefabCatalog';
 
 export type SkillTargeting =
   | 'self'
@@ -52,6 +61,13 @@ export interface ScriptableSkillDef {
   impactScale?: number;
   icon?: string;
   effects?: string[];
+  /** weaponSkillsNew / combat catalog type (SWORD, BOW, …) */
+  weaponType?: string;
+  /** weaponPrefabCatalog id (e.g. sword_style_copper) */
+  storagePrefabId?: string | null;
+  /** Play mesh from storage prefab (same GLB for T1–T8) */
+  meshUrl?: string | null;
+  colliderUrl?: string | null;
 }
 
 export interface VfxCatalogEntry {
@@ -74,6 +90,12 @@ export class ScriptableSkillRuntime {
   private cooldowns = new Map<string, number>(); // skillId → readyAt ms
   private vfxCatalog: VfxCatalog | null = null;
   private scene: THREE.Scene;
+  private currentCast: {
+    skillId: string;
+    name: string;
+    windupSec: number;
+    startedAt: number;
+  } | null = null;
 
   constructor(scene: THREE.Scene) {
     this.scene = scene;
@@ -233,9 +255,99 @@ export class ScriptableSkillRuntime {
     requestAnimationFrame(tick);
   }
 
+  /** Every production weapon skill → one scriptable def + storage prefab. */
+  registerAllWeaponSkills(): number {
+    for (const def of listProductionSkillCombat()) {
+      this.register(ScriptableSkillRuntime.fromProductionCombat(def));
+    }
+    return this.skills.size;
+  }
+
+  get registeredCount(): number {
+    return this.skills.size;
+  }
+
+  /**
+   * Start cooldown + cast clock only (hits stay on ProductionSkillCombatRuntime).
+   */
+  commitCastClock(skillId: string, now = performance.now()): ScriptableSkillDef | null {
+    const skill = this.skills.get(skillId);
+    if (!skill || !this.isReady(skillId, now)) return null;
+    this.cooldowns.set(skillId, now + skill.cooldownSec * 1000);
+    if (skill.castTimeSec >= 0.12) {
+      this.currentCast = {
+        skillId: skill.id,
+        name: skill.name,
+        windupSec: skill.castTimeSec,
+        startedAt: now,
+      };
+    } else {
+      this.currentCast = null;
+    }
+    return skill;
+  }
+
+  getCastSnapshot(now = performance.now()): {
+    skillId: string;
+    name: string;
+    progress: number;
+    remainingSec: number;
+    totalSec: number;
+  } | null {
+    const c = this.currentCast;
+    if (!c || c.windupSec < 0.12) return null;
+    const elapsed = (now - c.startedAt) / 1000;
+    if (elapsed >= c.windupSec) {
+      this.currentCast = null;
+      return null;
+    }
+    return {
+      skillId: c.skillId,
+      name: c.name,
+      progress: Math.min(1, elapsed / c.windupSec),
+      remainingSec: Math.max(0, c.windupSec - elapsed),
+      totalSec: c.windupSec,
+    };
+  }
+
+  static targetingFromCombat(def: ProductionSkillCombatDef): SkillTargeting {
+    if (def.style === 'buff' || def.style === 'defense' || def.hitCollider === 'none') {
+      return 'self';
+    }
+    if (def.hitCollider === 'projectile') return 'projectile';
+    if (def.hitCollider === 'aoe_self' || def.hitCollider === 'aoe_target') return 'enemy_aoe';
+    if (def.hitCollider === 'arc' && def.arcDeg >= 90) return 'cone';
+    return 'enemy_single';
+  }
+
+  /** Map combat catalog + weaponPrefabCatalog (6 styles, T1–T8 same GLB). */
+  static fromProductionCombat(def: ProductionSkillCombatDef): ScriptableSkillDef {
+    const prefab = getWeaponPrefab(def.weaponType, 1);
+    return {
+      id: def.id,
+      name: def.name,
+      description: def.description,
+      manaCost: def.manaCost,
+      cooldownSec: def.cooldown,
+      castTimeSec: def.windup,
+      range: def.range,
+      targeting: ScriptableSkillRuntime.targetingFromCombat(def),
+      damage: { amount: def.damage, type: def.damageType },
+      animKey: def.animKey,
+      vfxKey: def.vfxKey,
+      school: def.school,
+      icon: def.icon,
+      effects: def.effects,
+      weaponType: def.weaponType,
+      storagePrefabId: prefab?.id ?? null,
+      meshUrl: resolveWeaponPrefabUrl(def.weaponType, 1),
+      colliderUrl: prefab?.colliderUrl ?? null,
+    };
+  }
+
   /**
    * Helper: map a weapon skill option into a ScriptableSkillDef.
-   * Use when wiring weaponSkillsNew hotbar into this runtime.
+   * Prefers production combat catalog so hotbar and runtime share one def.
    */
   static fromWeaponSkillOption(opt: {
     id: string;
@@ -249,6 +361,8 @@ export class ScriptableSkillRuntime {
     school?: string;
     impactVariant?: SupernovaImpactVariant;
   }): ScriptableSkillDef {
+    const prod = getProductionSkillCombat(opt.id);
+    if (prod) return ScriptableSkillRuntime.fromProductionCombat(prod);
     const dmgType = opt.damageType ?? 'physical';
     return {
       id: opt.id,
@@ -266,6 +380,9 @@ export class ScriptableSkillRuntime {
       impactVariant: opt.impactVariant,
       icon: opt.icon,
       effects: opt.effects,
+      storagePrefabId: null,
+      meshUrl: null,
+      colliderUrl: null,
     };
   }
 

@@ -20,6 +20,7 @@ import {
   ensureWeaponSkillCombatCatalog,
   type ProductionSkillCombatDef,
 } from '@shared/definitions/weaponSkillCombatCatalog';
+import { ScriptableSkillRuntime } from '../systems/ScriptableSkillRuntime';
 import {
   distXZ,
   angleToTargetDeg,
@@ -121,16 +122,11 @@ export class ProductionSkillCombatRuntime {
   private scene: THREE.Scene;
   private worldFx: WorldFxBus | null = null;
   private spiritualSwords: SpiritualSwordSystem | null = null;
-  private cooldowns = new Map<string, number>();
   private flights: Flight[] = [];
   private pendingTimers: Array<ReturnType<typeof setTimeout>> = [];
   private root = new THREE.Group();
-  private currentCast: {
-    skillId: string;
-    name: string;
-    windupSec: number;
-    startedAt: number;
-  } | null = null;
+  /** One clock + prefab registry for every weaponSkillsNew option */
+  public readonly scriptable: ScriptableSkillRuntime;
 
   onAnim: OnAnim | null = null;
   onHit: OnHit | null = null;
@@ -149,6 +145,9 @@ export class ProductionSkillCombatRuntime {
     this.root.name = 'production_skill_projectiles';
     scene.add(this.root);
     ensureWeaponSkillCombatCatalog();
+    this.scriptable = new ScriptableSkillRuntime(scene);
+    this.scriptable.registerAllWeaponSkills();
+    void this.scriptable.loadVfxCatalog();
     void this.preloadProjectileMeshes();
   }
 
@@ -202,11 +201,11 @@ export class ProductionSkillCombatRuntime {
   }
 
   isReady(skillId: string, now = performance.now()): boolean {
-    return now >= (this.cooldowns.get(skillId) ?? 0);
+    return this.scriptable.isReady(skillId, now);
   }
 
   remainingCd(skillId: string, now = performance.now()): number {
-    return Math.max(0, ((this.cooldowns.get(skillId) ?? 0) - now) / 1000);
+    return this.scriptable.remainingCooldown(skillId, now);
   }
 
   /** Cooldown progress 0 ready → 1 just cast (for HUD). */
@@ -216,28 +215,8 @@ export class ProductionSkillCombatRuntime {
     return Math.min(1, rem / skillCd);
   }
 
-  /** Windup 0→1 while catalog windup ≥ 0.12 s; otherwise null. */
-  getCastSnapshot(now = performance.now()): {
-    skillId: string;
-    name: string;
-    progress: number;
-    remainingSec: number;
-    totalSec: number;
-  } | null {
-    const c = this.currentCast;
-    if (!c || c.windupSec < 0.12) return null;
-    const elapsed = (now - c.startedAt) / 1000;
-    if (elapsed >= c.windupSec) {
-      this.currentCast = null;
-      return null;
-    }
-    return {
-      skillId: c.skillId,
-      name: c.name,
-      progress: Math.min(1, elapsed / c.windupSec),
-      remainingSec: Math.max(0, c.windupSec - elapsed),
-      totalSec: c.windupSec,
-    };
+  getCastSnapshot(now = performance.now()) {
+    return this.scriptable.getCastSnapshot(now);
   }
 
   getDef(skillId: string): ProductionSkillCombatDef | null {
@@ -281,17 +260,9 @@ export class ProductionSkillCombatRuntime {
       }
     }
 
-    // Commit CD
-    this.cooldowns.set(skillId, now + skill.cooldown * 1000);
-    if (skill.windup >= 0.12) {
-      this.currentCast = {
-        skillId: skill.id,
-        name: skill.name,
-        windupSec: skill.windup,
-        startedAt: now,
-      };
-    } else {
-      this.currentCast = null;
+    // One clock: ScriptableSkillRuntime (catalog CD + windup as castTimeSec)
+    if (!this.scriptable.commitCastClock(skillId, now)) {
+      return { ok: false, reason: 'cooldown', skill };
     }
 
     // Anim

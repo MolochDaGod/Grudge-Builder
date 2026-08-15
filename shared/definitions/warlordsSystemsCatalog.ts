@@ -338,17 +338,17 @@ export const WARLORDS_SYSTEMS: Record<WarlordsSystemId, WarlordsSystemDef> = {
   scriptable_skills: {
     id: 'scriptable_skills',
     name: 'Scriptable Skills (data-driven)',
-    status: 'planned',
+    status: 'live',
     unitySource: 'ScriptableObject Skill definitions (damage, VFX, cast time, targeting)',
     codeSsot: [
-      'shared/definitions/spells.ts',
-      'shared/definitions/skills.ts',
-      'shared/definitions/spellAnimations.ts',
-      'shared/definitions/warlordsSystemsCatalog.ts (this registry)',
+      'shared/definitions/weaponSkillsNew.ts',
+      'shared/definitions/weaponSkillCombatCatalog.ts',
+      'shared/definitions/weaponPrefabCatalog.ts',
+      'shared/definitions/productionWeaponCombat.ts',
     ],
     runtime: [
-      'client/src/island3d/systems/ScriptableSkillRuntime.ts (scaffold)',
-      'SkillEffects.ts',
+      'client/src/island3d/systems/ScriptableSkillRuntime.ts',
+      'client/src/island3d/combat/ProductionSkillCombatRuntime.ts',
     ],
     cdn: [
       {
@@ -359,8 +359,10 @@ export const WARLORDS_SYSTEMS: Record<WarlordsSystemId, WarlordsSystemDef> = {
       },
     ],
     acceptance: [
-      'Skill JSON: id, cost, cooldown, targeting, damage formula, vfxKey, animKey',
-      'Runtime plays anim + VFX + hit without hardcode per skill',
+      'Every weaponSkillsNew option has a ProductionSkillCombatDef + ScriptableSkillDef',
+      'castTimeSec = windup; cooldownSec = catalog cooldown',
+      'storagePrefabId / meshUrl from weaponPrefabCatalog (6 styles, T1–T8 same GLB)',
+      'Hits stay on ProductionSkillCombatRuntime — one clock, not two CDs',
     ],
   },
 
