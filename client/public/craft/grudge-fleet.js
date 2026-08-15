@@ -73,6 +73,7 @@
   const SDK_TOKEN_KEY = 'grudge_auth_token'; // ObjectStore SDK
   /** All JWT storage keys used across SPA / Foundry / craft (read order). */
   const FLEET_TOKEN_KEYS = [
+    'grudge.open.token',
     'grudge_auth_token',
     'grudge_session_token',
     'grudge_studio_session',

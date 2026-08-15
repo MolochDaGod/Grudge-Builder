@@ -537,6 +537,7 @@ img.nav-icon[data-icon-kind="skill"], img.nav-icon[data-icon-kind="single"] { ob
   100% { box-shadow: 0 0 0 0 rgba(212,168,67,0); }
 }
 .soft-auth-banner .sab-actions { display: flex; gap: 8px; flex-wrap: wrap; }
+.soft-auth-banner .sab-actions[hidden] { display: none !important; }
 .soft-auth-banner button, .soft-auth-banner a.sab-btn {
   appearance: none;
   border: 1px solid var(--border-hot);
@@ -1530,7 +1531,7 @@ body .app {
 <body class="access-ready">
 <!-- TOP BAR: account name + character select + login (always visible) -->
 <header class="topbar" id="topbar" role="banner">
-  <div class="topbar-brand">Grudge Crafting <small>v5.12.0 · shared bag · per-char XP</small></div>
+  <div class="topbar-brand">Grudge Crafting <small>v5.14.0 · one Grudge ID session · shared bag · per-char XP</small></div>
   <div class="topbar-status">
     <span class="topbar-dot" id="topDot"></span>
     <div class="topbar-account">
@@ -1562,7 +1563,7 @@ body .app {
         <span class="page-title-icon" style="width:28px;height:28px;font-size:18px;display:inline-flex;align-items:center;justify-content:center">⚔</span>
         <h1 style="margin:0">Grudge Crafting</h1>
       </div>
-      <small>Warlords Profession Suite · v5.13.1 · grudgewarlords.com/craft · craft.grudgewarlords.com</small>
+      <small>Warlords Profession Suite · v5.14.0 · one Grudge ID · grudgewarlords.com/craft</small>
     </div>
 
     <!-- ACTIVE CHARACTER PANEL — shown once characters load -->
@@ -1642,7 +1643,7 @@ body .app {
     <!-- Soft auth hint — never blocks browsing; only craft/gather need session -->
     <div id="soft-auth-banner" class="soft-auth-banner show" role="status">
       <span id="soft-auth-msg"><strong>Guest browse</strong> — recipes load without login. Profession levels stay blank until you <strong>Sign in with Grudge ID</strong> and pick a character (top bar).</span>
-      <span class="sab-actions">
+      <span class="sab-actions" id="soft-auth-actions">
         <button type="button" onclick="doSignIn()">Sign in with Grudge ID</button>
         <button type="button" class="secondary" onclick="doCreateAccount()">Create account</button>
         <a class="sab-btn secondary" href="https://ui.grudge-studio.com/main-panel.html?era=warlords&tab=craft" target="_blank" rel="noopener">Main Panel</a>
@@ -2304,6 +2305,53 @@ const MAT_ICONS = {
 // ============================================================
 // ACCESS GATE — must be logged in + own character selected
 // ============================================================
+/** One Grudge ID session for top bar, sidebar, and guest banner. Not Puter. */
+const CRAFT_TOKEN_KEYS = [
+  'grudge.open.token',
+  'grudge_auth_token',
+  'grudge_session_token',
+  'grudge_studio_session',
+  'grudge.token',
+  'sso_token',
+  'access_token',
+  'grudge_token',
+  'grudge_jwt',
+];
+
+function craftSessionLoggedIn() {
+  try {
+    if (typeof GrudgeFleet !== 'undefined') {
+      if (typeof GrudgeFleet.getToken === 'function' && GrudgeFleet.getToken()) return true;
+      if (typeof GrudgeFleet.isLoggedIn === 'function' && GrudgeFleet.isLoggedIn()) return true;
+    }
+  } catch (e) { /* fleet optional during boot */ }
+  try {
+    for (var i = 0; i < CRAFT_TOKEN_KEYS.length; i++) {
+      var v = localStorage.getItem(CRAFT_TOKEN_KEYS[i]);
+      if (v && String(v).length > 20) return true;
+    }
+  } catch (e) {}
+  try {
+    var ss = sessionStorage.getItem('grudge_auth_token') || sessionStorage.getItem('sso_token');
+    if (ss && String(ss).length > 20) return true;
+  } catch (e) {}
+  return false;
+}
+
+function craftSessionDisplayName() {
+  try {
+    if (typeof GrudgeFleet !== 'undefined' && typeof GrudgeFleet.getUser === 'function') {
+      var u = GrudgeFleet.getUser();
+      if (u && (u.username || u.displayName)) return u.username || u.displayName;
+    }
+  } catch (e) {}
+  try {
+    return localStorage.getItem('grudge_username') || '';
+  } catch (e) {
+    return '';
+  }
+}
+
 /** Characters owned by the current Grudge account (Railway roster). */
 function getOwnedCharacters() {
   try {
@@ -2341,8 +2389,7 @@ function getActiveOwnedCharacterId() {
  */
 function isAccessReady() {
   try {
-    if (typeof GrudgeFleet === 'undefined' || typeof GrudgeFleet.isLoggedIn !== 'function') return false;
-    if (!GrudgeFleet.isLoggedIn()) return false;
+    if (!craftSessionLoggedIn()) return false;
     return !!getActiveOwnedCharacterId();
   } catch {
     return false;
@@ -2358,7 +2405,7 @@ function requireAccess(actionLabel) {
   updateAccessGate();
   const label = actionLabel || 'craft';
   try {
-    if (typeof GrudgeFleet === 'undefined' || !GrudgeFleet.isLoggedIn()) {
+    if (!craftSessionLoggedIn()) {
       showToast('Sign in with Grudge ID to ' + label, 'error');
     } else if (!getOwnedCharacters().length) {
       showToast('Create a Warlords character first, then return here', 'error');
@@ -2385,7 +2432,7 @@ function updateAccessGate() {
   }
 
   const fleetReady = typeof GrudgeFleet !== 'undefined';
-  const loggedIn = fleetReady && typeof GrudgeFleet.isLoggedIn === 'function' && GrudgeFleet.isLoggedIn();
+  const loggedIn = craftSessionLoggedIn();
   const chars = getOwnedCharacters();
   const activeId = getActiveOwnedCharacterId();
 
@@ -2396,11 +2443,14 @@ function updateAccessGate() {
 
   const banner = document.getElementById('soft-auth-banner');
   const msg = document.getElementById('soft-auth-msg');
+  const sabActions = document.getElementById('soft-auth-actions');
   if (!banner) return;
 
   // Pulse top sign-in when guest
   const topIn = document.getElementById('topBtnSignIn');
   if (topIn) topIn.classList.toggle('auth-ready-pulse', !loggedIn);
+
+  if (sabActions) sabActions.hidden = !!loggedIn;
 
   if (loggedIn && activeId) {
     banner.classList.remove('show');
@@ -2408,7 +2458,7 @@ function updateAccessGate() {
   }
 
   banner.classList.add('show');
-  if (!fleetReady) {
+  if (!fleetReady && !loggedIn) {
     if (msg) msg.innerHTML = 'Loading fleet bridge… recipes still browseable. Profession levels stay blank until a hero is selected.';
     return;
   }
@@ -2480,9 +2530,7 @@ function buildCraftingLoginUrl(mode) {
 
 async function doSignIn() {
   try {
-    const hasToken =
-      (typeof GrudgeFleet !== 'undefined' && GrudgeFleet.isLoggedIn && GrudgeFleet.isLoggedIn()) ||
-      !!(localStorage.getItem('grudge_auth_token') || localStorage.getItem('grudge_session_token'));
+    const hasToken = craftSessionLoggedIn();
 
     // Already have a session — refresh roster and push UX to character pick
     if (hasToken && typeof GrudgeFleet !== 'undefined') {
@@ -2864,9 +2912,7 @@ function updateAuthUI() {
     (fleetUser && (fleetUser.username || fleetUser.displayName)) ||
     localStorage.getItem('grudge_username') ||
     (STATE.user && STATE.user.username) || '';
-  const loggedIn =
-    (typeof GrudgeFleet !== 'undefined' && GrudgeFleet.isLoggedIn && GrudgeFleet.isLoggedIn()) ||
-    !!(localStorage.getItem('grudge_auth_token') || localStorage.getItem('grudge_session_token'));
+  const loggedIn = craftSessionLoggedIn();
   const chars = (typeof getOwnedCharacters === 'function') ? getOwnedCharacters() : [];
   const charCount = chars.length;
   const ready = typeof isAccessReady === 'function' ? isAccessReady() : false;
@@ -3350,7 +3396,7 @@ function renderCharProgressPage() {
 
 async function hydrateActiveCharacterDetail() {
   const id = STATE.activeCharacterId || GrudgeFleet.getActiveId();
-  if (!id || !GrudgeFleet.isLoggedIn()) {
+  if (!id || !craftSessionLoggedIn()) {
     showToast('Sign in and select a character', 'error');
     return;
   }
@@ -3515,7 +3561,7 @@ function renderDashboard() {
     <div class="stat-card"><div class="stat-val">${matsUsed}</div><div class="stat-label">Materials Used</div></div>
   `;
   if (!bound && bannerEl && !String(bannerEl.innerHTML || '').trim()) {
-    const loggedIn = typeof GrudgeFleet !== 'undefined' && GrudgeFleet.isLoggedIn && GrudgeFleet.isLoggedIn();
+    const loggedIn = craftSessionLoggedIn();
     bannerEl.innerHTML = `
       <div class="char-banner" onclick="${loggedIn ? "navigate('account')" : 'doSignIn()'}">
         <div class="char-banner-none">
@@ -4183,7 +4229,7 @@ function gatherMaterials() {
 
 // === GRUDGE WARLORDS API (via GrudgeFleet → Railway Postgres) ===
 async function fetchGrudgeCharacters() {
-  if (!GrudgeFleet.isLoggedIn()) {
+  if (!craftSessionLoggedIn()) {
     updateAccessGate();
     return;
   }
@@ -4553,7 +4599,7 @@ function renderCharactersList() {
   const el = document.getElementById('acct-characters-list');
   if (!el) return;
   if (STATE.grudgeCharacters.length === 0) {
-    const loggedIn = typeof GrudgeFleet !== 'undefined' && GrudgeFleet.isLoggedIn();
+    const loggedIn = craftSessionLoggedIn();
     if (loggedIn) {
       el.innerHTML = `<div style="padding:10px;font-size:11px;color:var(--text-dim);line-height:1.5">
         No characters on this Grudge account.<br/>
@@ -4641,7 +4687,7 @@ function renderActiveCharacter() {
 // ============================================================
 function renderAccountPage() {
   // Fetch characters if not loaded yet
-  if (STATE.grudgeCharacters.length === 0 && (STATE.user || GrudgeFleet.isLoggedIn())) loginToGrudge();
+  if (STATE.grudgeCharacters.length === 0 && (STATE.user || craftSessionLoggedIn())) loginToGrudge();
 
   // Route to active sub-tab
   const t = STATE.acctTab;
@@ -4682,15 +4728,17 @@ function renderAcctCharacters() {
   }).join('');
 
   // Save/Load
+  const signedIn = craftSessionLoggedIn();
+  const saveName = craftSessionDisplayName() || (STATE.user && STATE.user.username) || 'Grudge ID';
   document.getElementById('acct-save').innerHTML = `
     <p style="font-size:11px;color:var(--text-dim);margin-bottom:10px">
-      ${STATE.user ? `Signed in as <strong>${STATE.user.username}</strong>. Data auto-saves to Puter cloud.` : 'Sign in to enable cloud saves.'}
+      ${signedIn ? `Signed in as <strong>${saveName}</strong>. Bag and profession XP save to Railway (same session as the top bar).` : 'Sign in with Grudge ID (top bar) to save bag and profession XP.'}
       <br><span class="scope-pill account">Inventory shared</span>
       <span class="scope-pill character">XP / levels / equipment = this character</span>
     </p>
     <div style="display:flex;gap:8px;flex-wrap:wrap">
-      <button class="filter-btn" onclick="saveData();showToast('Saved!','success')" ${STATE.user?'':'disabled'}>\ud83d\udcbe Save Now</button>
-      <button class="filter-btn" onclick="loadSaveData()" ${STATE.user?'':'disabled'}>\ud83d\udcc2 Reload</button>
+      <button class="filter-btn" onclick="saveData();showToast('Saved!','success')" ${signedIn?'':'disabled'}>\ud83d\udcbe Save Now</button>
+      <button class="filter-btn" onclick="loadSaveData()" ${signedIn?'':'disabled'}>\ud83d\udcc2 Reload</button>
       <button class="filter-btn" onclick="resetData()" style="border-color:rgba(239,68,68,0.3);color:#f87171">\ud83d\uddd1\ufe0f Reset</button>
     </div>
   `;
