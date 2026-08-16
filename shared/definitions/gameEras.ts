@@ -6,9 +6,9 @@
  *
  * | Era      | Brand              | Pipeline | Slots | Create                         | Play                         |
  * |----------|--------------------|----------|-------|--------------------------------|------------------------------|
- * | warlords | Grudge Warlords    | grudge6  | 4     | character.*/foundry            | grudgewarlords.com           |
- * | voxel    | GRUDOX / Grudges   | voxel    | 4     | character.*?era=voxel          | grudox.grudge-studio.com     |
- * | nexus    | Toon (deferred)    | toon     | 12    | character.*?era=nexus          | Foundry hub until toon ships |
+ * | warlords | Grudge Warlords    | grudge6  | 4     | character. /foundry            | grudgewarlords.com           |
+ * | voxel    | GRUDOX / Grudges   | voxel    | 4     | character. ?era=voxel          | grudox.grudge-studio.com     |
+ * | nexus    | Toon (deferred)    | toon     | 12    | character. ?era=nexus          | Foundry hub until toon ships |
  * | armada   | Mech               | mech     | 4     | Mech Builder                   | mech-playground              |
  *
  * Do not collapse brands. GRUDOX is voxel cabinets — not Warlords, not Nexus toon.
