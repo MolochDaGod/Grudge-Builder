@@ -1,4 +1,4 @@
-# Leviathan Ocean → Shipwreck Tutorial Cinema (v23 · film)
+# Leviathan Ocean → Shipwreck Tutorial Cinema (v26 · rogue wave)
 
 **Surface:** `https://client.grudge-studio.com/island-3d`  
 **Engine:** `client/src/island3d/intro/LeviathanOceanCinema.ts`  
@@ -8,7 +8,7 @@
 **Spine IK:** `client/src/island3d/intro/CinemaSpineIk.ts`  
 **Film post:** `island3d/render/PostProcessing.ts` (bloom · SMAA · grade · vignette)  
 **Box3 SI:** `intro/CinemaBoxSystems.ts` (`?box3=1` helpers)  
-**Session key:** `grudge_shipwreck_intro_seen_v23`
+**Session key:** `grudge_shipwreck_intro_seen_v26`
 
 ## Architecture (scripted battle)
 
@@ -53,7 +53,8 @@
 |-------|-----------------|------------|
 | Leviathan | `levi_swim_*` … `levi_breach` … | `/models/cinema/leviathan.glb` · ~90 m LOA |
 | Mage 0–3 | `deck_mage_0` … `deck_mage_3` | ORC kit · **~2.2 m** |
-| Hero (throw) | `deck_hero` → throw path | unarmed · 1.8 m |
+| Hero (throw) | `deck_hero` → rogue-wave crest → throw path | unarmed · 1.8 m |
+| Rogue wave | `CinemaRogueWave` wall | crash at ~38.6 s · hull pinata + ride |
 | Ship | `ship_origin` | tz-pirate · ~36 m LOA |
 
 ## QA

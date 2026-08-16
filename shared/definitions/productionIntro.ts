@@ -59,8 +59,8 @@ export const STORM_SHIP_INTRO: ProductionIntroDef = {
   id: 'storm_ship_attack',
   label: 'Leviathan Ocean Battle',
   description:
-    'v22 film cinema: orc deck cast (2.2 m SI), 36 m tz-pirate ship, 90 m leviathan, Gerstner OceanShader, ' +
-    'deck raycast pathfinding, film post (bloom/SMAA/grade), Box3 SI, ward wall, dragon beam + pinata.',
+    'v26 film cinema: orc deck cast (2.2 m SI), 36 m tz-pirate ship, 90 m leviathan, Gerstner OceanShader, ' +
+    'rogue-wave crash (hull → ocean debris, hero rides the face), film post, Box3 SI, dragon beam + pinata.',
   usedFor: 'island-3d',
   tiPath: '/intro',
   tiUrl: `${TI_HOST}/intro`,
@@ -197,8 +197,8 @@ export const AFTER_INTRO_DESTINATIONS: Array<{
 ];
 
 /** Bump when cinema cut changes so players re-see the battle */
-export const INTRO_SESSION_KEY = 'grudge_shipwreck_intro_seen_v25';
-export const INTRO_OPTIONS_KEY = 'grudge_island3d_intro_options_v25';
+export const INTRO_SESSION_KEY = 'grudge_shipwreck_intro_seen_v26';
+export const INTRO_OPTIONS_KEY = 'grudge_island3d_intro_options_v26';
 
 export interface Island3dIntroOptions {
   /** Play leviathan cinema on visit when not yet seen */

@@ -795,3 +795,153 @@ export function surfaceBiasFromLeviAt(leviAt: string): number {
   if (leviAt.includes('watch') || leviAt.includes('finisher')) return 2.0;
   return 1.5;
 }
+
+/**
+ * Animated rogue-wave wall — approaches the brig, curls, crashes.
+ * SI metres. One mesh + foam strip. Cinema sole owner of ocean crash read.
+ */
+export class CinemaRogueWave {
+  readonly root = new THREE.Group();
+  readonly crest = new THREE.Vector3();
+  readonly dir = new THREE.Vector3(1, 0, 0);
+  intensity = 0;
+  crashed = false;
+  private mesh: THREE.Mesh;
+  private foam: THREE.Mesh;
+  private mat: THREE.ShaderMaterial;
+  private foamMat: THREE.MeshBasicMaterial;
+  private uTime = { value: 0 };
+  private uHeight = { value: 0 };
+  private uCurl = { value: 0 };
+  private approach = 0;
+  private height = 0;
+  private target: THREE.Vector3 = new THREE.Vector3();
+
+  constructor(scene: THREE.Scene) {
+    this.root.name = 'cinema_rogue_wave';
+    const geo = new THREE.PlaneGeometry(88, 28, 72, 24);
+    this.mat = new THREE.ShaderMaterial({
+      transparent: true,
+      depthWrite: false,
+      side: THREE.DoubleSide,
+      uniforms: {
+        uTime: this.uTime,
+        uHeight: this.uHeight,
+        uCurl: this.uCurl,
+      },
+      vertexShader: /* glsl */ `
+        uniform float uTime;
+        uniform float uHeight;
+        uniform float uCurl;
+        varying float vCrest;
+        varying vec2 vUv;
+        void main() {
+          vUv = uv;
+          vec3 p = position;
+          float across = uv.x;
+          float up = uv.y;
+          float wall = smoothstep(0.08, 0.55, up) * (1.0 - smoothstep(0.72, 1.0, up));
+          float ridge = exp(-pow((up - 0.62) * 5.2, 2.0));
+          float chop = sin(across * 18.0 + uTime * 3.4) * 0.35
+            + sin(across * 9.0 - uTime * 2.1) * 0.55;
+          p.z += wall * uHeight + ridge * uHeight * 0.55 + chop;
+          p.y += ridge * uHeight * 0.22 * uCurl;
+          p.x += sin(up * 6.0 + uTime) * uCurl * 0.8;
+          vCrest = ridge * uHeight;
+          gl_Position = projectionMatrix * modelViewMatrix * vec4(p, 1.0);
+        }
+      `,
+      fragmentShader: /* glsl */ `
+        uniform float uHeight;
+        varying float vCrest;
+        varying vec2 vUv;
+        void main() {
+          float foam = smoothstep(0.35, 1.4, vCrest) * smoothstep(0.45, 0.78, vUv.y);
+          vec3 deep = vec3(0.04, 0.12, 0.18);
+          vec3 mid = vec3(0.08, 0.28, 0.36);
+          vec3 white = vec3(0.86, 0.93, 0.98);
+          vec3 col = mix(deep, mid, vUv.y);
+          col = mix(col, white, foam);
+          float alpha = 0.28 + foam * 0.55 + clamp(uHeight / 16.0, 0.0, 0.25);
+          alpha *= smoothstep(0.0, 0.12, vUv.y) * (1.0 - smoothstep(0.92, 1.0, vUv.y));
+          gl_FragColor = vec4(col, alpha);
+        }
+      `,
+    });
+    this.mesh = new THREE.Mesh(geo, this.mat);
+    this.mesh.frustumCulled = false;
+    this.foamMat = new THREE.MeshBasicMaterial({
+      color: 0xd8eef8,
+      transparent: true,
+      opacity: 0.55,
+      depthWrite: false,
+      side: THREE.DoubleSide,
+    });
+    this.foam = new THREE.Mesh(new THREE.PlaneGeometry(90, 6, 24, 2), this.foamMat);
+    this.foam.rotation.x = -Math.PI * 0.42;
+    this.foam.position.y = 8;
+    this.foam.frustumCulled = false;
+    this.root.add(this.mesh, this.foam);
+    this.root.visible = false;
+    scene.add(this.root);
+  }
+
+  setTarget(ship: THREE.Vector3, from: THREE.Vector3): void {
+    this.target.copy(ship);
+    this.dir.copy(ship).sub(from);
+    this.dir.y = 0;
+    if (this.dir.lengthSq() < 1e-4) this.dir.set(1, 0, 0);
+    else this.dir.normalize();
+  }
+
+  setIntensity(n: number): void {
+    this.intensity = THREE.MathUtils.clamp(n, 0, 1);
+    if (this.intensity > 0.08) this.root.visible = true;
+  }
+
+  /** World point on the breaking face — hero rides this. */
+  sampleCrest(out = this.crest): THREE.Vector3 {
+    return out.copy(this.crest);
+  }
+
+  /** Impulse applied to hull chunks + bodies at crash. */
+  impulse(): THREE.Vector3 {
+    const h = Math.max(this.height, 4);
+    return this.dir.clone().multiplyScalar(8 + h * 0.55).setY(4.5 + h * 0.18);
+  }
+
+  tick(dt: number, ship: THREE.Vector3, waterY: number): void {
+    const want = this.intensity;
+    this.approach = THREE.MathUtils.damp(this.approach, want, want > 0.5 ? 2.4 : 1.4, dt);
+    this.height = THREE.MathUtils.damp(this.height, want * 16.5, 2.0, dt);
+    this.uTime.value += dt;
+    this.uHeight.value = this.height;
+    this.uCurl.value = THREE.MathUtils.smoothstep(this.approach, 0.35, 1) * this.approach;
+
+    if (want > 0.45 && !this.crashed && this.approach > 0.72) this.crashed = true;
+
+    const standoff = THREE.MathUtils.lerp(42, 6, this.approach);
+    const px = ship.x - this.dir.x * standoff;
+    const pz = ship.z - this.dir.z * standoff;
+    const py = waterY + this.height * 0.42;
+    this.root.position.set(px, py, pz);
+    this.root.rotation.set(0, Math.atan2(this.dir.x, this.dir.z), 0);
+    this.foam.position.y = 6 + this.height * 0.28;
+    this.foamMat.opacity = 0.2 + this.approach * 0.55;
+    this.root.visible = this.approach > 0.04 || this.height > 0.4;
+
+    this.crest.set(
+      ship.x - this.dir.x * Math.max(2, standoff - 4),
+      waterY + Math.max(1.2, this.height * 0.55),
+      ship.z - this.dir.z * Math.max(2, standoff - 4),
+    );
+  }
+
+  dispose(): void {
+    this.root.parent?.remove(this.root);
+    this.mesh.geometry.dispose();
+    this.foam.geometry.dispose();
+    this.mat.dispose();
+    this.foamMat.dispose();
+  }
+}
