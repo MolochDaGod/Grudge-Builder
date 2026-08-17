@@ -17,7 +17,8 @@ function assert(c: boolean, m: string) {
 }
 
 assert(isLavaCaesarFight(LAVA_CAESAR_BOSS_FIGHT), 'id');
-assert(LAVA_CAESAR_KIT.platformCount === 3, '3 platforms');
+assert(LAVA_CAESAR_KIT.platformCount === 4, '4 platforms');
+assert(LAVA_CAESAR_KIT.loadSlots === 4, '4 load slots');
 assert(LAVA_CAESAR_KIT.stunDeadToSec === 2.5, 'collapse to 2.5s');
 assert(LAVA_CAESAR_KIT.stunLoopMinSec === 2, 'loop back to 2s');
 assert(LAVA_CAESAR_KIT.stunLoopMaxSec === 2.5, 'loop out to 2.5s');
@@ -28,7 +29,7 @@ assert(LAVA_CAESAR_KIT.stunDamageTakenMult >= 2.5, 'extra dmg');
 assert(LAVA_CAESAR_KIT.bossHeightM > 4 && LAVA_CAESAR_KIT.bossHeightM < 10, 'SI boss height');
 
 const seen = new Set<number>();
-for (let i = 0; i < 3; i++) {
+for (let i = 0; i < 4; i++) {
   const p = lavaPlatformLocal(i);
   assert(Math.hypot(p.x, p.z) > 8, `ring ${i}`);
   const bucket = Math.round(p.ang * 10);

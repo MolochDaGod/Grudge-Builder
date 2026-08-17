@@ -154,6 +154,7 @@ export class LargeBossFightSystem {
           cinema: this.cinema,
           emitHit: (pos, kind, dmg, origin) => this.emitHit(pos, kind, dmg, origin),
           onPrompt: (msg) => this.cb.onPrompt?.(msg),
+          takeDamage: (n) => this.takeDamage(n),
         },
         {
           lavaY: opts.lavaY,
@@ -276,6 +277,14 @@ export class LargeBossFightSystem {
 
   get position(): THREE.Vector3 {
     return this.root.position.clone();
+  }
+
+  bindArena(arenaRoot: THREE.Object3D | null): void {
+    this.lavaKit?.bindArena(arenaRoot);
+  }
+
+  loadSlotWorld(index: number): THREE.Vector3 | null {
+    return this.lavaKit?.loadSlotWorld(index) ?? null;
   }
 
   /** Roots the player ray should test (boss + lava brood). */
@@ -415,6 +424,15 @@ export class LargeBossFightSystem {
     this.cooldowns.set(atk.id, atk.cooldownSec);
     this.cb.onAttack?.(atk);
     this.cb.onPrompt?.(`${atk.name} — dodge the warning!`);
+    if (this.lavaKit) {
+      if (atk.shape === 'projectile' || atk.vfx === 'fire_twister') {
+        this.lavaKit.playBoss('spell2', { loop: false, fade: 0.1 });
+      } else if (atk.vfx === 'lava_dive') {
+        this.lavaKit.playBoss('spell4', { loop: false, fade: 0.1 });
+      } else if (atk.shape === 'melee_cone' || atk.vfx === 'ground_slam' || atk.vfx === 'charge_stomp') {
+        this.lavaKit.playBoss('atk', { loop: false, fade: 0.08 });
+      }
+    }
 
     const variant = this.warningVariantFor(atk);
     this.warnings.showTelegraph({
@@ -684,6 +702,7 @@ export class LargeBossFightSystem {
           this.state = 'idle';
           this.stateT = 0;
           this.lavaKit.playBoss('idle', { loop: true });
+          this.lavaKit.clearThreatened();
           this.cb.onPrompt?.('Brood cleared — Caesar is exposed. Grab the fireballs.');
         }
         break;
@@ -734,7 +753,10 @@ export class LargeBossFightSystem {
             knockdown: !!atk.knockdown,
             weight: atk.weight,
           }),
-          position: this.root.position.clone(),
+          position:
+            atk.shape === 'projectile' && playerPos
+              ? playerPos.clone()
+              : this.root.position.clone(),
           facing: this.facing,
           range: atk.rangeM,
           arc: atk.arcRad ?? Math.PI,

@@ -17,8 +17,8 @@
  *   D:\Games\Models\scary_forest.glb
  *   D:\Games\Models\bossinstanceisland.glb
  *   D:\Games\Models\low_poly_lava_fighting_arenastage.glb
+ *   D:\Games\Models\scene (5).glb — lava Caesar arena (Outer lava + rock platforms)
  *   D:\Games\Models\dark_slayer_caesar_arena_of_valor.glb (lava Caesar, fire recolor)
- *   D:\Games\Models\scene (3).glb — author compose (arena + Caesar + tornado)
  */
 
 /** Same-origin public paths (dev / Vercel when committed). */
@@ -29,7 +29,7 @@ export const FLOATING_ISLAND_ASSET_PATHS = {
   iceland: '/models/biomes/cold/iceland_scene_for_canimatic.glb',
   deepWoods: '/models/biomes/forest/scary_forest.glb',
   desertBossIsland: '/models/biomes/desert/bossinstanceisland.glb',
-  volcanicBossArena: '/models/biomes/volcanic/low_poly_lava_fighting_arenastage.glb',
+  volcanicBossArena: '/models/biomes/volcanic/lava_caesar_arena.glb',
 } as const;
 
 /** R2 CDN (assets.grudge-studio.com) — production SSOT for large GLBs. */
@@ -47,7 +47,7 @@ export const FLOATING_ISLAND_CDN_PATHS = {
   desertBossIsland:
     'https://assets.grudge-studio.com/models/biomes/desert/bossinstanceisland.glb',
   volcanicBossArena:
-    'https://assets.grudge-studio.com/models/biomes/volcanic/low_poly_lava_fighting_arenastage.glb',
+    'https://assets.grudge-studio.com/models/biomes/volcanic/lava_caesar_arena.glb',
 } as const;
 
 /** Load order: CDN first for large packs, then same-origin. */
@@ -80,7 +80,7 @@ export const FLOATING_ISLAND_SOURCE_PATHS = {
   iceland: 'D:\\Games\\Models\\iceland_scene_for_canimatic.glb',
   deepWoods: 'D:\\Games\\Models\\scary_forest.glb',
   desertBossIsland: 'D:\\Games\\Models\\bossinstanceisland.glb',
-  volcanicBossArena: 'D:\\Games\\Models\\low_poly_lava_fighting_arenastage.glb',
+  volcanicBossArena: 'D:\\Games\\Models\\scene (5).glb',
 } as const;
 
 // ── Lyoko ethereal floating islands ──────────────────────────────────────────

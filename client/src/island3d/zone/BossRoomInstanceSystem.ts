@@ -72,6 +72,7 @@ export class BossRoomInstanceSystem {
   private playById = new Map<string, BossArenaPlaySurface>();
   /** PIP-style large boss fight inside the chamber */
   public largeBoss: LargeBossFightSystem | null = null;
+  private enterPlayerPos: THREE.Vector3 | null = null;
 
   constructor(opts: BossRoomSystemOpts) {
     this.scene = opts.scene;
@@ -239,6 +240,7 @@ export class BossRoomInstanceSystem {
     const groundY = play?.sampleHeight(world.x, world.z, world.y + 80);
     if (groundY != null && Number.isFinite(groundY)) world.y = groundY + 0.08;
     playerPos.copy(world);
+    this.enterPlayerPos = playerPos;
 
     this.cb.onEnter?.(this.def.id, this.bossId, play);
     this.cb.onPrompt?.(
@@ -292,6 +294,11 @@ export class BossRoomInstanceSystem {
           this.cb.onPrompt?.(`Boss phase: ${p.name}`),
       },
     });
+    if (volcanic) {
+      this.largeBoss.bindArena(this.room);
+      const slot = this.largeBoss.loadSlotWorld(0);
+      if (slot && this.enterPlayerPos) this.enterPlayerPos.copy(slot);
+    }
   }
 
   /** Exit if near exit pad. */

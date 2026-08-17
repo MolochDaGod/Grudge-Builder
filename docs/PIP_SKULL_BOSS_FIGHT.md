@@ -88,7 +88,7 @@ Same LargeBoss + Rapier arena. Not a second combat stack.
 |------|----------------|
 | Dive / rise | Caesar Spell4 sinks under lava, Spell1 surfaces |
 | Platform tornado | `fire_tornado (1)` rises from magma through one deck |
-| Brood | 3 `lava_monster` adds (Mixamo clip windows + annihilate chase/attack), one per platform |
+| Brood | 4 platforms (stone until blast target turns volcanic). 4 load-on slots. Adds land with AoE. |
 | Fail | Unkilled adds explode and crack that platform |
 | Twister | Linear `fire_tornado` path toward the player |
 | Stun | Kill add → `fireball (2)` orb. Walk through: Dead clip to **2.5 s**, then **2.5↔2.0** sixteen times (8 s extra damage), rewind Dead |

@@ -8,6 +8,7 @@
 import * as THREE from 'three';
 import { LoopOnce, LoopRepeat } from 'three';
 import {
+  LAVA_CAESAR_BOSS_FIGHT,
   LAVA_CAESAR_KIT,
   LAVA_CAESAR_LOAD,
   clipNameIncludes,
@@ -17,6 +18,11 @@ import {
 import { loadAssetGltf, cloneGltfScene } from '@/lib/three/SharedGltfPipeline';
 import type { GLTF } from 'three/examples/jsm/loaders/GLTFLoader.js';
 import type { BossCinemaFx } from './BossCinemaFx';
+import {
+  ArenaLavaSurface,
+  createStonePlatformMaterial,
+  createVolcanicPlatformMaterial,
+} from '../vfx/ArenaLavaSurface';
 
 export type LavaStunPhase = 'none' | 'collapse' | 'hands' | 'rewind';
 
@@ -28,6 +34,9 @@ interface LavaPlatform {
   health: number;
   cracked: boolean;
   shake: number;
+  threatened: boolean;
+  stoneMat: THREE.MeshStandardMaterial;
+  volcanicMat: THREE.MeshStandardMaterial;
 }
 
 interface LavaMinion {
@@ -69,6 +78,7 @@ export interface LavaKitHost {
   cinema: BossCinemaFx;
   emitHit: (playerPos: THREE.Vector3, kind: string, damage: number, origin: THREE.Vector3) => void;
   onPrompt?: (msg: string | null) => void;
+  takeDamage?: (amount: number) => void;
 }
 
 async function loadFirst(urls: readonly string[]): Promise<GLTF | null> {
@@ -118,6 +128,9 @@ export class LavaCaesarFightKit {
   private waveT = 0;
   private waveActive = false;
   private sampleHeight: ((x: number, z: number) => number | null) | null;
+  private lavaFx = new ArenaLavaSurface();
+  private splashCd = 0;
+  private threatened = -1;
   private disposed = false;
   private tmp = new THREE.Vector3();
 
@@ -191,29 +204,62 @@ export class LavaCaesarFightKit {
     this.fireballGltf = f;
   }
 
+  /** Bind scene (5) Outer lava + hide compose extras; adopt rock_platform meshes. */
+  bindArena(arenaRoot: THREE.Object3D | null): void {
+    if (!arenaRoot) return;
+    this.lavaFx.stripComposeExtras(arenaRoot);
+    this.lavaFx.bind(arenaRoot);
+    const found: THREE.Object3D[] = [];
+    arenaRoot.traverse((o) => {
+      if (/rock_platform/i.test(o.name) && o instanceof THREE.Object3D) found.push(o);
+    });
+    const unique = found.filter((o) => !found.some((p) => p !== o && o.parent === p));
+    unique.slice(0, this.kit.platformCount).forEach((src, i) => {
+      const p = this.platforms[i];
+      if (!p) return;
+      const wp = new THREE.Vector3();
+      src.getWorldPosition(wp);
+      p.root.position.copy(wp);
+      p.baseY = wp.y;
+    });
+  }
+
+  markThreatened(index: number): void {
+    this.threatened = index;
+    for (const p of this.platforms) {
+      p.threatened = p.index === index;
+      p.deck.material = p.threatened ? p.volcanicMat : p.stoneMat;
+    }
+  }
+
+  clearThreatened(): void {
+    this.threatened = -1;
+    for (const p of this.platforms) {
+      p.threatened = false;
+      if (!p.cracked) p.deck.material = p.stoneMat;
+    }
+  }
+
+  loadSlotWorld(index: number): THREE.Vector3 {
+    const p = this.platforms[index % this.kit.loadSlots];
+    if (!p) return this.host.arenaCenter.clone().setY(this.lavaY + this.kit.platformDeckM);
+    return p.root.position.clone().add(new THREE.Vector3(0, 0.35, 0));
+  }
+
   private buildPlatforms(): void {
     for (let i = 0; i < this.kit.platformCount; i++) {
       const loc = lavaPlatformLocal(i, this.kit);
       const root = new THREE.Group();
       root.name = `LavaPlatform_${i}`;
+      const stoneMat = createStonePlatformMaterial();
+      const volcanicMat = createVolcanicPlatformMaterial();
       const deck = new THREE.Mesh(
         new THREE.CylinderGeometry(this.kit.platformRadiusSizeM, this.kit.platformRadiusSizeM * 0.92, 0.55, 12),
-        new THREE.MeshStandardMaterial({
-          color: 0x3f1f12,
-          emissive: 0xc2410c,
-          emissiveIntensity: 0.35,
-          roughness: 0.72,
-          metalness: 0.18,
-        }),
+        stoneMat,
       );
       const rim = new THREE.Mesh(
         new THREE.TorusGeometry(this.kit.platformRadiusSizeM * 0.92, 0.12, 6, 16),
-        new THREE.MeshStandardMaterial({
-          color: 0x7c2d12,
-          emissive: 0xff6a00,
-          emissiveIntensity: 0.55,
-          roughness: 0.5,
-        }),
+        stoneMat.clone(),
       );
       rim.rotation.x = Math.PI / 2;
       rim.position.y = 0.3;
@@ -221,7 +267,6 @@ export class LavaCaesarFightKit {
       const world = this.worldOnRing(loc.x, loc.z);
       const baseY = world.y;
       root.position.set(world.x, baseY, world.z);
-      this.host.root.parent ? this.scene.add(root) : this.scene.add(root);
       this.scene.add(root);
       this.platforms.push({
         root,
@@ -231,6 +276,9 @@ export class LavaCaesarFightKit {
         health: 2,
         cracked: false,
         shake: 0,
+        threatened: false,
+        stoneMat,
+        volcanicMat,
       });
     }
   }
@@ -302,7 +350,20 @@ export class LavaCaesarFightKit {
       toY: p.root.position.y + 5.2,
     });
     p.shake = 1.2;
+    this.markThreatened(platformIndex);
     this.host.cinema.spawnShockwave(p.root.position, 6, 0, 10);
+    this.host.cinema.spawnAoeDisk(
+      p.root.position,
+      this.kit.landingAoeRadiusM,
+      this.kit.landingAoeDamage,
+      { knockdown: true, stunSec: 0.35, knockbackMps: 8, knockUpMps: 4 },
+    );
+  }
+
+  private clearMinions(_keepOrbs: boolean): void {
+    for (const m of this.minions) this.scene.remove(m.root);
+    this.minions.length = 0;
+    this.waveActive = false;
   }
 
   spawnMinionWave(): void {
@@ -469,6 +530,7 @@ export class LavaCaesarFightKit {
     m.mode = 'dead';
     m.hp = 0;
     this.scene.remove(m.root);
+    this.host.takeDamage?.(LAVA_CAESAR_BOSS_FIGHT.maxHP * this.kit.minionKillBossHpFrac);
     this.spawnFireball(m.root.position);
     if (this.livingMinionCount === 0) {
       this.waveActive = false;
@@ -551,6 +613,20 @@ export class LavaCaesarFightKit {
   ): { stunStarted: boolean; waveExpired: boolean; stunDone: boolean } {
     const out = { stunStarted: false, waveExpired: false, stunDone: false };
     this.mixer?.update(dt);
+    this.lavaFx.update(dt, this.scene);
+    this.splashCd = Math.max(0, this.splashCd - dt);
+    if (playerPos && this.splashCd <= 0) {
+      const depth = this.lavaY + this.kit.lavaStandDepthM - playerPos.y;
+      const xz = Math.hypot(
+        playerPos.x - this.host.arenaCenter.x,
+        playerPos.z - this.host.arenaCenter.z,
+      );
+      if (depth > 0 && xz < this.kit.platformRadiusM * 2.2) {
+        this.lavaFx.burstSplash(this.scene, playerPos, this.lavaY);
+        this.host.emitHit(playerPos, 'lava_splash', this.kit.lavaSplashDamage, playerPos);
+        this.splashCd = this.kit.lavaSplashCooldownSec;
+      }
+    }
 
     if (this.stunPhase !== 'none') {
       out.stunDone = this.tickStun(dt);
@@ -746,6 +822,7 @@ export class LavaCaesarFightKit {
 
   dispose(): void {
     this.disposed = true;
+    this.lavaFx.dispose(this.scene);
     this.mixer?.stopAllAction();
     for (const p of this.platforms) this.scene.remove(p.root);
     for (const m of this.minions) this.scene.remove(m.root);

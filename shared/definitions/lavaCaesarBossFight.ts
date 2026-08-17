@@ -42,6 +42,8 @@ export const LAVA_CAESAR_LOAD = {
 
 export interface LavaCaesarKitDef {
   platformCount: number;
+  /** Adventurer load-on slots (one per platform). */
+  loadSlots: number;
   /** Ring radius from arena center (m) */
   platformRadiusM: number;
   /** Platform deck height above lava (m) */
@@ -78,6 +80,13 @@ export interface LavaCaesarKitDef {
   stunDamageTakenMult: number;
   submergedDamageTakenMult: number;
   platformExplodeDamage: number;
+  lavaSplashDamage: number;
+  lavaSplashRadiusM: number;
+  lavaSplashCooldownSec: number;
+  lavaStandDepthM: number;
+  minionKillBossHpFrac: number;
+  landingAoeDamage: number;
+  landingAoeRadiusM: number;
   diveDurationSec: number;
   submergedSec: number;
   riseDurationSec: number;
@@ -85,7 +94,8 @@ export interface LavaCaesarKitDef {
 }
 
 export const LAVA_CAESAR_KIT: LavaCaesarKitDef = {
-  platformCount: 3,
+  platformCount: 4,
+  loadSlots: 4,
   platformRadiusM: 14,
   platformDeckM: 3.4,
   platformRadiusSizeM: 3.6,
@@ -116,6 +126,13 @@ export const LAVA_CAESAR_KIT: LavaCaesarKitDef = {
   stunDamageTakenMult: 3.0,
   submergedDamageTakenMult: 0.2,
   platformExplodeDamage: 220,
+  lavaSplashDamage: 55,
+  lavaSplashRadiusM: 3.2,
+  lavaSplashCooldownSec: 0.85,
+  lavaStandDepthM: 0.55,
+  minionKillBossHpFrac: 0.04,
+  landingAoeDamage: 180,
+  landingAoeRadiusM: 3.5,
   diveDurationSec: 1.8,
   submergedSec: 2.4,
   riseDurationSec: 1.9,
@@ -153,7 +170,7 @@ export const LAVA_CAESAR_BOSS_FIGHT: PipBossFightConfig = {
       scaleMult: 1.0,
       speedMult: 1.0,
       damageMult: 1.0,
-      attacks: ['fire_twister', 'ground_slam', 'lava_dive'],
+      attacks: ['fire_twister', 'ground_slam', 'charge_stomp', 'lava_dive'],
       cinemaIntensity: 0.7,
       color: 0xff4d00,
     },
@@ -164,7 +181,7 @@ export const LAVA_CAESAR_BOSS_FIGHT: PipBossFightConfig = {
       scaleMult: 1.05,
       speedMult: 1.12,
       damageMult: 1.2,
-      attacks: ['fire_twister', 'lava_dive', 'ground_slam', 'shockwave_ring'],
+      attacks: ['fire_twister', 'lava_dive', 'ground_slam', 'charge_stomp', 'shockwave_ring'],
       cinemaIntensity: 0.85,
       color: 0xff2200,
     },
