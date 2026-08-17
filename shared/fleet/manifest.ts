@@ -507,7 +507,11 @@ export function buildFleetGameDataRewrites(
   return rules;
 }
 
-/** Vercel rewrite templates — copy into any Grudge game vercel.json (order matters). */
+/**
+ * Vercel rewrite templates — copy into any Grudge game vercel.json (order matters).
+ * `/api/assets` must be an edge function that fetches the CDN *without* Referer
+ * (Cloudflare Hotlink Protection 1011). Do not rely on this rewrite alone.
+ */
 export const FLEET_VERCEL_REWRITES: readonly FleetRewrite[] = [
   { source: "/api/assets/:path*", destination: `${FLEET_URLS.assets}/:path*` },
   { source: "/sprites/:path*", destination: `${FLEET_URLS.assets}/sprites/:path*` },

@@ -112,7 +112,7 @@ export {
 
 export { FLEET_VIDEO_CATALOG, type FleetVideoEntry } from "./videoCatalog";
 
-export { GBUX_TOKEN_ICON, TOME_ICON_PATHS, tomeIconCdnUrl } from "./uiIcons";
+export { GBUX_TOKEN_ICON, GBUX_TOKEN_ICON_PATH, TOME_ICON_PATHS, tomeIconCdnUrl } from "./uiIcons";
 
 export {
   FLEET_FONTS,

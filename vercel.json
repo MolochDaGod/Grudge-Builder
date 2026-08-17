@@ -23,11 +23,11 @@
     },
     {
       "source": "/sprites/:path*",
-      "destination": "https://assets.grudge-studio.com/sprites/:path*"
+      "destination": "/api/assets/sprites/:path*"
     },
     {
       "source": "/icons/:path*",
-      "destination": "https://assets.grudge-studio.com/icons/:path*"
+      "destination": "/api/assets/icons/:path*"
     },
     {
       "source": "/videos/:path*",
@@ -562,7 +562,7 @@
         },
         {
           "key": "Referrer-Policy",
-          "value": "no-referrer-when-downgrade"
+          "value": "same-origin"
         },
         {
           "key": "Permissions-Policy",
@@ -624,6 +624,19 @@
         {
           "key": "X-Grudge-Proxy",
           "value": "vercel"
+        }
+      ]
+    },
+    {
+      "source": "/api/assets/:path*",
+      "headers": [
+        {
+          "key": "Cache-Control",
+          "value": "public, max-age=86400, stale-while-revalidate=3600"
+        },
+        {
+          "key": "X-Grudge-Asset-Proxy",
+          "value": "strip-referer"
         }
       ]
     },
