@@ -86,6 +86,13 @@ const PACK_BY_CATEGORY: Record<string, string> = {
   essence: '/icons/pack/misc/Effect.png',
   gem: '/icons/pack/misc/Electro.png',
   misc: '/icons/pack/misc/Effect.png',
+  /** Back accessory — WCS cape / cloak / wings (01 outline, 02 painted) */
+  feathered: '/icons/pack/accessories/Wings_02.png',
+  wings: '/icons/pack/accessories/Wings_01.png',
+  wing: '/icons/pack/accessories/Wings_01.png',
+  cape: '/icons/pack/accessories/Wings_01.png',
+  cloak: '/icons/pack/accessories/Wings_01.png',
+  back: '/icons/pack/accessories/Wings_01.png',
 };
 
 const PACK_BY_WEAPON_TYPE: Record<string, string> = {

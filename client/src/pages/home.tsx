@@ -543,6 +543,27 @@ export default function HomePage() {
           </p>
         </section>
 
+        <section>
+          <div className="flex items-center justify-between mb-2">
+            <h2 className="text-sm font-semibold text-amber-200">Back · wings</h2>
+            <span className="text-[11px] text-stone-500">WCS accessory slot (cape / cloak / wings)</span>
+          </div>
+          <div className="flex flex-wrap gap-3">
+            {[
+              { id: "outline", label: "Wings", category: "wings" },
+              { id: "feathered", label: "Feathered wings", name: "feathered wings" },
+            ].map((w) => (
+              <div
+                key={w.id}
+                className="flex items-center gap-2 rounded-lg border border-stone-700 bg-stone-900/70 px-3 py-2"
+              >
+                <ItemIcon category={w.category} name={w.name} />
+                <span className="text-xs text-stone-200">{w.label}</span>
+              </div>
+            ))}
+          </div>
+        </section>
+
         <div className="flex flex-wrap gap-3 text-[11px] text-white/30">
           <a href="https://ai.grudge-studio.com/puter-space" className="underline hover:text-amber-300">
             Puter Space
