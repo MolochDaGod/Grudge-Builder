@@ -141,7 +141,7 @@ function Router() {
       <Route path="/home" component={HomePage} />
       <Route path="/main-panel" component={MainPanelPage} />
       <Route path="/equipment" component={MainPanelPage} />
-      {/* /character create → GCS; /heroes roster; /home → /airship; /airship = era select */}
+      {/* /character create → GCS; /heroes roster; /home = WCS hub; /airship = era select */}
       <Route path="/character" component={CharacterRedirect} />
       <Route path="/characters" component={HeroesPage} />
       <Route path="/create-character" component={CreateCharacterRedirect} />

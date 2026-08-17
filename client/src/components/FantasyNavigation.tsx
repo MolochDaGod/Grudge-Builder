@@ -27,7 +27,9 @@ interface NavItemConfig extends NavItem {
 
 const navItems: NavItemConfig[] = [
   { label: "HOME", path: "/home", icon: <Book className="w-4 h-4" />, scale: 1.55 * 0.82, chainsAfter: 2 },
-  { label: "CHARACTER", path: "/character", icon: <Shield className="w-4 h-4" />, scale: 1.7 * 0.82, chainsAfter: 2 },
+  { label: "CRAFT", path: "/crafting", icon: <Hammer className="w-4 h-4" />, scale: 1.55 * 0.82, chainsAfter: 1 },
+  { label: "ARSENAL", path: "/arsenal", icon: <Sword className="w-4 h-4" />, scale: 1.6 * 0.82, chainsAfter: 1 },
+  { label: "CHARACTER", path: "/heroes", icon: <Shield className="w-4 h-4" />, scale: 1.7 * 0.82, chainsAfter: 2 },
   { label: "DUNGEON", path: "/dungeon", icon: <Pickaxe className="w-4 h-4" />, scale: 1.6 * 0.82, chainsAfter: 3 },
   { label: "COMBAT", path: "/combat", icon: <Sword className="w-4 h-4" />, scale: 1.75 * 0.82, chainsAfter: 1 },
   { label: "ISLAND", path: "/island", icon: <Leaf className="w-4 h-4" />, scale: 1.65 * 0.82, chainsAfter: 1 },
