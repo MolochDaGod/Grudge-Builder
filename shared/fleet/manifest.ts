@@ -61,6 +61,8 @@ export const FLEET_URLS = {
   assets: "https://assets.grudge-studio.com",
   objectStore: "https://objectstore.grudge-studio.com/api/v1",
   ai: "https://ai.grudge-studio.com",
+  /** Player account cloud (Puter FS + site deploy). Sign in with Grudge. Not bag SSOT. */
+  puterSpace: "https://ai.grudge-studio.com/puter-space",
   /**
    * Video mocap Anim Studio (Cloudflare Pages).
    * Live: anim-studio.pages.dev · custom domain anim.grudge-studio.com (CNAME).
@@ -228,6 +230,13 @@ export const FLEET_SERVICES: FleetService[] = [
     role: "ai",
     url: FLEET_URLS.ai,
     proxyPath: "/api/ai",
+  },
+  {
+    id: "puter-space",
+    label: "Puter Space (account cloud)",
+    role: "ai",
+    url: FLEET_URLS.puterSpace,
+    notes: "User-Pays FS + puter.site deploy. Never bag/roster/wallet SSOT.",
   },
   {
     id: "anythingllm",
