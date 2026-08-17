@@ -8,7 +8,9 @@
  * Vercel rewrites forward Referer, so they 403. Filesystem /api wins over
  * the /api/assets rewrite when this function is deployed.
  */
-export const config = { runtime: "edge" };
+// Node fetch does not attach a Referer. Edge fetch does (function URL /
+// incoming page) and Cloudflare Hotlink Protection 1011s the PNG.
+export const config = { runtime: "nodejs" };
 
 const CDN = "https://assets.grudge-studio.com";
 const MAX_PATH = 512;
@@ -65,9 +67,6 @@ export default async function handler(req: Request): Promise<Response> {
   const url = new URL(req.url);
   const upstream = `${CDN}/${key}${url.search}`;
   const headers = new Headers();
-  // Edge fetch defaults Referer to this function URL, which CF hotlink 1011s.
-  headers.set("Referer", `${CDN}/`);
-  headers.set("Origin", CDN);
   const range = req.headers.get("range");
   const ifNone = req.headers.get("if-none-match");
   const accept = req.headers.get("accept");
@@ -82,8 +81,6 @@ export default async function handler(req: Request): Promise<Response> {
       method: req.method,
       headers,
       redirect: "follow",
-      referrer: `${CDN}/`,
-      referrerPolicy: "no-referrer",
     });
   } catch {
     return new Response("Bad Gateway", { status: 502, headers: corsHeaders() });
@@ -105,6 +102,7 @@ export default async function handler(req: Request): Promise<Response> {
   if (!out.has("Cache-Control")) {
     out.set("Cache-Control", "public, max-age=86400, stale-while-revalidate=3600");
   }
+  out.set("X-Upstream-Status", String(res.status));
   const headersOut = corsHeaders(out);
 
   return new Response(req.method === "HEAD" ? null : res.body, {
