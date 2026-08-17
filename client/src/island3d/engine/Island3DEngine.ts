@@ -588,6 +588,8 @@ export class Island3DEngine {
   // Navigation + AI
   public navMesh: TerrainNavMesh | null = null;
   public allyManager: AllyManager | null = null;
+  private _savedGravity: number | null = null;
+  private lavaParty: import('../combat/LavaCaesarPartyBrain').LavaCaesarPartyBrain | null = null;
   /** Towers / fortress / jungle rocks — SI scale + AABB colliders */
   public mapLandmarks: LandmarkLoadResult | null = null;
 
@@ -3210,6 +3212,118 @@ export class Island3DEngine {
     this.harvestDrops = updateHarvestDrops(this.harvestDrops, dt, this.scene);
   }
 
+  /**
+   * Playable lava Caesar lab: ember volcanic room, 50% gravity, explorer mesh,
+   * tank/healer/dps allies, combat timer events.
+   */
+  public async startLavaCaesarLab(): Promise<void> {
+    const { LAVA_CAESAR_LOAD, LAVA_CAESAR_KIT } = await import(
+      '@shared/definitions/lavaCaesarBossFight'
+    );
+    const { VOLCANIC_BOSS_ARENA } = await import(
+      '@shared/definitions/floatingIslandBossAssets'
+    );
+    const { LavaCaesarPartyBrain } = await import('../combat/LavaCaesarPartyBrain');
+    this.ensureBossRooms();
+    for (let i = 0; i < 50 && !this.bossRooms; i++) {
+      await new Promise((r) => setTimeout(r, 80));
+    }
+    const pos = this.character?.model.position;
+    if (!pos || !this.bossRooms) {
+      console.warn('[LavaLab] no character or boss room');
+      return;
+    }
+    const ok = this.bossRooms.enter(pos, 'event_island_portal', VOLCANIC_BOSS_ARENA.id);
+    if (!ok) {
+      await new Promise((r) => setTimeout(r, 400));
+      this.bossRooms.enter(pos, 'event_island_portal', VOLCANIC_BOSS_ARENA.id);
+    }
+    try {
+      await this.character?.loadModel(LAVA_CAESAR_LOAD.explorer[0]);
+    } catch (e) {
+      console.warn('[LavaLab] explorer load failed — keeping current mesh', e);
+    }
+    this.lavaParty = new LavaCaesarPartyBrain();
+    const labAllies: import('../ai/AllyController').AllyController[] = [];
+    await new Promise((r) => setTimeout(r, 700));
+    const mesh = this.character?.model;
+    if (this.scene && mesh) {
+      const { AllyController } = await import('../ai/AllyController');
+      const { TerrainNavMesh } = await import('../navigation/TerrainNavMesh');
+      let nav = this.navMesh;
+      let terrain = this.terrain?.terrainMesh;
+      if (!nav || !terrain) {
+        const dummy = new THREE.Mesh(new THREE.PlaneGeometry(90, 90));
+        dummy.rotation.x = -Math.PI / 2;
+        dummy.position.copy(pos);
+        dummy.updateMatrixWorld(true);
+        terrain = dummy;
+        nav = new TerrainNavMesh(dummy, [['plains' as any]], 1, 1, 90, 90, {
+          bakePathfinding: false,
+          cellSize: 6,
+          zoneId: 'lava_caesar_lab',
+        });
+      }
+      if (nav && terrain) {
+        const roles = ['tank', 'healer', 'dps'] as const;
+        const boss = this.bossRooms.largeBoss;
+        for (let i = 0; i < 3; i++) {
+          const slot = boss?.loadSlotWorld(i + 1) ?? pos.clone().add(new THREE.Vector3((i - 1) * 3, 0, 2));
+          const ally = new AllyController(
+            {
+              id: `lava_${roles[i]}`,
+              name: roles[i]!.toUpperCase(),
+              position: slot,
+              stats: {
+                maxHp: roles[i] === 'tank' ? 220 : roles[i] === 'healer' ? 140 : 160,
+                damage: roles[i] === 'dps' ? 28 : 16,
+                attackRange: 2.6,
+                attackCooldown: 1.4,
+                moveSpeed: 4.8,
+                aggroRadius: 22,
+                followDistance: 3.2,
+              },
+            },
+            nav,
+            terrain,
+            this.scene,
+          );
+          ally.onAttack = (t, dmg) => {
+            this.bossRooms?.tryHitBoss(t.position, dmg);
+          };
+          this.lavaParty.attach(ally, roles[i]!);
+          labAllies.push(ally);
+        }
+      }
+    }
+    this.onUpdate((dt) => {
+      const snap = this.bossRooms?.largeBoss?.getLavaSnapshot();
+      const p = this.character?.model.position;
+      if (snap && p && this.lavaParty) {
+        this.lavaParty.tick(dt, p, {
+          ...snap,
+          minions: snap.minions,
+        });
+        for (const a of labAllies) a.update(dt, p, snap.minions);
+      }
+      try {
+        window.dispatchEvent(
+          new CustomEvent('grudge:lava-caesar-lab', {
+            detail: {
+              timer: snap?.combatT ?? 0,
+              hp: snap?.bossHpRatio ?? 1,
+              state: snap?.bossState ?? 'idle',
+              gravity: LAVA_CAESAR_KIT.gravityScale,
+            },
+          }),
+        );
+      } catch {
+        /* */
+      }
+    });
+    void LAVA_CAESAR_KIT;
+  }
+
   /** Hoth / woods / desert / lava instance maps (preload sector room). */
   private ensureBossRooms(): void {
     if (this.bossRooms || !this.scene) return;
@@ -3228,10 +3342,19 @@ export class Island3DEngine {
               if (y != null) return y;
               return this.zoneGroundSampler?.(x, z) ?? null;
             });
+            if (roomId === 'volcanic_boss_arena' && this.character) {
+              this._savedGravity = this.character.physics.gravity;
+              this.character.physics.gravity = this._savedGravity * 0.5;
+            }
           },
           onExit: (roomId) => {
             console.info(`[BossRoom] exit ${roomId}`);
             this.character?.setGroundSampler(this.zoneGroundSampler);
+            if (this.character && this._savedGravity != null) {
+              this.character.physics.gravity = this._savedGravity;
+              this._savedGravity = null;
+            }
+            void roomId;
           },
           onBossDeath: (bossId) => {
             try {

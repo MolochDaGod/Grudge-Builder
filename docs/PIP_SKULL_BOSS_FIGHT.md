@@ -92,6 +92,8 @@ Same LargeBoss + Rapier arena. Not a second combat stack.
 | Fail | Unkilled adds explode and crack that platform |
 | Twister | Linear `fire_tornado` path toward the player |
 | Stun | Kill add → `fireball (2)` orb. Walk through: Dead clip to **2.5 s**, then **2.5↔2.0** sixteen times (8 s extra damage), rewind Dead |
+| Burns | `cartoonish_flame` leftover disks/cones — stacking DoT |
+| Lab | `/lava-caesar-lab` — explorer, 50% gravity, tank/healer/dps, timer |
 | Scale | ~6.5 m SI, fire-recolored Caesar albedo |
 
 ### Play paths

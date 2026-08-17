@@ -23,6 +23,7 @@ import {
   createStonePlatformMaterial,
   createVolcanicPlatformMaterial,
 } from '../vfx/ArenaLavaSurface';
+import { LavaFlamePatchSystem } from './LavaFlamePatchSystem';
 
 export type LavaStunPhase = 'none' | 'collapse' | 'hands' | 'rewind';
 
@@ -131,6 +132,8 @@ export class LavaCaesarFightKit {
   private lavaFx = new ArenaLavaSurface();
   private splashCd = 0;
   private threatened = -1;
+  readonly flames: LavaFlamePatchSystem;
+  combatT = 0;
   private disposed = false;
   private tmp = new THREE.Vector3();
 
@@ -148,6 +151,10 @@ export class LavaCaesarFightKit {
     this.kit = opts?.kit ?? LAVA_CAESAR_KIT;
     this.lavaY = opts?.lavaY ?? host.arenaCenter.y + 1.1;
     this.sampleHeight = opts?.sampleHeight ?? null;
+    this.flames = new LavaFlamePatchSystem(scene, {
+      dpsPerStack: this.kit.flameDpsPerStack,
+      maxStacks: this.kit.flameMaxStacks,
+    });
     this.buildPlatforms();
   }
 
@@ -202,6 +209,7 @@ export class LavaCaesarFightKit {
     this.tornadoUpGltf = tu;
     this.minionGltf = m;
     this.fireballGltf = f;
+    await this.flames.preload();
   }
 
   /** Bind scene (5) Outer lava + hide compose extras; adopt rock_platform meshes. */
@@ -238,6 +246,14 @@ export class LavaCaesarFightKit {
       p.threatened = false;
       if (!p.cracked) p.deck.material = p.stoneMat;
     }
+  }
+
+  get threatenedIndex(): number {
+    return this.threatened;
+  }
+
+  fireballPositions(): THREE.Vector3[] {
+    return this.orbs.filter((o) => o.alive).map((o) => o.root.position.clone());
   }
 
   loadSlotWorld(index: number): THREE.Vector3 {
@@ -358,6 +374,17 @@ export class LavaCaesarFightKit {
       this.kit.landingAoeDamage,
       { knockdown: true, stunSec: 0.35, knockbackMps: 8, knockUpMps: 4 },
     );
+    this.flames.spawnDisk(p.root.position, this.kit.flamePatchRadiusM, this.kit.flamePatchLifeSec);
+  }
+
+  markSpawnCone(platformIndex: number, facing: number): void {
+    const p = this.platforms[platformIndex];
+    if (!p) return;
+    this.flames.spawnCone(p.root.position, facing, 6.5, Math.PI * 0.55, this.kit.flamePatchLifeSec);
+  }
+
+  leaveProjectileBurn(at: THREE.Vector3): void {
+    this.flames.spawnDisk(at, this.kit.flamePatchRadiusM, this.kit.flamePatchLifeSec);
   }
 
   private clearMinions(_keepOrbs: boolean): void {
@@ -374,6 +401,7 @@ export class LavaCaesarFightKit {
       const p = this.platforms[i];
       if (!p || p.health <= 0) continue;
       this.spawnMinion(i);
+      this.markSpawnCone(i, (i / this.kit.platformCount) * Math.PI * 2);
     }
     this.host.onPrompt?.('Kill the lava brood on every platform — or they detonate!');
   }
@@ -515,6 +543,17 @@ export class LavaCaesarFightKit {
     return this.minions.filter((m) => m.mode !== 'dead').map((m) => m.root);
   }
 
+  minionTargets(): { id: string; position: THREE.Vector3; hp: number; dead: boolean }[] {
+    return this.minions
+      .filter((m) => m.mode !== 'dead' && m.hp > 0)
+      .map((m, i) => ({
+        id: `minion_${m.platformIndex}_${i}`,
+        position: m.root.position.clone(),
+        hp: m.hp,
+        dead: false,
+      }));
+  }
+
   tryHitMinion(point: THREE.Vector3, damage: number): boolean {
     for (const m of this.minions) {
       if (m.mode === 'dead' || m.hp <= 0) continue;
@@ -585,6 +624,7 @@ export class LavaCaesarFightKit {
       const p = this.platforms[m.platformIndex];
       if (p) this.crackPlatform(p);
       this.host.cinema.spawnShockwave(m.root.position, 5.5, this.kit.platformExplodeDamage, 12);
+      this.flames.spawnDisk(m.root.position, this.kit.flamePatchRadiusM * 1.2, this.kit.flamePatchLifeSec);
       m.mode = 'dead';
       this.scene.remove(m.root);
     }
@@ -612,6 +652,7 @@ export class LavaCaesarFightKit {
     playerPos?: THREE.Vector3,
   ): { stunStarted: boolean; waveExpired: boolean; stunDone: boolean } {
     const out = { stunStarted: false, waveExpired: false, stunDone: false };
+    this.combatT += dt;
     this.mixer?.update(dt);
     this.lavaFx.update(dt, this.scene);
     this.splashCd = Math.max(0, this.splashCd - dt);
@@ -690,6 +731,11 @@ export class LavaCaesarFightKit {
         this.updateMinion(m, dt, playerPos);
       }
       if (this.tryCollectFireball(playerPos)) out.stunStarted = true;
+      for (const hit of this.flames.update(dt, [playerPos])) {
+        this.host.emitHit(playerPos, 'flame_dot', hit.dps, hit.pos);
+      }
+    } else {
+      this.flames.update(dt, []);
     }
 
     for (const o of this.orbs) {
@@ -823,6 +869,7 @@ export class LavaCaesarFightKit {
   dispose(): void {
     this.disposed = true;
     this.lavaFx.dispose(this.scene);
+    this.flames.dispose();
     this.mixer?.stopAllAction();
     for (const p of this.platforms) this.scene.remove(p.root);
     for (const m of this.minions) this.scene.remove(m.root);

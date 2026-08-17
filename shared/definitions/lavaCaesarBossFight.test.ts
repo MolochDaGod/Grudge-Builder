@@ -25,6 +25,8 @@ assert(LAVA_CAESAR_KIT.stunLoopMaxSec === 2.5, 'loop out to 2.5s');
 assert(LAVA_CAESAR_KIT.stunLoopRepeats === 16, '16 one-way trips');
 assert(lavaStunLoopDurationSec() === 8, '16 × 0.5s = 8s stun');
 assert(LAVA_CAESAR_KIT.stunHandsLoopSec === 8, '8s hands stun');
+assert(LAVA_CAESAR_KIT.gravityScale === 0.5, 'half gravity');
+assert(LAVA_CAESAR_KIT.flameMaxStacks >= 3, 'dot stacks');
 assert(LAVA_CAESAR_KIT.stunDamageTakenMult >= 2.5, 'extra dmg');
 assert(LAVA_CAESAR_KIT.bossHeightM > 4 && LAVA_CAESAR_KIT.bossHeightM < 10, 'SI boss height');
 

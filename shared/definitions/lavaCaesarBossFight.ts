@@ -22,6 +22,8 @@ export const LAVA_CAESAR_CDN = {
   tornadoUp: 'https://assets.grudge-studio.com/models/bosses/lava-caesar/fire_tornado_up.glb',
   minion: 'https://assets.grudge-studio.com/models/bosses/lava-caesar/lava_monster.glb',
   fireball: 'https://assets.grudge-studio.com/models/bosses/lava-caesar/fireball_stun.glb',
+  flame: 'https://assets.grudge-studio.com/models/bosses/lava-caesar/cartoonish_flame.glb',
+  explorer: 'https://assets.grudge-studio.com/models/characters/explorer/adventurer.glb',
 } as const;
 
 export const LAVA_CAESAR_LOCAL = {
@@ -30,6 +32,8 @@ export const LAVA_CAESAR_LOCAL = {
   tornadoUp: '/models/bosses/lava-caesar/fire_tornado_up.glb',
   minion: '/models/bosses/lava-caesar/lava_monster.glb',
   fireball: '/models/bosses/lava-caesar/fireball_stun.glb',
+  flame: '/models/bosses/lava-caesar/cartoonish_flame.glb',
+  explorer: '/models/characters/explorer/adventurer.glb',
 } as const;
 
 export const LAVA_CAESAR_LOAD = {
@@ -38,6 +42,8 @@ export const LAVA_CAESAR_LOAD = {
   tornadoUp: [LAVA_CAESAR_CDN.tornadoUp, LAVA_CAESAR_LOCAL.tornadoUp],
   minion: [LAVA_CAESAR_CDN.minion, LAVA_CAESAR_LOCAL.minion],
   fireball: [LAVA_CAESAR_CDN.fireball, LAVA_CAESAR_LOCAL.fireball],
+  flame: [LAVA_CAESAR_CDN.flame, LAVA_CAESAR_LOCAL.flame],
+  explorer: [LAVA_CAESAR_CDN.explorer, LAVA_CAESAR_LOCAL.explorer],
 } as const;
 
 export interface LavaCaesarKitDef {
@@ -87,6 +93,11 @@ export interface LavaCaesarKitDef {
   minionKillBossHpFrac: number;
   landingAoeDamage: number;
   landingAoeRadiusM: number;
+  flamePatchLifeSec: number;
+  flamePatchRadiusM: number;
+  flameDpsPerStack: number;
+  flameMaxStacks: number;
+  gravityScale: number;
   diveDurationSec: number;
   submergedSec: number;
   riseDurationSec: number;
@@ -133,6 +144,11 @@ export const LAVA_CAESAR_KIT: LavaCaesarKitDef = {
   minionKillBossHpFrac: 0.04,
   landingAoeDamage: 180,
   landingAoeRadiusM: 3.5,
+  flamePatchLifeSec: 6.5,
+  flamePatchRadiusM: 2.4,
+  flameDpsPerStack: 18,
+  flameMaxStacks: 5,
+  gravityScale: 0.5,
   diveDurationSec: 1.8,
   submergedSec: 2.4,
   riseDurationSec: 1.9,

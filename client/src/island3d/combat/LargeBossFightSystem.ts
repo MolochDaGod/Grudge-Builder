@@ -287,6 +287,29 @@ export class LargeBossFightSystem {
     return this.lavaKit?.loadSlotWorld(index) ?? null;
   }
 
+  getLavaSnapshot(): {
+    bossState: string;
+    bossPos: THREE.Vector3;
+    bossHpRatio: number;
+    threatened: number;
+    minions: { id: string; position: THREE.Vector3; hp: number; dead: boolean }[];
+    fireballs: THREE.Vector3[];
+    loadSlots: THREE.Vector3[];
+    combatT: number;
+  } | null {
+    if (!this.lavaKit) return null;
+    return {
+      bossState: this.state,
+      bossPos: this.root.position.clone(),
+      bossHpRatio: this.hpRatio,
+      threatened: this.lavaKit.threatenedIndex,
+      minions: this.lavaKit.minionTargets(),
+      fireballs: this.lavaKit.fireballPositions(),
+      loadSlots: [0, 1, 2, 3].map((i) => this.lavaKit!.loadSlotWorld(i)),
+      combatT: this.lavaKit.combatT,
+    };
+  }
+
   /** Roots the player ray should test (boss + lava brood). */
   getHitObjects(): THREE.Object3D[] {
     const extra = this.lavaKit?.minionRoots() ?? [];
@@ -500,6 +523,7 @@ export class LargeBossFightSystem {
         const impact = playerPos.clone().addScaledVector(dir, -0.5);
         impact.y = boss.y;
         this.cinema.spawnMeteor(impact, dmg, 0.85, motion);
+        this.lavaKit?.leaveProjectileBurn(impact);
         break;
       }
       case 'electric_shock':
@@ -536,6 +560,7 @@ export class LargeBossFightSystem {
         break;
       case 'fire_twister':
         this.lavaKit?.spawnLinearTwister(playerPos);
+        this.lavaKit?.leaveProjectileBurn(playerPos);
         this.lavaKit?.playBoss('spell2', { loop: false });
         break;
       case 'charge_stomp': {
