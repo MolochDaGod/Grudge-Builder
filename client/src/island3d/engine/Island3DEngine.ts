@@ -525,6 +525,8 @@ export class Island3DEngine {
   public physicsReady = false;
   /** Zone / procedural BVH walk layer (lobby reuses lobbyCollider). */
   private walkCollider: LobbyColliderResult | null = null;
+  /** Zone sampler restored when leaving a boss instance. */
+  private zoneGroundSampler: ((x: number, z: number) => number | null) | null = null;
 
   // Zone mode
   public zoneScene: ZoneSceneResult | null = null;
@@ -1285,6 +1287,7 @@ export class Island3DEngine {
       existingSampler: sampleGround,
       label: 'lobby',
     });
+    this.zoneGroundSampler = physicsSampler;
     this.character = new CharacterController3D({
       scene: this.scene,
       camera: this.camera,
@@ -2337,6 +2340,7 @@ export class Island3DEngine {
         label: sectorId,
       });
 
+      this.zoneGroundSampler = physicsSampler;
       this.character = new CharacterController3D({
         scene: this.scene,
         camera: this.camera,
@@ -3215,10 +3219,20 @@ export class Island3DEngine {
         scene: this.scene,
         sectorId,
         worldFx: this.worldFx,
+        physics: this.physics,
         cb: {
-          onEnter: (roomId, bossId) =>
-            console.info(`[BossRoom] enter ${roomId} boss=${bossId}`),
-          onExit: (roomId) => console.info(`[BossRoom] exit ${roomId}`),
+          onEnter: (roomId, bossId, play) => {
+            console.info(`[BossRoom] enter ${roomId} boss=${bossId}`, play?.layerCounts);
+            this.character?.setGroundSampler((x, z) => {
+              const y = this.bossRooms?.sampleHeight(x, z);
+              if (y != null) return y;
+              return this.zoneGroundSampler?.(x, z) ?? null;
+            });
+          },
+          onExit: (roomId) => {
+            console.info(`[BossRoom] exit ${roomId}`);
+            this.character?.setGroundSampler(this.zoneGroundSampler);
+          },
           onBossDeath: (bossId) => {
             try {
               window.dispatchEvent(
