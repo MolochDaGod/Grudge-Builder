@@ -17,6 +17,8 @@
  *   D:\Games\Models\scary_forest.glb
  *   D:\Games\Models\bossinstanceisland.glb
  *   D:\Games\Models\low_poly_lava_fighting_arenastage.glb
+ *   D:\Games\Models\dark_slayer_caesar_arena_of_valor.glb (lava Caesar, fire recolor)
+ *   D:\Games\Models\scene (3).glb — author compose (arena + Caesar + tornado)
  */
 
 /** Same-origin public paths (dev / Vercel when committed). */
@@ -307,7 +309,7 @@ export const VOLCANIC_BOSS_ARENA: BossRoomInstanceDef = {
   sectors: ['ember_depths'],
   entrySources: ['event_island_portal', 'random_dungeon_portal', 'mountain_biome_portal'],
   minLevel: 14,
-  bossIds: ['lava_golem', 'ifrit', 'drake'],
+  bossIds: ['lava_caesar_slayer', 'lava_golem', 'ifrit', 'drake'],
   stripSkybox: true,
   targetExtentM: 52,
 };

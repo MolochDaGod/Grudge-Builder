@@ -101,8 +101,8 @@ export function prepareBossArenaPlay(opts: {
       obj.userData.grudgeWalkable = false;
       return;
     }
-    if (layer === 'water') {
-      obj.userData.grudgeWalkable = false;
+    if (layer === 'water' || layer === 'lava') {
+      if (layer === 'water') obj.userData.grudgeWalkable = false;
       const wp = new THREE.Vector3();
       obj.getWorldPosition(wp);
       waterY = waterY == null ? wp.y : Math.min(waterY, wp.y);

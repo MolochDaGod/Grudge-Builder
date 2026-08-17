@@ -13,12 +13,14 @@ import {
   BOSS_ROOM_INSTANCES,
   FLOATING_ISLAND_LOAD_ORDER,
   HOTH_BOSS_ROOM,
+  VOLCANIC_BOSS_ARENA,
   pickBossRoomInstance,
   type BossRoomEntrySource,
   type BossRoomInstanceDef,
 } from '@shared/definitions/floatingIslandBossAssets';
 import {
   loadGlbFirst,
+  loadGltfFirst,
   stripSkyboxFromObject,
 } from './gltfSceneUtils';
 import {
@@ -28,6 +30,11 @@ import {
 import { LargeBossFightSystem } from '../combat/LargeBossFightSystem';
 import type { WorldFxBus } from '../vfx/WorldFxBus';
 import type { PhysicsWorld } from '../physics/PhysicsWorld';
+import {
+  LAVA_CAESAR_BOSS_FIGHT,
+  LAVA_CAESAR_LOAD,
+} from '@shared/definitions/lavaCaesarBossFight';
+import { cloneGltfScene } from '@/lib/three/SharedGltfPipeline';
 
 export interface BossRoomCallbacks {
   onEnter?: (roomId: string, bossId: string, play?: BossArenaPlaySurface) => void;
@@ -221,7 +228,9 @@ export class BossRoomInstanceSystem {
     this.active = true;
     this.root.visible = true;
     this.bossId =
-      this.def.bossIds[Math.floor(Math.random() * this.def.bossIds.length)]!;
+      this.def.id === VOLCANIC_BOSS_ARENA.id
+        ? LAVA_CAESAR_BOSS_FIGHT.id
+        : this.def.bossIds[Math.floor(Math.random() * this.def.bossIds.length)]!;
 
     const play = this.playById.get(picked.id);
     const enterLocal = new THREE.Vector3(0, 2, this.def.targetExtentM * 0.3);
@@ -236,21 +245,41 @@ export class BossRoomInstanceSystem {
       `${this.def.name} (${source}) — defeat ${this.bossId} · E at blue ring to exit`,
     );
 
-    // Spawn PIP-style large boss at chamber center
-    this.spawnLargeBoss();
+    // Spawn PIP-style large boss at chamber center (lava Caesar on volcanic)
+    void this.spawnLargeBoss();
     return true;
   }
 
-  private spawnLargeBoss(): void {
+  private async spawnLargeBoss(): Promise<void> {
     this.largeBoss?.dispose();
     const local = new THREE.Vector3(0, 0, -4);
     const world = local.clone();
     this.root.localToWorld(world);
+    const volcanic = this.def.id === VOLCANIC_BOSS_ARENA.id;
+    const play = this.playById.get(this.def.id);
+    const lavaY = play?.waterLevel ?? world.y + 1.15;
+    let model: THREE.Object3D | null = null;
+    let animations: THREE.AnimationClip[] = [];
+    if (volcanic) {
+      const gltf = await loadGltfFirst(LAVA_CAESAR_LOAD.boss);
+      if (this.disposed) return;
+      if (gltf?.scene) {
+        model = cloneGltfScene(gltf);
+        animations = gltf.animations ?? [];
+      }
+    }
     this.largeBoss = new LargeBossFightSystem({
       scene: this.scene,
       position: world,
       arenaCenter: world.clone(),
-      bossId: this.bossId,
+      bossId: volcanic ? LAVA_CAESAR_BOSS_FIGHT.id : this.bossId,
+      cfg: volcanic ? LAVA_CAESAR_BOSS_FIGHT : undefined,
+      model,
+      animations,
+      lavaY: volcanic ? lavaY : undefined,
+      sampleHeight: play
+        ? (x, z) => play.sampleHeight(x, z)
+        : undefined,
       worldFx: this.worldFx,
       cb: {
         onPrompt: (msg) => this.cb.onPrompt?.(msg),
@@ -285,8 +314,10 @@ export class BossRoomInstanceSystem {
 
   update(dt: number, playerPos?: THREE.Vector3) {
     if (!this.active || !this.room) return;
-    // Subtle ice shimmer
-    this.room.rotation.y += dt * 0.01;
+    // Subtle ice shimmer — not on lava (platforms + player session stay put)
+    if (this.def.id !== VOLCANIC_BOSS_ARENA.id) {
+      this.room.rotation.y += dt * 0.01;
+    }
     if (this.exitPad) {
       this.exitPad.rotation.z += dt * 1.2;
     }

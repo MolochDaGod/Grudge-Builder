@@ -78,6 +78,21 @@ window.addEventListener('grudge:arena-boss', (e) => {
 | **Hoth / frozen room** | Ice portals → `BossRoomInstanceSystem` + large boss |
 | **PvE boss_arena** | Zone population nodes `category: 'boss_arena'` (open world) |
 | **Orc Ghar'Thok** | Separate legacy path (`OrcBossController`) — keep for orc mesh pack |
+| **Volcanic lava Caesar** | Ember instance (`VOLCANIC_BOSS_ARENA`) → `LAVA_CAESAR_BOSS_FIGHT` + `LavaCaesarFightKit` on `LargeBossFightSystem` |
+
+### Lava Caesar (ember / volcanic)
+
+Same LargeBoss + Rapier arena. Not a second combat stack.
+
+| Beat | What happens |
+|------|----------------|
+| Dive / rise | Caesar Spell4 sinks under lava, Spell1 surfaces |
+| Platform tornado | `fire_tornado (1)` rises from magma through one deck |
+| Brood | 3 `lava_monster` adds (Mixamo clip windows + annihilate chase/attack), one per platform |
+| Fail | Unkilled adds explode and crack that platform |
+| Twister | Linear `fire_tornado` path toward the player |
+| Stun | Kill add → `fireball (2)` orb. Walk through: Dead clip to **2 s**, hands on deck **8 s** extra damage, rewind Dead |
+| Scale | ~6.5 m SI, fire-recolored Caesar albedo |
 
 ### Play paths
 

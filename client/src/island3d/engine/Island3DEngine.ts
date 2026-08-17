@@ -4610,11 +4610,9 @@ export class Island3DEngine {
       const hitDmgBoss = 45;
       const hitsBoss = this.raycaster.intersectObjects(
         [
-          ...(this.bossRooms?.largeBoss ? [this.bossRooms.largeBoss.root] : []),
-          ...(this.pveBossInstance?.largeBoss
-            ? [this.pveBossInstance.largeBoss.root]
-            : []),
-          ...this.arenaBosses.map((b) => b.root),
+          ...(this.bossRooms?.largeBoss?.getHitObjects() ?? []),
+          ...(this.pveBossInstance?.largeBoss?.getHitObjects() ?? []),
+          ...this.arenaBosses.flatMap((b) => b.getHitObjects()),
         ],
         true,
       );
