@@ -8,6 +8,7 @@ import {
   clipNameIncludes,
   isLavaCaesarFight,
   lavaPlatformLocal,
+  lavaStunLoopDurationSec,
 } from './lavaCaesarBossFight.ts';
 import { phaseForHpRatio, pickPipBossAttack } from './pipSkullBossFight.ts';
 
@@ -17,7 +18,11 @@ function assert(c: boolean, m: string) {
 
 assert(isLavaCaesarFight(LAVA_CAESAR_BOSS_FIGHT), 'id');
 assert(LAVA_CAESAR_KIT.platformCount === 3, '3 platforms');
-assert(LAVA_CAESAR_KIT.stunDeadToSec === 2, 'dead to 2s');
+assert(LAVA_CAESAR_KIT.stunDeadToSec === 2.5, 'collapse to 2.5s');
+assert(LAVA_CAESAR_KIT.stunLoopMinSec === 2, 'loop back to 2s');
+assert(LAVA_CAESAR_KIT.stunLoopMaxSec === 2.5, 'loop out to 2.5s');
+assert(LAVA_CAESAR_KIT.stunLoopRepeats === 16, '16 one-way trips');
+assert(lavaStunLoopDurationSec() === 8, '16 × 0.5s = 8s stun');
 assert(LAVA_CAESAR_KIT.stunHandsLoopSec === 8, '8s hands stun');
 assert(LAVA_CAESAR_KIT.stunDamageTakenMult >= 2.5, 'extra dmg');
 assert(LAVA_CAESAR_KIT.bossHeightM > 4 && LAVA_CAESAR_KIT.bossHeightM < 10, 'SI boss height');

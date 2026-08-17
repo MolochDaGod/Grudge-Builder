@@ -672,10 +672,17 @@ export class LavaCaesarFightKit {
       return false;
     }
     if (this.stunPhase === 'hands') {
+      const lo = this.kit.stunLoopMinSec;
+      const hi = this.kit.stunLoopMaxSec;
+      const tripDur = Math.max(0.01, hi - lo);
+      const trips = this.kit.stunLoopRepeats;
       if (act) {
-        const wobble = Math.sin(this.stunT * 5) * 0.06;
-        act.time = this.kit.stunDeadToSec + wobble;
         act.paused = true;
+        const trip = Math.min(trips - 1, Math.floor(this.stunT / tripDur));
+        const u = THREE.MathUtils.clamp((this.stunT - trip * tripDur) / tripDur, 0, 1);
+        // Even trip: 2.5 → 2.0; odd trip: 2.0 → 2.5
+        const down = trip % 2 === 0;
+        act.time = THREE.MathUtils.lerp(down ? hi : lo, down ? lo : hi, u);
       }
       // Hands planted on nearest platform — ease boss XZ toward it
       const p = this.platforms[this.pickPlatformToward(this.host.root.position)];
@@ -694,13 +701,13 @@ export class LavaCaesarFightKit {
           dt,
         );
       }
-      if (this.stunT >= this.kit.stunHandsLoopSec) {
+      if (this.stunT >= trips * tripDur) {
         this.stunPhase = 'rewind';
         this.stunT = 0;
         if (act) {
           act.paused = false;
           act.timeScale = -1;
-          act.time = this.kit.stunDeadToSec;
+          act.time = act.time || lo;
         }
       }
       return false;

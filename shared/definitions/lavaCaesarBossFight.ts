@@ -9,7 +9,7 @@
  * → kill all before boss returns or they explode and crack that platform
  * → fire_twister linear path toward player
  * → dead add becomes fireball (2); walk-through stuns boss
- *   Dead clip → 2 s, hold/hands-on-platform 8 s extra damage, rewind Dead.
+ *   Dead clip → 2.5 s, then 2.5↔2.0 × 16 (8 s extra damage), rewind Dead.
  */
 import {
   PIP_SKULL_BOSS_FIGHT,
@@ -66,8 +66,13 @@ export interface LavaCaesarKitDef {
   twisterHitRadiusM: number;
   twisterLifeSec: number;
   fireballPickupRadiusM: number;
-  /** Play Dead until this mark, then hold / rewind */
+  /** Collapse: play Dead from 0 to this mark */
   stunDeadToSec: number;
+  /** Stun loop window on Dead (2.0 ↔ 2.5) */
+  stunLoopMinSec: number;
+  stunLoopMaxSec: number;
+  /** One-way trips (2.5→2, 2→2.5, …) during the 8s stun */
+  stunLoopRepeats: number;
   stunHandsLoopSec: number;
   stunRewindSec: number;
   stunDamageTakenMult: number;
@@ -102,7 +107,10 @@ export const LAVA_CAESAR_KIT: LavaCaesarKitDef = {
   twisterHitRadiusM: 2.3,
   twisterLifeSec: 6.2,
   fireballPickupRadiusM: 1.6,
-  stunDeadToSec: 2,
+  stunDeadToSec: 2.5,
+  stunLoopMinSec: 2.0,
+  stunLoopMaxSec: 2.5,
+  stunLoopRepeats: 16,
   stunHandsLoopSec: 8,
   stunRewindSec: 2,
   stunDamageTakenMult: 3.0,
@@ -212,6 +220,12 @@ export function lavaPlatformLocal(index: number, kit: LavaCaesarKitDef = LAVA_CA
     z: Math.sin(ang) * kit.platformRadiusM,
     ang,
   };
+}
+
+/** Wall-clock of the Dead ping-pong: 16 × 0.5 s = 8 s. */
+export function lavaStunLoopDurationSec(kit: LavaCaesarKitDef = LAVA_CAESAR_KIT): number {
+  const win = Math.max(0.01, kit.stunLoopMaxSec - kit.stunLoopMinSec);
+  return kit.stunLoopRepeats * win;
 }
 
 export function clipNameIncludes(name: string, ...needles: string[]): boolean {
