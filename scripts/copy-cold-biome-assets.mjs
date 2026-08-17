@@ -34,6 +34,9 @@ const MAP = [
   ['models/biomes/ethereal/lyoko_mountain_sector.glb', 'lyoko_mountain_sector (1).glb'],
   ['models/biomes/event/spiral_mountain_reimagined.glb', 'spiral_mountain_reimagined.glb'],
   ['models/biomes/frozen/hoth_boss_room_low_poly.glb', 'hoth_boss_room_low_poly.glb'],
+  ['models/biomes/forest/scary_forest.glb', 'scary_forest.glb'],
+  ['models/biomes/desert/bossinstanceisland.glb', 'bossinstanceisland.glb'],
+  ['models/biomes/volcanic/low_poly_lava_fighting_arenastage.glb', 'low_poly_lava_fighting_arenastage.glb'],
 ];
 
 function findSource(fileName) {

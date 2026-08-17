@@ -13,6 +13,7 @@ import type { EventIslandSystem } from './EventIslandSystem';
 import type { BossRoomInstanceSystem } from './BossRoomInstanceSystem';
 import type { IcelandPlaceResult } from './IcelandScenePlacer';
 import type { ClimbLootGrant } from '@shared/definitions/volcanicClimb';
+import { pickBossRoomInstance } from '@shared/definitions/floatingIslandBossAssets';
 
 export type ZoneInteractResult =
   | { kind: 'climb_chest'; floor: number; grants: ClimbLootGrant[] }
@@ -59,7 +60,8 @@ export function resolveZoneInteract(ctx: ZoneInteractContext): ZoneInteractResul
   // 3. Event island portal
   const near = ctx.eventIslands?.nearestPortal(pos, portalRange);
   if (near && ctx.bossRooms) {
-    ctx.bossRooms.enter(pos, 'event_island_portal');
+    const room = pickBossRoomInstance({ sectorId: ctx.sectorId });
+    ctx.bossRooms.enter(pos, 'event_island_portal', room?.id);
     return { kind: 'boss_enter', source: 'event_island_portal' };
   }
 

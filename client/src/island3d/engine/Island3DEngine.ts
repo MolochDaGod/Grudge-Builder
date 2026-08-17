@@ -210,6 +210,8 @@ import {
   isHothEligibleSector,
   isIcelandSector,
   isSpiralEventSector,
+  isBossInstanceSector,
+  pickBossRoomInstance,
 } from '@shared/definitions/floatingIslandBossAssets';
 import {
   isVolcanicClimbSector,
@@ -1835,20 +1837,23 @@ export class Island3DEngine {
       this.zonePopulation,
       this.zoneScene.islandMeshes,
       (dungeonId, dungeonName) => {
-        // Frozen / cold sectors: some random dungeon portals open Hoth boss room
-        const iceName = /ice|frost|hoth|frozen|cold|snow/i.test(dungeonName + dungeonId);
-        if (
-          this.bossRooms &&
-          this.character &&
-          isHothEligibleSector(sectorId) &&
-          (iceName || Math.random() < 0.35)
-        ) {
-          this.bossRooms.enter(
+        // Biome dungeon portals → Hoth / woods / desert / lava instance maps
+        const instance = pickBossRoomInstance({
+          sectorId,
+          dungeonId,
+          dungeonName,
+        });
+        if (this.character && instance) {
+          this.ensureBossRooms();
+          const entered = this.bossRooms?.enter(
             this.character.model.position,
             'random_dungeon_portal',
+            instance.id,
           );
-          this.config.onDungeonEnter?.(dungeonId, dungeonName);
-          return;
+          if (entered) {
+            this.config.onDungeonEnter?.(dungeonId, dungeonName);
+            return;
+          }
         }
         // Warlords era sectors: dungeon entrance → PvE boss instance chamber
         const entered = this.enterPveBossFromDoorway(
@@ -2023,55 +2028,9 @@ export class Island3DEngine {
       }
     }
 
-    // 2i. Hoth boss room instance (frozen / cold portal targets)
-    if (isHothEligibleSector(sectorId)) {
-      try {
-        this.bossRooms?.dispose();
-        this.bossRooms = new BossRoomInstanceSystem({
-          scene: this.scene,
-          sectorId,
-          worldFx: this.worldFx,
-          cb: {
-            onEnter: (roomId, bossId) =>
-              console.info(`[BossRoom] enter ${roomId} boss=${bossId}`),
-            onExit: (roomId) => console.info(`[BossRoom] exit ${roomId}`),
-            onBossDeath: (bossId) => {
-              try {
-                window.dispatchEvent(
-                  new CustomEvent('grudge:boss-room', {
-                    detail: { type: 'death', bossId },
-                  }),
-                );
-              } catch {
-                /* */
-              }
-            },
-            onPlayerHit: (hit) => {
-              this.applyBossHitToPlayer(hit);
-              try {
-                window.dispatchEvent(
-                  new CustomEvent('grudge:boss-room', {
-                    detail: { type: 'hit', ...hit },
-                  }),
-                );
-              } catch {
-                /* */
-              }
-            },
-            onPrompt: (msg) => {
-              try {
-                window.dispatchEvent(
-                  new CustomEvent('grudge:boss-room', { detail: { prompt: msg } }),
-                );
-              } catch {
-                /* */
-              }
-            },
-          },
-        });
-      } catch (err) {
-        console.warn('[Island3D] BossRoomInstanceSystem failed:', err);
-      }
+    // 2i. Instance maps: Hoth (ice), deep woods, desert island, volcanic arena
+    if (isBossInstanceSector(sectorId)) {
+      this.ensureBossRooms();
     }
 
     // 2j. Iceland scene in frozen + near-frozen zones
@@ -3247,6 +3206,58 @@ export class Island3DEngine {
     this.harvestDrops = updateHarvestDrops(this.harvestDrops, dt, this.scene);
   }
 
+  /** Hoth / woods / desert / lava instance maps (preload sector room). */
+  private ensureBossRooms(): void {
+    if (this.bossRooms || !this.scene) return;
+    const sectorId = this.config.sectorId || '';
+    try {
+      this.bossRooms = new BossRoomInstanceSystem({
+        scene: this.scene,
+        sectorId,
+        worldFx: this.worldFx,
+        cb: {
+          onEnter: (roomId, bossId) =>
+            console.info(`[BossRoom] enter ${roomId} boss=${bossId}`),
+          onExit: (roomId) => console.info(`[BossRoom] exit ${roomId}`),
+          onBossDeath: (bossId) => {
+            try {
+              window.dispatchEvent(
+                new CustomEvent('grudge:boss-room', {
+                  detail: { type: 'death', bossId },
+                }),
+              );
+            } catch {
+              /* */
+            }
+          },
+          onPlayerHit: (hit) => {
+            this.applyBossHitToPlayer(hit);
+            try {
+              window.dispatchEvent(
+                new CustomEvent('grudge:boss-room', {
+                  detail: { type: 'hit', ...hit },
+                }),
+              );
+            } catch {
+              /* */
+            }
+          },
+          onPrompt: (msg) => {
+            try {
+              window.dispatchEvent(
+                new CustomEvent('grudge:boss-room', { detail: { prompt: msg } }),
+              );
+            } catch {
+              /* */
+            }
+          },
+        },
+      });
+    } catch (err) {
+      console.warn('[Island3D] BossRoomInstanceSystem failed:', err);
+    }
+  }
+
   /** Ensure shared PvE boss chamber (home mountain door + Warlords doors). */
   private ensurePveBossInstance(): void {
     if (this.pveBossInstance || !this.scene) return;
@@ -3300,6 +3311,18 @@ export class Island3DEngine {
       | 'home_island_mine',
   ): boolean {
     if (!this.character) return false;
+    const sectorId = this.config.sectorId || '';
+    const instance = pickBossRoomInstance({ sectorId, dungeonId, dungeonName });
+    if (instance) {
+      this.ensureBossRooms();
+      return (
+        this.bossRooms?.enter(
+          this.character.model.position,
+          'random_dungeon_portal',
+          instance.id,
+        ) ?? false
+      );
+    }
     this.ensurePveBossInstance();
     return (
       this.pveBossInstance?.enter(this.character.model.position, {
