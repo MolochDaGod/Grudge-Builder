@@ -40,6 +40,7 @@ export default function LavaCaesarLabPage() {
         sectorId="ember_depths"
         worldSeed="lava-caesar-lab"
         enableCharacter
+        playChrome={false}
         onEngineReady={(engine) => {
           void engine.startLavaCaesarLab();
         }}

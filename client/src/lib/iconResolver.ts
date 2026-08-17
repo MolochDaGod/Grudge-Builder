@@ -218,7 +218,7 @@ export function resolveIconUrl(
     if (isBannedAsUiIcon(raw)) return getPackIconForCategory(ctx);
     // Only accept CDN/fleet icon URLs for UI; other absolute image hosts → pack fallback
     if (raw.startsWith(ASSET_CDN_BASE) && raw.toLowerCase().includes('/icons/')) {
-      return raw;
+      return assetUrl(raw);
     }
     // info.* / objectstore master-items icon hosts (icons under /icons/**)
     if (
@@ -229,7 +229,7 @@ export function resolveIconUrl(
         raw.includes('info.grudge-studio.com') ||
         raw.includes('objectstore.grudge-studio.com'))
     ) {
-      return raw;
+      return assetUrl(raw);
     }
     // game-assets/icons on assets CDN (weapon art authority)
     if (
@@ -237,15 +237,15 @@ export function resolveIconUrl(
       (raw.toLowerCase().includes('/icons/') ||
         raw.toLowerCase().includes('/game-assets/icons/'))
     ) {
-      return raw;
+      return assetUrl(raw);
     }
     if (/\.(png|jpe?g|webp|gif|svg)(\?|$)/i.test(raw) && raw.toLowerCase().includes('/icons/')) {
-      return raw;
+      return assetUrl(raw);
     }
     if (/\.(png|jpe?g|webp|gif|svg)(\?|$)/i.test(raw) && !raw.toLowerCase().includes('/icons/')) {
       // Allow assets CDN game-assets paths used by T8 master-weapons
       if (raw.includes('assets.grudge-studio.com/game-assets/')) {
-        return raw;
+        return assetUrl(raw);
       }
       return getPackIconForCategory(ctx);
     }

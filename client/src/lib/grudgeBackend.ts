@@ -178,6 +178,8 @@ export async function ensureFleetSessionClaim(): Promise<boolean> {
     }
     return true;
   }
+  // Guest: no cookie, no JWT — do not POST claim (avoids 401 spam on labs / public pages)
+  if (!cookieTok) return false;
   try {
     const res = await fetch(`${API_BASE}/auth/session/claim`, {
       method: "POST",

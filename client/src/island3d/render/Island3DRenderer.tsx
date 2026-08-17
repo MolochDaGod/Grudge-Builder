@@ -90,6 +90,8 @@ interface Island3DRendererProps {
    * (uMMORPG / 30grudge6 deployables) are one tab away.
    */
   editorMode?: boolean;
+  /** When false, skip Grudge6 play shell / roster chrome (labs). Default true. */
+  playChrome?: boolean;
 }
 
 export function Island3DRenderer({
@@ -99,6 +101,7 @@ export function Island3DRenderer({
   characterId, raceId, classId, characterName, model3d, equipment, lobbyIslandId, onHarvest,
   mountainTriad, rtsHeightmap, rtsNatureScatter, biome, onDungeonEnter, campPositionPercent, regrowRegions,
   editorMode = false,
+  playChrome = true,
 }: Island3DRendererProps) {
   const canvasRef = useRef<HTMLCanvasElement>(null);
   const containerRef = useRef<HTMLDivElement>(null);
@@ -833,12 +836,13 @@ export function Island3DRenderer({
             )}
 
           {/* Authoritative multiplayer chat (Colyseus) */}
-          {mode === 'zone' && engineReady && !loading && (
+          {playChrome && mode === 'zone' && engineReady && !loading && (
             <ServerChatHUD enabled />
           )}
 
           {/* Grudge6 lab: HUD · Main Panel · Spellbook · Character · Inventory (all play modes) */}
-          {(mode === 'procedural' || mode === 'zone' || mode === 'lobby') &&
+          {playChrome &&
+            (mode === 'procedural' || mode === 'zone' || mode === 'lobby') &&
             isPanelEnabled('grudge6_shell') && (
             <Grudge6PlayShell
               characterId={characterId}
