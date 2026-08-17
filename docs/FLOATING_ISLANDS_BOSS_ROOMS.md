@@ -60,6 +60,22 @@ Same `BossRoomInstanceSystem` catalog as Hoth (`pickBossRoomInstance`).
 
 Does **not** replace Ember Spire climb — climb stays platforms + chests; lava arena is the boss instance.
 
+## Play bake (size + layers + colliders)
+
+`prepareBossArenaPlay` / `bossArenaPlay.ts` — same Island3D physics, not a second engine.
+
+| Layer | Meshes (examples) | Collider |
+|-------|-------------------|----------|
+| terrain | WalkableFloor, Central_Platform, base_Main | Rapier trimesh `ground` + BVH feet |
+| water | Central_Water, Lateral_Water* | sensor `sensor_trigger` (not walk) |
+| lava | lava/magma names | walk + `ground` (hazard tag) |
+| seafloor | GroundUnder, lower_Bottom | walk + `ground` |
+| column | IceColumn*, Column_* | `wall` (CCT block) |
+| building | Walls, Outer, doors | `wall` |
+| ignore | sky, cameras, lights | none |
+
+SI: keep author metres if XZ is 28–140 m (lava arena is ~78 m). Only 100× / tiny maps rescale. Enter rebinds `CharacterController3D.setGroundSampler` to the arena BVH; exit restores the zone sampler.
+
 ## Iceland — **frozen biomes only**
 
 | Sector | Role |

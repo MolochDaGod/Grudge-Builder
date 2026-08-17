@@ -18,15 +18,19 @@ import {
   type BossRoomInstanceDef,
 } from '@shared/definitions/floatingIslandBossAssets';
 import {
-  fitObjectExtent,
   loadGlbFirst,
   stripSkyboxFromObject,
 } from './gltfSceneUtils';
+import {
+  prepareBossArenaPlay,
+  type BossArenaPlaySurface,
+} from './prepareBossArenaPlay';
 import { LargeBossFightSystem } from '../combat/LargeBossFightSystem';
 import type { WorldFxBus } from '../vfx/WorldFxBus';
+import type { PhysicsWorld } from '../physics/PhysicsWorld';
 
 export interface BossRoomCallbacks {
-  onEnter?: (roomId: string, bossId: string) => void;
+  onEnter?: (roomId: string, bossId: string, play?: BossArenaPlaySurface) => void;
   onExit?: (roomId: string) => void;
   onPrompt?: (msg: string | null) => void;
   onBossDeath?: (bossId: string) => void;
@@ -40,6 +44,7 @@ export interface BossRoomSystemOpts {
   instanceOffset?: THREE.Vector3;
   cb?: BossRoomCallbacks;
   worldFx?: WorldFxBus | null;
+  physics?: PhysicsWorld | null;
 }
 
 export class BossRoomInstanceSystem {
@@ -56,6 +61,8 @@ export class BossRoomInstanceSystem {
   private exitPad: THREE.Mesh | null = null;
   private disposed = false;
   private worldFx: WorldFxBus | null;
+  private physics: PhysicsWorld | null;
+  private playById = new Map<string, BossArenaPlaySurface>();
   /** PIP-style large boss fight inside the chamber */
   public largeBoss: LargeBossFightSystem | null = null;
 
@@ -64,6 +71,7 @@ export class BossRoomInstanceSystem {
     this.sectorId = opts.sectorId;
     this.cb = opts.cb ?? {};
     this.worldFx = opts.worldFx ?? null;
+    this.physics = opts.physics ?? null;
     this.def = pickBossRoomInstance({ sectorId: opts.sectorId }) ?? HOTH_BOSS_ROOM;
     this.bossId = this.def.bossIds[0]!;
     this.root.name = 'BossRoomInstances';
@@ -81,6 +89,14 @@ export class BossRoomInstanceSystem {
 
   get currentBossId() {
     return this.bossId;
+  }
+
+  getActivePlay(): BossArenaPlaySurface | null {
+    return this.playById.get(this.def.id) ?? null;
+  }
+
+  sampleHeight(x: number, z: number): number | null {
+    return this.playById.get(this.def.id)?.sampleHeight(x, z) ?? null;
   }
 
   private async preloadSectorRooms() {
@@ -102,7 +118,6 @@ export class BossRoomInstanceSystem {
       if (this.disposed) return null;
       if (!scene) throw new Error(`${def.id} GLB missing on CDN and local`);
       if (def.stripSkybox) stripSkyboxFromObject(scene);
-      fitObjectExtent(scene, def.targetExtentM);
       const room = new THREE.Group();
       room.name = def.id;
       room.visible = false;
@@ -135,11 +150,18 @@ export class BossRoomInstanceSystem {
 
       this.rooms.set(def.id, room);
       this.root.add(room);
+      room.updateMatrixWorld(true);
+      const play = prepareBossArenaPlay({
+        visual: scene,
+        physics: this.physics,
+        targetExtentM: def.targetExtentM,
+      });
+      this.playById.set(def.id, play);
       if (!this.room) {
         this.room = room;
         this.exitPad = exit;
       }
-      console.log(`[BossRoom] Preloaded ${def.name}`);
+      console.log(`[BossRoom] Preloaded ${def.name}`, play.size, play.layerCounts);
       return room;
     } catch (e) {
       console.warn(`[BossRoom] ${def.id} load failed — box arena fallback`, e);
@@ -201,13 +223,15 @@ export class BossRoomInstanceSystem {
     this.bossId =
       this.def.bossIds[Math.floor(Math.random() * this.def.bossIds.length)]!;
 
-    // Place player near entrance of room (root offset space)
+    const play = this.playById.get(picked.id);
     const enterLocal = new THREE.Vector3(0, 2, this.def.targetExtentM * 0.3);
     const world = enterLocal.clone();
     this.root.localToWorld(world);
+    const groundY = play?.sampleHeight(world.x, world.z, world.y + 80);
+    if (groundY != null && Number.isFinite(groundY)) world.y = groundY + 0.08;
     playerPos.copy(world);
 
-    this.cb.onEnter?.(this.def.id, this.bossId);
+    this.cb.onEnter?.(this.def.id, this.bossId, play);
     this.cb.onPrompt?.(
       `${this.def.name} (${source}) — defeat ${this.bossId} · E at blue ring to exit`,
     );
@@ -278,6 +302,8 @@ export class BossRoomInstanceSystem {
     this.disposed = true;
     this.largeBoss?.dispose();
     this.largeBoss = null;
+    for (const play of this.playById.values()) play.dispose();
+    this.playById.clear();
     this.scene.remove(this.root);
     this.root.traverse((o) => {
       if (o instanceof THREE.Mesh) {
