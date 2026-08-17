@@ -15,8 +15,11 @@
 
 **Host matrix + loops:** [GAME_FLOW_SSOT.md](./GAME_FLOW_SSOT.md)
 
-**client `/home` is a bridge, not a hub.** It resolves auth → hero → tutorial (once) → island claim → **`/home-island`** and auto-forwards.  
-Overrides: `?ops=1` → info WORLD_MAP · `?legacy=1` → old multi-CTA menu · `?stay=1` → show path without redirect.
+**`/home` is the WCS hub** (Layout + ObjectStore icons + Railway bag + craft/arsenal).  
+Enter play is a button. Auto-forward only with **`?play=1`**.  
+Overrides: `?ops=1` → info WORLD_MAP · `?legacy=1` → old multi-CTA menu.
+
+Canonical craft suite: **`/craft/`**. SPA craft: **`/crafting`**. Arsenal: **`/arsenal`**.
 
 ## Player journey
 
