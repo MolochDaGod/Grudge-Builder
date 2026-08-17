@@ -65,7 +65,9 @@ export default async function handler(req: Request): Promise<Response> {
   const url = new URL(req.url);
   const upstream = `${CDN}/${key}${url.search}`;
   const headers = new Headers();
-  // Do not forward Referer or Origin — zone Hotlink Protection 1011.
+  // Edge fetch defaults Referer to this function URL, which CF hotlink 1011s.
+  headers.set("Referer", `${CDN}/`);
+  headers.set("Origin", CDN);
   const range = req.headers.get("range");
   const ifNone = req.headers.get("if-none-match");
   const accept = req.headers.get("accept");
@@ -80,6 +82,8 @@ export default async function handler(req: Request): Promise<Response> {
       method: req.method,
       headers,
       redirect: "follow",
+      referrer: `${CDN}/`,
+      referrerPolicy: "no-referrer",
     });
   } catch {
     return new Response("Bad Gateway", { status: 502, headers: corsHeaders() });
