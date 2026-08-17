@@ -4,6 +4,9 @@
  * Lyoko mountain sector → Ethereal Falls stacked floating islands (2 variants each)
  * Spiral mountain reimagined → event island sink/raise + boss instances (strip skybox)
  * Hoth boss room → frozen biome / event portal / random dungeon instance
+ * Deep woods → thornwood / forest dungeon instance
+ * Desert boss island → ashen wastes desert boss instance
+ * Lava arena → ember volcanic boss instance
  * Iceland scene → frozen + near-frozen zones
  *
  * Sources (author machine):
@@ -11,6 +14,9 @@
  *   D:\Games\Models\spiral_mountain_reimagined.glb
  *   D:\Games\Models\hoth_boss_room_low_poly.glb
  *   D:\Games\Models\iceland_scene_for_canimatic.glb
+ *   D:\Games\Models\scary_forest.glb
+ *   D:\Games\Models\bossinstanceisland.glb
+ *   D:\Games\Models\low_poly_lava_fighting_arenastage.glb
  */
 
 /** Same-origin public paths (dev / Vercel when committed). */
@@ -19,6 +25,9 @@ export const FLOATING_ISLAND_ASSET_PATHS = {
   spiralMountain: '/models/biomes/event/spiral_mountain_reimagined.glb',
   hothBossRoom: '/models/biomes/frozen/hoth_boss_room_low_poly.glb',
   iceland: '/models/biomes/cold/iceland_scene_for_canimatic.glb',
+  deepWoods: '/models/biomes/forest/scary_forest.glb',
+  desertBossIsland: '/models/biomes/desert/bossinstanceisland.glb',
+  volcanicBossArena: '/models/biomes/volcanic/low_poly_lava_fighting_arenastage.glb',
 } as const;
 
 /** R2 CDN (assets.grudge-studio.com) — production SSOT for large GLBs. */
@@ -31,6 +40,12 @@ export const FLOATING_ISLAND_CDN_PATHS = {
     'https://assets.grudge-studio.com/models/biomes/frozen/hoth_boss_room_low_poly.glb',
   iceland:
     'https://assets.grudge-studio.com/models/biomes/cold/iceland_scene_for_canimatic.glb',
+  deepWoods:
+    'https://assets.grudge-studio.com/models/biomes/forest/scary_forest.glb',
+  desertBossIsland:
+    'https://assets.grudge-studio.com/models/biomes/desert/bossinstanceisland.glb',
+  volcanicBossArena:
+    'https://assets.grudge-studio.com/models/biomes/volcanic/low_poly_lava_fighting_arenastage.glb',
 } as const;
 
 /** Load order: CDN first for large packs, then same-origin. */
@@ -45,6 +60,15 @@ export const FLOATING_ISLAND_LOAD_ORDER = {
     FLOATING_ISLAND_ASSET_PATHS.hothBossRoom,
   ],
   iceland: [FLOATING_ISLAND_CDN_PATHS.iceland, FLOATING_ISLAND_ASSET_PATHS.iceland],
+  deepWoods: [FLOATING_ISLAND_CDN_PATHS.deepWoods, FLOATING_ISLAND_ASSET_PATHS.deepWoods],
+  desertBossIsland: [
+    FLOATING_ISLAND_CDN_PATHS.desertBossIsland,
+    FLOATING_ISLAND_ASSET_PATHS.desertBossIsland,
+  ],
+  volcanicBossArena: [
+    FLOATING_ISLAND_CDN_PATHS.volcanicBossArena,
+    FLOATING_ISLAND_ASSET_PATHS.volcanicBossArena,
+  ],
 } as const;
 
 export const FLOATING_ISLAND_SOURCE_PATHS = {
@@ -52,6 +76,9 @@ export const FLOATING_ISLAND_SOURCE_PATHS = {
   spiralMountain: 'D:\\Games\\Models\\spiral_mountain_reimagined.glb',
   hothBossRoom: 'D:\\Games\\Models\\hoth_boss_room_low_poly.glb',
   iceland: 'D:\\Games\\Models\\iceland_scene_for_canimatic.glb',
+  deepWoods: 'D:\\Games\\Models\\scary_forest.glb',
+  desertBossIsland: 'D:\\Games\\Models\\bossinstanceisland.glb',
+  volcanicBossArena: 'D:\\Games\\Models\\low_poly_lava_fighting_arenastage.glb',
 } as const;
 
 // ── Lyoko ethereal floating islands ──────────────────────────────────────────
@@ -199,10 +226,13 @@ export type BossRoomEntrySource =
   | 'frozen_biome_portal'
   | 'random_dungeon_portal';
 
+export type BossRoomLoadKey = keyof typeof FLOATING_ISLAND_LOAD_ORDER;
+
 export interface BossRoomInstanceDef {
   id: string;
   name: string;
   glbPath: string;
+  loadKey: BossRoomLoadKey;
   /** Biomes that may open this room via portal */
   biomes: string[];
   sectors: string[];
@@ -217,6 +247,7 @@ export const HOTH_BOSS_ROOM: BossRoomInstanceDef = {
   id: 'hoth_boss_room',
   name: 'Hoth Ice Boss Chamber',
   glbPath: FLOATING_ISLAND_ASSET_PATHS.hothBossRoom,
+  loadKey: 'hothBossRoom',
   biomes: ['frozen', 'storm', 'ethereal'],
   sectors: [
     'frostbite_expanse',
@@ -235,6 +266,85 @@ export const HOTH_BOSS_ROOM: BossRoomInstanceDef = {
   stripSkybox: true,
   targetExtentM: 48,
 };
+
+/** Deep woods dungeon instance — thornwood / forest portals. */
+export const DEEP_WOODS_BOSS_ROOM: BossRoomInstanceDef = {
+  id: 'deep_woods_instance',
+  name: 'Deep Woods Instance',
+  glbPath: FLOATING_ISLAND_ASSET_PATHS.deepWoods,
+  loadKey: 'deepWoods',
+  biomes: ['forest'],
+  sectors: ['thornwood_wilds'],
+  entrySources: ['event_island_portal', 'random_dungeon_portal'],
+  minLevel: 8,
+  bossIds: ['thorn_beast', 'monsters_x', 'free_reptile'],
+  stripSkybox: true,
+  targetExtentM: 56,
+};
+
+/** Desert boss island — ashen wastes dungeon / desert bosses. */
+export const DESERT_BOSS_ISLAND: BossRoomInstanceDef = {
+  id: 'desert_boss_island',
+  name: 'Desert Boss Island',
+  glbPath: FLOATING_ISLAND_ASSET_PATHS.desertBossIsland,
+  loadKey: 'desertBossIsland',
+  biomes: ['desert'],
+  sectors: ['ashen_wastes'],
+  entrySources: ['event_island_portal', 'random_dungeon_portal'],
+  minLevel: 10,
+  bossIds: ['drake', 'horned_lizard', 'fire_beetle'],
+  stripSkybox: true,
+  targetExtentM: 72,
+};
+
+/** Lava fighting arena — ember volcanic bosses. */
+export const VOLCANIC_BOSS_ARENA: BossRoomInstanceDef = {
+  id: 'volcanic_boss_arena',
+  name: 'Volcanic Boss Arena',
+  glbPath: FLOATING_ISLAND_ASSET_PATHS.volcanicBossArena,
+  loadKey: 'volcanicBossArena',
+  biomes: ['volcanic'],
+  sectors: ['ember_depths'],
+  entrySources: ['event_island_portal', 'random_dungeon_portal', 'mountain_biome_portal'],
+  minLevel: 14,
+  bossIds: ['lava_golem', 'ifrit', 'drake'],
+  stripSkybox: true,
+  targetExtentM: 52,
+};
+
+export const BOSS_ROOM_INSTANCES: BossRoomInstanceDef[] = [
+  HOTH_BOSS_ROOM,
+  DEEP_WOODS_BOSS_ROOM,
+  DESERT_BOSS_ISLAND,
+  VOLCANIC_BOSS_ARENA,
+];
+
+export function getBossRoomInstance(id: string): BossRoomInstanceDef | null {
+  return BOSS_ROOM_INSTANCES.find((r) => r.id === id) ?? null;
+}
+
+/**
+ * Pick a Hoth-style instance map for a sector / dungeon name.
+ * Name tokens win (ice / woods / desert / lava), then sector ownership.
+ */
+export function pickBossRoomInstance(opts: {
+  sectorId?: string;
+  dungeonId?: string;
+  dungeonName?: string;
+}): BossRoomInstanceDef | null {
+  const blob = `${opts.dungeonId || ''} ${opts.dungeonName || ''}`.toLowerCase();
+  if (/ice|frost|hoth|frozen|cold|snow/.test(blob)) return HOTH_BOSS_ROOM;
+  if (/lava|volcan|ember|magma|fire.?boss|ash.?spire/.test(blob)) return VOLCANIC_BOSS_ARENA;
+  if (/desert|dune|sand|ashen|waste/.test(blob)) return DESERT_BOSS_ISLAND;
+  if (/wood|forest|thorn|grove|jungle|deep.?wood/.test(blob)) return DEEP_WOODS_BOSS_ROOM;
+  const sector = opts.sectorId || '';
+  if (!sector) return null;
+  return BOSS_ROOM_INSTANCES.find((r) => r.sectors.includes(sector)) ?? null;
+}
+
+export function isBossInstanceSector(sectorId: string): boolean {
+  return BOSS_ROOM_INSTANCES.some((r) => r.sectors.includes(sectorId));
+}
 
 // ── Iceland scene — frozen biome SSOT (+ cold-adjacent only) ─────────────────
 

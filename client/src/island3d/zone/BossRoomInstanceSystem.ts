@@ -1,17 +1,19 @@
 /**
- * BossRoomInstanceSystem — load Hoth (and similar) boss chambers as instances.
+ * BossRoomInstanceSystem — load Hoth / woods / desert / lava boss chambers.
  *
  * Entry sources:
  *  - portal on event island (spiral mountain)
  *  - mountain / frozen biome island portal
- *  - random dungeon portal
+ *  - random dungeon portal (biome-picked instance map)
  *
  * Player is moved into an offset instance room; E at exit returns to entry stamp.
  */
 import * as THREE from 'three';
 import {
+  BOSS_ROOM_INSTANCES,
   FLOATING_ISLAND_LOAD_ORDER,
   HOTH_BOSS_ROOM,
+  pickBossRoomInstance,
   type BossRoomEntrySource,
   type BossRoomInstanceDef,
 } from '@shared/definitions/floatingIslandBossAssets';
@@ -43,7 +45,9 @@ export interface BossRoomSystemOpts {
 export class BossRoomInstanceSystem {
   readonly root = new THREE.Group();
   private scene: THREE.Scene;
+  private sectorId: string;
   private def: BossRoomInstanceDef = HOTH_BOSS_ROOM;
+  private rooms = new Map<string, THREE.Group>();
   private room: THREE.Group | null = null;
   private active = false;
   private entryStamp: THREE.Vector3 | null = null;
@@ -57,8 +61,10 @@ export class BossRoomInstanceSystem {
 
   constructor(opts: BossRoomSystemOpts) {
     this.scene = opts.scene;
+    this.sectorId = opts.sectorId;
     this.cb = opts.cb ?? {};
     this.worldFx = opts.worldFx ?? null;
+    this.def = pickBossRoomInstance({ sectorId: opts.sectorId }) ?? HOTH_BOSS_ROOM;
     this.bossId = this.def.bossIds[0]!;
     this.root.name = 'BossRoomInstances';
     this.root.position.copy(
@@ -66,7 +72,7 @@ export class BossRoomInstanceSystem {
     );
     this.root.visible = false;
     this.scene.add(this.root);
-    void this.preload();
+    void this.preloadSectorRooms();
   }
 
   get isInside() {
@@ -77,18 +83,31 @@ export class BossRoomInstanceSystem {
     return this.bossId;
   }
 
-  private async preload() {
-    try {
-      const scene = await loadGlbFirst(FLOATING_ISLAND_LOAD_ORDER.hothBossRoom);
-      if (this.disposed) return;
-      if (!scene) throw new Error('Hoth GLB missing on CDN and local');
-      if (this.def.stripSkybox) stripSkyboxFromObject(scene);
-      fitObjectExtent(scene, this.def.targetExtentM);
-      this.room = new THREE.Group();
-      this.room.name = this.def.id;
-      this.room.add(scene);
+  private async preloadSectorRooms() {
+    const wanted = BOSS_ROOM_INSTANCES.filter(
+      (d) => d.sectors.includes(this.sectorId) || d.id === this.def.id,
+    );
+    const list = wanted.length ? wanted : [this.def];
+    for (const def of list) {
+      await this.ensureRoom(def);
+    }
+  }
 
-      // Exit portal
+  private async ensureRoom(def: BossRoomInstanceDef): Promise<THREE.Group | null> {
+    const cached = this.rooms.get(def.id);
+    if (cached) return cached;
+    try {
+      const urls = FLOATING_ISLAND_LOAD_ORDER[def.loadKey];
+      const scene = await loadGlbFirst(urls);
+      if (this.disposed) return null;
+      if (!scene) throw new Error(`${def.id} GLB missing on CDN and local`);
+      if (def.stripSkybox) stripSkyboxFromObject(scene);
+      fitObjectExtent(scene, def.targetExtentM);
+      const room = new THREE.Group();
+      room.name = def.id;
+      room.visible = false;
+      room.add(scene);
+
       const exit = new THREE.Mesh(
         new THREE.TorusGeometry(1.8, 0.2, 8, 20),
         new THREE.MeshStandardMaterial({
@@ -98,12 +117,10 @@ export class BossRoomInstanceSystem {
         }),
       );
       exit.rotation.x = Math.PI / 2;
-      exit.position.set(0, 1.2, this.def.targetExtentM * 0.35);
+      exit.position.set(0, 1.2, def.targetExtentM * 0.35);
       exit.name = 'BossRoomExit';
-      this.exitPad = exit;
-      this.room.add(exit);
+      room.add(exit);
 
-      // Boss marker
       const bossMark = new THREE.Mesh(
         new THREE.ConeGeometry(1.2, 3.5, 6),
         new THREE.MeshStandardMaterial({
@@ -114,14 +131,25 @@ export class BossRoomInstanceSystem {
       );
       bossMark.position.set(0, 2, -4);
       bossMark.name = 'BossSpawnMarker';
-      this.room.add(bossMark);
+      room.add(bossMark);
 
-      this.root.add(this.room);
-      console.log(`[BossRoom] Preloaded ${this.def.name}`);
+      this.rooms.set(def.id, room);
+      this.root.add(room);
+      if (!this.room) {
+        this.room = room;
+        this.exitPad = exit;
+      }
+      console.log(`[BossRoom] Preloaded ${def.name}`);
+      return room;
     } catch (e) {
-      console.warn('[BossRoom] Hoth load failed — box arena fallback', e);
-      this.room = this.fallbackRoom();
-      this.root.add(this.room);
+      console.warn(`[BossRoom] ${def.id} load failed — box arena fallback`, e);
+      const room = this.fallbackRoom();
+      room.name = def.id;
+      room.visible = false;
+      this.rooms.set(def.id, room);
+      this.root.add(room);
+      if (!this.room) this.room = room;
+      return room;
     }
   }
 
@@ -142,17 +170,31 @@ export class BossRoomInstanceSystem {
   }
 
   /**
-   * Enter Hoth (or active def) from a portal.
+   * Enter Hoth / woods / desert / lava chamber from a portal.
    * Moves `playerPos` into the instance and stamps return position.
    */
   enter(
     playerPos: THREE.Vector3,
     source: BossRoomEntrySource = 'frozen_biome_portal',
+    roomId?: string,
   ): boolean {
-    if (!this.room) {
-      this.cb.onPrompt?.('Boss chamber still loading…');
+    const picked =
+      (roomId ? BOSS_ROOM_INSTANCES.find((r) => r.id === roomId) : null) ??
+      pickBossRoomInstance({ sectorId: this.sectorId }) ??
+      this.def;
+    this.def = picked;
+    const ready = this.rooms.get(picked.id);
+    if (!ready) {
+      void this.ensureRoom(picked);
+      this.cb.onPrompt?.(`${picked.name} still loading…`);
       return false;
     }
+    for (const g of this.rooms.values()) g.visible = false;
+    ready.visible = true;
+    this.room = ready;
+    this.exitPad =
+      (ready.getObjectByName('BossRoomExit') as THREE.Mesh | null) ?? this.exitPad;
+
     this.entryStamp = playerPos.clone();
     this.active = true;
     this.root.visible = true;

@@ -31,6 +31,18 @@ const FILES = [
     key: 'models/biomes/cold/iceland_scene_for_canimatic.glb',
     local: 'client/public/models/biomes/cold/iceland_scene_for_canimatic.glb',
   },
+  {
+    key: 'models/biomes/forest/scary_forest.glb',
+    local: 'client/public/models/biomes/forest/scary_forest.glb',
+  },
+  {
+    key: 'models/biomes/desert/bossinstanceisland.glb',
+    local: 'client/public/models/biomes/desert/bossinstanceisland.glb',
+  },
+  {
+    key: 'models/biomes/volcanic/low_poly_lava_fighting_arenastage.glb',
+    local: 'client/public/models/biomes/volcanic/low_poly_lava_fighting_arenastage.glb',
+  },
 ];
 
 let ok = 0;
