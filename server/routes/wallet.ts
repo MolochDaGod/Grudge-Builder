@@ -345,22 +345,28 @@ export function registerWalletRoutes(app: Express): void {
       if (!Number.isFinite(amount) || amount <= 0) {
         return res.status(400).json({ error: "amount must be > 0" });
       }
+      const { crossmintWalletService } = await import(
+        "../services/crossmintWallet"
+      );
+      const grudgeId = String(
+        (account as { grudgeId?: string }).grudgeId || "",
+      );
+      const cm = grudgeId
+        ? await crossmintWalletService.getOrCreateWalletForGrudgeId(grudgeId)
+        : null;
       const overview = await getWalletOverview(account.id);
-      const custodial = String(
+      const stored = String(
         overview?.custodialWallet ||
           overview?.primaryWallet ||
           account.walletAddress ||
           "",
       ).trim();
-      const fromWallet = String(body.fromWallet || custodial).trim();
+      // JWT identity owns the Crossmint wallet. Ignore client fromWallet so a
+      // linked Phantom cannot be used as the custodial signer source.
+      const fromWallet = String(cm?.address || stored).trim();
       if (fromWallet.length < 32) {
         return res.status(400).json({
           error: "No Crossmint play wallet on this Grudge ID",
-        });
-      }
-      if (custodial && fromWallet !== custodial) {
-        return res.status(403).json({
-          error: "fromWallet must be this account's Crossmint address",
         });
       }
       const to = String(
@@ -372,18 +378,13 @@ export function registerWalletRoutes(app: Express): void {
         return res.status(400).json({ error: "recipient required" });
       }
 
-      const { crossmintWalletService } = await import(
-        "../services/crossmintWallet"
-      );
       const GBUX_MINT =
         process.env.GBUX_MINT ||
         "55TpSoMNxbfsNJ9U1dQoo9H3dRtDmjBZVMcKqvU2nray";
-      const grudgeId = String(
-        (account as { grudgeId?: string }).grudgeId || "",
-      );
-      const emailLocator = grudgeId
-        ? `email:${crossmintWalletService.stableEmailForGrudgeId(grudgeId)}:solana`
-        : undefined;
+      const email = grudgeId
+        ? crossmintWalletService.stableEmailForGrudgeId(grudgeId)
+        : "";
+      const emailLocator = email ? `email:${email}:solana` : undefined;
 
       const sent = await crossmintWalletService.sendSplToken({
         fromWallet,
@@ -391,6 +392,13 @@ export function registerWalletRoutes(app: Express): void {
         amount: String(amount),
         mint: GBUX_MINT,
         emailLocator,
+        extraLocators: email
+          ? [
+              `email:${email}:solana-custodial-wallet`,
+              `email:${email}:solana:solana-custodial-wallet`,
+            ]
+          : undefined,
+        idempotencyKey: `gbux:${account.id}:${to.slice(0, 8)}:${amount}`,
       });
       if (!sent.success) {
         return res.status(502).json({
