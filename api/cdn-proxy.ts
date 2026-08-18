@@ -1,12 +1,12 @@
 /**
- * Same-origin R2 proxy.
+ * Same-origin R2 proxy (Vercel Node function).
  *
- * Browser → /api/assets/* (Referer: grudgewarlords.com)
- *   → this function GETs assets.grudge-studio.com with a same-host Referer
- *   → Cloudflare Hotlink Protection 1011 does not fire
+ * vercel.json rewrites:
+ *   /api/assets/:path* → /api/cdn-proxy?key=:path*
+ *   /sprites|/icons    → /api/cdn-proxy?key=…
  *
- * Do not use `fetch()` here. Vercel patches fetch to forward the incoming
- * Referer, which 1011s the PNG. node:https sends only the headers we set.
+ * Uses node:https (not fetch). Vercel fetch forwards the incoming Referer,
+ * which Cloudflare Hotlink Protection 1011s.
  */
 import https from "node:https";
 import { Readable } from "node:stream";
@@ -23,7 +23,7 @@ const CORS: Record<string, string> = {
   "Access-Control-Expose-Headers":
     "ETag, Accept-Ranges, Content-Length, Content-Type, Content-Range",
   "Access-Control-Max-Age": "86400",
-  "X-Grudge-Asset-Proxy": "node-https",
+  "X-Grudge-Asset-Proxy": "cdn-proxy",
 };
 
 function corsHeaders(extra?: Headers): Headers {
@@ -32,27 +32,37 @@ function corsHeaders(extra?: Headers): Headers {
   return out;
 }
 
-function assetKeyFromRequest(req: Request): string | null {
-  const url = new URL(req.url);
-  const prefix = "/api/assets/";
-  if (!url.pathname.startsWith(prefix)) return null;
-  let key = url.pathname.slice(prefix.length);
+function sanitizeKey(raw: string): string | null {
+  let key = raw.trim();
   try {
     key = decodeURIComponent(key);
   } catch {
     return null;
   }
+  key = key.replace(/^\/+/, "");
   if (!key || key.length > MAX_PATH) return null;
   if (key.includes("..") || key.includes("\\") || key.includes("://")) return null;
-  if (key.startsWith("/") || key.includes("//")) return null;
+  if (key.includes("//")) return null;
   if (!/^[A-Za-z0-9._\-/% ]+$/.test(key)) return null;
   return key;
+}
+
+function assetKeyFromRequest(req: Request): string | null {
+  const url = new URL(req.url);
+  const q = url.searchParams.get("key");
+  if (q) return sanitizeKey(q);
+  for (const prefix of ["/api/cdn-proxy/", "/api/assets/"]) {
+    if (url.pathname.startsWith(prefix)) {
+      return sanitizeKey(url.pathname.slice(prefix.length));
+    }
+  }
+  return null;
 }
 
 function cdnRequest(
   method: string,
   key: string,
-  search: string,
+  extraSearch: string,
   reqHeaders: Request,
 ): Promise<{ status: number; headers: Headers; stream: Readable }> {
   return new Promise((resolve, reject) => {
@@ -60,7 +70,6 @@ function cdnRequest(
       Host: CDN_HOST,
       Accept: reqHeaders.headers.get("accept") || "*/*",
       "User-Agent": "grudge-vercel-asset-proxy",
-      // Same-host Referer is allowed; foreign Referer is 1011.
       Referer: `https://${CDN_HOST}/`,
     };
     const range = reqHeaders.headers.get("range");
@@ -68,11 +77,18 @@ function cdnRequest(
     if (range) headers.Range = range;
     if (ifNone) headers["If-None-Match"] = ifNone;
 
+    const qs = extraSearch.replace(/^\?/, "");
+    const filtered = qs
+      .split("&")
+      .filter((p) => p && !p.startsWith("key="))
+      .join("&");
+    const path = `/${key}${filtered ? `?${filtered}` : ""}`;
+
     const req = https.request(
       {
         protocol: "https:",
         hostname: CDN_HOST,
-        path: `/${key}${search}`,
+        path,
         method,
         headers,
       },

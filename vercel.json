@@ -18,12 +18,16 @@
   },
   "rewrites": [
     {
+      "source": "/api/assets/:path*",
+      "destination": "/api/cdn-proxy?key=:path*"
+    },
+    {
       "source": "/sprites/:path*",
-      "destination": "/api/assets/sprites/:path*"
+      "destination": "/api/cdn-proxy?key=sprites/:path*"
     },
     {
       "source": "/icons/:path*",
-      "destination": "/api/assets/icons/:path*"
+      "destination": "/api/cdn-proxy?key=icons/:path*"
     },
     {
       "source": "/videos/:path*",
