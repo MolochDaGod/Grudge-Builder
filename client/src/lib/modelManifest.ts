@@ -276,7 +276,7 @@ const PLAYABLE_SKELETONS = new Set(["mixamo-24", "bip001"]);
 
 export const MODEL_MANIFEST: Record<string, ModelUnit> = {
   // ── THE 6 GRUDGE RACE CHARACTERS (grudge6 Bip001 modular kits) ──
-  // Production SSOT: assets…/models/grudge6/races/*_Characters.glb
+  // Production play SSOT: Toon RTS glb/characters/{race}.glb (via RACE_GRUDGE6.cdnPath)
   human:      { id: "human",      name: "Human",      modelPath: raceKitPath("human"),      scale: 1.0,  weaponType: "sword",       skeleton: "bip001", jointCount: 24 },
   barbarian:  { id: "barbarian",  name: "Barbarian",  modelPath: raceKitPath("barbarian"),  scale: 1.1,  weaponType: "greataxe",    skeleton: "bip001", jointCount: 24 },
   dwarf:      { id: "dwarf",      name: "Dwarf",      modelPath: raceKitPath("dwarf"),      scale: 0.85, weaponType: "hammer1h",    skeleton: "bip001", jointCount: 24 },

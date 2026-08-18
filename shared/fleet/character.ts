@@ -40,12 +40,12 @@ export interface Grudge6RaceConfig {
  * Equipment = child-mesh visibility via setupGrudge6Equipment / grudge6-kit EquipmentManager.
  */
 export const RACE_GRUDGE6: Record<string, Grudge6RaceConfig> = {
-  human:     { modelId: "human",     prefix: "WK_",  label: "Human",     cdnPath: "/models/grudge6/races/WK_Characters.glb",  scale: 1.0,  faction: "crusade", baseModelStem: "WK_Characters" },
-  barbarian: { modelId: "barbarian", prefix: "BRB_", label: "Barbarian", cdnPath: "/models/grudge6/races/BRB_Characters.glb", scale: 1.1,  faction: "crusade", baseModelStem: "BRB_Characters" },
-  elf:       { modelId: "elf",       prefix: "ELF_", label: "Elf",       cdnPath: "/models/grudge6/races/ELF_Characters.glb", scale: 1.0,  faction: "fabled",  baseModelStem: "ELF_Characters" },
-  dwarf:     { modelId: "dwarf",     prefix: "DWF_", label: "Dwarf",     cdnPath: "/models/grudge6/races/DWF_Characters.glb", scale: 0.85, faction: "crusade", baseModelStem: "DWF_Characters" },
-  orc:       { modelId: "orc",       prefix: "ORC_", label: "Orc",       cdnPath: "/models/grudge6/races/ORC_Characters.glb", scale: 1.15, faction: "legion",  baseModelStem: "ORC_Characters" },
-  undead:    { modelId: "undead",    prefix: "UD_",  label: "Undead",    cdnPath: "/models/grudge6/races/UD_Characters.glb",  scale: 1.0,  faction: "legion",  baseModelStem: "UD_Characters" },
+  human:     { modelId: "human",     prefix: "WK_",  label: "Human",     cdnPath: "/asset-packs/toon-rts-characters/glb/characters/human.glb",     scale: 1.0,  faction: "crusade", baseModelStem: "WK_Characters" },
+  barbarian: { modelId: "barbarian", prefix: "BRB_", label: "Barbarian", cdnPath: "/asset-packs/toon-rts-characters/glb/characters/barbarian.glb", scale: 1.1,  faction: "crusade", baseModelStem: "BRB_Characters" },
+  elf:       { modelId: "elf",       prefix: "ELF_", label: "Elf",       cdnPath: "/asset-packs/toon-rts-characters/glb/characters/elf.glb",       scale: 1.0,  faction: "fabled",  baseModelStem: "ELF_Characters" },
+  dwarf:     { modelId: "dwarf",     prefix: "DWF_", label: "Dwarf",     cdnPath: "/asset-packs/toon-rts-characters/glb/characters/dwarf.glb",     scale: 0.85, faction: "crusade", baseModelStem: "DWF_Characters" },
+  orc:       { modelId: "orc",       prefix: "ORC_", label: "Orc",       cdnPath: "/asset-packs/toon-rts-characters/glb/characters/orc.glb",       scale: 1.15, faction: "legion",  baseModelStem: "ORC_Characters" },
+  undead:    { modelId: "undead",    prefix: "UD_",  label: "Undead",    cdnPath: "/asset-packs/toon-rts-characters/glb/characters/undead.glb",    scale: 1.0,  faction: "legion",  baseModelStem: "UD_Characters" },
 };
 
 /**
