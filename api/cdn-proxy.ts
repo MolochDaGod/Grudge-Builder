@@ -1,35 +1,27 @@
 /**
- * Same-origin R2 proxy (Vercel Node function).
+ * Same-origin R2 proxy — classic Vercel Node (req, res).
  *
- * vercel.json rewrites:
+ * vercel.json:
  *   /api/assets/:path* → /api/cdn-proxy?key=:path*
- *   /sprites|/icons    → /api/cdn-proxy?key=…
  *
- * Uses node:https (not fetch). Vercel fetch forwards the incoming Referer,
- * which Cloudflare Hotlink Protection 1011s.
+ * node:https with same-host Referer. Do not use fetch() — Vercel forwards
+ * the incoming Referer and Cloudflare Hotlink Protection 1011s PNGs.
  */
+import type { IncomingMessage, ServerResponse } from "node:http";
 import https from "node:https";
-import { Readable } from "node:stream";
-
-export const config = { runtime: "nodejs" };
 
 const CDN_HOST = "assets.grudge-studio.com";
 const MAX_PATH = 512;
 
-const CORS: Record<string, string> = {
-  "Access-Control-Allow-Origin": "*",
-  "Access-Control-Allow-Methods": "GET, HEAD, OPTIONS",
-  "Access-Control-Allow-Headers": "Content-Type, Range",
-  "Access-Control-Expose-Headers":
-    "ETag, Accept-Ranges, Content-Length, Content-Type, Content-Range",
-  "Access-Control-Max-Age": "86400",
-  "X-Grudge-Asset-Proxy": "cdn-proxy",
-};
-
-function corsHeaders(extra?: Headers): Headers {
-  const out = extra ? new Headers(extra) : new Headers();
-  for (const [k, v] of Object.entries(CORS)) out.set(k, v);
-  return out;
+function setCors(res: ServerResponse): void {
+  res.setHeader("Access-Control-Allow-Origin", "*");
+  res.setHeader("Access-Control-Allow-Methods", "GET, HEAD, OPTIONS");
+  res.setHeader("Access-Control-Allow-Headers", "Content-Type, Range");
+  res.setHeader(
+    "Access-Control-Expose-Headers",
+    "ETag, Accept-Ranges, Content-Length, Content-Type, Content-Range, X-Upstream-Status",
+  );
+  res.setHeader("X-Grudge-Asset-Proxy", "cdn-proxy");
 }
 
 function sanitizeKey(raw: string): string | null {
@@ -47,122 +39,104 @@ function sanitizeKey(raw: string): string | null {
   return key;
 }
 
-function assetKeyFromRequest(req: Request): string | null {
-  const url = new URL(req.url);
+function keyFromReq(req: IncomingMessage): string | null {
+  const host = req.headers.host || "localhost";
+  const url = new URL(req.url || "/", `http://${host}`);
   const q = url.searchParams.get("key");
   if (q) return sanitizeKey(q);
+  const path = url.pathname;
   for (const prefix of ["/api/cdn-proxy/", "/api/assets/"]) {
-    if (url.pathname.startsWith(prefix)) {
-      return sanitizeKey(url.pathname.slice(prefix.length));
-    }
+    if (path.startsWith(prefix)) return sanitizeKey(path.slice(prefix.length));
   }
   return null;
 }
 
-function cdnRequest(
-  method: string,
-  key: string,
-  extraSearch: string,
-  reqHeaders: Request,
-): Promise<{ status: number; headers: Headers; stream: Readable }> {
-  return new Promise((resolve, reject) => {
-    const headers: Record<string, string> = {
-      Host: CDN_HOST,
-      Accept: reqHeaders.headers.get("accept") || "*/*",
-      "User-Agent": "grudge-vercel-asset-proxy",
-      Referer: `https://${CDN_HOST}/`,
-    };
-    const range = reqHeaders.headers.get("range");
-    const ifNone = reqHeaders.headers.get("if-none-match");
-    if (range) headers.Range = range;
-    if (ifNone) headers["If-None-Match"] = ifNone;
+export default function handler(req: IncomingMessage, res: ServerResponse): void {
+  setCors(res);
 
-    const qs = extraSearch.replace(/^\?/, "");
-    const filtered = qs
-      .split("&")
-      .filter((p) => p && !p.startsWith("key="))
-      .join("&");
-    const path = `/${key}${filtered ? `?${filtered}` : ""}`;
-
-    const req = https.request(
-      {
-        protocol: "https:",
-        hostname: CDN_HOST,
-        path,
-        method,
-        headers,
-      },
-      (res) => {
-        const out = new Headers();
-        for (const [k, v] of Object.entries(res.headers)) {
-          if (v == null) continue;
-          out.set(k, Array.isArray(v) ? v.join(", ") : v);
-        }
-        resolve({
-          status: res.statusCode || 502,
-          headers: out,
-          stream: res,
-        });
-      },
-    );
-    req.setTimeout(20000, () => {
-      req.destroy(new Error("cdn timeout"));
-    });
-    req.on("error", reject);
-    req.end();
-  });
-}
-
-export default async function handler(req: Request): Promise<Response> {
   if (req.method === "OPTIONS") {
-    return new Response(null, { status: 204, headers: corsHeaders() });
+    res.statusCode = 204;
+    res.end();
+    return;
   }
   if (req.method !== "GET" && req.method !== "HEAD") {
-    return new Response("Method Not Allowed", {
-      status: 405,
-      headers: corsHeaders(),
-    });
+    res.statusCode = 405;
+    res.end("Method Not Allowed");
+    return;
   }
 
-  const key = assetKeyFromRequest(req);
+  const key = keyFromReq(req);
   if (!key) {
-    return new Response("Bad Request", { status: 400, headers: corsHeaders() });
+    res.statusCode = 400;
+    res.end("Bad Request");
+    return;
   }
 
-  const url = new URL(req.url);
-  let upstream: { status: number; headers: Headers; stream: Readable };
-  try {
-    upstream = await cdnRequest(req.method, key, url.search, req);
-  } catch {
-    return new Response("Bad Gateway", { status: 502, headers: corsHeaders() });
+  const host = req.headers.host || "localhost";
+  const url = new URL(req.url || "/", `http://${host}`);
+  const extra = [...url.searchParams.entries()]
+    .filter(([k]) => k !== "key")
+    .map(([k, v]) => `${encodeURIComponent(k)}=${encodeURIComponent(v)}`)
+    .join("&");
+  const path = `/${key}${extra ? `?${extra}` : ""}`;
+
+  const headers: Record<string, string> = {
+    Host: CDN_HOST,
+    Accept: typeof req.headers.accept === "string" ? req.headers.accept : "*/*",
+    "User-Agent": "grudge-vercel-asset-proxy",
+    Referer: `https://${CDN_HOST}/`,
+  };
+  if (typeof req.headers.range === "string") headers.Range = req.headers.range;
+  if (typeof req.headers["if-none-match"] === "string") {
+    headers["If-None-Match"] = req.headers["if-none-match"];
   }
 
-  const out = new Headers();
-  for (const name of [
-    "content-type",
-    "content-length",
-    "content-range",
-    "accept-ranges",
-    "etag",
-    "last-modified",
-    "cache-control",
-  ]) {
-    const v = upstream.headers.get(name);
-    if (v) out.set(name, v);
-  }
-  if (!out.has("Cache-Control")) {
-    out.set("Cache-Control", "public, max-age=86400, stale-while-revalidate=3600");
-  }
-  out.set("X-Upstream-Status", String(upstream.status));
-  const headersOut = corsHeaders(out);
-
-  if (req.method === "HEAD") {
-    upstream.stream.resume();
-    return new Response(null, { status: upstream.status, headers: headersOut });
-  }
-
-  return new Response(Readable.toWeb(upstream.stream) as unknown as BodyInit, {
-    status: upstream.status,
-    headers: headersOut,
+  const up = https.request(
+    {
+      protocol: "https:",
+      hostname: CDN_HOST,
+      path,
+      method: req.method,
+      headers,
+    },
+    (upRes) => {
+      res.statusCode = upRes.statusCode || 502;
+      res.setHeader("X-Upstream-Status", String(upRes.statusCode || 502));
+      const pass = [
+        "content-type",
+        "content-length",
+        "content-range",
+        "accept-ranges",
+        "etag",
+        "last-modified",
+        "cache-control",
+      ];
+      for (const name of pass) {
+        const v = upRes.headers[name];
+        if (typeof v === "string") res.setHeader(name, v);
+        else if (Array.isArray(v)) res.setHeader(name, v.join(", "));
+      }
+      if (!res.getHeader("cache-control")) {
+        res.setHeader("Cache-Control", "public, max-age=86400, stale-while-revalidate=3600");
+      }
+      if (req.method === "HEAD") {
+        upRes.resume();
+        res.end();
+        return;
+      }
+      upRes.pipe(res);
+    },
+  );
+  up.setTimeout(20000, () => {
+    up.destroy(new Error("cdn timeout"));
   });
+  up.on("error", () => {
+    if (!res.headersSent) {
+      res.statusCode = 502;
+      res.end("Bad Gateway");
+    } else {
+      res.end();
+    }
+  });
+  up.end();
 }
