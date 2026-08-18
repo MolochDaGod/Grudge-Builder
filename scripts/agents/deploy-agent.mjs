@@ -42,7 +42,7 @@ const PLAN = [
   {
     id: 'client',
     title: 'Vercel production client',
-    shell: 'npx vercel deploy --prod --yes',
+    shell: 'node scripts/vercel-prod-guard.mjs && npx vercel deploy --prod --yes',
     flag: '--client',
   },
   {
