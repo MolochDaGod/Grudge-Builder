@@ -77,6 +77,9 @@ function toCdnRelativePath(pathOrUrl: string): string {
  * Same-origin URL that Vercel / Vite proxy to R2.
  * Prefer this for fetch, Three.js loaders, and canvas.
  */
+/** Local public sprite on the Warlords SPA — not R2. assetUrl() would 403/404 via /api/assets. */
+export const GBUX_TOKEN_SRC = "/sprites/gbux-token.png";
+
 export function sameOriginAssetUrl(path: string): string {
   if (!path) return '/api/assets/';
   if (/^(data:|blob:)/i.test(path)) return path;

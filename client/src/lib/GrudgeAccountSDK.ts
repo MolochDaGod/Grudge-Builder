@@ -34,6 +34,8 @@
 
 // ── Constants ──────────────────────────────────────────────────────────────────
 
+import { readFleetAuthToken, clearFleetAuthTokens } from "@shared/fleet";
+
 const TOKEN_KEY      = 'grudge_auth_token';
 const CHAR_ACTIVE    = 'gruda_active_character';
 const GRUDGE_ID_KEY  = 'grudge_id';
@@ -152,11 +154,7 @@ class _GrudgeAccountSDK {
   // ── Token helpers ───────────────────────────────────────────────────────────
 
   private _readToken(): string | null {
-    return (
-      (typeof localStorage !== 'undefined' && localStorage.getItem(TOKEN_KEY)) ||
-      (typeof localStorage !== 'undefined' && localStorage.getItem('grudge_session_token')) ||
-      null
-    );
+    return readFleetAuthToken();
   }
 
   private _saveToken(token: string): void {
@@ -237,6 +235,12 @@ class _GrudgeAccountSDK {
     try {
       // Fetch user profile
       const userRes = await fetch(`${this._apiBase}/api/account`, { headers });
+      if (userRes.status === 401 || userRes.status === 403) {
+        clearFleetAuthTokens();
+        this._token = null;
+        this.destroy();
+        return;
+      }
       if (userRes.ok) {
         const userData = await userRes.json();
         this._user = {
@@ -253,6 +257,12 @@ class _GrudgeAccountSDK {
 
       // Fetch characters
       const charRes = await fetch(`${this._apiBase}/api/characters?era=warlords`, { headers });
+      if (charRes.status === 401 || charRes.status === 403) {
+        clearFleetAuthTokens();
+        this._token = null;
+        this.destroy();
+        return;
+      }
       if (charRes.ok) {
         const raw = await charRes.json();
         const chars: GrudgeCharacter[] = Array.isArray(raw) ? raw : (raw.characters ?? []);
