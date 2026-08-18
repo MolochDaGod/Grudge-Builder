@@ -6881,7 +6881,7 @@ Also suggest metadata values in this exact JSON format:
   // ==================== Grudge UUID System Routes ====================
 
   // GET /api/uuid/test - Test UUID generation with current time
-  app.get("/api/uuid/test", async (_req, res) => {
+  app.get("/api/uuid/test", requireAuth, async (_req, res) => {
     try {
       const { 
         generateGrudgeUUID, 
@@ -6936,7 +6936,7 @@ Also suggest metadata values in this exact JSON format:
   });
 
   // POST /api/uuid/generate - Generate a UUID for a specific item
-  app.post("/api/uuid/generate", async (req, res) => {
+  app.post("/api/uuid/generate", requireAuth, async (req, res) => {
     try {
       const { slot, tier, itemId } = req.body;
       const { generateGrudgeUUID, parseGrudgeUUID, describeGrudgeUUID } = await import("@shared/grudgeUUID");
@@ -6957,7 +6957,10 @@ Also suggest metadata values in this exact JSON format:
   });
 
   // POST /api/uuid/apply-to-items - Apply Grudge UUIDs to all items in database
-  app.post("/api/uuid/apply-to-items", async (req, res) => {
+  app.post("/api/uuid/apply-to-items", requireAuth, async (req, res) => {
+    if (!isAdmin(req)) {
+      return res.status(403).json({ error: "Admin only" });
+    }
     try {
       const { generateGrudgeUUID, setCounterState } = await import("@shared/grudgeUUID");
       
@@ -7018,7 +7021,10 @@ Also suggest metadata values in this exact JSON format:
   });
 
   // POST /api/uuid/commit - Commit Grudge UUIDs to all items in database
-  app.post("/api/uuid/commit", async (req, res) => {
+  app.post("/api/uuid/commit", requireAuth, async (req, res) => {
+    if (!isAdmin(req)) {
+      return res.status(403).json({ error: "Admin only" });
+    }
     try {
       const { generateGrudgeUUID, setCounterState } = await import("@shared/grudgeUUID");
       
@@ -7079,7 +7085,7 @@ Also suggest metadata values in this exact JSON format:
   // ==================== UUID Ledger Routes ====================
 
   // POST /api/ledger/event - Log a UUID event
-  app.post("/api/ledger/event", async (req, res) => {
+  app.post("/api/ledger/event", requireAuth, async (req, res) => {
     try {
       const { 
         grudgeUuid, 
@@ -7187,7 +7193,7 @@ Also suggest metadata values in this exact JSON format:
   });
 
   // GET /api/ledger/search - Search ledger with filters
-  app.get("/api/ledger/search", async (req, res) => {
+  app.get("/api/ledger/search", requireAuth, async (req, res) => {
     try {
       const { 
         accountId, 
@@ -7222,7 +7228,7 @@ Also suggest metadata values in this exact JSON format:
   });
 
   // GET /api/ledger/account/:accountId - Get all UUIDs for an account
-  app.get("/api/ledger/account/:accountId", async (req, res) => {
+  app.get("/api/ledger/account/:accountId", requireAuth, async (req, res) => {
     try {
       const { accountId } = req.params;
       const { state } = req.query;
@@ -7257,7 +7263,7 @@ Also suggest metadata values in this exact JSON format:
   });
 
   // POST /api/ledger/craft - Handle crafting with UUID validation
-  app.post("/api/ledger/craft", async (req, res) => {
+  app.post("/api/ledger/craft", requireAuth, async (req, res) => {
     try {
       const { 
         accountId, 
@@ -7381,7 +7387,7 @@ Also suggest metadata values in this exact JSON format:
   });
 
   // POST /api/ledger/upgrade - Handle item upgrade with UUID archival
-  app.post("/api/ledger/upgrade", async (req, res) => {
+  app.post("/api/ledger/upgrade", requireAuth, async (req, res) => {
     try {
       const { 
         accountId, 
