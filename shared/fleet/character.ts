@@ -87,6 +87,19 @@ export function raceMeshPrefix(raceId: string): string {
   return (RACE_GRUDGE6[id] ?? RACE_GRUDGE6.human).prefix;
 }
 
+/**
+ * Warlords play kits — Toon RTS GLB only (`loadRaceKit` / `deployToonPlayKit`).
+ * Not races bake / FBX / metaverse.
+ */
+export const RACE_TOON_RTS_PATHS: Record<string, string> = {
+  human: "/asset-packs/toon-rts-characters/glb/characters/human.glb",
+  barbarian: "/asset-packs/toon-rts-characters/glb/characters/barbarian.glb",
+  elf: "/asset-packs/toon-rts-characters/glb/characters/elf.glb",
+  dwarf: "/asset-packs/toon-rts-characters/glb/characters/dwarf.glb",
+  orc: "/asset-packs/toon-rts-characters/glb/characters/orc.glb",
+  undead: "/asset-packs/toon-rts-characters/glb/characters/undead.glb",
+};
+
 /** Production grudge6 FBX path (materials correct; prefer over stripped GLB) */
 export const RACE_FBX_PATHS: Record<string, string> = {
   human:     "/models/grudge6/races/WK_Characters.fbx",
