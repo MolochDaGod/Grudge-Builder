@@ -39,6 +39,7 @@ import {
   resolveDiscordGrudgeAccount,
   resolvePuterIdentity,
   stampPuterLink,
+  findUserByPuterId,
   listLinkedProviders,
   asSchemaUser,
   fetchIdentityUserById,
@@ -1360,18 +1361,30 @@ export function registerAuthRoutes(app: Express) {
       const email = (req.body?.email as string | undefined) || undefined;
       if (!puterUuid) return res.status(400).json({ success: false, error: "puterUuid required" });
 
+      const already = await findUserByPuterId(puterUuid);
+      if (already && already.id !== payload.userId) {
+        return res.status(409).json({
+          success: false,
+          error: "This Puter account is already linked to another Grudge ID",
+          linkedGrudgeId: already.grudgeId || null,
+        });
+      }
+
       // Stamp Puter onto the *authenticated* user — never create a second grudge_id.
       await stampPuterLink(payload.userId, {
         id: puterUuid,
         username: puterUsername ?? null,
         email: email ?? null,
       });
+      const account = await ensureAccount(payload.userId);
       const identity = await fetchIdentityUserById(payload.userId);
       res.json({
         success: true,
         linked: true,
-        grudgeId: identity?.grudgeId || payload.grudgeId || null,
+        grudgeId: identity?.grudgeId || payload.grudgeId || account.grudgeId || null,
         puter_user_id: puterUuid,
+        walletAddress: account.walletAddress || null,
+        walletType: (account as { walletType?: string | null }).walletType || null,
         providers: identity ? listLinkedProviders(identity) : ["puter"],
       });
     } catch (e: any) {
