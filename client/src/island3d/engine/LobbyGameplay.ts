@@ -11,7 +11,6 @@ import type { CharacterController3D } from '@/island3d/player/CharacterControlle
 
 import {
   DOCK_GLB,
-  getShipCatalogEntry,
   RTS_SOUTH_DOCK,
 } from '@shared/definitions/shipCatalog';
 import { getActiveShip, ensureStarterShip } from '@/lib/shipDockService';
@@ -229,8 +228,9 @@ export async function createLobbyShipSystem(
   // Lazy-load dock module (breaks island3d → ship-boarding static cycle)
   const dockMod = await import('@/game/dock/ShipBoardingController');
   const shipSize = active?.size ?? dockMod.shipSizeFromAccount(accountId);
-  const entry = getShipCatalogEntry(shipSize);
-  const shipLoaded = await loadDockGlb(shipGroup, entry.glbModel, 0.85);
+  const { glbForShip } = await import('@shared/definitions/shipCatalog');
+  const hullUrl = glbForShip({ size: shipSize, name: active?.name });
+  const shipLoaded = await loadDockGlb(shipGroup, hullUrl, 0.85);
 
   if (!shipLoaded) {
     const hull = new THREE.Mesh(

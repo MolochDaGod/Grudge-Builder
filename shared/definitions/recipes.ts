@@ -5,7 +5,7 @@ export type RecipeAcquisition = 'purchasable' | 'skillTree' | 'dropOnly';
 export interface Recipe {
   id: string;
   name: string;
-  category: 'weapon' | 'armor' | 'consumable' | 'material';
+  category: 'weapon' | 'armor' | 'consumable' | 'material' | 'vehicle';
   subCategory: string;
   acquisition: RecipeAcquisition;
   profession: string;
@@ -346,10 +346,27 @@ function generateConsumableRecipes(): Recipe[] {
   }));
 }
 
+/** Vendor-sold hulls — not a skill-tree node. */
+export const VEHICLE_RECIPES: Recipe[] = [
+  {
+    id: 'recipe_long_row_boat',
+    name: 'Long Row Boat',
+    category: 'vehicle',
+    subCategory: 'rowboat',
+    acquisition: 'purchasable',
+    profession: 'Engineer',
+    purchaseCost: 80,
+    tierRange: [1, 3],
+    description:
+      'Unlock from the Barbarian Dock Master on Stormfang Isle, then craft at a dock. Long oar hull (~11.7 m). No cannons.',
+  },
+];
+
 export const ALL_RECIPES: Recipe[] = [
   ...generateWeaponRecipes(),
   ...generateArmorRecipes(),
-  ...generateConsumableRecipes()
+  ...generateConsumableRecipes(),
+  ...VEHICLE_RECIPES,
 ];
 
 export function getRecipesByAcquisition(acquisition: RecipeAcquisition): Recipe[] {

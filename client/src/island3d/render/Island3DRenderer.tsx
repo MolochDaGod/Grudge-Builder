@@ -192,7 +192,37 @@ export function Island3DRenderer({
     const onKey = (e: KeyboardEvent) => {
       if (e.key !== 'e' && e.key !== 'E') return;
       if (captainSystemRef.current?.getState()?.open) return;
-      captainSystemRef.current?.tryInteract();
+      if (captainSystemRef.current?.tryInteract()) return;
+      const pos = engineReady.character?.getPosition();
+      const islands = engineReady.factionIslands?.root;
+      if (!pos || !islands) return;
+      const tmp = new THREE.Vector3();
+      let near: { id: string } | null = null;
+      let best = 3.4;
+      islands.traverse((o) => {
+        const npc = o.userData?.npc;
+        if (npc?.role !== 'dock_master') return;
+        o.getWorldPosition(tmp);
+        const d = tmp.distanceTo(pos);
+        if (d < best) {
+          best = d;
+          near = npc;
+        }
+      });
+      if (!near) return;
+      void import('@/lib/recipeLearn').then(async (learn) => {
+        const { BARBARIAN_DOCK_MASTER } = await import('@shared/definitions/shipCatalog');
+        const r = await learn.tryLearnRecipeFromVendor(BARBARIAN_DOCK_MASTER.sellsRecipeIds[0], {
+          vendorId: (near as { id?: string }).id ?? BARBARIAN_DOCK_MASTER.npcId,
+        });
+        if (r.ok) {
+          window.alert(
+            r.firstTime
+              ? 'Stormfang Dock Master: recipe learned — Long Row Boat. Craft it at a dock.'
+              : 'You already know the Long Row Boat. Craft it at a dock.',
+          );
+        }
+      });
     };
     window.addEventListener('keydown', onKey);
     return () => {
