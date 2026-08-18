@@ -178,32 +178,8 @@ export async function ensureFleetSessionClaim(): Promise<boolean> {
     }
     return true;
   }
-  try {
-    const res = await fetch(`${API_BASE}/auth/session/claim`, {
-      method: "POST",
-      credentials: "include",
-      headers: { "Content-Type": "application/json" },
-      body: "{}",
-    });
-    if (!res.ok) return false;
-    const data = await res.json();
-    const token = data.sessionToken || data.token || data.access_token;
-    if (!token) return false;
-    setToken(token);
-    if (data.grudgeId) {
-      localStorage.setItem("grudge_id", data.grudgeId);
-      localStorage.setItem("grudge_account_id", data.grudgeId);
-    }
-    if (data.username || data.displayName) {
-      localStorage.setItem("grudge_username", data.username || data.displayName);
-    }
-    window.dispatchEvent(
-      new CustomEvent("grudge:auth:ready", { detail: { source: "session_claim" } }),
-    );
-    return true;
-  } catch {
-    return false;
-  }
+  // Guest / short cookie: do not POST claim (401 spam on labs / public pages).
+  return false;
 }
 
 (function pickupSsoToken() {

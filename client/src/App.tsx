@@ -67,6 +67,7 @@ const AirshipZonePage = lazy(() => import("@/pages/AirshipZonePage"));
 import HeroCodexPage from "@/pages/hero-codex";
 import CraftingPage from "@/pages/crafting";
 const Island3DPage = lazy(() => import("@/pages/island-3d"));
+const LavaCaesarLabPage = lazy(() => import("@/pages/lava-caesar-lab"));
 /** Canonical first-voyage: LeviathanOceanCinema */
 const LeviathanCinemaPage = lazy(() => import("@/pages/shipwreck-cinema"));
 /** Legacy deep link — redirect only */
@@ -203,6 +204,7 @@ function Router() {
       <Route path="/crafting" component={CraftingPage} />
       <Route path="/crafting-suite" component={CraftingPage} />
       <Route path="/island-3d" component={Island3DPage} />
+      <Route path="/lava-caesar-lab" component={LavaCaesarLabPage} />
       {/* First voyage — LeviathanOceanCinema (canonical) */}
       <Route path="/leviathan-cinema" component={LeviathanCinemaPage} />
       {/* Legacy bookmark — soft-redirect to /leviathan-cinema (keeps characterId) */}

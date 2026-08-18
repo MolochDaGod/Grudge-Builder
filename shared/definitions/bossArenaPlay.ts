@@ -28,7 +28,6 @@ export type BossArenaLayer = Extract<
 
 export const BOSS_ARENA_WALK_LAYERS: ReadonlySet<BossArenaLayer> = new Set([
   'terrain',
-  'lava',
   'seafloor',
 ]);
 
@@ -52,10 +51,12 @@ export function classifyBossArenaMesh(label: string, size?: { x: number; y: numb
     return 'ignore';
   }
   if (/lava|magma|molten|ember/.test(s)) return 'lava';
+  // Outer = parent of surrounding lava ring (scene 5), not a solid wall
+  if (/\bouter\b/.test(s)) return 'lava';
   if (/water|ocean|sea|pond|river|pool/.test(s)) return 'water';
   if (/seafloor|groundunder|lower_bottom|bottom_main/.test(s)) return 'seafloor';
   if (/column|pillar|collumn|coloumn/.test(s)) return 'column';
-  if (/wall|door|border|borde|spike|trap|outer/.test(s)) return 'building';
+  if (/wall|door|border|borde|spike|trap/.test(s)) return 'building';
   if (
     /walkable|floor|ground|platform|terrain|base_main|main_base|sand|ice_block|central_platform/.test(
       s,
@@ -81,7 +82,7 @@ export function colliderRoleForArenaLayer(
   if (layer === 'ignore') return null;
   if (layer === 'water') return 'sensor_trigger';
   if (layer === 'column' || layer === 'building') return 'wall';
-  if (layer === 'lava') return 'ground';
+  if (layer === 'lava') return 'sensor_trigger';
   return 'ground';
 }
 
