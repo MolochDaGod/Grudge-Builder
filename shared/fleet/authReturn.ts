@@ -1,3 +1,5 @@
+import { warlordsPlayOrigin } from "./warlordsDomains";
+
 /**
  * Fleet SSO return-url allowlist — shared by auth routes and client redirects.
  * Any game, site, or service origin that may receive ?sso_token= / ?grudge_token= after login.
@@ -25,8 +27,19 @@ const EXACT_HOSTS = new Set([
   "grudge-studio.com",
   "www.grudge-studio.com",
   "client.grudge-studio.com",
-  // GST direct Vercel (also covered by .vercel.app suffix; listed for audit clarity)
+  // Stable production Vercel satellites only — never unique/hash/git previews
   "grudge-studio-tool.vercel.app",
+  "grudge-builder.vercel.app",
+  "grudge-builder-grudgenexus.vercel.app",
+  "gameopen.vercel.app",
+  "warlord-genesis.vercel.app",
+  "rts-grudge.vercel.app",
+  "voxgrudge.vercel.app",
+  "casting-abilities-threejs.vercel.app",
+  "grudge-studio-editor.vercel.app",
+  "grudge-three-port.vercel.app",
+  "flare-boss-arena.vercel.app",
+  "mech-playground.vercel.app",
   "grudge.studio",
   "www.grudge.studio",
   "grudgestudio.org",
@@ -40,7 +53,7 @@ const EXACT_HOSTS = new Set([
   "grudgestudio.puter.site",
   "grudge-studio.puter.site",
   "grudge-heros.puter.site",
-  // Mine-Loader / Voxel Realms (also covered by .vercel.app / .grudge-studio.com)
+  // Mine-Loader / Voxel Realms
   "mine-loader.vercel.app",
   "mine.grudge-studio.com",
 ]);
@@ -49,7 +62,6 @@ const SUFFIX_HOSTS = [
   ".grudgewarlords.com",
   ".grudge-studio.com",
   ".grudge.studio",
-  ".vercel.app",
   ".up.railway.app",
   ".pages.dev",
   ".workers.dev",
@@ -80,12 +92,37 @@ function extraExactHosts(): string[] {
   }
 }
 
+/**
+ * Unique deploy + git-branch Vercel hosts.
+ * Examples: grudge-builder-4ou1a2tv6-grudgenexus.vercel.app
+ *           grudge-builder-git-feat-lava-caesar-boss-grudgenexus.vercel.app
+ * Not: grudge-builder.vercel.app / grudge-builder-grudgenexus.vercel.app
+ */
+export function isEphemeralVercelHost(hostname: string): boolean {
+  const h = String(hostname || "").toLowerCase();
+  if (!h.endsWith(".vercel.app")) return false;
+  if (h.includes("-git-")) return true;
+  return /-[a-z0-9]{8,12}-[a-z0-9]+\.vercel\.app$/.test(h);
+}
+
+/** Preview hash hosts must not be SSO/Foundry return origins. */
+export function canonicalSsoReturnOrigin(origin: string): string {
+  try {
+    const u = new URL(origin.includes("://") ? origin : `https://${origin}`);
+    if (isEphemeralVercelHost(u.hostname)) return warlordsPlayOrigin();
+    return u.origin;
+  } catch {
+    return warlordsPlayOrigin();
+  }
+}
+
 /** Returns true when `url` may receive SSO tokens after Grudge ID login. */
 export function isFleetAllowedReturnUrl(url: string): boolean {
   try {
     const host = new URL(url).hostname.toLowerCase();
-    if (EXACT_HOSTS.has(host)) return true;
     if (extraExactHosts().includes(host)) return true;
+    if (isEphemeralVercelHost(host)) return false;
+    if (EXACT_HOSTS.has(host)) return true;
     return SUFFIX_HOSTS.some((suffix) => host.endsWith(suffix) || host === suffix.slice(1));
   } catch {
     return false;

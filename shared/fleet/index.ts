@@ -18,7 +18,12 @@ export {
   type FleetRewrite,
 } from "./manifest";
 
-export { isFleetAllowedReturnUrl, resolveFleetReturnUrl } from "./authReturn";
+export {
+  isFleetAllowedReturnUrl,
+  resolveFleetReturnUrl,
+  isEphemeralVercelHost,
+  canonicalSsoReturnOrigin,
+} from "./authReturn";
 
 /** Warlords era *.grudgewarlords.com product zone */
 export {
@@ -164,6 +169,7 @@ export {
 
 export {
   RACE_GRUDGE6,
+  RACE_TOON_RTS_PATHS,
   RACE_FBX_PATHS,
   normalizeRaceId,
   raceMeshPrefix,

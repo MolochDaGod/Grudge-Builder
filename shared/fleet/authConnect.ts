@@ -6,7 +6,7 @@
  */
 
 import { FLEET_URLS } from "./manifest";
-import { isFleetAllowedReturnUrl } from "./authReturn";
+import { canonicalSsoReturnOrigin, isFleetAllowedReturnUrl } from "./authReturn";
 
 /** Public Grudge ID gateway — always use this in browser apps, never Railway directly. */
 export const FLEET_AUTH_GATEWAY = FLEET_URLS.auth;
@@ -76,7 +76,7 @@ export function buildFleetAuthCallback(
   origin: string,
   path = "/auth/callback",
 ): string {
-  const base = origin.replace(/\/$/, "");
+  const base = canonicalSsoReturnOrigin(origin).replace(/\/$/, "");
   const p = path.startsWith("/") ? path : `/${path}`;
   return `${base}${p}`;
 }
