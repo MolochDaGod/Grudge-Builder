@@ -1,5 +1,5 @@
 import { sql } from "drizzle-orm";
-import { pgTable, text, varchar, integer, jsonb, bigint, boolean, real } from "drizzle-orm/pg-core";
+import { pgTable, text, varchar, integer, jsonb, bigint, boolean, real, primaryKey } from "drizzle-orm/pg-core";
 import { createInsertSchema } from "drizzle-zod";
 import { z } from "zod";
 
@@ -663,6 +663,19 @@ export const insertAccountResourcesSchema = createInsertSchema(accountResources)
 
 export type InsertAccountResources = z.infer<typeof insertAccountResourcesSchema>;
 export type AccountResources = typeof accountResources.$inferSelect;
+
+/** Account-scoped learned recipes (hidden/experiment + blueprint). Not character XP. */
+export const accountLearnedRecipes = pgTable(
+  "account_learned_recipes",
+  {
+    accountId: varchar("account_id").notNull(),
+    recipeId: text("recipe_id").notNull(),
+    learnedAt: bigint("learned_at", { mode: "number" }).notNull().default(sql`extract(epoch from now()) * 1000`),
+  },
+  (t) => [primaryKey({ columns: [t.accountId, t.recipeId] })],
+);
+
+export type AccountLearnedRecipe = typeof accountLearnedRecipes.$inferSelect;
 
 // Home Islands - each account gets one unique home island
 // The state field is a flexible JSONB blob - the client transforms it to its own IslandState format

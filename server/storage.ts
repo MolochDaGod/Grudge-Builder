@@ -19,6 +19,7 @@ import {
   accounts,
   accountInventory,
   accountResources,
+  accountLearnedRecipes,
   homeIslands,
   spriteManifest,
   spriteUnitSpecs,
@@ -61,6 +62,7 @@ import {
   type InsertAccountInventory,
   type AccountResources,
   type InsertAccountResources,
+  type AccountLearnedRecipe,
   type HomeIsland,
   type InsertHomeIsland,
   type IslandState,
@@ -230,6 +232,10 @@ export interface IStorage {
   updateAccountResources(accountId: string, resources: Record<string, number>): Promise<AccountResources>;
   addAccountResource(accountId: string, resourceId: string, amount: number): Promise<AccountResources>;
   batchAddAccountResources(accountId: string, items: Array<{ resourceId: string; amount: number }>): Promise<AccountResources>;
+
+  /** Account recipe book (learned ids). Not character profession XP. */
+  getAccountLearnedRecipes(accountId: string): Promise<string[]>;
+  learnAccountRecipes(accountId: string, recipeIds: string[]): Promise<string[]>;
 
   // Sprite manifest methods
   getSpriteManifest(options?: { category?: string; subcategory?: string; search?: string; limit?: number }): Promise<SpriteManifestEntry[]>;
@@ -1222,6 +1228,26 @@ export class DatabaseStorage implements IStorage {
     }
     
     return this.updateAccountResources(accountId, currentResources);
+  }
+
+  async getAccountLearnedRecipes(accountId: string): Promise<string[]> {
+    const rows = await db
+      .select({ recipeId: accountLearnedRecipes.recipeId })
+      .from(accountLearnedRecipes)
+      .where(eq(accountLearnedRecipes.accountId, accountId));
+    return rows.map((r) => r.recipeId);
+  }
+
+  async learnAccountRecipes(accountId: string, recipeIds: string[]): Promise<string[]> {
+    const now = Date.now();
+    const unique = [...new Set(recipeIds.filter(Boolean))];
+    if (unique.length) {
+      await db
+        .insert(accountLearnedRecipes)
+        .values(unique.map((recipeId) => ({ accountId, recipeId, learnedAt: now })))
+        .onConflictDoNothing();
+    }
+    return this.getAccountLearnedRecipes(accountId);
   }
 
   // Sprite manifest methods
