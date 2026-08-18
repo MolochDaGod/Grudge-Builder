@@ -39,6 +39,9 @@ export interface Grudge6RaceConfig {
  * Canonical grudge6 race kits on R2 (not legacy /models/characters/races/*).
  * Equipment = child-mesh visibility via setupGrudge6Equipment / grudge6-kit EquipmentManager.
  */
+/** Must match Casting public/api/v1/grudge6-warlords-play-contract.json */
+export const WARLORDS_PLAY_CONTRACT_VERSION = "2026-08-18.play-kit.1";
+
 export const RACE_GRUDGE6: Record<string, Grudge6RaceConfig> = {
   human:     { modelId: "human",     prefix: "WK_",  label: "Human",     cdnPath: "/asset-packs/toon-rts-characters/glb/characters/human.glb",     scale: 1.0,  faction: "crusade", baseModelStem: "WK_Characters" },
   barbarian: { modelId: "barbarian", prefix: "BRB_", label: "Barbarian", cdnPath: "/asset-packs/toon-rts-characters/glb/characters/barbarian.glb", scale: 1.1,  faction: "crusade", baseModelStem: "BRB_Characters" },

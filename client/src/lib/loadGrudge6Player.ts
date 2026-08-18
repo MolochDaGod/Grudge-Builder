@@ -13,7 +13,7 @@ import {
   type PlayerHotbar,
   WEAPON_SKILL_SLOTS,
 } from '@/lib/hotbarLayout';
-import { weaponTypeFromModel3d, normalizeRaceId } from '@shared/fleet';
+import { weaponTypeFromModel3d, normalizeRaceId, WARLORDS_PLAY_CONTRACT_VERSION } from '@shared/fleet';
 import { defaultHotbarFromWeaponType } from '@/lib/viewerLaunchHandoff';
 import { getWeaponSkillDisplay } from '@shared/definitions/weaponSkillDisplay.generated';
 
@@ -154,6 +154,12 @@ export async function applyGrudge6PlayerToController(
       equipment,
     );
     character.setEquipment(equipment);
+    const kit = character.loadedModelScene ?? character.model;
+    if (kit?.userData) {
+      kit.userData.warlordsPlayContract = WARLORDS_PLAY_CONTRACT_VERSION;
+      kit.userData.grudge6Play = true;
+      kit.userData.playPath = 'toon-rts-glb';
+    }
   } catch (err) {
     const msg = err instanceof Error ? err.message : String(err);
     console.error('[Grudge6Player] loadCharacterFromManifest failed:', msg);

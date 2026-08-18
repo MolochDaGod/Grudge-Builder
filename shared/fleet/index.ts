@@ -168,6 +168,7 @@ export {
 } from "./uiArt";
 
 export {
+  WARLORDS_PLAY_CONTRACT_VERSION,
   RACE_GRUDGE6,
   RACE_TOON_RTS_PATHS,
   RACE_FBX_PATHS,
