@@ -1630,6 +1630,92 @@ export async function registerRoutes(
   });
 
   // ============================================
+  // ACCOUNT RECIPE BOOK (learned / hidden)
+  // Knowledge is account-scoped. Server bans live on the world, not here.
+  // ============================================
+
+  const recipeIdSchema = z
+    .string()
+    .trim()
+    .regex(/^[a-z0-9_]{2,64}$/i, "invalid recipe id")
+    .transform((s) => s.toLowerCase());
+
+  function sanitizeRecipeIds(raw: unknown, cap = 256): string[] {
+    if (!Array.isArray(raw)) return [];
+    const out: string[] = [];
+    const seen = new Set<string>();
+    for (const item of raw) {
+      const parsed = recipeIdSchema.safeParse(item);
+      if (!parsed.success) continue;
+      if (seen.has(parsed.data)) continue;
+      seen.add(parsed.data);
+      out.push(parsed.data);
+      if (out.length >= cap) break;
+    }
+    return out;
+  }
+
+  app.get("/api/account/recipes", requireAuth, async (req, res) => {
+    try {
+      const userId = getUserId(req);
+      const account = await storage.getOrCreateAccountForUser(userId);
+      const recipeIds = await storage.getAccountLearnedRecipes(account.id);
+      res.json({
+        accountId: account.id,
+        recipeIds,
+        scope: "account",
+      });
+    } catch (error) {
+      console.error("Error fetching account recipes:", error);
+      res.status(500).json({ error: "Failed to fetch recipes" });
+    }
+  });
+
+  app.post("/api/account/recipes", requireAuth, async (req, res) => {
+    try {
+      const userId = getUserId(req);
+      const account = await storage.getOrCreateAccountForUser(userId);
+      const one = req.body?.recipeId;
+      const many = req.body?.recipeIds;
+      const ids = sanitizeRecipeIds(many ?? (one != null ? [one] : []));
+      if (!ids.length) {
+        return res.status(400).json({ error: "recipeId or recipeIds required" });
+      }
+      const existing = await storage.getAccountLearnedRecipes(account.id);
+      if (existing.length + ids.filter((id) => !existing.includes(id)).length > 256) {
+        return res.status(400).json({ error: "recipe book is full (256)" });
+      }
+      const recipeIds = await storage.learnAccountRecipes(account.id, ids);
+      res.json({ accountId: account.id, recipeIds, scope: "account" });
+    } catch (error) {
+      console.error("Error learning account recipes:", error);
+      res.status(500).json({ error: "Failed to learn recipes" });
+    }
+  });
+
+  app.post("/api/account/recipes/check", requireAuth, async (req, res) => {
+    try {
+      const userId = getUserId(req);
+      const account = await storage.getOrCreateAccountForUser(userId);
+      const parsed = recipeIdSchema.safeParse(req.body?.recipeId);
+      if (!parsed.success) {
+        return res.status(400).json({ error: "invalid recipeId" });
+      }
+      const recipeIds = await storage.getAccountLearnedRecipes(account.id);
+      const known = recipeIds.includes(parsed.data);
+      res.json({
+        recipeId: parsed.data,
+        known,
+        scope: "account",
+        allowed: known,
+      });
+    } catch (error) {
+      console.error("Error checking account recipe:", error);
+      res.status(500).json({ error: "Failed to check recipe" });
+    }
+  });
+
+  // ============================================
   // HOME ISLAND ROUTES
   // ============================================
 
