@@ -18,10 +18,6 @@
   },
   "rewrites": [
     {
-      "source": "/api/assets/:path*",
-      "destination": "https://assets.grudge-studio.com/:path*"
-    },
-    {
       "source": "/sprites/:path*",
       "destination": "/api/assets/sprites/:path*"
     },
@@ -636,7 +632,7 @@
         },
         {
           "key": "X-Grudge-Asset-Proxy",
-          "value": "strip-referer"
+          "value": "node-https"
         }
       ]
     },
