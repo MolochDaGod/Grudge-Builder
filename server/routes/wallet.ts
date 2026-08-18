@@ -328,7 +328,96 @@ export function registerWalletRoutes(app: Express): void {
     }
   });
 
+  /**
+   * Sign+send on-chain GBUX from the account Crossmint Solana wallet.
+   * @see https://docs.crossmint.com/wallets/guides/transfer-tokens
+   */
+  app.post("/api/wallet/send-gbux", requireAuth, async (req, res) => {
+    try {
+      const account = await requireAccount(req, res);
+      if (!account) return;
+      const body = req.body as {
+        amount?: number | string;
+        to?: string;
+        fromWallet?: string;
+      };
+      const amount = Number(body.amount);
+      if (!Number.isFinite(amount) || amount <= 0) {
+        return res.status(400).json({ error: "amount must be > 0" });
+      }
+      const overview = await getWalletOverview(account.id);
+      const custodial = String(
+        overview?.custodialWallet ||
+          overview?.primaryWallet ||
+          account.walletAddress ||
+          "",
+      ).trim();
+      const fromWallet = String(body.fromWallet || custodial).trim();
+      if (fromWallet.length < 32) {
+        return res.status(400).json({
+          error: "No Crossmint play wallet on this Grudge ID",
+        });
+      }
+      if (custodial && fromWallet !== custodial) {
+        return res.status(403).json({
+          error: "fromWallet must be this account's Crossmint address",
+        });
+      }
+      const to = String(
+        body.to ||
+          process.env.AI_AGENT_WALLET ||
+          "6P7Pp5eHzPAVjnbNLkW8DzAuuc7gj9Sm5XiprwnjzvRs",
+      ).trim();
+      if (to.length < 32) {
+        return res.status(400).json({ error: "recipient required" });
+      }
+
+      const { crossmintWalletService } = await import(
+        "../services/crossmintWallet"
+      );
+      const GBUX_MINT =
+        process.env.GBUX_MINT ||
+        "55TpSoMNxbfsNJ9U1dQoo9H3dRtDmjBZVMcKqvU2nray";
+      const grudgeId = String(
+        (account as { grudgeId?: string }).grudgeId || "",
+      );
+      const emailLocator = grudgeId
+        ? `email:${crossmintWalletService.stableEmailForGrudgeId(grudgeId)}:solana`
+        : undefined;
+
+      const sent = await crossmintWalletService.sendSplToken({
+        fromWallet,
+        toWallet: to,
+        amount: String(amount),
+        mint: GBUX_MINT,
+        emailLocator,
+      });
+      if (!sent.success) {
+        return res.status(502).json({
+          error: sent.error || "Crossmint send failed",
+          fromWallet,
+          to,
+        });
+      }
+      res.json({
+        success: true,
+        signature: sent.signature,
+        explorerLink: sent.explorerLink,
+        pending: sent.pending,
+        status: sent.status,
+        fromWallet,
+        to,
+        amount,
+        mint: GBUX_MINT,
+        via: "crossmint",
+      });
+    } catch (e: any) {
+      console.error("[Wallet/send-gbux]", e);
+      res.status(400).json({ error: e.message || "Send failed" });
+    }
+  });
+
   console.log(
-    "[Wallet] Routes: GET /api/wallet/overview, /linked; POST /link/*, /purchase/*, /transfer-to-play",
+    "[Wallet] Routes: GET /api/wallet/overview, /linked; POST /link/*, /purchase/*, /transfer-to-play, /send-gbux",
   );
 }

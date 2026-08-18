@@ -789,8 +789,6 @@ export class CrossmintWalletService {
 
   /**
    * Submit a serialized Solana VersionedTransaction from BUDBai (Jupiter swap).
-   * Uses Wallets API 2025-06-09; falls back to v1-alpha2 locator.
-   * Server-signer approval may still be pending — caller records that status.
    */
   async submitSerializedSolanaTx(
     walletAddress: string,
@@ -844,6 +842,81 @@ export class CrossmintWalletService {
         } catch (e) {
           last = e instanceof Error ? e.message : String(e);
         }
+      }
+    }
+    return { success: false, error: last };
+  }
+
+  /**
+   * Send SPL from a live Crossmint Solana wallet.
+   * Official: POST /2025-06-09/wallets/{locator}/tokens/{chain:mint}/transfers
+   */
+  async sendSplToken(opts: {
+    fromWallet: string;
+    toWallet: string;
+    amount: string;
+    mint: string;
+    emailLocator?: string;
+  }): Promise<{
+    success: boolean;
+    signature?: string;
+    explorerLink?: string;
+    pending?: boolean;
+    error?: string;
+    status?: string;
+  }> {
+    if (!this.apiKey) {
+      return { success: false, error: "Crossmint API key not configured" };
+    }
+    const tokenLocator = `solana:${opts.mint.trim()}`;
+    const locators = [opts.fromWallet];
+    if (opts.emailLocator) locators.push(opts.emailLocator);
+    let last = "no locator accepted";
+    for (const loc of locators) {
+      const url = `${this.baseUrl}/api/2025-06-09/wallets/${encodeURIComponent(loc)}/tokens/${encodeURIComponent(tokenLocator)}/transfers`;
+      try {
+        const response = await fetch(url, {
+          method: "POST",
+          headers: {
+            "X-API-KEY": this.apiKey,
+            "Content-Type": "application/json",
+          },
+          body: JSON.stringify({
+            recipient: opts.toWallet,
+            amount: opts.amount,
+            transactionType: "direct",
+            fees: { mode: "project" },
+          }),
+        });
+        const text = await response.text();
+        let j: {
+          id?: string;
+          status?: string;
+          onChain?: { txId?: string; explorerLink?: string };
+          error?: string;
+          message?: string;
+        } = {};
+        try {
+          j = JSON.parse(text) as typeof j;
+        } catch {
+          last = `${response.status} ${text.slice(0, 160)}`;
+          continue;
+        }
+        if (response.ok || response.status === 201) {
+          const sig = j.onChain?.txId || j.id;
+          return {
+            success: true,
+            signature: sig,
+            explorerLink:
+              j.onChain?.explorerLink ||
+              (sig && sig.length > 40 ? `https://solscan.io/tx/${sig}` : undefined),
+            pending: /pending|awaiting/i.test(String(j.status || "")),
+            status: j.status,
+          };
+        }
+        last = j.error || j.message || `${response.status} ${text.slice(0, 160)}`;
+      } catch (e) {
+        last = e instanceof Error ? e.message : String(e);
       }
     }
     return { success: false, error: last };

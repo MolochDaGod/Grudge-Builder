@@ -161,6 +161,7 @@ export async function getWalletOverview(accountId: string) {
     grudgeId: account.grudgeId,
     gbuxBalance: account.gbuxBalance ?? 0,
     primaryWallet: account.walletAddress,
+    custodialWallet: account.walletAddress,
     walletType: account.walletType,
     crossmintEmail: account.crossmintEmail,
     linkedWallets: linked,
