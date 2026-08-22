@@ -160,7 +160,7 @@ import {
 } from '@/lib/renderBackend';
 import { NpcCampSystem, spawnZoneCamps } from '../camps/NpcCampSystem';
 import { CampUnitSystem } from '../camps/CampUnitSystem';
-import type { CampFaction } from '@shared/definitions/npcCamps';
+import { CAMP_UPGRADES, type CampFaction } from '@shared/definitions/npcCamps';
 import type { CampUnitOrderId } from '@shared/definitions/campUnits';
 import {
   createEvilMountainTriad,
@@ -246,6 +246,7 @@ import {
 import { tickGrowth, isHarvestable } from '../harvest/RegenerativeHarvest';
 import { PinataHarvestBreakSystem } from '../harvest/PinataHarvestBreak';
 import { FirewoodChopSystem } from '../harvest/FirewoodChopSystem';
+import type { HarvestNodeClass } from '../harvest/HarvestNodeRecognition';
 import { resolveBossHitResponse } from '../combat/HitResponseSystem';
 import type { LargeBossHitEvent } from '../combat/LargeBossFightSystem';
 import { PveBossInstanceSystem } from '../systems/PveBossInstanceSystem';
@@ -376,6 +377,17 @@ export interface Island3DEngineConfig {
   showBoardGrid?: boolean;
 }
 
+/** Taberna inn staff talk payload — IslandPlayOverlay + playNPCGreeting. */
+export interface InnTalkNpc {
+  id: string;
+  name: string;
+  role: string;
+  greeting: string;
+  dialogueSetId?: string;
+  travel?: boolean;
+  race?: string;
+}
+
 export class Island3DEngine {
   private renderer: THREE.WebGLRenderer;
   private scene: THREE.Scene;
@@ -446,6 +458,38 @@ export class Island3DEngine {
   public lobbyShip: LobbyShipSystem | null = null;
 
   /** Bounds for LobbyMiniMap / island SSOT world projection */
+  /** Nearest Taberna inn staff within 3.2 m (same E range as voxel vendors). */
+  pickInnStaffTalk(playerPos: THREE.Vector3): InnTalkNpc | null {
+    const ids = new Set([
+      'innkeeper',
+      'apothecary',
+      'smith',
+      'inn_trader',
+      'stationmaster',
+    ]);
+    let best: { d: number; o: THREE.Object3D } | null = null;
+    const wp = new THREE.Vector3();
+    this.scene.traverse((o) => {
+      const id = String(o.userData?.npcId ?? '');
+      if (!ids.has(id)) return;
+      o.getWorldPosition(wp);
+      const d = Math.hypot(playerPos.x - wp.x, playerPos.z - wp.z);
+      if (d > 3.2) return;
+      if (!best || d < best.d) best = { d, o };
+    });
+    if (!best) return null;
+    const u = best.o.userData;
+    return {
+      id: String(u.npcId),
+      name: String(u.npcName ?? u.npcId),
+      role: String(u.vendorId ?? u.npcId),
+      greeting: String(u.greeting ?? 'Well met, traveler.'),
+      dialogueSetId: u.dialogueSetId,
+      travel: !!u.travel,
+      race: u.race,
+    };
+  }
+
   public getLobbyMapBounds(): { center: THREE.Vector3; size: THREE.Vector3 } | null {
     if (!this.lobbyResult) return null;
     return { center: this.lobbyResult.center, size: this.lobbyResult.size };
@@ -504,6 +548,10 @@ export class Island3DEngine {
   }
   /** Set when player presses E at south dock — UI shows ShipDockPanel */
   public dockInteractPending = false;
+  /** E on Taberna inn staff — React overlay talks (existing dialogue + npc chat). */
+  public onInnTalk: ((npc: InnTalkNpc) => void) | null = null;
+  /** E while a play UI (inn talk) is open — overlay closes and returns true. */
+  public onClosePlayUi: (() => boolean) | null = null;
   public lobbyPlayZone: LobbyPlayZoneResult | null = null;
   /** 6 race faction islands on pirate open-world borders */
   public factionIslands: FactionIslandRuntime | null = null;
@@ -1294,6 +1342,7 @@ export class Island3DEngine {
     });
     this.character.setEntryLocked(false);
     this.character.setWorldFxBus?.(this.worldFx);
+    if (this.physics) this.character.attachRapierCct(this.physics);
 
     // Grudge6 race prefab + main-panel meshes + weapon skills (uMMORPG parity)
     try {
@@ -2162,6 +2211,7 @@ export class Island3DEngine {
     this._bossPortalKey = (e: KeyboardEvent) => {
       if (e.repeat || (e.key !== 'e' && e.key !== 'E')) return;
       if (!this.character) return;
+      if (this.onClosePlayUi?.()) return;
       // Exit PvE mountain / Warlords boss instance first
       if (this.pveBossInstance?.isInside) {
         if (this.pveBossInstance.tryExit(this.character.model.position)) {
@@ -2180,7 +2230,10 @@ export class Island3DEngine {
       });
       if (result.kind !== 'none') {
         console.info('[Island3D] zone interact:', result.kind);
+        return;
       }
+      const staff = this.pickInnStaffTalk(this.character.model.position);
+      if (staff) this.onInnTalk?.(staff);
     };
     window.addEventListener('keydown', this._bossPortalKey);
 
@@ -2389,6 +2442,7 @@ export class Island3DEngine {
       });
       this.character.setEntryLocked(false);
       this.character.setWorldFxBus?.(this.worldFx);
+      if (this.physics) this.character.attachRapierCct(this.physics);
 
       // Hold-to-jump — single sector resolver (volcanic / ethereal)
       const jumpCfg = resolvePlatformerJumpForSector(sectorId);
@@ -2663,6 +2717,111 @@ export class Island3DEngine {
     return this.campUnits?.isNearOwnedCamp(radius) ?? false;
   }
 
+  private campRtsActive = false;
+  private campRtsPolar = Math.PI / 2.15;
+
+  isCampRtsBuildMode(): boolean {
+    return this.campRtsActive;
+  }
+
+  /**
+   * Overhead RTS build on the nearest owned (or claimable) camp.
+   * Orbit owns the camera; TPS follow is off. Esc / same toggle exits.
+   */
+  enterCampRtsBuildMode(radius = 80): boolean {
+    const pos = this.character?.getPosition() ?? this.camera.position;
+    const owned = this.campUnits?.findNearestOwnedCamp(radius);
+    const near = this.npcCamps?.findNearestCamp(pos.x, pos.z, radius);
+    const camp =
+      owned ??
+      (near && near.relation !== 'enemy' ? near : null);
+    if (!camp) return false;
+
+    this.ensureCampSystems(
+      PROCEDURAL_WATER_LEVEL,
+      this.terrain
+        ? (wx, wz) => getTerrainHeightAt(this.terrain!.terrainMesh, wx, wz)
+        : undefined,
+    );
+    if (!camp.data.ownerAccountId) {
+      camp.data.ownerAccountId = this.config.accountId ?? 'guest';
+    }
+
+    const [cx, cy, cz] = camp.data.position;
+    this.campRtsPolar = this.controls.maxPolarAngle;
+    this.controls.maxPolarAngle = Math.PI * 0.38;
+    this.controls.minDistance = 12;
+    this.controls.maxDistance = 90;
+    this.controls.target.set(cx, cy + 0.6, cz);
+    this.camera.position.set(cx + 2, cy + 52, cz + 14);
+    this.camera.lookAt(cx, cy + 0.4, cz);
+    this.setCameraMode('orbit_edit');
+    this.controls.update();
+    this.campRtsActive = true;
+    void this.character?.setControlMode('build');
+    return true;
+  }
+
+  exitCampRtsBuildMode(): void {
+    if (!this.campRtsActive && this.getCameraMode() !== 'orbit_edit') return;
+    this.campRtsActive = false;
+    this.controls.maxPolarAngle = this.campRtsPolar;
+    this.controls.minDistance = 2;
+    this.controls.maxDistance = 400;
+    this.cancelBuilding();
+    this.setCameraMode(this.character ? 'play_tps' : 'orbit_edit');
+    void this.character?.setControlMode('harvest');
+  }
+
+  toggleCampRtsBuildMode(): boolean {
+    if (this.campRtsActive) {
+      this.exitCampRtsBuildMode();
+      return false;
+    }
+    return this.enterCampRtsBuildMode();
+  }
+
+  /** Snapshot for camp HUD — units + buildings on nearest owned camp. */
+  getCampHudSnapshot(): {
+    campId: string;
+    units: Array<{ id: string; race: string; order: string; t0: boolean }>;
+    buildings: Array<{ id: string; label: string; kind: string }>;
+    rts: boolean;
+  } | null {
+    const camp = this.campUnits?.findNearestOwnedCamp(80);
+    if (!camp) return null;
+    const units = (this.campUnits?.getUnitsForCamp(camp.data.id) ?? []).map((u) => ({
+      id: u.unitId,
+      race: u.raceId,
+      order: u.order,
+      t0: u.equipT0,
+    }));
+    const buildings = camp.data.upgrades.map((u) => ({
+      id: u.upgradeId,
+      label: CAMP_UPGRADES[u.upgradeId]?.label ?? u.upgradeId,
+      kind: u.kind,
+    }));
+    return { campId: camp.data.id, units, buildings, rts: this.campRtsActive };
+  }
+
+  /** Place a catalog upgrade on nearest camp (auto-slot). */
+  async placeCampUpgrade(upgradeId: string): Promise<boolean> {
+    const pos = this.character?.getPosition() ?? this.camera.position;
+    const camp =
+      this.campUnits?.findNearestOwnedCamp(80) ??
+      this.npcCamps?.findNearestCamp(pos.x, pos.z, 80);
+    if (!camp) return false;
+    if (camp.relation === 'enemy' && camp.data.ownerAccountId !== (this.config.accountId ?? 'guest')) {
+      return false;
+    }
+    if (!camp.data.ownerAccountId) {
+      camp.data.ownerAccountId = this.config.accountId ?? 'guest';
+    }
+    return this.npcCamps!.addUpgrade(camp.data.id, upgradeId, {
+      ownerAccountId: this.config.accountId ?? 'guest',
+    });
+  }
+
   /** Collapse submerged terrain so only the ocean shader shows water (not seafloor + ocean). */
   private flattenTerrainBelowWater(mesh: THREE.Mesh, waterLevel: number, seafloorDepth = -14): void {
     flattenTerrainVertsBelowWater(mesh, waterLevel, seafloorDepth);
@@ -2694,6 +2853,14 @@ export class Island3DEngine {
    * Honors oceanQuality: off skips all polish; low skips dual-pass RTs.
    */
   private setupOceanPolish(waterLevel: number): void {
+    try {
+      this.setupOceanPolishInner(waterLevel);
+    } catch (e) {
+      console.warn('[Island3D] ocean polish skipped:', e);
+    }
+  }
+
+  private setupOceanPolishInner(waterLevel: number): void {
     this.oceanReflectionRig?.dispose();
     this.oceanReflectionRig = null;
     this.underwaterPost?.dispose();
@@ -2733,16 +2900,15 @@ export class Island3DEngine {
         foam: this.oceanProcTextures?.foam ?? null,
         caustics: this.oceanProcTextures?.caustics ?? null,
       });
-      if (mat.uniforms.uHasReflection) {
-        if (this.oceanReflectionRig) {
-          mat.uniforms.uReflectionMap.value = this.oceanReflectionRig.reflectionMap;
-          mat.uniforms.uRefractionMap.value = this.oceanReflectionRig.refractionMap;
-          mat.uniforms.uHasReflection.value = 1;
-          mat.uniforms.uHasRefraction.value = 1;
-        } else {
-          mat.uniforms.uHasReflection.value = 0;
-          mat.uniforms.uHasRefraction.value = 0;
-        }
+      const u = mat.uniforms;
+      if (this.oceanReflectionRig) {
+        if (u.uReflectionMap) u.uReflectionMap.value = this.oceanReflectionRig.reflectionMap;
+        if (u.uRefractionMap) u.uRefractionMap.value = this.oceanReflectionRig.refractionMap;
+        if (u.uHasReflection) u.uHasReflection.value = 1;
+        if (u.uHasRefraction) u.uHasRefraction.value = 1;
+      } else {
+        if (u.uHasReflection) u.uHasReflection.value = 0;
+        if (u.uHasRefraction) u.uHasRefraction.value = 0;
       }
     }
 
@@ -2982,17 +3148,37 @@ export class Island3DEngine {
     // Skill projectiles / melee hit queries use same hostiles as soft-lock
     this.character.setSkillCombatHostiles(() => {
       const playerPos = this.character!.getPosition();
-      const out: Array<{ id: string; position: THREE.Vector3; hpFrac?: number }> = [];
+      const out: Array<{
+        id: string;
+        position: THREE.Vector3;
+        hpFrac?: number;
+        stun?: (sec: number) => void;
+      }> = [];
       if (this.creatures) {
         for (const t of this.creatures.listSoftLockTargets(playerPos, 48)) {
           out.push({
             id: t.id,
             position: t.position.clone(),
             hpFrac: t.maxHp ? t.hp / t.maxHp : undefined,
+            stun: (sec) => this.creatures?.applyStun(t.id, sec),
           });
         }
       }
       return out;
+    });
+    this.character.setSkillCombatFriendlies(() => {
+      const out: Array<{ id: string; name?: string; position: THREE.Vector3; hpFrac?: number }> = [];
+      if (this.allyManager) {
+        for (const a of this.allyManager.getLiving()) {
+          out.push({
+            id: a.id,
+            name: a.name,
+            position: a.model.position.clone(),
+            hpFrac: a.stats.maxHp ? a.hp / a.stats.maxHp : 1,
+          });
+        }
+      }
+      return out.slice(0, 3);
     });
 
     void this.connectPlayModeBridge();
@@ -3072,6 +3258,7 @@ export class Island3DEngine {
     });
     this.character.setEntryLocked(false);
     this.character.setWorldFxBus?.(this.worldFx);
+    if (this.physics) this.character.attachRapierCct(this.physics);
 
     console.log(
       `[Island3D] Hero on board cell ${cell.label} @ (${startPos.x.toFixed(1)}, ${startPos.y.toFixed(1)}, ${startPos.z.toFixed(1)})`,
@@ -3348,6 +3535,9 @@ export class Island3DEngine {
         /electric/i.test(hit.kind) ? 'lightning' : 'fire',
         response.impactScale,
       );
+      if (/slam|stomp|shockwave|meteor|rock/i.test(hit.kind) || response.impactScale >= 2.0) {
+        this.worldFx?.groundSlamBreak(target.clone());
+      }
     }
   }
 
@@ -3355,7 +3545,7 @@ export class Island3DEngine {
   private ensureFirewoodChop(): void {
     if (this.firewoodChop) return;
     if (!this.scene) return;
-    this.pinataHarvest = new PinataHarvestBreakSystem(this.scene, null);
+    this.pinataHarvest = new PinataHarvestBreakSystem(this.scene, this.physics);
     this.firewoodChop = new FirewoodChopSystem({
       scene: this.scene,
       pinata: this.pinataHarvest,
@@ -3413,6 +3603,42 @@ export class Island3DEngine {
           }
         },
       },
+    });
+  }
+
+  /**
+   * One harvest swing: pickaxe/hand IK at the ray hit, then pinata chip/shatter.
+   * Reuses PinataHarvestBreak + CharacterController3D — not a second harvest world.
+   */
+  private strikeHarvestImpact(
+    nodeClass: HarvestNodeClass,
+    target: THREE.Object3D,
+    impact: THREE.Vector3,
+    opts: { depleted: boolean; scale?: number; nodeId?: string; hitIndex?: number },
+  ): void {
+    this.ensureFirewoodChop();
+    const nodeId =
+      opts.nodeId ||
+      (typeof target.userData?.harvestNodeId === 'string'
+        ? target.userData.harvestNodeId
+        : target.uuid);
+    this.character?.pulseHarvestHandIk(impact, nodeId);
+    this.character?.playHarvestSwing();
+    const origin = this.character?.model.position ?? this.camera.position;
+    const impactDir = new THREE.Vector3(
+      impact.x - origin.x,
+      0.12,
+      impact.z - origin.z,
+    );
+    if (impactDir.lengthSq() < 1e-6) impactDir.set(0, 0.2, 1);
+    else impactDir.normalize();
+    this.pinataHarvest?.breakNode(nodeClass, target, {
+      mode: opts.depleted ? 'shatter' : 'chip',
+      impactPoint: impact,
+      impactDir,
+      scale: opts.scale ?? 1,
+      nodeId,
+      hitIndex: opts.hitIndex ?? 0,
     });
   }
 
@@ -4360,6 +4586,19 @@ export class Island3DEngine {
         return true;
       }
     }
+    const nodeId = `${ready.plot.id}:${ready.cell.index}`;
+    const impact = ready.worldPos.clone();
+    if (ready.cell.mesh) {
+      this.strikeHarvestImpact('flower', ready.cell.mesh, impact, {
+        depleted: true,
+        scale: 1,
+        nodeId,
+        hitIndex: 0,
+      });
+    } else {
+      this.character?.pulseHarvestHandIk(impact, nodeId);
+      this.character?.playHarvestSwing();
+    }
     const ev = this.farmPlots.harvestCell(ready.plot, ready.cell);
     return !!ev;
   }
@@ -4516,17 +4755,25 @@ export class Island3DEngine {
           result &&
           (selectedId === 'camp_bench_upgrade' ||
             selectedId === 'camp_storage_upgrade' ||
-            selectedId === 'camp_tower_upgrade')
+            selectedId === 'camp_tower_upgrade' ||
+            selectedId === 'camp_flag' ||
+            selectedId === 'camp_fire' ||
+            selectedId === 'flag_totem' ||
+            selectedId === 'bw_campfire')
         ) {
           const props = this.building.getAllProps();
           const last = props.find((p) => p.id === result.id);
-          const map: Record<string, 'camp_bench' | 'camp_storage' | 'camp_tower'> = {
+          const map: Record<string, string> = {
             camp_bench_upgrade: 'camp_bench',
             camp_storage_upgrade: 'camp_storage',
             camp_tower_upgrade: 'camp_tower',
+            camp_flag: 'camp_flag',
+            flag_totem: 'camp_flag',
+            camp_fire: 'camp_fire',
+            bw_campfire: 'camp_fire',
           };
           if (last && selectedId && map[selectedId]) {
-            void this.upgradeNearestCamp(last.position.x, last.position.z, map[selectedId]);
+            void this.placeCampUpgrade(map[selectedId]);
           }
         }
         return;
@@ -4648,6 +4895,8 @@ export class Island3DEngine {
       const impact = hits[0]!.point;
       const playerPos =
         this.character?.model.position ?? this.camera.position;
+      this.character?.pulseHarvestHandIk(impact, tree.nodeId);
+      this.character?.playHarvestSwing();
 
       if (this.firewoodChop && standing) {
         this.firewoodChop.strikeStanding(tree, impact, playerPos);
@@ -4687,7 +4936,7 @@ export class Island3DEngine {
       return;
     }
 
-    // Check rock hits
+    // Check rock hits — pinata chip at IK point; leftover core stays visible
     for (const rock of this.rocks) {
       if (!isHarvestable(rock as any)) continue;
       const hits = this.raycaster.intersectObject(rock.group, true);
@@ -4695,11 +4944,21 @@ export class Island3DEngine {
         rock.health--;
         rock.chipping = true;
         rock.chipTime = 0;
-        const scale = Math.max(0.3, rock.health / rock.maxHealth);
+        const depleted = rock.health <= 0;
+        const scale = depleted
+          ? 0.32
+          : Math.max(0.32, rock.health / rock.maxHealth);
         rock.group.scale.setScalar(rock.baseScale * scale);
+        const kind: HarvestNodeClass = rock.oreVariant ? 'ore' : 'rock';
+        this.strikeHarvestImpact(kind, rock.group, hits[0]!.point, {
+          depleted,
+          scale: rock.baseScale,
+          nodeId: rock.nodeId,
+          hitIndex: Math.max(0, rock.maxHealth - rock.health),
+        });
         void this.spawnRockDebris(rock, 1);
-        if (rock.health <= 0) {
-          markDepleted(rock as any, 'rock', true);
+        if (depleted) {
+          markDepleted(rock as any, 'rock', false);
           void this.emitHarvestDrops(
             rock.group.position.clone(),
             rock.oreVariant ? 'gold' : 'debris',
@@ -4719,12 +4978,19 @@ export class Island3DEngine {
         crystal.health--;
         crystal.chipping = true;
         crystal.chipTime = 0;
+        const depleted = crystal.health <= 0;
         const scale = Math.max(0.35, crystal.health / crystal.maxHealth);
         crystal.group.scale.setScalar(crystal.baseScale * scale);
+        this.strikeHarvestImpact('crystal', crystal.group, hits[0]!.point, {
+          depleted,
+          scale: crystal.baseScale,
+          nodeId: crystal.nodeId,
+          hitIndex: Math.max(0, crystal.maxHealth - crystal.health),
+        });
         void spawnResourceDrops(this.scene, crystal.group.position, 'gem', 1).then((d) => {
           this.harvestDrops.push(...d);
         });
-        if (crystal.health <= 0) {
+        if (depleted) {
           markDepleted(crystal as any, 'crystal', true);
           void this.emitHarvestDrops(
             crystal.group.position.clone(),
@@ -4743,9 +5009,16 @@ export class Island3DEngine {
       const hits = this.raycaster.intersectObject(hemp.group, true);
       if (hits.length > 0) {
         hemp.health--;
+        const depleted = hemp.health <= 0;
         const scale = Math.max(0.4, hemp.health / hemp.maxHealth);
         hemp.group.scale.setScalar(hemp.baseScale * scale);
-        if (hemp.health <= 0) {
+        this.strikeHarvestImpact('hemp', hemp.group, hits[0]!.point, {
+          depleted,
+          scale: hemp.baseScale,
+          nodeId: hemp.nodeId,
+          hitIndex: Math.max(0, hemp.maxHealth - hemp.health),
+        });
+        if (depleted) {
           markDepleted(hemp as any, 'hemp', true);
           void this.emitHarvestDrops(hemp.group.position.clone(), 'debris', 2, hemp.nodeId, 'herbalism');
         }
@@ -4758,9 +5031,16 @@ export class Island3DEngine {
       const hits = this.raycaster.intersectObject(flower.group, true);
       if (hits.length > 0) {
         flower.health--;
+        const depleted = flower.health <= 0;
         const scale = Math.max(0.4, flower.health / flower.maxHealth);
         flower.group.scale.setScalar(flower.baseScale * scale);
-        if (flower.health <= 0) {
+        this.strikeHarvestImpact('flower', flower.group, hits[0]!.point, {
+          depleted,
+          scale: flower.baseScale,
+          nodeId: flower.nodeId,
+          hitIndex: Math.max(0, flower.maxHealth - flower.health),
+        });
+        if (depleted) {
           markDepleted(flower as any, 'flower', true);
           void this.emitHarvestDrops(flower.group.position.clone(), 'debris', 2, flower.nodeId, 'herbalism');
         }
@@ -4773,12 +5053,19 @@ export class Island3DEngine {
       const hits = this.raycaster.intersectObject(scrap.group, true);
       if (hits.length > 0) {
         scrap.health--;
+        const depleted = scrap.health <= 0;
         const scale = Math.max(0.4, scrap.health / scrap.maxHealth);
         scrap.group.scale.setScalar(scrap.baseScale * scale);
+        this.strikeHarvestImpact('scrap', scrap.group, hits[0]!.point, {
+          depleted,
+          scale: scrap.baseScale,
+          nodeId: scrap.nodeId,
+          hitIndex: Math.max(0, scrap.maxHealth - scrap.health),
+        });
         void spawnResourceDrops(this.scene, scrap.group.position, 'debris', 1).then((d) => {
           this.harvestDrops.push(...d);
         });
-        if (scrap.health <= 0) {
+        if (depleted) {
           markDepleted(scrap as any, 'scrap', true);
           void this.emitHarvestDrops(scrap.group.position.clone(), 'debris', 3, scrap.nodeId, 'mining');
         }

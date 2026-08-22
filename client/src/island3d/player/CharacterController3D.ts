@@ -40,6 +40,16 @@ import {
   ProductionSkillCombatRuntime,
   type CombatTarget as SkillCombatTarget,
 } from '../combat/ProductionSkillCombatRuntime';
+import { SpellTotemSystem } from '../combat/SpellTotemSystem';
+import {
+  isFriendlySkill,
+  skillIntentFromId,
+  totemPaintFromLoadout,
+  SHIELD_SKILL_IDS,
+  STUN_TOTEM_SKILL_IDS,
+  STUN_TOTEM_RANGE_M,
+  STUN_TOTEM_AOE_M,
+} from '@shared/definitions/skillIntent';
 import { buildAnimLoadMap } from '@/lib/animation/animationCatalog';
 import { buildBip001AnimLoadMap } from '@/lib/animation/bip001DrcAnims';
 import { CharacterAnimOrchestrator } from '@/lib/animation/characterAnimOrchestrator';
@@ -48,6 +58,7 @@ import { MotionDash } from '@/lib/animation/explorer/MotionDash';
 import type { MotionProfile } from '@/lib/animation/explorer/motionMath';
 import { formatMotionLabel } from './combatHudState';
 import type { CombatHudSnapshot } from './combatHudState';
+import type { PhysicsWorld, CharacterController as RapierCct } from '../physics/PhysicsWorld';
 import type { PlaybackSlot } from '@/lib/animation/animationCatalog';
 import {
   fitCharacterRootToHeightM,
@@ -174,6 +185,13 @@ export class CharacterController3D {
   private worldFx: import('../vfx/WorldFxBus').WorldFxBus | null = null;
   /** Optional foot IK (dash landing pulse + plant on uneven ground) */
   public characterIk: import('./CharacterIK').CharacterIK | null = null;
+  /** Rapier CCT when Island3D PhysicsWorld is armed — same capsule as fleet HUMAN_CCT. */
+  private rapierWorld: PhysicsWorld | null = null;
+  private rapierCct: RapierCct | null = null;
+  private harvestIkTarget: THREE.Vector3 | null = null;
+  private harvestIkTimer = 0;
+  /** Harvestable nodeId the current IK pulse is bound to */
+  private harvestIkNodeId: string | null = null;
   /**
    * Animation / sim time scale (threejs-games player.timeScale pattern).
    * 1 = normal · 0.1 = RMB slow-mo (IK debug) · 0 = LMB freeze when ikDebug.
@@ -202,6 +220,14 @@ export class CharacterController3D {
   /** Production skill cast + projectile flight (keys 1–5) */
   private skillCombat: ProductionSkillCombatRuntime | null = null;
   private skillCombatHostiles: (() => SkillCombatTarget[]) | null = null;
+  private skillCombatFriendlies: (() => SkillCombatTarget[]) | null = null;
+  private spellTotems: SpellTotemSystem | null = null;
+  /** First click on a heal/buff remaps 1=self, 2–4=allies. */
+  private allyPick: { skillId: string; pendingSlot: number } | null = null;
+  /** First click on stun totem: ground AOE zone follows look until LMB. */
+  private zonePick: { skillId: string; pendingSlot: number } | null = null;
+  private zonePoint = new THREE.Vector3();
+  private readonly lookDir = new THREE.Vector3();
   /** Weapon draw/holster visual + transitional anims */
   private holster: WeaponHolsterController | null = null;
   /** True when weapons are currently in-hand (visual + combat ready) */
@@ -334,8 +360,9 @@ export class CharacterController3D {
   private terrainMesh: THREE.Mesh;
   private groundObject: THREE.Object3D | null;
   private groundSampler: ((x: number, z: number) => number | null) | null;
-  /** SI locomotion (m/s). Was 30 — absurd for 1.8 m human (felt fine only when 100× giant). */
-  private baseMoveSpeed = 5.5;
+  /** SI walk (m/s). 1.8 ≈ one human-height / s. Shift sprints ~4.8. Was 5.5 (run as walk). */
+  private baseMoveSpeed = 1.8;
+  private static readonly SPRINT_GAIT = 2.65;
   private turnSpeed = 3;
   private velocity = new THREE.Vector3();
   private direction = new THREE.Vector3();
@@ -425,6 +452,36 @@ export class CharacterController3D {
     config.scene.add(this.model);
 
     this.setupInputListeners();
+  }
+
+  /** Attach existing Island3D Rapier world — kinematic capsule, not a second engine. */
+  attachRapierCct(world: PhysicsWorld): void {
+    if (this.rapierCct) return;
+    try {
+      const r = 0.32;
+      const half = Math.max(0.4, (this.physics.characterHeight - r * 2) * 0.5);
+      this.rapierWorld = world;
+      this.rapierCct = world.addCharacterCapsule(r, half, this.model.position.clone());
+    } catch (err) {
+      console.warn('[Character3D] Rapier CCT attach failed — height-sample walk stays', err);
+      this.rapierCct = null;
+      this.rapierWorld = null;
+    }
+  }
+
+  hasRapierCct(): boolean {
+    return !!this.rapierCct;
+  }
+
+  /** Aim right-hand IK at a harvest/combat strike (blend out after ~0.22s). */
+  pulseHarvestHandIk(worldPoint: THREE.Vector3, nodeId?: string): void {
+    this.harvestIkTarget = worldPoint.clone();
+    this.harvestIkTimer = 0.22;
+    this.harvestIkNodeId = nodeId ?? null;
+  }
+
+  lastHarvestIkNodeId(): string | null {
+    return this.harvestIkNodeId;
   }
 
   // ─── Model loading (unchanged API) ─────────────────────────────────────────
@@ -673,6 +730,11 @@ export class CharacterController3D {
     this.skillCombatHostiles = fn;
   }
 
+  /** Living allies (+ optional self) for heal pick + totem echo. */
+  setSkillCombatFriendlies(fn: (() => SkillCombatTarget[]) | null): void {
+    this.skillCombatFriendlies = fn;
+  }
+
   private initHolsterController(weaponType: string): void {
     this.holster?.dispose();
     this.holster = null;
@@ -867,8 +929,36 @@ export class CharacterController3D {
       spread: this.motionDash.isActive ? 4 : this.focusEnabled ? 2 : 0,
       rangeState: this.focusEnabled ? 'optimal' : 'none',
       currentForm: this.currentForm,
-      actionBar: this.actionBar,
-      lastUsedSlot: this.lastUsedSlot,
+      actionBar: this.allyPick
+        ? (() => {
+            const map: Record<number, string | null> = { ...this.actionBar };
+            const picks = this.listAllyPickTargets();
+            map[1] = 'self';
+            map[2] = picks[1]?.id ?? null;
+            map[3] = picks[2]?.id ?? null;
+            map[4] = picks[3]?.id ?? null;
+            return map;
+          })()
+        : this.actionBar,
+      allyPick: this.allyPick
+        ? [1, 2, 3, 4].map((slot) => {
+            const picks = this.listAllyPickTargets();
+            const t = picks[slot - 1];
+            return {
+              slot,
+              label: t
+                ? t.id === 'self'
+                  ? 'Self'
+                  : t.name || `Ally ${slot - 1}`
+                : '—',
+              id: t?.id ?? '',
+              hpFrac: t?.hpFrac,
+            };
+          })
+        : null,
+      allyPickSkill: this.allyPick?.skillId ?? null,
+      zonePickSkill: this.zonePick?.skillId ?? null,
+      lastUsedSlot: this.allyPick || this.zonePick ? undefined : this.lastUsedSlot,
       cooldowns: (() => {
         const out: Record<number, number> = {};
         this.ensureSkillCombat();
@@ -1115,9 +1205,9 @@ export class CharacterController3D {
    * resumes after the clip without fighting the ground anim switch.
    */
   playHarvestSwing(): void {
-    if (this.mode !== 'harvest') return;
-    // Ensure tool is present even if mode was set before model finished loading
-    if (!this.harvestPickaxe) {
+    if (this.mode === 'build') return;
+    // Harvest mode: keep pickaxe in hand. Combat node-clicks still play the swing.
+    if (this.mode === 'harvest' && !this.harvestPickaxe) {
       void this.equipHarvestPickaxeTool();
     }
     const moving = this.velocity.lengthSq() > 0.04;
@@ -1303,11 +1393,17 @@ export class CharacterController3D {
           this.orchestrator.playMotionAttack('attack3');
         }
 
-        // Slots 1-5 for weapon/special skills like uMMORPG - production game flow
+        // Slots 1-5: weapon skills. Shift+1–5: class abilities (Mage Shield, heals).
         const slotKey = parseInt(e.key);
         if (slotKey >= 1 && slotKey <= 5) {
           this.ensureWeaponsDrawnForAction();
-          this.useSkillSlot(slotKey);
+          if (e.shiftKey) this.useClassAbilitySlot(slotKey);
+          else this.useSkillSlot(slotKey);
+          e.preventDefault();
+        }
+        if (e.key === 'Escape' && (this.allyPick || this.zonePick)) {
+          this.allyPick = null;
+          this.cancelZonePick();
           e.preventDefault();
         }
       }
@@ -1347,6 +1443,11 @@ export class CharacterController3D {
         if (this.ikDebug) {
           this.ikDebugSlowLmb = true;
           this.refreshIkDebugTimeScale();
+        }
+        if (this.zonePick) {
+          this.confirmZonePick();
+          e.preventDefault();
+          return;
         }
         if (this.mode === 'combat' && this.orchestrator) {
           this.ensureWeaponsDrawnForAction();
@@ -1446,6 +1547,11 @@ export class CharacterController3D {
 
   /** Use skill from slot 1-5 (production uMMORPG style flow). Real skill ids from spellbook assignment. */
   private useSkillSlot(slot: number): void {
+    if (this.zonePick) return;
+    if (this.allyPick) {
+      this.confirmAllyPick(slot);
+      return;
+    }
     // Only fill demo if the entire bar is still empty (respect full user assignment from spellbook)
     const hasUserBar = this.actionBar[1] || this.actionBar[2] || this.actionBar[3] || this.actionBar[4] || this.actionBar[5];
     if (!hasUserBar) this.initDemoActionBarForForm();
@@ -1455,21 +1561,108 @@ export class CharacterController3D {
       console.log(`[Game Flow] Slot ${slot} is empty. Assign in /skill-tree (Hotkeys tab)`);
       return;
     }
+    this.beginSkillCast(skillId, slot);
+  }
 
+  /** Shift+1–5 class abilities (Mage Shield, T0 missile / heal). */
+  private useClassAbilitySlot(slot: number): void {
+    if (this.zonePick) return;
+    if (this.allyPick) {
+      this.confirmAllyPick(slot);
+      return;
+    }
+    const bar = (this as any)._classAbilityBar as Record<number, string | null> | undefined;
+    const skillId = bar?.[slot] ?? null;
+    if (!skillId) {
+      console.log(`[Game Flow] Class slot Shift+${slot} empty`);
+      return;
+    }
+    this.beginSkillCast(skillId, slot);
+  }
+
+  private beginSkillCast(skillId: string, slot: number): void {
+    const intent = skillIntentFromId(skillId);
+    if (STUN_TOTEM_SKILL_IDS.has(skillId)) {
+      if (this.zonePick) return;
+      this.allyPick = null;
+      this.zonePick = { skillId, pendingSlot: slot };
+      this.lastUsedTime = performance.now();
+      this.ensureSpellTotem();
+      return;
+    }
+    // First click of a heal/buff/friendly: remap 1–4 to Self / allies. Do not cast yet.
+    if (intent === 'friendly' && !this.allyPick) {
+      this.allyPick = { skillId, pendingSlot: slot };
+      this.lastUsedTime = performance.now();
+      return;
+    }
+    this.executeSkillCast(skillId, slot, intent === 'self' ? this.selfTarget() : null);
+  }
+
+  private confirmAllyPick(slot: number): void {
+    const pick = this.allyPick;
+    if (!pick) return;
+    if (slot === 5) {
+      this.allyPick = null;
+      return;
+    }
+    if (slot > 4) return;
+    const friends = this.listAllyPickTargets();
+    const chosen = friends[slot - 1] ?? null;
+    if (!chosen) return;
+    this.allyPick = null;
+    this.executeSkillCast(pick.skillId, pick.pendingSlot, chosen);
+  }
+
+  private selfTarget(): SkillCombatTarget {
+    return {
+      id: 'self',
+      name: 'Self',
+      position: this.model.position.clone(),
+      hpFrac: this.stateMachine?.getContext?.()?.health != null
+        ? (this.stateMachine.getContext().health /
+            Math.max(1, this.stateMachine.getContext().maxHealth ?? 100))
+        : 1,
+    };
+  }
+
+  private listAllyPickTargets(): SkillCombatTarget[] {
+    const self = this.selfTarget();
+    const living = (this.skillCombatFriendlies?.() ?? []).filter((a) => a.id !== 'self');
+    return [self, ...living].slice(0, 4);
+  }
+
+  private executeSkillCast(
+    skillId: string,
+    slot: number,
+    preferred: SkillCombatTarget | null,
+    echo = false,
+  ): boolean {
     this.ensureSkillCombat();
     const combatDef = this.skillCombat?.getDef(skillId) ?? null;
-    if (combatDef && this.skillCombat && !this.skillCombat.isReady(skillId)) return;
+    if (!echo && combatDef && this.skillCombat && !this.skillCombat.isReady(skillId)) return false;
 
     const now = performance.now();
     const skill = getSkillById(skillId);
     const display = skill ? skill.name : skillId;
+    const intent = skillIntentFromId(skillId);
+    const hostiles = this.skillCombatHostiles?.() ?? [];
+    const friendlies = this.skillCombatFriendlies?.() ?? [];
+    const lock = this.softLock.getCurrent();
+    const lockTarget: SkillCombatTarget | null =
+      preferred
+      ?? (intent === 'self'
+        ? this.selfTarget()
+        : lock
+          ? {
+              id: lock.id,
+              position: lock.position.clone(),
+              hpFrac:
+                lock.hp != null && lock.maxHp ? lock.hp / lock.maxHp : undefined,
+            }
+          : null);
 
     if (this.skillCombat && combatDef) {
-      const lock = this.softLock.getCurrent();
-      const hostiles = this.skillCombatHostiles?.() ?? [];
-      const lockTarget: SkillCombatTarget | null = lock
-        ? { id: lock.id, position: lock.position.clone(), hpFrac: lock.hp != null && lock.maxHp ? lock.hp / lock.maxHp : undefined }
-        : null;
       const hand =
         this.loadedModelScene?.getObjectByName('R_hand_container')
         ?? this.loadedModelScene?.getObjectByName('L_hand_container');
@@ -1483,14 +1676,26 @@ export class CharacterController3D {
           casterYaw: this.cameraYaw,
           lockTarget,
           hostiles: hostiles.length ? hostiles : (lockTarget ? [lockTarget] : []),
+          friendlies,
           weaponType: this.weaponType,
+          echo,
         });
-        if (!result.ok) return;
+        if (!result.ok) return false;
       } catch (err) {
         console.warn('[Skill] cast failed', skillId, err);
-        return;
+        return false;
       }
     }
+
+    if (SHIELD_SKILL_IDS.has(skillId) && !echo) {
+      this.dropSpellTotem();
+    }
+    if (!echo && !STUN_TOTEM_SKILL_IDS.has(skillId)) {
+      this.ensureSpellTotem();
+      this.spellTotems?.noteCast(skillId, intent, lockTarget);
+    }
+
+    if (echo) return true;
 
     console.log(`[Game Flow] Slot ${slot} → ${display} (id:${skillId}) form:${this.currentForm}`);
     this.lastUsedSlot = slot;
@@ -1505,6 +1710,121 @@ export class CharacterController3D {
     }
 
     this.hitMarker = (this.hitMarker || 0) + 1;
+    return true;
+  }
+
+  private ensureSpellTotem(): void {
+    if (this.spellTotems) return;
+    this.spellTotems = new SpellTotemSystem(this.config.scene);
+    this.spellTotems.onEcho = (ev) => {
+      this.executeSkillCast(ev.skillId, this.lastUsedSlot ?? 1, ev.target, true);
+    };
+    this.spellTotems.onStunPulse = (at, radius, stunSec) => {
+      this.applyStunPulse(at, radius, stunSec);
+    };
+  }
+
+  private confirmZonePick(): void {
+    const pick = this.zonePick;
+    if (!pick) return;
+    this.ensureSkillCombat();
+    if (this.skillCombat && !this.skillCombat.isReady(pick.skillId)) return;
+    const at = this.lookGroundPoint(STUN_TOTEM_RANGE_M);
+    if (!at) return;
+    const planted = at.clone();
+    const ok = this.executeSkillCast(pick.skillId, pick.pendingSlot, {
+      id: 'stun_zone',
+      position: planted,
+    });
+    if (!ok) return;
+    this.zonePick = null;
+    this.spellTotems?.setZonePreview(null, 0);
+    this.dropStunTotem(planted);
+  }
+
+  private cancelZonePick(): void {
+    this.zonePick = null;
+    this.spellTotems?.setZonePreview(null, 0);
+  }
+
+  private dropStunTotem(at: THREE.Vector3): void {
+    this.ensureSpellTotem();
+    this.spellTotems?.spawnStun(at, STUN_TOTEM_AOE_M);
+    this.worldFx?.totemEmerge(at);
+  }
+
+  private applyStunPulse(at: THREE.Vector3, radius: number, stunSec: number): void {
+    this.worldFx?.stunBurst(at, radius);
+    const r2 = radius * radius;
+    for (const h of this.skillCombatHostiles?.() ?? []) {
+      const dx = h.position.x - at.x;
+      const dz = h.position.z - at.z;
+      if (dx * dx + dz * dz > r2) continue;
+      h.stun?.(stunSec);
+    }
+  }
+
+  /** Camera look → first ground hit within range (SI metres from feet). */
+  private lookGroundPoint(maxRange: number): THREE.Vector3 | null {
+    const cam = this.camera;
+    const dir = this.lookDir.set(0, 0, -1).applyQuaternion(cam.quaternion);
+    const from = cam.position;
+    const feet = this.model.position;
+    let hit: THREE.Vector3 | null = null;
+    for (let t = 1.2; t <= maxRange + 8; t += 0.35) {
+      const x = from.x + dir.x * t;
+      const y = from.y + dir.y * t;
+      const z = from.z + dir.z * t;
+      const gy = this.sampleGroundHeight(x, z);
+      if (gy == null) continue;
+      if (y > gy + 0.45) continue;
+      const dx = x - feet.x;
+      const dz = z - feet.z;
+      if (dx * dx + dz * dz > maxRange * maxRange) {
+        const scale = maxRange / Math.max(0.01, Math.hypot(dx, dz));
+        const cx = feet.x + dx * scale;
+        const cz = feet.z + dz * scale;
+        const cy = this.sampleGroundHeight(cx, cz) ?? gy;
+        hit = this.zonePoint.set(cx, cy, cz);
+        break;
+      }
+      hit = this.zonePoint.set(x, gy, z);
+      break;
+    }
+    return hit;
+  }
+
+  private dropSpellTotem(): void {
+    this.ensureSpellTotem();
+    const bar = (this as any)._classAbilityBar as Record<number, string | null> | undefined;
+    const paint = totemPaintFromLoadout(this.classIdStored, [
+      ...Object.values(this.actionBar),
+      ...Object.values(bar ?? {}),
+    ]);
+    const feet = this.model.position.clone();
+    this.spellTotems?.spawn(feet, paint);
+    this.worldFx?.totemEmerge(feet);
+  }
+
+  private tickSpellTotem(dt: number): void {
+    if (this.zonePick) {
+      const at = this.lookGroundPoint(STUN_TOTEM_RANGE_M);
+      this.spellTotems?.setZonePreview(at, STUN_TOTEM_AOE_M);
+    }
+    this.spellTotems?.update(
+      dt,
+      performance.now(),
+      this.skillCombatHostiles?.() ?? [],
+      [this.selfTarget(), ...(this.skillCombatFriendlies?.() ?? [])],
+    );
+  }
+
+  /** Hard land / slam: fall HP + one-shot ground-break VFX (then hide). */
+  private hardGroundImpact(fallSpeed: number): void {
+    const damage =
+      (fallSpeed - this.physics.fallDamageThreshold) * this.physics.fallDamageScale;
+    if (!this.invincible) this.callbacks.onFallDamage?.(damage);
+    this.worldFx?.groundSlamBreak(this.model.position.clone());
   }
 
   // ─── Main update ───────────────────────────────────────────────────────────
@@ -1517,6 +1837,7 @@ export class CharacterController3D {
 
     // Projectile flights + spiritual sword projectiles
     this.skillCombat?.update(dt * this.timeScale);
+    this.tickSpellTotem(dt);
 
     // IK debug freeze (LMB → timeScale 0) — anims frozen, no locomotion
     if (this.ikDebug && this.timeScale <= 0) {
@@ -1693,7 +2014,10 @@ export class CharacterController3D {
       }
 
       const speedMult = CharacterController3D.SPEED_MULT[this.movementState];
-      const effectiveSpeed = this.baseMoveSpeed * speedMult;
+      const sprinting =
+        this.keys.has('shift') && !this.tutorialInjuredMode && moving;
+      const gait = sprinting ? CharacterController3D.SPRINT_GAIT : 1;
+      const effectiveSpeed = this.baseMoveSpeed * speedMult * gait;
 
       const dashing = this.motionDash.apply(this.model.position, dt);
       if (this.motionDash.consumeImpact()) {
@@ -1707,8 +2031,10 @@ export class CharacterController3D {
       }
       if (!dashing) {
         this.velocity.lerp(moveDir.multiplyScalar(effectiveSpeed), dt * 5);
-        this.model.position.x += this.velocity.x * dt;
-        this.model.position.z += this.velocity.z * dt;
+        if (!this.rapierCct) {
+          this.model.position.x += this.velocity.x * dt;
+          this.model.position.z += this.velocity.z * dt;
+        }
       } else {
         this.velocity.set(0, 0, 0);
         moving = false;
@@ -1717,13 +2043,66 @@ export class CharacterController3D {
 
     // Apply residual knockback (boss AoE / skills) — physical push in XZ
     if (this.knockVel.lengthSq() > 1e-4) {
-      this.model.position.x += this.knockVel.x * dt;
-      this.model.position.z += this.knockVel.z * dt;
+      if (!this.rapierCct) {
+        this.model.position.x += this.knockVel.x * dt;
+        this.model.position.z += this.knockVel.z * dt;
+      }
       // Exponential decay (~0.2s half-life feel)
       const damp = Math.exp(-dt * 5.5);
       this.knockVel.x *= damp;
       this.knockVel.z *= damp;
       if (this.knockVel.lengthSq() < 0.05) this.knockVel.set(0, 0, 0);
+    }
+
+    // Rapier CCT owns XZ + gravity/jump when armed (not swim/climb/deck).
+    const caveInteriorPre =
+      (this as CharacterController3D & { caveInteriorActive?: boolean }).caveInteriorActive === true;
+    const inWaterPre =
+      !caveInteriorPre && this.model.position.y < this.physics.waterLevel;
+    if (
+      this.rapierCct &&
+      this.rapierWorld &&
+      this.movementState !== 'climbing' &&
+      !this.shipDeckLocked &&
+      !inWaterPre
+    ) {
+      if (!this.platformerJumpEnabled) {
+        const jumpHeldCct = this.keys.has(' ');
+        if (this.isGrounded && jumpHeldCct && !stunned) {
+          this.verticalVelocity = this.physics.jumpForce;
+          this.isGrounded = false;
+          this.keys.delete(' ');
+        } else if (!this.isGrounded) {
+          this.verticalVelocity += this.physics.gravity * dt;
+        }
+      }
+      const wasGroundedCct = this.isGrounded;
+      const prevVyCct = this.verticalVelocity;
+      const desired = new THREE.Vector3(
+        this.velocity.x * dt + this.knockVel.x * dt,
+        this.platformerJumpEnabled ? 0 : this.verticalVelocity * dt,
+        this.velocity.z * dt + this.knockVel.z * dt,
+      );
+      const center = this.rapierWorld.moveCharacter(this.rapierCct, desired, dt);
+      const feetYCct =
+        center.y - this.rapierCct.capsuleHalfHeight - this.rapierCct.capsuleRadius;
+      this.model.position.x = center.x;
+      this.model.position.z = center.z;
+      if (!this.platformerJumpEnabled) {
+        this.model.position.y = feetYCct;
+        this.isGrounded = this.rapierWorld.isCharacterGrounded(this.rapierCct);
+        if (
+          !wasGroundedCct &&
+          this.isGrounded &&
+          prevVyCct < -this.physics.fallDamageThreshold
+        ) {
+          this.hardGroundImpact(Math.abs(prevVyCct));
+        }
+        if (this.isGrounded && this.verticalVelocity < 0) this.verticalVelocity = 0;
+        this.setMovementState(
+          this.isGrounded ? 'ground' : this.verticalVelocity > 0 ? 'jumping' : 'falling',
+        );
+      }
     }
 
     // ── Vertical physics ─────────────────────────────────────────────────────
@@ -1803,21 +2182,16 @@ export class CharacterController3D {
 
         // Fall damage on land transition
         if (result.state.grounded && prevVy < -this.physics.fallDamageThreshold) {
-          const fallSpeed = Math.abs(prevVy);
-          const damage =
-            (fallSpeed - this.physics.fallDamageThreshold) * this.physics.fallDamageScale;
-          if (!this.invincible) this.callbacks.onFallDamage?.(damage);
+          this.hardGroundImpact(Math.abs(prevVy));
         }
+      } else if (this.rapierCct && !inWater) {
+        /* CCT already wrote feet Y + grounded */
       } else {
         if (distToGround <= 0.2 && this.verticalVelocity <= 0) {
           if (!this.isGrounded) {
             const fallSpeed = Math.abs(this.verticalVelocity);
             if (fallSpeed > this.physics.fallDamageThreshold) {
-              const damage =
-                (fallSpeed - this.physics.fallDamageThreshold) * this.physics.fallDamageScale;
-              if (!this.invincible) {
-                this.callbacks.onFallDamage?.(damage);
-              }
+              this.hardGroundImpact(fallSpeed);
               if (this.animations) {
                 if (this.tutorialInjuredMode && this.animations.hasClip('impact')) {
                   this.animations.play('impact', { loop: false });
@@ -1865,7 +2239,11 @@ export class CharacterController3D {
     }
 
     // Apply vertical velocity (climb path applies its own; platformer jump already integrated y)
-    if (this.movementState !== 'climbing' && !this.platformerJumpEnabled) {
+    if (
+      this.movementState !== 'climbing' &&
+      !this.platformerJumpEnabled &&
+      !(this.rapierCct && !inWater)
+    ) {
       this.model.position.y += this.verticalVelocity * dt;
     }
 
@@ -2037,6 +2415,15 @@ export class CharacterController3D {
     this.characterIk.isGrounded = this.isGrounded || this.shipDeckLocked;
     // restore → already ran mixer in update(); IK adjusts on top of FK
     this.characterIk.updateFootIK(terrain, dt);
+    if (this.harvestIkTimer > 0 && this.harvestIkTarget) {
+      this.harvestIkTimer -= dt;
+      const w = Math.max(0, Math.min(0.85, this.harvestIkTimer / 0.22));
+      this.characterIk.updateHandIK('right', this.harvestIkTarget, w);
+      if (this.harvestIkTimer <= 0) {
+        this.harvestIkTarget = null;
+        this.harvestIkNodeId = null;
+      }
+    }
   }
 
   // ─── Climbing detection ────────────────────────────────────────────────────
@@ -2518,15 +2905,15 @@ export class CharacterController3D {
     this.invincible = true;
     this.tutorialLockedHp = lockedHp;
     // Limp: slower base move during wash-up (SI m/s)
-    this.baseMoveSpeed = Math.min(this.baseMoveSpeed, 2.8);
+    this.baseMoveSpeed = Math.min(this.baseMoveSpeed, 1.15);
   }
 
   disableTutorialInjuredMode(): void {
     this.tutorialInjuredMode = false;
     this.invincible = false;
     this.tutorialLockedHp = null;
-    // Restore SI walk/run yardstick (~5.5 m/s base, not 30)
-    this.baseMoveSpeed = 5.5;
+    // Restore SI walk (sprint is Shift × SPRINT_GAIT)
+    this.baseMoveSpeed = 1.8;
   }
 
   /** Play injured ground loop (prone) for cinematic */
@@ -2705,6 +3092,10 @@ export class CharacterController3D {
     this.holster = null;
     this.orchestrator?.dispose();
     this.orchestrator = null;
+    this.cancelZonePick();
+    this.allyPick = null;
+    this.spellTotems?.dispose();
+    this.spellTotems = null;
     this.animations?.dispose();
     this.model.parent?.remove(this.model);
   }

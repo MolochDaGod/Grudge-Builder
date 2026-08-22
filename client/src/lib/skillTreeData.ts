@@ -104,7 +104,9 @@ export const CLASS_SKILL_TREES: Record<string, SkillTree> = {
       {
         name: 'Level 0 - Starting Ability',
         skills: [
-          { id: 'mage_0_missile', name: 'Magic Missile', icon: '✨', description: 'Fire multiple seeking missiles of arcane energy. Cannot miss.', effect: '5 missiles, 15 arcane dmg each', maxPoints: 1, requires: null }
+          { id: 'mage_0_missile', name: 'Magic Missile', icon: '✨', description: 'Fire multiple seeking missiles of arcane energy. Cannot miss.', effect: '5 missiles, 15 arcane dmg each', maxPoints: 1, requires: null },
+          { id: 'mage_mana_shield', name: 'Mage Shield', icon: '🛡️', description: 'Arcane barrier. Drops a red (mage) or green (priest) echo totem for 2 minutes. Echoes every matching spell 1s later. One at a time, 20s recast CD.', effect: 'Shield + 2min echo totem, 20s CD', maxPoints: 1, requires: null },
+          { id: 'staff_stun_totem', name: 'Stun Totem', icon: '🟣', description: 'Arcane staff weapon skill. Select a ground zone. Freya totem rises; purple burst stuns enemies in the AOE.', effect: 'Staff hotbar · ground AOE stun 2.5s', maxPoints: 1, requires: null }
         ]
       },
       {

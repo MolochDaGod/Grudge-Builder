@@ -10,7 +10,7 @@ import { resolveRaceCdnUrl } from '@shared/fleet/character';
 import { TerrainNavMesh, type NavPath } from '../navigation/TerrainNavMesh';
 import { getTerrainHeightAt } from '../terrain/IslandTerrainGenerator';
 
-export type AllyState = 'idle' | 'follow' | 'combat' | 'guard' | 'return' | 'dead' | 'group';
+export type AllyState = 'idle' | 'follow' | 'combat' | 'guard' | 'return' | 'dead' | 'group' | 'harvest';
 
 export interface AllyStats {
   maxHp: number;
@@ -41,7 +41,7 @@ const DEFAULT_STATS: AllyStats = {
   damage: 10,
   attackRange: 3,
   attackCooldown: 1.5,
-  moveSpeed: 20,
+  moveSpeed: 2.4,
   aggroRadius: 15,
   followDistance: 4,
 };
@@ -87,6 +87,9 @@ export class AllyController {
   public onAttack?: (target: CombatTarget, damage: number) => void;
   public onDeath?: (ally: AllyController) => void;
   public onStateChange?: (prev: AllyState, next: AllyState) => void;
+  public onHarvestSwing?: (ally: AllyController) => void;
+  private harvestPoint: THREE.Vector3 | null = null;
+  private harvestTimer = 0;
 
   constructor(
     config: AllyConfig,
@@ -211,6 +214,16 @@ export class AllyController {
     this.setState('group');
   }
 
+  /** AFK harvest at claim — walk to a work point and swing (worker locomotion). */
+  commandHarvestAfk(workPoint: THREE.Vector3): void {
+    this.harvestPoint = workPoint.clone();
+    this.aggressive = false;
+    this.joinParty = false;
+    this.followTarget = null;
+    this.target = null;
+    this.setState('harvest');
+  }
+
   /** Command: recall (stop and idle) */
   commandRecall(): void {
     this.target = null;
@@ -291,6 +304,24 @@ export class AllyController {
           this.setState('guard');
         } else {
           this.moveToward(returnTarget, 1, dt);
+        }
+        break;
+      }
+
+      case 'harvest': {
+        if (!this.harvestPoint) {
+          this.setState(this.guardPosition ? 'guard' : 'idle');
+          break;
+        }
+        const hDist = this.model.position.distanceTo(this.harvestPoint);
+        if (hDist > 1.6) {
+          this.moveToward(this.harvestPoint, 0.8, dt);
+        } else {
+          this.harvestTimer += dt;
+          if (this.harvestTimer >= 1.1) {
+            this.harvestTimer = 0;
+            this.onHarvestSwing?.(this);
+          }
         }
         break;
       }

@@ -62,6 +62,7 @@ This repo is **not** Warlord Genesis (separate Vercel app), not ObjectStore, and
 - **Game catalog** (races, classes, weapons, armor, attributes, recipes): ObjectStore / info `…/api/v1/*.json` — **definitions only**.
 - **3D models / icons**: R2 `assets.grudge-studio.com` via `assetUrl()` — **never** player SSOT.
 - **Creatures / traps / skeleton corpses**: **[docs/WARLORDS_ASSET_SSOT.md](./docs/WARLORDS_ASSET_SSOT.md)** (ONE TRUTH: R2 + assetUrl) · [WARLORDS_CREATURES_TRAPS_SKELETONS.md](./docs/WARLORDS_CREATURES_TRAPS_SKELETONS.md) — land wildlife, multipack traps, 120s corpse → skeleton residual; upload `node scripts/upload-session-warlords-assets-to-r2.mjs`.
+- **Play totems (Island3D):** Tyr red / Loki green echo (`SpellTotemSystem`, 120 s / 20 s CD, one echo) on Mage Shield; Freya stun is **STAFF** `staff_stun_totem` (hotbar, ground pick + LMB). CDN `https://assets.grudge-studio.com/models/vfx/totems/*.glb` via `assetUrl()`. Bake: ObjectStore `tools/grudge-convert/scripts/bake-norse-totems.mjs play` then `grudge-convert ship`.
 - **D1**: asset registry index only — **not** characters/islands/bag.
 - **Supabase**: **not required**. `/api/supabase/health` with `configured:false` is healthy production.
 - **Fleet bridge**: `client/public/grudge-fleet.js` **≥ 2.8.0** (CDN + Puter crafting). Hard-fails JWT≠stored `grudge_id`; rejects foreign active UUIDs.
