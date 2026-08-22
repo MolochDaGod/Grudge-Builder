@@ -1931,7 +1931,9 @@ export class CharacterController3D {
     // Swim-to-edge: quick holster when near climbable edge while swimming
     const groundHeightPre = this.sampleGroundHeight(this.model.position.x, this.model.position.z);
     const feetYPre = this.model.position.y;
-    const inWaterPre = feetYPre < this.physics.waterLevel;
+    const caveInteriorPre =
+      (this as CharacterController3D & { caveInteriorActive?: boolean }).caveInteriorActive === true;
+    const inWaterPre = !caveInteriorPre && feetYPre < this.physics.waterLevel;
     if (
       inWaterPre &&
       climbHit &&
@@ -2055,10 +2057,6 @@ export class CharacterController3D {
     }
 
     // Rapier CCT owns XZ + gravity/jump when armed (not swim/climb/deck).
-    const caveInteriorPre =
-      (this as CharacterController3D & { caveInteriorActive?: boolean }).caveInteriorActive === true;
-    const inWaterPre =
-      !caveInteriorPre && this.model.position.y < this.physics.waterLevel;
     if (
       this.rapierCct &&
       this.rapierWorld &&
