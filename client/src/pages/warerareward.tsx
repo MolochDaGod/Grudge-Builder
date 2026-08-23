@@ -7,7 +7,7 @@
  * Email/username register + login
  * cNFT character/island: show copy + later Crossmint (do not invent a mint or keys)
  * 
- * Auth/API (POST only to https://id.grudge-studio.com):
+ * Auth/API (same-origin paths only — Vercel proxies to Railway → id.grudge-studio.com):
  * - POST /api/auth/register {username, password, displayName?}
  * - POST /api/auth/login
  * - Then Authorization: Bearer for GET /api/auth/me, GET /api/account, POST /api/wallet/create
