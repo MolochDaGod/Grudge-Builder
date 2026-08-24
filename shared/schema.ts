@@ -603,6 +603,10 @@ export const accounts = pgTable("accounts", {
   walletType: text("wallet_type"), // 'crossmint' (server-managed) or 'external' (WalletConnect)
   crossmintWalletId: text("crossmint_wallet_id"), // Crossmint's internal wallet identifier
   crossmintEmail: text("crossmint_email"), // Email used for Crossmint wallet (for recovery)
+  // Warerareward referral system
+  referralCode: text("referral_code").unique(), // WERA- + 6 uppercase A-Z0-9, issued on register
+  referredBy: text("referred_by"), // Referral code that was used during registration
+  firstCharacterGranted: boolean("first_character_granted").notNull().default(false), // True if first free character was granted
   createdAt: bigint("created_at", { mode: "number" }).notNull().default(sql`extract(epoch from now()) * 1000`),
   updatedAt: bigint("updated_at", { mode: "number" }).notNull().default(sql`extract(epoch from now()) * 1000`),
 });
