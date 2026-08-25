@@ -54,3 +54,6 @@ foods_export.csv
 
 dist._bak*
 tmp-*
+
+# R2 is the production source for PBR ground maps; do not upload 1.3 GB to Vercel.
+client/public/textures/pbr/ground/**
