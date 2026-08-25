@@ -186,10 +186,21 @@ function isAdmin(req: Request): boolean {
   }
 }
 
+function isGuestProductIdentity(id?: string | null, name?: string | null): boolean {
+  const a = String(id || "").trim().toLowerCase();
+  const n = String(name || "").trim().toLowerCase();
+  return (
+    a === "guest" ||
+    a.startsWith("guest_") ||
+    n === "guest" ||
+    n.startsWith("guest_")
+  );
+}
+
 /** Middleware: require authenticated user (reject guests) */
 function requireAuth(req: Request, res: Response, next: NextFunction): void {
   const userId = extractUserId(req);
-  if (userId === "guest") {
+  if (userId === "guest" || isGuestProductIdentity(userId)) {
     res.status(401).json({ error: "Authentication required" });
     return;
   }
@@ -532,6 +543,17 @@ export async function registerRoutes(
         classId,
         model3d: req.body.model3d,
       });
+
+      if (
+        isGuestProductIdentity(userId) ||
+        isGuestProductIdentity(null, identity.name) ||
+        isGuestProductIdentity(null, accountDisplay)
+      ) {
+        return res.status(403).json({
+          error: "Guest product login is closed. Sign in with Grudge ID to create a hero.",
+          hint: "https://id.grudge-studio.com/login",
+        });
+      }
 
       // GCS unarmed race start: empty equipment unless the client sends explicit slots.
       const startingGear = skipStartingGear
@@ -1604,6 +1626,92 @@ export async function registerRoutes(
     } catch (error) {
       console.error("Error batch adding resources:", error);
       res.status(500).json({ error: "Failed to batch add resources" });
+    }
+  });
+
+  // ============================================
+  // ACCOUNT RECIPE BOOK (learned / hidden)
+  // Knowledge is account-scoped. Server bans live on the world, not here.
+  // ============================================
+
+  const recipeIdSchema = z
+    .string()
+    .trim()
+    .regex(/^[a-z0-9_]{2,64}$/i, "invalid recipe id")
+    .transform((s) => s.toLowerCase());
+
+  function sanitizeRecipeIds(raw: unknown, cap = 256): string[] {
+    if (!Array.isArray(raw)) return [];
+    const out: string[] = [];
+    const seen = new Set<string>();
+    for (const item of raw) {
+      const parsed = recipeIdSchema.safeParse(item);
+      if (!parsed.success) continue;
+      if (seen.has(parsed.data)) continue;
+      seen.add(parsed.data);
+      out.push(parsed.data);
+      if (out.length >= cap) break;
+    }
+    return out;
+  }
+
+  app.get("/api/account/recipes", requireAuth, async (req, res) => {
+    try {
+      const userId = getUserId(req);
+      const account = await storage.getOrCreateAccountForUser(userId);
+      const recipeIds = await storage.getAccountLearnedRecipes(account.id);
+      res.json({
+        accountId: account.id,
+        recipeIds,
+        scope: "account",
+      });
+    } catch (error) {
+      console.error("Error fetching account recipes:", error);
+      res.status(500).json({ error: "Failed to fetch recipes" });
+    }
+  });
+
+  app.post("/api/account/recipes", requireAuth, async (req, res) => {
+    try {
+      const userId = getUserId(req);
+      const account = await storage.getOrCreateAccountForUser(userId);
+      const one = req.body?.recipeId;
+      const many = req.body?.recipeIds;
+      const ids = sanitizeRecipeIds(many ?? (one != null ? [one] : []));
+      if (!ids.length) {
+        return res.status(400).json({ error: "recipeId or recipeIds required" });
+      }
+      const existing = await storage.getAccountLearnedRecipes(account.id);
+      if (existing.length + ids.filter((id) => !existing.includes(id)).length > 256) {
+        return res.status(400).json({ error: "recipe book is full (256)" });
+      }
+      const recipeIds = await storage.learnAccountRecipes(account.id, ids);
+      res.json({ accountId: account.id, recipeIds, scope: "account" });
+    } catch (error) {
+      console.error("Error learning account recipes:", error);
+      res.status(500).json({ error: "Failed to learn recipes" });
+    }
+  });
+
+  app.post("/api/account/recipes/check", requireAuth, async (req, res) => {
+    try {
+      const userId = getUserId(req);
+      const account = await storage.getOrCreateAccountForUser(userId);
+      const parsed = recipeIdSchema.safeParse(req.body?.recipeId);
+      if (!parsed.success) {
+        return res.status(400).json({ error: "invalid recipeId" });
+      }
+      const recipeIds = await storage.getAccountLearnedRecipes(account.id);
+      const known = recipeIds.includes(parsed.data);
+      res.json({
+        recipeId: parsed.data,
+        known,
+        scope: "account",
+        allowed: known,
+      });
+    } catch (error) {
+      console.error("Error checking account recipe:", error);
+      res.status(500).json({ error: "Failed to check recipe" });
     }
   });
 
@@ -6773,7 +6881,7 @@ Also suggest metadata values in this exact JSON format:
   // ==================== Grudge UUID System Routes ====================
 
   // GET /api/uuid/test - Test UUID generation with current time
-  app.get("/api/uuid/test", async (_req, res) => {
+  app.get("/api/uuid/test", requireAuth, async (_req, res) => {
     try {
       const { 
         generateGrudgeUUID, 
@@ -6828,7 +6936,7 @@ Also suggest metadata values in this exact JSON format:
   });
 
   // POST /api/uuid/generate - Generate a UUID for a specific item
-  app.post("/api/uuid/generate", async (req, res) => {
+  app.post("/api/uuid/generate", requireAuth, async (req, res) => {
     try {
       const { slot, tier, itemId } = req.body;
       const { generateGrudgeUUID, parseGrudgeUUID, describeGrudgeUUID } = await import("@shared/grudgeUUID");
@@ -6849,7 +6957,10 @@ Also suggest metadata values in this exact JSON format:
   });
 
   // POST /api/uuid/apply-to-items - Apply Grudge UUIDs to all items in database
-  app.post("/api/uuid/apply-to-items", async (req, res) => {
+  app.post("/api/uuid/apply-to-items", requireAuth, async (req, res) => {
+    if (!isAdmin(req)) {
+      return res.status(403).json({ error: "Admin only" });
+    }
     try {
       const { generateGrudgeUUID, setCounterState } = await import("@shared/grudgeUUID");
       
@@ -6910,7 +7021,10 @@ Also suggest metadata values in this exact JSON format:
   });
 
   // POST /api/uuid/commit - Commit Grudge UUIDs to all items in database
-  app.post("/api/uuid/commit", async (req, res) => {
+  app.post("/api/uuid/commit", requireAuth, async (req, res) => {
+    if (!isAdmin(req)) {
+      return res.status(403).json({ error: "Admin only" });
+    }
     try {
       const { generateGrudgeUUID, setCounterState } = await import("@shared/grudgeUUID");
       
@@ -6971,7 +7085,7 @@ Also suggest metadata values in this exact JSON format:
   // ==================== UUID Ledger Routes ====================
 
   // POST /api/ledger/event - Log a UUID event
-  app.post("/api/ledger/event", async (req, res) => {
+  app.post("/api/ledger/event", requireAuth, async (req, res) => {
     try {
       const { 
         grudgeUuid, 
@@ -7079,7 +7193,7 @@ Also suggest metadata values in this exact JSON format:
   });
 
   // GET /api/ledger/search - Search ledger with filters
-  app.get("/api/ledger/search", async (req, res) => {
+  app.get("/api/ledger/search", requireAuth, async (req, res) => {
     try {
       const { 
         accountId, 
@@ -7114,7 +7228,7 @@ Also suggest metadata values in this exact JSON format:
   });
 
   // GET /api/ledger/account/:accountId - Get all UUIDs for an account
-  app.get("/api/ledger/account/:accountId", async (req, res) => {
+  app.get("/api/ledger/account/:accountId", requireAuth, async (req, res) => {
     try {
       const { accountId } = req.params;
       const { state } = req.query;
@@ -7149,7 +7263,7 @@ Also suggest metadata values in this exact JSON format:
   });
 
   // POST /api/ledger/craft - Handle crafting with UUID validation
-  app.post("/api/ledger/craft", async (req, res) => {
+  app.post("/api/ledger/craft", requireAuth, async (req, res) => {
     try {
       const { 
         accountId, 
@@ -7273,7 +7387,7 @@ Also suggest metadata values in this exact JSON format:
   });
 
   // POST /api/ledger/upgrade - Handle item upgrade with UUID archival
-  app.post("/api/ledger/upgrade", async (req, res) => {
+  app.post("/api/ledger/upgrade", requireAuth, async (req, res) => {
     try {
       const { 
         accountId, 

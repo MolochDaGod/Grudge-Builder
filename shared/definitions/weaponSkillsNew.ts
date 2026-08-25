@@ -1313,6 +1313,13 @@ const WEAPON_TYPE_ALIASES: Record<string, string> = {
   GREATAXE: "AXE",
   TOME: "STAFF",
   TOOL: "HAMMER",
+  LANCE: "SPEAR",
+  NIMBLE_FINGERS: "RANGER_QUICK_FINGERS",
+  RANGER_LOG: "RANGER_QUICK_FINGERS",
+  DUAL_WIELD: "WARRIOR_BATTLE",
+  BATTLE_DUAL: "WARRIOR_BATTLE",
+  PICKAXE: "TOOL",
+  SHOVEL: "TOOL",
 };
 
 export function normalizeWeaponTypeId(weaponType: string): string {

@@ -48,8 +48,8 @@ const projectileMeshCache = new Map<string, THREE.Object3D>();
 let projectilePreloadStarted = false;
 
 const CDN_PROJECTILE_URLS: Record<string, string> = {
-  arrow: 'https://assets.grudge-studio.com/models/weapons/projectiles/arrow.glb',
-  bolt: 'https://assets.grudge-studio.com/models/weapons/projectiles/arrow.glb',
+  arrow: assetUrl('/models/weapons/projectiles/arrow.glb'),
+  bolt: assetUrl('/models/weapons/projectiles/arrow.glb'),
   shuriken: resolveNinjaProjectileMesh('shuriken-4'),
   kunai: resolveNinjaProjectileMesh('kunai'),
 };

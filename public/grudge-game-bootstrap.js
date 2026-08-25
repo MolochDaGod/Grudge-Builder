@@ -210,11 +210,22 @@
     return silentClaim();
   }
 
+  function hasFleetCookie() {
+    try {
+      var c = document.cookie || '';
+      return /(?:^|;\s*)(grudge_auth_token|sso_token|grudge_session)=/.test(c);
+    } catch (e) {
+      return false;
+    }
+  }
+
   /**
    * Claim a long-lived session from the id hub cookie (one login → all deployments).
    * Works for *.grudge-studio.com / grudgewarlords.com with credentials.
+   * Guest (no cookie): skip — POST claim is 401 and spams the lab console.
    */
   function silentClaim() {
+    if (!hasFleetCookie()) return Promise.resolve(false);
     var urls = [
       GATEWAY + '/api/auth/session/claim',
       '/api/auth/session/claim',

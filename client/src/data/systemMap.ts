@@ -124,7 +124,7 @@ const domains: SystemNode[] = [
   { id: "dom:grim-armada",        label: "grim-armada-web.vercel.app",           kind: "domain", status: "live", group: "games", url: "https://grim-armada-web.vercel.app",           notes: "Grim Armada — R3F+Rapier naval combat.", lastVerified: "2026-06-04" },
   { id: "dom:grudge-space",       label: "grudge-space-rts.vercel.app",          kind: "domain", status: "live", group: "games", url: "https://grudge-space-rts.vercel.app",          notes: "GrudgeSpace RTS — R3F space strategy.", lastVerified: "2026-06-04" },
   { id: "dom:dungeon-crawler",    label: "dungeon-crawler-quest.vercel.app",     kind: "domain", status: "live", group: "games", url: "https://dungeon-crawler-quest.vercel.app",     notes: "Dungeon Crawler Quest — voxel dungeon crawler.", lastVerified: "2026-06-04" },
-  { id: "dom:grudox",             label: "grudox.grudge-studio.com",             kind: "domain", status: "live", group: "games", url: "https://grudox.grudge-studio.com",             notes: "Nexus era play host (Toon RTS). Interim characters: voxel avatars until toon kits ship. Not Mine-Loader.", lastVerified: "2026-07-28" },
+  { id: "dom:grudox",             label: "grudox.grudge-studio.com",             kind: "domain", status: "live", group: "games", url: "https://grudox.grudge-studio.com",             notes: "GRUDOX brand — voxel era cabinets. Roster GET /api/characters?era=voxel. Not Warlords. Not Nexus toon.", lastVerified: "2026-08-15" },
   { id: "dom:info.g-s.com",       label: "info.grudge-studio.com",               kind: "domain", status: "live", group: "assets", url: "https://info.grudge-studio.com/health",       notes: "Game Info Hub — guides/tools; /health JSON OK. Root may 308-redirect — prefer /health for probes.", lastVerified: "2026-07-12" },
   { id: "dom:character.g-s.com",  label: "character.grudge-studio.com",          kind: "domain", status: "live", group: "character", url: "https://character.grudge-studio.com",         notes: "GCS — Grudge Character Studio. HYDRA VRM + grudge6 forge. Multi-era account rosters (warlords, nexus, armada). Protected SSOT for character creation — not merged into Warlords /character.", lastVerified: "2026-06-27" },
   // Grudge Open — combat/studio platform hub
@@ -322,7 +322,7 @@ type RewriteSeed = { source: string; dest: string; target: string; group: string
 const rewriteSeeds: RewriteSeed[] = [
   { source: "/api/account",            dest: `${GAME_DATA_API}/api/account`,                         target: "svc:game-api",    group: "account" },
   { source: "/api/account/:path*",     dest: `${GAME_DATA_API}/api/account/:path*`,                  target: "svc:game-api",    group: "account" },
-  { source: "/api/auth/:path*",        dest: "https://id.grudge-studio.com/auth/:path*",             target: "svc:grudge-id",   group: "auth" },
+  { source: "/api/auth/:path*",        dest: `${GAME_DATA_API}/api/auth/:path*`,                      target: "svc:game-api",    group: "auth" },
   { source: "/api/wallet",             dest: `${GAME_DATA_API}/api/wallet`,                          target: "svc:game-api",    group: "wallet" },
   { source: "/api/wallet/:path*",      dest: `${GAME_DATA_API}/api/wallet/:path*`,                   target: "svc:game-api",    group: "wallet" },
   { source: "/api/island",             dest: `${GAME_DATA_API}/api/island`,                          target: "svc:game-api",    group: "world" },

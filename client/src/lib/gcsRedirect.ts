@@ -7,7 +7,12 @@
  *   - returnTo (post-save redirect back to the calling app)
  */
 
-import { FLEET_URLS, warlordsPlayOrigin, warlordsPlayUrl } from "@shared/fleet";
+import {
+  FLEET_URLS,
+  isFleetAllowedReturnUrl,
+  warlordsPlayOrigin,
+  warlordsPlayUrl,
+} from "@shared/fleet";
 import {
   normalizeGameEra,
   type GameEra,
@@ -29,10 +34,6 @@ export interface BuildGcsUrlOptions {
 
 const GCS_ORIGIN = FLEET_URLS.gcs;
 
-/** Allowed return hosts after GCS save (open redirect guard). */
-const RETURN_HOST_RE =
-  /(^|\.)grudge-studio\.com$|(^|\.)grudgewarlords\.com$|\.vercel\.app$/i;
-
 const BLOCKED_RETURN_HOSTS =
   /(^|\.)character\.grudge-studio\.com$|(^|\.)grudge6\.grudge-studio\.com$/i;
 
@@ -40,7 +41,7 @@ export function isAllowedReturnUrl(url: string): boolean {
   try {
     const u = new URL(url);
     if (BLOCKED_RETURN_HOSTS.test(u.hostname)) return false;
-    return RETURN_HOST_RE.test(u.hostname);
+    return isFleetAllowedReturnUrl(url);
   } catch {
     return false;
   }
@@ -48,10 +49,8 @@ export function isAllowedReturnUrl(url: string): boolean {
 
 /**
  * Default return after GCS save.
- * First account voyage (tutorial not complete): /tutorial island.
- * After tutorial: /airship bridge → home island (later heroes too).
- * Prefer Warlords product zone over studio client.*.
- * Never return into character.grudge-studio.com/viewer.
+ * After Foundry save: 4-character airship (/combat?from=gcs). Foundry appends characterId.
+ * Never return into character.grudge-studio.com/viewer. Never a second create form.
  */
 export function defaultWarlordsReturnTo(path?: string): string {
   const resolved =
@@ -59,7 +58,7 @@ export function defaultWarlordsReturnTo(path?: string): string {
       ? path
       : typeof window !== "undefined"
         ? postCreatePlayPath()
-        : "/tutorial?from=gcs";
+        : "/combat?from=gcs";
   const p = resolved.startsWith("/") ? resolved : `/${resolved}`;
   // Same-origin when already on a Warlords play host (apex, play.*, client.*)
   if (typeof window !== "undefined") {

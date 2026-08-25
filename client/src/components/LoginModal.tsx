@@ -29,7 +29,6 @@ import {
   connectPhantomEmbedded,
   getAvailableWallets,
   startDiscordLogin,
-  loginAsGuest,
 } from "@/lib/grudgeBackend";
 import { useAuth } from "@/contexts/AuthContext";
 
@@ -122,19 +121,6 @@ export function LoginModal() {
       await onSuccess();
     } catch (e) {
       console.error("[LoginModal] Discord login error:", e);
-      handleError(e);
-    }
-  };
-
-  const handleGuest = async () => {
-    setError("");
-    setLoading("guest");
-    try {
-      console.debug("[LoginModal] Guest login clicked");
-      await loginAsGuest();
-      await onSuccess();
-    } catch (e) {
-      console.error("[LoginModal] Guest login error:", e);
       handleError(e);
     }
   };
@@ -293,18 +279,6 @@ export function LoginModal() {
               >
                 Sign in with Username
               </Button>
-
-              {/* Guest */}
-              <button
-                onClick={handleGuest}
-                disabled={isLoading}
-                className="w-full text-center text-[11px] text-white/30 hover:text-white/50 transition-colors py-1 disabled:opacity-50"
-              >
-                {loading === "guest" ? (
-                  <Loader2 className="w-3 h-3 animate-spin inline mr-1" />
-                ) : null}
-                Continue as Guest
-              </button>
             </>
           )}
 

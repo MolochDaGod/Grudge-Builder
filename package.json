@@ -15,6 +15,7 @@
     "start:production": "node scripts/railway-start.mjs",
     "start:world": "node dist/world-server.cjs",
     "check": "tsc",
+    "deploy:client": "node scripts/vercel-prod-guard.mjs && npx vercel deploy --prod --yes",
     "test:client": "vitest run --config client/vitest.config.ts",
     "test:client:watch": "vitest --config client/vitest.config.ts",
     "db:push": "node scripts/ensure-auth-schema.mjs",

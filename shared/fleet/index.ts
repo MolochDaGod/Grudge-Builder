@@ -18,7 +18,12 @@ export {
   type FleetRewrite,
 } from "./manifest";
 
-export { isFleetAllowedReturnUrl, resolveFleetReturnUrl } from "./authReturn";
+export {
+  isFleetAllowedReturnUrl,
+  resolveFleetReturnUrl,
+  isEphemeralVercelHost,
+  canonicalSsoReturnOrigin,
+} from "./authReturn";
 
 /** Warlords era *.grudgewarlords.com product zone */
 export {
@@ -115,7 +120,7 @@ export {
 
 export { FLEET_VIDEO_CATALOG, type FleetVideoEntry } from "./videoCatalog";
 
-export { GBUX_TOKEN_ICON, TOME_ICON_PATHS, tomeIconCdnUrl } from "./uiIcons";
+export { GBUX_TOKEN_ICON, GBUX_TOKEN_ICON_PATH, TOME_ICON_PATHS, tomeIconCdnUrl } from "./uiIcons";
 
 export {
   FLEET_FONTS,
@@ -166,7 +171,9 @@ export {
 } from "./uiArt";
 
 export {
+  WARLORDS_PLAY_CONTRACT_VERSION,
   RACE_GRUDGE6,
+  RACE_TOON_RTS_PATHS,
   RACE_FBX_PATHS,
   normalizeRaceId,
   raceMeshPrefix,

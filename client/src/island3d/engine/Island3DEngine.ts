@@ -210,6 +210,8 @@ import {
   isHothEligibleSector,
   isIcelandSector,
   isSpiralEventSector,
+  isBossInstanceSector,
+  pickBossRoomInstance,
 } from '@shared/definitions/floatingIslandBossAssets';
 import {
   isVolcanicClimbSector,
@@ -571,6 +573,8 @@ export class Island3DEngine {
   public physicsReady = false;
   /** Zone / procedural BVH walk layer (lobby reuses lobbyCollider). */
   private walkCollider: LobbyColliderResult | null = null;
+  /** Zone sampler restored when leaving a boss instance. */
+  private zoneGroundSampler: ((x: number, z: number) => number | null) | null = null;
 
   // Zone mode
   public zoneScene: ZoneSceneResult | null = null;
@@ -632,6 +636,8 @@ export class Island3DEngine {
   // Navigation + AI
   public navMesh: TerrainNavMesh | null = null;
   public allyManager: AllyManager | null = null;
+  private _savedGravity: number | null = null;
+  private lavaParty: import('../combat/LavaCaesarPartyBrain').LavaCaesarPartyBrain | null = null;
   /** Towers / fortress / jungle rocks — SI scale + AABB colliders */
   public mapLandmarks: LandmarkLoadResult | null = null;
 
@@ -729,6 +735,7 @@ export class Island3DEngine {
    * Reference: https://screen.toys/firewood/
    */
   public firewoodChop: FirewoodChopSystem | null = null;
+  public dockRaftLab: import('../zone/DockRaftLabSystem').DockRaftLabSystem | null = null;
 
   constructor(private config: Island3DEngineConfig) {
     // Renderer — WebGL2 when available (THREE.WebGLRenderer), high-perf GPU,
@@ -1331,6 +1338,7 @@ export class Island3DEngine {
       existingSampler: sampleGround,
       label: 'lobby',
     });
+    this.zoneGroundSampler = physicsSampler;
     this.character = new CharacterController3D({
       scene: this.scene,
       camera: this.camera,
@@ -1884,20 +1892,23 @@ export class Island3DEngine {
       this.zonePopulation,
       this.zoneScene.islandMeshes,
       (dungeonId, dungeonName) => {
-        // Frozen / cold sectors: some random dungeon portals open Hoth boss room
-        const iceName = /ice|frost|hoth|frozen|cold|snow/i.test(dungeonName + dungeonId);
-        if (
-          this.bossRooms &&
-          this.character &&
-          isHothEligibleSector(sectorId) &&
-          (iceName || Math.random() < 0.35)
-        ) {
-          this.bossRooms.enter(
+        // Biome dungeon portals → Hoth / woods / desert / lava instance maps
+        const instance = pickBossRoomInstance({
+          sectorId,
+          dungeonId,
+          dungeonName,
+        });
+        if (this.character && instance) {
+          this.ensureBossRooms();
+          const entered = this.bossRooms?.enter(
             this.character.model.position,
             'random_dungeon_portal',
+            instance.id,
           );
-          this.config.onDungeonEnter?.(dungeonId, dungeonName);
-          return;
+          if (entered) {
+            this.config.onDungeonEnter?.(dungeonId, dungeonName);
+            return;
+          }
         }
         // Warlords era sectors: dungeon entrance → PvE boss instance chamber
         const entered = this.enterPveBossFromDoorway(
@@ -2072,55 +2083,9 @@ export class Island3DEngine {
       }
     }
 
-    // 2i. Hoth boss room instance (frozen / cold portal targets)
-    if (isHothEligibleSector(sectorId)) {
-      try {
-        this.bossRooms?.dispose();
-        this.bossRooms = new BossRoomInstanceSystem({
-          scene: this.scene,
-          sectorId,
-          worldFx: this.worldFx,
-          cb: {
-            onEnter: (roomId, bossId) =>
-              console.info(`[BossRoom] enter ${roomId} boss=${bossId}`),
-            onExit: (roomId) => console.info(`[BossRoom] exit ${roomId}`),
-            onBossDeath: (bossId) => {
-              try {
-                window.dispatchEvent(
-                  new CustomEvent('grudge:boss-room', {
-                    detail: { type: 'death', bossId },
-                  }),
-                );
-              } catch {
-                /* */
-              }
-            },
-            onPlayerHit: (hit) => {
-              this.applyBossHitToPlayer(hit);
-              try {
-                window.dispatchEvent(
-                  new CustomEvent('grudge:boss-room', {
-                    detail: { type: 'hit', ...hit },
-                  }),
-                );
-              } catch {
-                /* */
-              }
-            },
-            onPrompt: (msg) => {
-              try {
-                window.dispatchEvent(
-                  new CustomEvent('grudge:boss-room', { detail: { prompt: msg } }),
-                );
-              } catch {
-                /* */
-              }
-            },
-          },
-        });
-      } catch (err) {
-        console.warn('[Island3D] BossRoomInstanceSystem failed:', err);
-      }
+    // 2i. Instance maps: Hoth (ice), deep woods, desert island, volcanic arena
+    if (isBossInstanceSector(sectorId)) {
+      this.ensureBossRooms();
     }
 
     // 2j. Iceland scene in frozen + near-frozen zones
@@ -2431,6 +2396,7 @@ export class Island3DEngine {
         label: sectorId,
       });
 
+      this.zoneGroundSampler = physicsSampler;
       this.character = new CharacterController3D({
         scene: this.scene,
         camera: this.camera,
@@ -3434,6 +3400,249 @@ export class Island3DEngine {
     this.harvestDrops = updateHarvestDrops(this.harvestDrops, dt, this.scene);
   }
 
+  /**
+   * Playable lava Caesar lab: ember volcanic room, 50% gravity, explorer mesh,
+   * tank/healer/dps allies, combat timer events.
+   */
+  public async startLavaCaesarLab(): Promise<void> {
+    const { LAVA_CAESAR_LOAD, LAVA_CAESAR_KIT } = await import(
+      '@shared/definitions/lavaCaesarBossFight'
+    );
+    const { VOLCANIC_BOSS_ARENA } = await import(
+      '@shared/definitions/floatingIslandBossAssets'
+    );
+    const { LavaCaesarPartyBrain } = await import('../combat/LavaCaesarPartyBrain');
+    this.ensureBossRooms();
+    for (let i = 0; i < 50 && !this.bossRooms; i++) {
+      await new Promise((r) => setTimeout(r, 80));
+    }
+    const pos = this.character?.model.position;
+    if (!pos || !this.bossRooms) {
+      console.warn('[LavaLab] no character or boss room');
+      return;
+    }
+    const ok = this.bossRooms.enter(pos, 'event_island_portal', VOLCANIC_BOSS_ARENA.id);
+    if (!ok) {
+      await new Promise((r) => setTimeout(r, 400));
+      this.bossRooms.enter(pos, 'event_island_portal', VOLCANIC_BOSS_ARENA.id);
+    }
+    try {
+      await this.character?.loadModel(LAVA_CAESAR_LOAD.explorer[0]);
+    } catch (e) {
+      console.warn('[LavaLab] explorer load failed — keeping current mesh', e);
+    }
+    this.lavaParty = new LavaCaesarPartyBrain();
+    const labAllies: import('../ai/AllyController').AllyController[] = [];
+    await new Promise((r) => setTimeout(r, 700));
+    const mesh = this.character?.model;
+    if (this.scene && mesh) {
+      const { AllyController } = await import('../ai/AllyController');
+      const { TerrainNavMesh } = await import('../navigation/TerrainNavMesh');
+      let nav = this.navMesh;
+      let terrain = this.terrain?.terrainMesh;
+      if (!nav || !terrain) {
+        const dummy = new THREE.Mesh(new THREE.PlaneGeometry(90, 90));
+        dummy.rotation.x = -Math.PI / 2;
+        dummy.position.copy(pos);
+        dummy.updateMatrixWorld(true);
+        terrain = dummy;
+        nav = new TerrainNavMesh(dummy, [['plains' as any]], 1, 1, 90, 90, {
+          bakePathfinding: false,
+          cellSize: 6,
+          zoneId: 'lava_caesar_lab',
+        });
+      }
+      if (nav && terrain) {
+        const roles = ['tank', 'healer', 'dps'] as const;
+        const boss = this.bossRooms.largeBoss;
+        for (let i = 0; i < 3; i++) {
+          const slot = boss?.loadSlotWorld(i + 1) ?? pos.clone().add(new THREE.Vector3((i - 1) * 3, 0, 2));
+          const ally = new AllyController(
+            {
+              id: `lava_${roles[i]}`,
+              name: roles[i]!.toUpperCase(),
+              position: slot,
+              stats: {
+                maxHp: roles[i] === 'tank' ? 220 : roles[i] === 'healer' ? 140 : 160,
+                damage: roles[i] === 'dps' ? 28 : 16,
+                attackRange: 2.6,
+                attackCooldown: 1.4,
+                moveSpeed: 4.8,
+                aggroRadius: 22,
+                followDistance: 3.2,
+              },
+            },
+            nav,
+            terrain,
+            this.scene,
+          );
+          ally.onAttack = (t, dmg) => {
+            this.bossRooms?.tryHitBoss(t.position, dmg);
+          };
+          this.lavaParty.attach(ally, roles[i]!);
+          labAllies.push(ally);
+        }
+      }
+    }
+    this.onUpdate((dt) => {
+      const snap = this.bossRooms?.largeBoss?.getLavaSnapshot();
+      const p = this.character?.model.position;
+      if (snap && p && this.lavaParty) {
+        this.lavaParty.tick(dt, p, {
+          ...snap,
+          minions: snap.minions,
+        });
+        for (const a of labAllies) a.update(dt, p, snap.minions);
+      }
+      try {
+        window.dispatchEvent(
+          new CustomEvent('grudge:lava-caesar-lab', {
+            detail: {
+              timer: snap?.combatT ?? 0,
+              hp: snap?.bossHpRatio ?? 1,
+              state: snap?.bossState ?? 'idle',
+              gravity: LAVA_CAESAR_KIT.gravityScale,
+            },
+          }),
+        );
+      } catch {
+        /* */
+      }
+    });
+    void LAVA_CAESAR_KIT;
+  }
+
+  /** Dock + atoll raft lab — scene (9), hatchet logs, one-log raft. */
+  public async startDockRaftLab(): Promise<void> {
+    const { DockRaftLabSystem } = await import('../zone/DockRaftLabSystem');
+    const { FIREWOOD_CHOP_ONE_LOG } = await import('@shared/definitions/firewoodChop');
+    const { DOCK_RAFT_ITEM } = await import('@shared/definitions/dockRaftTestMap');
+    this.ensureFirewoodChop();
+    this.firewoodChop?.setConfig(FIREWOOD_CHOP_ONE_LOG);
+    for (let i = 0; i < 40 && !this.physics; i++) {
+      await new Promise((r) => setTimeout(r, 80));
+    }
+    this.dockRaftLab = new DockRaftLabSystem({
+      scene: this.scene,
+      physics: this.physics,
+      addTree: (t) => {
+        this.trees.push(t);
+      },
+    });
+    const ok = await this.dockRaftLab.boot();
+    if (!ok) return;
+    const spawn = this.dockRaftLab.spawnPoint();
+    if (this.character) {
+      this.character.model.position.copy(spawn);
+      this.character.setGroundSampler((x, z) => {
+        const y = this.dockRaftLab?.play?.sampleHeight(x, z);
+        if (y != null) return y;
+        return this.zoneGroundSampler?.(x, z) ?? null;
+      });
+    }
+    void this.enterHarvestMode();
+    const origHarvest = this.config.onHarvest;
+    this.config.onHarvest = (ev) => {
+      const amt = (ev as { amount?: number }).amount;
+      if (typeof amt === 'number' && amt > 0) {
+        this.adjustItem(DOCK_RAFT_ITEM.log, amt);
+      }
+      origHarvest?.(ev);
+    };
+    const onKey = (e: KeyboardEvent) => {
+      if (e.repeat || e.code !== 'KeyE') return;
+      const p = this.character?.model.position;
+      if (!p || !this.dockRaftLab) return;
+      const wood = this.getMergedInventory()[DOCK_RAFT_ITEM.log] ?? 0;
+      const r = this.dockRaftLab.tryPlaceLog(p, wood);
+      if (r.placed) this.adjustItem(DOCK_RAFT_ITEM.log, -1);
+    };
+    window.addEventListener('keydown', onKey);
+    this.onUpdate(() => {
+      const wood = this.getMergedInventory()[DOCK_RAFT_ITEM.log] ?? 0;
+      try {
+        window.dispatchEvent(
+          new CustomEvent('grudge:dock-raft-lab', {
+            detail: this.dockRaftLab?.snapshot(wood),
+          }),
+        );
+      } catch {
+        /* */
+      }
+    });
+  }
+
+  /** Hoth / woods / desert / lava instance maps (preload sector room). */
+  private ensureBossRooms(): void {
+    if (this.bossRooms || !this.scene) return;
+    const sectorId = this.config.sectorId || '';
+    try {
+      this.bossRooms = new BossRoomInstanceSystem({
+        scene: this.scene,
+        sectorId,
+        worldFx: this.worldFx,
+        physics: this.physics,
+        cb: {
+          onEnter: (roomId, bossId, play) => {
+            console.info(`[BossRoom] enter ${roomId} boss=${bossId}`, play?.layerCounts);
+            this.character?.setGroundSampler((x, z) => {
+              const y = this.bossRooms?.sampleHeight(x, z);
+              if (y != null) return y;
+              return this.zoneGroundSampler?.(x, z) ?? null;
+            });
+            if (roomId === 'volcanic_boss_arena' && this.character) {
+              this._savedGravity = this.character.physics.gravity;
+              this.character.physics.gravity = this._savedGravity * 0.5;
+            }
+          },
+          onExit: (roomId) => {
+            console.info(`[BossRoom] exit ${roomId}`);
+            this.character?.setGroundSampler(this.zoneGroundSampler);
+            if (this.character && this._savedGravity != null) {
+              this.character.physics.gravity = this._savedGravity;
+              this._savedGravity = null;
+            }
+            void roomId;
+          },
+          onBossDeath: (bossId) => {
+            try {
+              window.dispatchEvent(
+                new CustomEvent('grudge:boss-room', {
+                  detail: { type: 'death', bossId },
+                }),
+              );
+            } catch {
+              /* */
+            }
+          },
+          onPlayerHit: (hit) => {
+            this.applyBossHitToPlayer(hit);
+            try {
+              window.dispatchEvent(
+                new CustomEvent('grudge:boss-room', {
+                  detail: { type: 'hit', ...hit },
+                }),
+              );
+            } catch {
+              /* */
+            }
+          },
+          onPrompt: (msg) => {
+            try {
+              window.dispatchEvent(
+                new CustomEvent('grudge:boss-room', { detail: { prompt: msg } }),
+              );
+            } catch {
+              /* */
+            }
+          },
+        },
+      });
+    } catch (err) {
+      console.warn('[Island3D] BossRoomInstanceSystem failed:', err);
+    }
+  }
+
   /** Ensure shared PvE boss chamber (home mountain door + Warlords doors). */
   private ensurePveBossInstance(): void {
     if (this.pveBossInstance || !this.scene) return;
@@ -3487,6 +3696,18 @@ export class Island3DEngine {
       | 'home_island_mine',
   ): boolean {
     if (!this.character) return false;
+    const sectorId = this.config.sectorId || '';
+    const instance = pickBossRoomInstance({ sectorId, dungeonId, dungeonName });
+    if (instance) {
+      this.ensureBossRooms();
+      return (
+        this.bossRooms?.enter(
+          this.character.model.position,
+          'random_dungeon_portal',
+          instance.id,
+        ) ?? false
+      );
+    }
     this.ensurePveBossInstance();
     return (
       this.pveBossInstance?.enter(this.character.model.position, {
@@ -4820,11 +5041,9 @@ export class Island3DEngine {
       const hitDmgBoss = 45;
       const hitsBoss = this.raycaster.intersectObjects(
         [
-          ...(this.bossRooms?.largeBoss ? [this.bossRooms.largeBoss.root] : []),
-          ...(this.pveBossInstance?.largeBoss
-            ? [this.pveBossInstance.largeBoss.root]
-            : []),
-          ...this.arenaBosses.map((b) => b.root),
+          ...(this.bossRooms?.largeBoss?.getHitObjects() ?? []),
+          ...(this.pveBossInstance?.largeBoss?.getHitObjects() ?? []),
+          ...this.arenaBosses.flatMap((b) => b.getHitObjects()),
         ],
         true,
       );
@@ -4899,6 +5118,7 @@ export class Island3DEngine {
       this.character?.playHarvestSwing();
 
       if (this.firewoodChop && standing) {
+        this.character?.pulseHarvestAxeIK(impact);
         this.firewoodChop.strikeStanding(tree, impact, playerPos);
         if (tree.fallPhase === 'falling') {
           markDepleted(tree as any, 'tree', false);
@@ -4906,6 +5126,7 @@ export class Island3DEngine {
         return;
       }
       if (this.firewoodChop && downed) {
+        this.character?.pulseHarvestAxeIK(impact);
         const facing =
           this.character?.model.rotation.y ??
           this.camera.rotation.y ??

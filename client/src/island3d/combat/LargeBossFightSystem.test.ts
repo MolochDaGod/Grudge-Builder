@@ -9,6 +9,10 @@ import {
   pipBossHeightM,
   inShockwaveBand,
 } from '../../../../shared/definitions/pipSkullBossFight.ts';
+import {
+  LAVA_CAESAR_BOSS_FIGHT,
+  isLavaCaesarFight,
+} from '../../../../shared/definitions/lavaCaesarBossFight.ts';
 
 function assert(c: boolean, m: string) {
   if (!c) throw new Error(m);
@@ -57,6 +61,10 @@ const slam = PIP_SKULL_BOSS_FIGHT.attacks.ground_slam;
 assert(slam.knockdown && (slam.knockUpMps ?? 0) >= 4, 'slam launches');
 const zap = PIP_SKULL_BOSS_FIGHT.attacks.electric_shock;
 assert((zap.stunSec ?? 0) >= 1, 'electric stuns hard');
+
+assert(isLavaCaesarFight(LAVA_CAESAR_BOSS_FIGHT), 'lava cfg id');
+assert(LAVA_CAESAR_BOSS_FIGHT.attacks.fire_twister.vfx === 'fire_twister', 'twister vfx');
+assert((LAVA_CAESAR_BOSS_FIGHT.attacks.lava_dive.weight ?? 0) > 0, 'dive pickable');
 
 console.log('LargeBossFightSystem.test.ts OK', {
   p2: p2.id,

@@ -520,7 +520,7 @@ body {
     <div class="more-panel" id="more-panel" hidden>
       <button class="btn btn-ghost" id="btn-phantom" type="button">Solana wallet</button>
       <button class="btn btn-ghost" id="btn-phone" type="button">Phone number</button>
-      <div class="guest-row"><button class="btn-link" id="btn-guest" type="button">Continue as guest</button></div>
+      <div class="guest-row" hidden><button class="btn-link" id="btn-guest" type="button">Continue as guest</button></div>
     </div>
   </section>
 
@@ -1211,11 +1211,8 @@ $("ph-submit").addEventListener("click", submitPhone);
 $("ph-number").addEventListener("keydown", (e) => { if (e.key === "Enter") submitPhone(); });
 $("ph-code").addEventListener("keydown", (e) => { if (e.key === "Enter") submitPhone(); });
 
-$("btn-guest").addEventListener("click", async () => {
-  const btn = $("btn-guest"); busy(btn, true);
-  try { const user = await api("/api/auth/guest", { method:"POST", body: "{}" }); afterAuth(user); }
-  catch (e){ toast(e.message || "Could not start a guest session.", "error"); }
-  finally { busy(btn, false); }
+$("btn-guest").addEventListener("click", () => {
+  toast("Guest login is closed. Sign in with Discord, Google, or username.", "error");
 });
 
 let pendingUser = null;

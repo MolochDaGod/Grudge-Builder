@@ -1,16 +1,18 @@
 /**
- * Grudge Character Studio — multi-era account rosters (Engine Account DB SSOT).
+ * Multi-era account rosters — ONE Railway Postgres (grudge-api).
  *
- * Production law (2026-07):
- * | Era      | Pipeline | Slots | Characters / builds                         | Play / worlds              |
- * |----------|----------|-------|---------------------------------------------|----------------------------|
- * | warlords | grudge6  | 4     | Foundry create (character.gs.com)           | client.grudge-studio.com   |
- * | nexus    | toon     | 12    | Toon (soon). Interim voxel + **LED face** default | **Grudox**           |
- * | voxel    | voxel    | 4     | Race/explorer avatars + **LED face** default      | Mine-Loader + maker  |
- * | armada   | mech     | 4     | Mechs (Mech Builder); **LED face** as backup      | mech-playground      |
+ * Physical DB is never per-era. Filter: GET /api/characters?era=<era>.
+ * Bag / wallet / home island = account. XP / equip / skills = character UUID.
  *
- * All fleet games list via GET /api/characters?era=<era>.
- * Account bag / GBUX stay account-scoped on /api/account/* (shared).
+ * | Era      | Brand              | Pipeline | Slots | Create                         | Play                         |
+ * |----------|--------------------|----------|-------|--------------------------------|------------------------------|
+ * | warlords | Grudge Warlords    | grudge6  | 4     | character. /foundry            | grudgewarlords.com           |
+ * | voxel    | GRUDOX / Grudges   | voxel    | 4     | character. ?era=voxel          | grudox.grudge-studio.com     |
+ * | nexus    | Toon (deferred)    | toon     | 12    | character. ?era=nexus          | Foundry hub until toon ships |
+ * | armada   | Mech               | mech     | 4     | Mech Builder                   | mech-playground              |
+ *
+ * Do not collapse brands. GRUDOX is voxel cabinets — not Warlords, not Nexus toon.
+ * Guest product login is closed. Auth: id.grudge-studio.com only.
  */
 
 export type GameEra = 'warlords' | 'nexus' | 'voxel' | 'armada';
@@ -41,6 +43,14 @@ export interface EraSlotConfig {
 export type AccountEraSlots = Record<GameEra, EraSlotConfig>;
 
 export const GAME_ERAS: GameEra[] = ['warlords', 'nexus', 'voxel', 'armada'];
+
+/** One physical player store for every era. Not D1, not a second bag DB. */
+export const ERA_PLAYER_DATABASE = {
+  engine: 'postgres',
+  service: 'grudge-api',
+  railway: 'grudge-api-production-0d46',
+  publicUrl: 'https://grudge-api-production-0d46.up.railway.app',
+} as const;
 
 /** Eras that allow create/select (max > 0). */
 export const PLAYABLE_CHARACTER_ERAS: GameEra[] = [
@@ -96,7 +106,7 @@ export const ERA_META: Record<
     description: 'grudge6 modular heroes — Foundry create, islands, crafting, MMO',
     defaultPipeline: 'grudge6',
     interimPipeline: null,
-    playUrl: 'https://client.grudge-studio.com',
+    playUrl: 'https://grudgewarlords.com',
     worldsUrl: null,
     slotCount: 4,
     createUrl: 'https://character.grudge-studio.com/foundry?era=warlords',
@@ -107,11 +117,11 @@ export const ERA_META: Record<
     label: 'Nexus Era (Toon)',
     shortLabel: 'Nexus',
     description:
-      'Toon RTS (in progress). Interim: voxel avatars with LED face default. Play: Grudox.',
+      'Toon RTS line (deferred). Interim mesh: voxel + LED face. Play is NOT GRUDOX.',
     defaultPipeline: 'toon',
     /** Stand-in mesh until dedicated Toon RTS characters are built */
     interimPipeline: 'voxel',
-    playUrl: 'https://grudox.grudge-studio.com',
+    playUrl: 'https://character.grudge-studio.com/?era=nexus',
     worldsUrl: null,
     slotCount: 12,
     createUrl: 'https://character.grudge-studio.com/?era=nexus',
@@ -122,10 +132,10 @@ export const ERA_META: Record<
     label: 'Voxel Era',
     shortLabel: 'Voxel',
     description:
-      'Voxel race / explorer avatars (LED face default). Play: Mine-Loader deployers; worlds: maker.',
+      'GRUDOX cabinets + Grudges / Mine-Loader worlds. Voxel explorers, LED face default.',
     defaultPipeline: 'voxel',
     interimPipeline: null,
-    playUrl: 'https://mine-loader.vercel.app/#/play',
+    playUrl: 'https://grudox.grudge-studio.com',
     worldsUrl: 'https://mine-loader.vercel.app/#/lobby',
     slotCount: 4,
     createUrl: 'https://character.grudge-studio.com/?era=voxel',
@@ -165,8 +175,8 @@ export function normalizeGameEra(value: unknown): GameEra {
   if (v === 'nexus' || v === 'armada' || v === 'warlords' || v === 'voxel') return v;
   // Aliases
   if (v === 'toon' || v === 'toon_rts' || v === 'rts_toon') return 'nexus';
-  // Grudox is the Nexus play host — do not map to voxel
-  if (v === 'grudox' || v === 'grudo' || v === 'nexus_play') return 'nexus';
+  // GRUDOX brand = voxel cabinets — not Nexus toon, not Warlords
+  if (v === 'grudox' || v === 'grudo' || v === 'grudges') return 'voxel';
   if (v === 'vox' || v === 'explorer' || v === 'mine_loader' || v === 'mineloader') {
     return 'voxel';
   }

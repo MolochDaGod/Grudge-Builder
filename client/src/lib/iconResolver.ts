@@ -86,6 +86,13 @@ const PACK_BY_CATEGORY: Record<string, string> = {
   essence: '/icons/pack/misc/Effect.png',
   gem: '/icons/pack/misc/Electro.png',
   misc: '/icons/pack/misc/Effect.png',
+  /** Back accessory — WCS cape / cloak / wings (01 outline, 02 painted) */
+  feathered: '/icons/pack/accessories/Wings_02.png',
+  wings: '/icons/pack/accessories/Wings_01.png',
+  wing: '/icons/pack/accessories/Wings_01.png',
+  cape: '/icons/pack/accessories/Wings_01.png',
+  cloak: '/icons/pack/accessories/Wings_01.png',
+  back: '/icons/pack/accessories/Wings_01.png',
 };
 
 const PACK_BY_WEAPON_TYPE: Record<string, string> = {
@@ -211,7 +218,7 @@ export function resolveIconUrl(
     if (isBannedAsUiIcon(raw)) return getPackIconForCategory(ctx);
     // Only accept CDN/fleet icon URLs for UI; other absolute image hosts → pack fallback
     if (raw.startsWith(ASSET_CDN_BASE) && raw.toLowerCase().includes('/icons/')) {
-      return raw;
+      return assetUrl(raw);
     }
     // info.* / objectstore master-items icon hosts (icons under /icons/**)
     if (
@@ -222,7 +229,7 @@ export function resolveIconUrl(
         raw.includes('info.grudge-studio.com') ||
         raw.includes('objectstore.grudge-studio.com'))
     ) {
-      return raw;
+      return assetUrl(raw);
     }
     // game-assets/icons on assets CDN (weapon art authority)
     if (
@@ -230,15 +237,15 @@ export function resolveIconUrl(
       (raw.toLowerCase().includes('/icons/') ||
         raw.toLowerCase().includes('/game-assets/icons/'))
     ) {
-      return raw;
+      return assetUrl(raw);
     }
     if (/\.(png|jpe?g|webp|gif|svg)(\?|$)/i.test(raw) && raw.toLowerCase().includes('/icons/')) {
-      return raw;
+      return assetUrl(raw);
     }
     if (/\.(png|jpe?g|webp|gif|svg)(\?|$)/i.test(raw) && !raw.toLowerCase().includes('/icons/')) {
       // Allow assets CDN game-assets paths used by T8 master-weapons
       if (raw.includes('assets.grudge-studio.com/game-assets/')) {
-        return raw;
+        return assetUrl(raw);
       }
       return getPackIconForCategory(ctx);
     }

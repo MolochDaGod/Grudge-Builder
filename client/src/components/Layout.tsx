@@ -23,15 +23,17 @@ interface NavItem {
 }
 
 const navItems: NavItem[] = [
-  { label: "Home", path: "/home", icon: <Book className="w-4 h-4" />, tooltip: "Main dashboard with events and quick access", number: "1" },
-  { label: "Character", path: "/character", icon: <Shield className="w-4 h-4" />, tooltip: "Manage your heroes, equipment, and attributes", number: "2" },
-  { label: "Dungeon", path: "/dungeon", icon: <Pickaxe className="w-4 h-4" />, tooltip: "Explore procedural dungeons and battle monsters", number: "3" },
-  { label: "Combat", path: "/combat", icon: <Sword className="w-4 h-4" />, tooltip: "Turn-based party combat against enemies", number: "4" },
-  { label: "Island", path: "/island-v2", icon: <Leaf className="w-4 h-4" />, tooltip: "Build and manage your island base", number: "5" },
-  { label: "Professions", path: "/professions", icon: <Hammer className="w-4 h-4" />, tooltip: "Craft items with blacksmithing, alchemy, and more", number: "6" },
-  { label: "Skills", path: "/skill-tree", icon: <Gem className="w-4 h-4" />, tooltip: "Unlock abilities and customize your build", number: "7" },
-  { label: "Database", path: "/database", icon: <Book className="w-4 h-4" />, tooltip: "Browse all items, monsters, and game data", number: "8" },
-  { label: "Admin", path: "/admin", icon: <Settings className="w-4 h-4" />, tooltip: "Sprite manager, editor, and dev tools", number: "9" },
+  { label: "Home", path: "/home", icon: <Book className="w-4 h-4" />, tooltip: "WCS hub — craft, arsenal, bag, play", number: "1" },
+  { label: "Craft", path: "/crafting", icon: <Hammer className="w-4 h-4" />, tooltip: "Stations, recipes, account bag", number: "2" },
+  { label: "Arsenal", path: "/arsenal", icon: <Sword className="w-4 h-4" />, tooltip: "Weapons, armor, T0–T8 catalog", number: "3" },
+  { label: "Character", path: "/heroes", icon: <Shield className="w-4 h-4" />, tooltip: "Manage your heroes, equipment, and attributes", number: "4" },
+  { label: "Dungeon", path: "/dungeon", icon: <Pickaxe className="w-4 h-4" />, tooltip: "Explore procedural dungeons and battle monsters", number: "5" },
+  { label: "Combat", path: "/combat", icon: <Sword className="w-4 h-4" />, tooltip: "Turn-based party combat against enemies", number: "6" },
+  { label: "Island", path: "/island-v2", icon: <Leaf className="w-4 h-4" />, tooltip: "Build and manage your island base", number: "7" },
+  { label: "Professions", path: "/professions", icon: <Hammer className="w-4 h-4" />, tooltip: "Gathering + station XP on the active hero", number: "8" },
+  { label: "Skills", path: "/skill-tree", icon: <Gem className="w-4 h-4" />, tooltip: "Unlock abilities and customize your build", number: "9" },
+  { label: "Database", path: "/database", icon: <Book className="w-4 h-4" />, tooltip: "Browse all items, monsters, and game data", number: "10" },
+  { label: "Admin", path: "/admin", icon: <Settings className="w-4 h-4" />, tooltip: "Sprite manager, editor, and dev tools", number: "11" },
 ];
 
 interface CharacterInfo {

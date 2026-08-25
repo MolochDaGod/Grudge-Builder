@@ -44,7 +44,7 @@ Full DNS map: [WARLORDS_DOMAIN_SSOT.md](./WARLORDS_DOMAIN_SSOT.md) · code `shar
 ### One-line rules
 
 1. **Login** → always `id.grudge-studio.com`.  
-2. **Create hero** → `character.grudge-studio.com/foundry` (or `foundry.grudgewarlords.com` when DNS).  
+2. **Create hero** → `character.grudge-studio.com/foundry` (`foundry.grudgewarlords.com` 302s there).  
 3. **Play 3D (Warlords era)** → **`https://grudgewarlords.com{path}`** or **`play.grudgewarlords.com{path}`** with `characterId` (not studio portal).  
 4. **Craft** → `grudgewarlords.com/craft/` selects a hero; **does not create**. Same Railway bag/inventory.  
 5. **Player state** → Railway Postgres only (characters, bag, inventory, professions).  

@@ -389,20 +389,13 @@ describe("LoginModal", () => {
   });
 
   describe("Guest", () => {
-    it("calls loginAsGuest on 'Continue as Guest' click", async () => {
-      mockLoginAsGuest.mockResolvedValue(fakeAuthResponse);
-      mockBackend.verifyToken.mockResolvedValue({ valid: true });
-
+    it("does not offer Continue as Guest", async () => {
       const user = userEvent.setup();
       renderOpenModal();
       await act(async () => {});
       await openModal(user);
-
-      await user.click(screen.getByText("Continue as Guest"));
-
-      await waitFor(() => {
-        expect(mockLoginAsGuest).toHaveBeenCalledOnce();
-      });
+      expect(screen.queryByText("Continue as Guest")).toBeNull();
+      expect(mockLoginAsGuest).not.toHaveBeenCalled();
     });
   });
 

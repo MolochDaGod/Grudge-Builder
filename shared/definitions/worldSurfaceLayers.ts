@@ -29,6 +29,9 @@ export type { PlayModeName, ControlModeName } from './namingSsot';
 export type WorldSurfaceLayer =
   | 'terrain'
   | 'water'
+  | 'lava'
+  | 'seafloor'
+  | 'column'
   | 'deck'
   | 'hull_climb'
   | 'cliff_climb'
@@ -180,7 +183,18 @@ export function tagSurfaceMesh(
     obj.userData.climbable = true;
     obj.userData.shipHull = layer === 'hull_climb';
   }
-  if (layer === 'terrain') {
+  if (layer === 'terrain' || layer === 'lava') {
+    obj.userData.collider = true;
+    obj.userData.walkable = true;
+  }
+  if (layer === 'lava') {
+    obj.userData.hazard = 'lava';
+  }
+  if (layer === 'column' || layer === 'building') {
+    obj.userData.collider = true;
+    obj.userData.walkable = false;
+  }
+  if (layer === 'seafloor') {
     obj.userData.collider = true;
     obj.userData.walkable = true;
   }

@@ -2422,6 +2422,11 @@ export class CharacterController3D {
         this.harvestIkNodeId = null;
       }
     }
+    this.characterIk.tickHarvestAxeIK(dt);
+  }
+
+  pulseHarvestAxeIK(target: THREE.Vector3): void {
+    this.characterIk?.pulseHarvestAxeIK(target);
   }
 
   // ─── Climbing detection ────────────────────────────────────────────────────

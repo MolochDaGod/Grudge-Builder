@@ -67,6 +67,8 @@ const AirshipZonePage = lazy(() => import("@/pages/AirshipZonePage"));
 import HeroCodexPage from "@/pages/hero-codex";
 import CraftingPage from "@/pages/crafting";
 const Island3DPage = lazy(() => import("@/pages/island-3d"));
+const LavaCaesarLabPage = lazy(() => import("@/pages/lava-caesar-lab"));
+const DockRaftLabPage = lazy(() => import("@/pages/dock-raft-lab"));
 /** Canonical first-voyage: LeviathanOceanCinema */
 const LeviathanCinemaPage = lazy(() => import("@/pages/shipwreck-cinema"));
 /** Legacy deep link — redirect only */
@@ -120,6 +122,7 @@ import AssetShowcasePage from "@/pages/asset-showcase";
 import MainPanelPage from "@/pages/main-panel";
 import { consumeGcsReturnHandoff } from "@/lib/gcsRedirect";
 import { CharacterManager } from "@/lib/characterManager";
+import WarerarewardPage from "@/pages/warerareward";
 
 const AssassinationGroundsPage = lazy(() => import("@/pages/assassination-grounds"));
 
@@ -141,7 +144,7 @@ function Router() {
       <Route path="/home" component={HomePage} />
       <Route path="/main-panel" component={MainPanelPage} />
       <Route path="/equipment" component={MainPanelPage} />
-      {/* /character create → GCS; /heroes roster; /home → /airship; /airship = era select */}
+      {/* /character create → GCS; /heroes roster; /home = WCS hub; /airship = era select */}
       <Route path="/character" component={CharacterRedirect} />
       <Route path="/characters" component={HeroesPage} />
       <Route path="/create-character" component={CreateCharacterRedirect} />
@@ -203,6 +206,8 @@ function Router() {
       <Route path="/crafting" component={CraftingPage} />
       <Route path="/crafting-suite" component={CraftingPage} />
       <Route path="/island-3d" component={Island3DPage} />
+      <Route path="/lava-caesar-lab" component={LavaCaesarLabPage} />
+      <Route path="/dock-raft-lab" component={DockRaftLabPage} />
       {/* First voyage — LeviathanOceanCinema (canonical) */}
       <Route path="/leviathan-cinema" component={LeviathanCinemaPage} />
       {/* Legacy bookmark — soft-redirect to /leviathan-cinema (keeps characterId) */}
@@ -274,6 +279,9 @@ function Router() {
           <AssassinationGroundsPage />
         </Suspense>
       )}</Route>
+      {/* Warerareward — Keel launch offer page (case-insensitive routes) */}
+      <Route path="/Warerareward" component={WarerarewardPage} />
+      <Route path="/warerareward" component={WarerarewardPage} />
       {/* Fallback to 404 */}
       <Route component={NotFound} />
     </Switch>

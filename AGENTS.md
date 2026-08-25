@@ -15,7 +15,8 @@ Ship and maintain production with dedicated agents — see **[docs/PRODUCTION_AG
 
 Catalog SSOT: `shared/agents/productionAgentCatalog.ts`. Reports: `scripts/agents/reports/*-latest.json`.
 
-**Rule:** production ship requires `--yes` (or CI). Agents never drop DB or print secrets.
+**Rule:** production ship requires `--yes` (or CI). Agents never drop DB or print secrets.  
+**Vercel prod:** `npm run deploy:client` (refuses dirty worktree / non-`main`). Do not `npx vercel --prod` from a dirty branch.
 
 ### Production stack (only these four)
 

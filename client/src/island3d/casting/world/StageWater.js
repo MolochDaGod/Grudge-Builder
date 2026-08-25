@@ -174,9 +174,8 @@ export class StageWater {
 
   _loadNormalMap() {
     const candidates = [
-      'https://assets.grudge-studio.com/textures/water/waternormals.jpg',
+      '/api/assets/textures/water/waternormals.jpg',
       'https://water.grudge-studio.com/textures/waternormals.jpg',
-      // three.js example water normals (CORS usually OK)
       'https://threejs.org/examples/textures/waternormals.jpg'
     ];
     const loader = new TextureLoader();

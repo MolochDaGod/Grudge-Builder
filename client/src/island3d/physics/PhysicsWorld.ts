@@ -32,6 +32,8 @@ import {
   PHYSICS_FIXED_DT,
   PHYSICS_GRAVITY_Y,
   RIGID_BODY_PRESETS,
+  applyColliderMaterial,
+  type FleetColliderRole,
 } from './fleet';
 
 // ── Types ────────────────────────────────────────────────────────────────────
@@ -180,7 +182,10 @@ export class PhysicsWorld {
 
   // ── Terrain collider (trimesh — static, perfect accuracy) ──────────────
 
-  addTerrainCollider(terrainMesh: THREE.Mesh): PhysicsBody {
+  addTerrainCollider(
+    terrainMesh: THREE.Mesh,
+    opts?: { role?: FleetColliderRole },
+  ): PhysicsBody {
     const geo = terrainMesh.geometry as THREE.BufferGeometry;
     const posAttr = geo.getAttribute('position');
     const indexAttr = geo.getIndex();
@@ -214,6 +219,13 @@ export class PhysicsWorld {
     const colliderDesc = RAPIER.ColliderDesc.trimesh(vertices, indices)
       .setFriction(0.8)
       .setRestitution(0.1);
+    if (opts?.role) {
+      applyColliderMaterial(colliderDesc, opts.role, {
+        collisionEvents: RAPIER.ActiveEvents.COLLISION_EVENTS,
+        kinematicFixed:
+          RAPIER.ActiveCollisionTypes.DEFAULT | RAPIER.ActiveCollisionTypes.KINEMATIC_FIXED,
+      });
+    }
     const collider = this.world.createCollider(colliderDesc, rigidBody);
 
     const id = `terrain_${this.nextId++}`;

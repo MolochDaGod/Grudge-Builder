@@ -50,6 +50,8 @@ export interface FirewoodChopConfig {
   collectRadiusM: number;
   /** Max seconds fragments stay before auto-loot */
   fragmentAutoLootSec: number;
+  /** Ground-split wood pieces spawned per completed segment */
+  woodPiecesPerSegment: number;
 }
 
 export const FIREWOOD_CHOP: FirewoodChopConfig = {
@@ -66,6 +68,17 @@ export const FIREWOOD_CHOP: FirewoodChopConfig = {
   hitsPerSegment: 2,
   collectRadiusM: 2.4,
   fragmentAutoLootSec: 8,
+  woodPiecesPerSegment: 2,
+};
+
+/** Dock-raft lab: one log per completed split (stack in bag). */
+export const FIREWOOD_CHOP_ONE_LOG: FirewoodChopConfig = {
+  ...FIREWOOD_CHOP,
+  id: 'firewood_chop_one_log',
+  name: 'One-log chop',
+  groundSplitSegments: 2,
+  hitsPerSegment: 1,
+  woodPiecesPerSegment: 1,
 };
 
 /** Horizontal yaw from tree base to impact point (player approach angle). */

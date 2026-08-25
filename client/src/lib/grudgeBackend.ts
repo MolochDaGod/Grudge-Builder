@@ -178,32 +178,8 @@ export async function ensureFleetSessionClaim(): Promise<boolean> {
     }
     return true;
   }
-  try {
-    const res = await fetch(`${API_BASE}/auth/session/claim`, {
-      method: "POST",
-      credentials: "include",
-      headers: { "Content-Type": "application/json" },
-      body: "{}",
-    });
-    if (!res.ok) return false;
-    const data = await res.json();
-    const token = data.sessionToken || data.token || data.access_token;
-    if (!token) return false;
-    setToken(token);
-    if (data.grudgeId) {
-      localStorage.setItem("grudge_id", data.grudgeId);
-      localStorage.setItem("grudge_account_id", data.grudgeId);
-    }
-    if (data.username || data.displayName) {
-      localStorage.setItem("grudge_username", data.username || data.displayName);
-    }
-    window.dispatchEvent(
-      new CustomEvent("grudge:auth:ready", { detail: { source: "session_claim" } }),
-    );
-    return true;
-  } catch {
-    return false;
-  }
+  // Guest / short cookie: do not POST claim (401 spam on labs / public pages).
+  return false;
 }
 
 (function pickupSsoToken() {
@@ -568,33 +544,7 @@ export async function loginWithWallet(
 /** Guest login — device-based by default, upgrades to Puter if already signed in.
  *  Never opens a popup — that's `loginWithPuterSDK()`. */
 export async function loginAsGuest(): Promise<AuthResponse> {
-  // If the user already has a Puter session, use it (no popup)
-  if (isPuterReady()) {
-    try {
-      const puter = (window as any).puter;
-      if (puter.auth?.isSignedIn?.()) {
-        const user = await puter.auth.getUser();
-        if (user?.uuid) {
-          console.debug("[Auth] Guest → existing Puter session", user.username);
-          return loginWithPuter(user.uuid, user.username);
-        }
-      }
-    } catch (e) {
-      console.warn("[Auth] Puter session check failed, using device guest", e);
-    }
-  }
-
-  // Device-based guest — always works, no SDK needed
-  console.debug("[Auth] Guest → device-based", getDeviceId());
-  const res = await fetch(`${API_BASE}/auth/puter`, {
-    method: "POST",
-    headers: { "Content-Type": "application/json" },
-    body: JSON.stringify({
-      puterId: `guest_${getDeviceId()}`,
-      displayName: "Guest",
-    }),
-  });
-  return handleAuthResponse(res, "guest");
+  throw new Error("Guest product login is closed. Sign in with Grudge ID.");
 }
 
 /**

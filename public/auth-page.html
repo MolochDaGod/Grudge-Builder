@@ -520,7 +520,7 @@ body {
     <div class="more-panel" id="more-panel" hidden>
       <button class="btn btn-ghost" id="btn-phantom" type="button">Solana wallet</button>
       <button class="btn btn-ghost" id="btn-phone" type="button">Phone number</button>
-      <div class="guest-row"><button class="btn-link" id="btn-guest" type="button">Continue as guest</button></div>
+      <div class="guest-row" hidden><button class="btn-link" id="btn-guest" type="button">Continue as guest</button></div>
     </div>
   </section>
 
@@ -695,6 +695,11 @@ const APP_LABELS = {
   mine: "Mine-Loader",
   realms: "Mine-Loader",
   voxelcraft: "Mine-Loader",
+  // Game Studio Tool / Grudge Islands — https://grudge-studio.com/gst
+  gst: "Grudge Studio Tool",
+  islands: "Grudge Studio Tool",
+  "grudge-islands": "Grudge Studio Tool",
+  "studio-tool": "Grudge Studio Tool",
 };
 const HOST_LABELS = {
   "nexus.grudge-studio.com": "Nexus Hub",
@@ -716,13 +721,18 @@ const HOST_LABELS = {
   "open.grudge-studio.com": "Grudge Open",
   "mine-loader.vercel.app": "Mine-Loader",
   "mine.grudge-studio.com": "Mine-Loader",
+  "grudge-studio-tool.vercel.app": "Grudge Studio Tool",
 };
 
 function resolveAppLabel(){
   if (appKey && APP_LABELS[appKey]) return APP_LABELS[appKey];
   if (returnTo) {
     try {
-      const host = new URL(returnTo).hostname.toLowerCase();
+      const ret = new URL(returnTo);
+      const host = ret.hostname.toLowerCase();
+      const path = (ret.pathname || "").toLowerCase();
+      // Path product on portal apex: /gst → Game Studio Tool (shared account shard)
+      if (path === "/gst" || path.startsWith("/gst/")) return APP_LABELS.gst;
       if (HOST_LABELS[host]) return HOST_LABELS[host];
       if (host.endsWith(".grudge-studio.com")) {
         const slug = host.replace(".grudge-studio.com", "");
@@ -735,7 +745,10 @@ function resolveAppLabel(){
         if (APP_LABELS[slug]) return APP_LABELS[slug];
         return slug.split("-").map((w) => w.charAt(0).toUpperCase() + w.slice(1)).join(" ");
       }
-      if (host.endsWith(".vercel.app")) return "Grudge App";
+      if (host.endsWith(".vercel.app")) {
+        if (host.includes("studio-tool") || host.includes("grudge-islands")) return APP_LABELS.gst;
+        return "Grudge App";
+      }
     } catch {}
   }
   if (isPopup && openerOrigin) {
@@ -1198,11 +1211,8 @@ $("ph-submit").addEventListener("click", submitPhone);
 $("ph-number").addEventListener("keydown", (e) => { if (e.key === "Enter") submitPhone(); });
 $("ph-code").addEventListener("keydown", (e) => { if (e.key === "Enter") submitPhone(); });
 
-$("btn-guest").addEventListener("click", async () => {
-  const btn = $("btn-guest"); busy(btn, true);
-  try { const user = await api("/api/auth/guest", { method:"POST", body: "{}" }); afterAuth(user); }
-  catch (e){ toast(e.message || "Could not start a guest session.", "error"); }
-  finally { busy(btn, false); }
+$("btn-guest").addEventListener("click", () => {
+  toast("Guest login is closed. Sign in with Discord, Google, or username.", "error");
 });
 
 let pendingUser = null;

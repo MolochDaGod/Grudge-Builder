@@ -5,7 +5,10 @@ import { FLEET_URLS } from "./manifest";
 
 const CDN = FLEET_URLS.assets;
 
-/** GBUX token chip shown in nav, wallet, account pages */
+/** GBUX token chip — site-relative; wrap with assetUrl() in the browser. */
+export const GBUX_TOKEN_ICON_PATH = "/sprites/gbux-token.png";
+
+/** Absolute CDN (SSR / email). Browser HUD must use assetUrl(GBUX_TOKEN_ICON_PATH). */
 export const GBUX_TOKEN_ICON = `${CDN}/sprites/gbux-token.png`;
 
 /** Element tome icons — R2 keys under icons/tomes/ */
