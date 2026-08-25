@@ -346,9 +346,12 @@ export default function Layout({ children }: { children: React.ReactNode }) {
                            border: '1px solid rgba(212,175,55,0.4)'
                          }}>
                       <img 
-                        src={assetUrl("/sprites/gbux-token.png")} 
+                        src="/sprites/gbux-token.png" 
                         alt="GBUX" 
                         className="w-6 h-6 rounded-full shadow-lg shadow-cyan-500/30"
+                        onError={(e) => {
+                          e.currentTarget.style.visibility = "hidden";
+                        }}
                       />
                       <span className="text-cyan-200 font-bold" data-testid="text-gbux">
                         {(account?.gbuxBalance || 0).toLocaleString()}

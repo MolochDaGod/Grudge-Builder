@@ -114,19 +114,51 @@ export function DangerRoomHud({ hud }: DangerRoomHudProps) {
         </div>
       </div>
 
-      {/* Production Hotbar Slots 1-5 — modeled after legacy Grudge Warlords hotbar (Cell + icon + num + CD) */}
-      <div className="dr-hotbar">
+      {hud.allyPickSkill && (
+        <div className="dr-ally-pick" title="1 Self · 2–4 allies · 5 or Esc cancel">
+          {hud.allyPickSkill.replace(/[_-]+/g, ' ')} — pick target
+        </div>
+      )}
+      {hud.zonePickSkill && (
+        <div className="dr-ally-pick dr-zone-pick" title="Look at ground · LMB place · Esc cancel">
+          {hud.zonePickSkill.replace(/[_-]+/g, ' ')} — look at zone, click to plant
+        </div>
+      )}
+      <div className={`dr-hotbar${hud.allyPickSkill ? ' is-ally-pick' : ''}`}>
         {[1,2,3,4,5].map(s => {
-          const disp = getSkillDisplay(hud.actionBar?.[s]);
-          const isActive = hud.lastUsedSlot === s;
-          const cd = (hud.cooldowns && hud.cooldowns[s]) || 0;
+          const picking = !!hud.allyPickSkill;
+          const pick = hud.allyPick?.find((p) => p.slot === s);
+          const cancel = picking && s === 5;
+          const emptyPick = picking && s <= 4 && !pick?.id;
+          const disp = cancel
+            ? { name: 'Cancel', icon: '' }
+            : pick
+              ? { name: pick.label, icon: '' }
+              : getSkillDisplay(hud.actionBar?.[s]);
+          const isActive = !picking && hud.lastUsedSlot === s;
+          const cd = picking ? 0 : ((hud.cooldowns && hud.cooldowns[s]) || 0);
+          const hp = pick?.hpFrac;
           return (
             <div
               key={s}
-              className={`dr-hotbar-slot ${isActive ? 'dr-hotbar-slot-active' : ''} ${cd > 0 ? 'on-cooldown' : ''}`}
-              title={`Slot ${s} (key ${s}) — ${disp.name} (form ${hud.currentForm ?? 0})`}
+              className={[
+                'dr-hotbar-slot',
+                isActive ? 'dr-hotbar-slot-active' : '',
+                cd > 0 ? 'on-cooldown' : '',
+                picking && s <= 4 ? 'is-pick' : '',
+                emptyPick ? 'is-pick-empty' : '',
+                cancel ? 'is-pick-cancel' : '',
+              ].filter(Boolean).join(' ')}
+              title={
+                picking
+                  ? cancel
+                    ? 'Cancel heal pick (5 / Esc)'
+                    : pick?.id
+                      ? `Cast on ${pick.label}`
+                      : 'No ally in this slot'
+                  : `Slot ${s} (key ${s}) — ${disp.name}`
+              }
               onClick={() => {
-                // Allow mouse testing of the hotbar like legacy (simulates key for the controller listener)
                 if (hud.combatMode) {
                   window.dispatchEvent(new KeyboardEvent('keydown', { key: String(s), bubbles: true }));
                 }
@@ -134,8 +166,13 @@ export function DangerRoomHud({ hud }: DangerRoomHudProps) {
               style={{ cursor: hud.combatMode ? 'pointer' : 'default' }}
             >
               <div className="slot-num">{s}</div>
-              <div className="slot-icon">{disp.icon}</div>
-              <div className="slot-name">{disp.name.length > 9 ? disp.name.slice(0,8) + '…' : disp.name}</div>
+              {disp.icon ? <div className="slot-icon">{disp.icon}</div> : null}
+              <div className="slot-name">
+                {disp.name.length > 9 ? disp.name.slice(0, 8) + '…' : disp.name}
+              </div>
+              {picking && pick?.id && hp != null && (
+                <div className="slot-hp" style={{ width: `${Math.round(Math.max(0, Math.min(1, hp)) * 100)}%` }} />
+              )}
               {cd > 0 && (
                 <div className="slot-cd" style={{ height: `${Math.round(cd * 100)}%` }} />
               )}

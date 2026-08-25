@@ -143,6 +143,60 @@ export async function listLinkedWallets(accountId: string) {
   return db.select().from(linkedWallets).where(eq(linkedWallets.accountId, accountId));
 }
 
+export async function findLinkedWalletByAddress(walletAddress: string) {
+  const [row] = await db
+    .select()
+    .from(linkedWallets)
+    .where(eq(linkedWallets.walletAddress, walletAddress))
+    .limit(1);
+  return row || null;
+}
+
+/**
+ * After Phantom Google is scoped: reuse the account's google row if present,
+ * otherwise add provider=google for this address.
+ */
+export async function ensureGoogleLinkedWallet(
+  accountId: string,
+  walletAddress: string,
+  label = "Phantom (Google)",
+): Promise<{ row: typeof linkedWallets.$inferSelect; created: boolean }> {
+  const existing = await listLinkedWallets(accountId);
+  const byAddr = existing.find((r) => r.walletAddress === walletAddress);
+  const googleRow = existing.find((r) => r.provider === "google");
+  const now = Date.now();
+
+  if (byAddr) {
+    if (byAddr.provider === "google") {
+      return { row: byAddr, created: false };
+    }
+    const [row] = await db
+      .update(linkedWallets)
+      .set({ provider: "google", label: label || byAddr.label, verifiedAt: now })
+      .where(eq(linkedWallets.id, byAddr.id))
+      .returning();
+    return { row: row!, created: false };
+  }
+
+  if (googleRow && googleRow.walletAddress === walletAddress) {
+    return { row: googleRow, created: false };
+  }
+
+  const isPrimary = existing.length === 0;
+  const [row] = await db
+    .insert(linkedWallets)
+    .values({
+      accountId,
+      walletAddress,
+      provider: "google",
+      label,
+      isPrimary,
+      verifiedAt: now,
+    })
+    .returning();
+  return { row: row!, created: true };
+}
+
 export async function getWalletOverview(accountId: string) {
   const account = await storage.getAccount(accountId);
   if (!account) return null;

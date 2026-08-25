@@ -194,6 +194,22 @@ export async function applyGrudge6PlayerToController(
     hotbar.weaponSkills = fromWeapon.weaponSkills;
   }
 
+  const hasClass = WEAPON_SKILL_SLOTS.some((s) => hotbar.classAbilities[s]);
+  if (!hasClass && (classId === 'mage' || classId === 'priest')) {
+    hotbar.classAbilities[1] = 'mage_mana_shield';
+    hotbar.classAbilities[2] = 'mage_0_missile';
+    hotbar.classAbilities[3] = 'mage_1_heal';
+  }
+
+  const wt = String(weaponType || '').toLowerCase();
+  if (wt === 'staff' || wt === 'wand') {
+    const stunId = wt === 'wand' ? 'wand_r_stun_totem' : 'staff_stun_totem';
+    if (!hotbar.weaponSkills[3]) hotbar.weaponSkills[3] = stunId;
+    else if (!hotbar.weaponSkills[4] && hotbar.weaponSkills[3] !== stunId) {
+      hotbar.weaponSkills[4] = stunId;
+    }
+  }
+
   character.loadHotbar(hotbar);
 
   console.log(

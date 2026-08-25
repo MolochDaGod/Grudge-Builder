@@ -848,6 +848,8 @@ export class CrossmintWalletService {
   }
 
   /**
+   * Send SPL / native from a live Crossmint Solana wallet.
+   * Official: POST /2025-06-09/wallets/{locator}/tokens/{chain:mint}/transfers
    * Send SPL from a live Crossmint Solana wallet.
    * Official REST: POST /2025-06-09/wallets/{locator}/tokens/solana:{mint}/transfers
    * Project API key is the admin signer on v1-alpha2 solana-custodial wallets
@@ -874,6 +876,12 @@ export class CrossmintWalletService {
     if (!this.apiKey) {
       return { success: false, error: "Crossmint API key not configured" };
     }
+    const mint = opts.mint.trim();
+    const tokenLocator = `solana:${mint}`;
+    const locators = [opts.fromWallet];
+    if (opts.emailLocator) locators.push(opts.emailLocator);
+
+    let last = "no locator accepted";
     const tokenLocator = `solana:${opts.mint.trim()}`;
     const locators = [
       opts.fromWallet,
@@ -975,6 +983,19 @@ export class CrossmintWalletService {
           continue;
         }
         if (response.ok || response.status === 201) {
+          const sig = j.onChain?.txId || j.id;
+          const pending = /pending|awaiting/i.test(String(j.status || ""));
+          return {
+            success: true,
+            signature: sig,
+            explorerLink:
+              j.onChain?.explorerLink ||
+              (sig && sig.length > 40
+                ? `https://solscan.io/tx/${sig}`
+                : undefined),
+            pending,
+            status: j.status,
+          };
           const immediate = j.onChain?.txId;
           if (isSolanaSig(immediate)) {
             return {

@@ -12,7 +12,7 @@ import { useGLTF, Center } from "@react-three/drei";
 import type { Group } from "three";
 import { assetUrl } from "@/lib/assetConfig";
 
-const HELMET_FALLBACK_IMG = assetUrl("/sprites/gbux-token.png");
+const HELMET_FALLBACK_IMG = "/sprites/gbux-token.png";
 /** Same-origin proxy → R2 (when a real GLB is uploaded). */
 const MODEL_URL = assetUrl("/models/grudge-token-helmet.glb");
 
