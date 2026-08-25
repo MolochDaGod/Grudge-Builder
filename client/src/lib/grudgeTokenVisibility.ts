@@ -19,6 +19,7 @@ const HIDDEN_PREFIXES = [
   "/sailing",
   "/island-3d",
   "/lava-caesar-lab",
+  "/dock-raft-lab",
   "/editor",
   "/forge",
   "/scene",

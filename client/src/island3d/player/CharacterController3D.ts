@@ -2037,6 +2037,11 @@ export class CharacterController3D {
     this.characterIk.isGrounded = this.isGrounded || this.shipDeckLocked;
     // restore → already ran mixer in update(); IK adjusts on top of FK
     this.characterIk.updateFootIK(terrain, dt);
+    this.characterIk.tickHarvestAxeIK(dt);
+  }
+
+  pulseHarvestAxeIK(target: THREE.Vector3): void {
+    this.characterIk?.pulseHarvestAxeIK(target);
   }
 
   // ─── Climbing detection ────────────────────────────────────────────────────

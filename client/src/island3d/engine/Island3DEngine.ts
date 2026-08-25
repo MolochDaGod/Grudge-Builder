@@ -687,6 +687,7 @@ export class Island3DEngine {
    * Reference: https://screen.toys/firewood/
    */
   public firewoodChop: FirewoodChopSystem | null = null;
+  public dockRaftLab: import('../zone/DockRaftLabSystem').DockRaftLabSystem | null = null;
 
   constructor(private config: Island3DEngineConfig) {
     // Renderer — WebGL2 when available (THREE.WebGLRenderer), high-perf GPU,
@@ -3324,6 +3325,66 @@ export class Island3DEngine {
     void LAVA_CAESAR_KIT;
   }
 
+  /** Dock + atoll raft lab — scene (9), hatchet logs, one-log raft. */
+  public async startDockRaftLab(): Promise<void> {
+    const { DockRaftLabSystem } = await import('../zone/DockRaftLabSystem');
+    const { FIREWOOD_CHOP_ONE_LOG } = await import('@shared/definitions/firewoodChop');
+    const { DOCK_RAFT_ITEM } = await import('@shared/definitions/dockRaftTestMap');
+    this.ensureFirewoodChop();
+    this.firewoodChop?.setConfig(FIREWOOD_CHOP_ONE_LOG);
+    for (let i = 0; i < 40 && !this.physics; i++) {
+      await new Promise((r) => setTimeout(r, 80));
+    }
+    this.dockRaftLab = new DockRaftLabSystem({
+      scene: this.scene,
+      physics: this.physics,
+      addTree: (t) => {
+        this.trees.push(t);
+      },
+    });
+    const ok = await this.dockRaftLab.boot();
+    if (!ok) return;
+    const spawn = this.dockRaftLab.spawnPoint();
+    if (this.character) {
+      this.character.model.position.copy(spawn);
+      this.character.setGroundSampler((x, z) => {
+        const y = this.dockRaftLab?.play?.sampleHeight(x, z);
+        if (y != null) return y;
+        return this.zoneGroundSampler?.(x, z) ?? null;
+      });
+    }
+    void this.enterHarvestMode();
+    const origHarvest = this.config.onHarvest;
+    this.config.onHarvest = (ev) => {
+      const amt = (ev as { amount?: number }).amount;
+      if (typeof amt === 'number' && amt > 0) {
+        this.adjustItem(DOCK_RAFT_ITEM.log, amt);
+      }
+      origHarvest?.(ev);
+    };
+    const onKey = (e: KeyboardEvent) => {
+      if (e.repeat || e.code !== 'KeyE') return;
+      const p = this.character?.model.position;
+      if (!p || !this.dockRaftLab) return;
+      const wood = this.getMergedInventory()[DOCK_RAFT_ITEM.log] ?? 0;
+      const r = this.dockRaftLab.tryPlaceLog(p, wood);
+      if (r.placed) this.adjustItem(DOCK_RAFT_ITEM.log, -1);
+    };
+    window.addEventListener('keydown', onKey);
+    this.onUpdate(() => {
+      const wood = this.getMergedInventory()[DOCK_RAFT_ITEM.log] ?? 0;
+      try {
+        window.dispatchEvent(
+          new CustomEvent('grudge:dock-raft-lab', {
+            detail: this.dockRaftLab?.snapshot(wood),
+          }),
+        );
+      } catch {
+        /* */
+      }
+    });
+  }
+
   /** Hoth / woods / desert / lava instance maps (preload sector room). */
   private ensureBossRooms(): void {
     if (this.bossRooms || !this.scene) return;
@@ -4808,6 +4869,7 @@ export class Island3DEngine {
         this.character?.model.position ?? this.camera.position;
 
       if (this.firewoodChop && standing) {
+        this.character?.pulseHarvestAxeIK(impact);
         this.firewoodChop.strikeStanding(tree, impact, playerPos);
         if (tree.fallPhase === 'falling') {
           markDepleted(tree as any, 'tree', false);
@@ -4815,6 +4877,7 @@ export class Island3DEngine {
         return;
       }
       if (this.firewoodChop && downed) {
+        this.character?.pulseHarvestAxeIK(impact);
         const facing =
           this.character?.model.rotation.y ??
           this.camera.rotation.y ??

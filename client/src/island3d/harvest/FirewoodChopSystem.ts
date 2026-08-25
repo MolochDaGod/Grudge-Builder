@@ -65,6 +65,10 @@ export class FirewoodChopSystem {
     this.scene = scene;
   }
 
+  setConfig(cfg: Partial<FirewoodChopConfig>): void {
+    this.cfg = { ...this.cfg, ...cfg };
+  }
+
   /** Ensure firewood state fields exist on a tree. */
   ensureState(tree: HarvestableTree): void {
     if (tree.notchProgress == null) tree.notchProgress = 0;
@@ -219,7 +223,7 @@ export class FirewoodChopSystem {
 
     // Spawn collectible wood proxies
     if (ev.completedSegment) {
-      this.spawnCollectibleWood(tree, impact, 2 + Math.floor(Math.random() * 2));
+      this.spawnCollectibleWood(tree, impact, this.cfg.woodPiecesPerSegment ?? 2);
       this.cb.onSegmentSplit?.(tree, i);
     }
 
