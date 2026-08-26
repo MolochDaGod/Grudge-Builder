@@ -521,6 +521,18 @@
       "destination": "/craft/index.html"
     },
     {
+      "source": "/main-panel",
+      "destination": "/main-panel/index.html"
+    },
+    {
+      "source": "/main-panel/",
+      "destination": "/main-panel/index.html"
+    },
+    {
+      "source": "/main-panel/index.html",
+      "destination": "/main-panel/index.html"
+    },
+    {
       "source": "/wcs",
       "destination": "/craft/index.html"
     },
@@ -556,6 +568,19 @@
     "VITE_AUTH_GATEWAY_URL": "https://id.grudge-studio.com"
   },
   "headers": [
+    {
+      "source": "/main-panel/(.*)",
+      "headers": [
+        {
+          "key": "Cache-Control",
+          "value": "public, max-age=0, must-revalidate"
+        },
+        {
+          "key": "Content-Security-Policy",
+          "value": "default-src 'self'; script-src 'self' 'unsafe-inline' 'unsafe-eval' https://cdn.jsdelivr.net https://*.grudge-studio.com https://*.vercel.app; style-src 'self' 'unsafe-inline' https://fonts.googleapis.com; font-src 'self' https://fonts.gstatic.com data:; img-src 'self' data: blob: https: http:; connect-src 'self' https: wss: blob: data:; frame-src 'self' https://*.grudge-studio.com https://*.grudgewarlords.com; worker-src 'self' blob:; frame-ancestors 'self' https://*.grudge-studio.com https://*.grudgewarlords.com https://grudgewarlords.com"
+        }
+      ]
+    },
     {
       "source": "/(.*)",
       "headers": [

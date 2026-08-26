@@ -4,6 +4,7 @@
 <meta name="referrer" content="no-referrer">
 <meta charset="UTF-8"/>
 <meta name="viewport" content="width=device-width, initial-scale=1.0"/>
+<script src="/main-panel/boot.js" defer></script>
 <title>Grudge Warlords — Crafting &amp; Professions</title>
 <link rel="icon" type="image/png" href="./crafting-icons/management.png"/>
 <!-- Capture SSO tokens BEFORE any other script so login survives fleet load delays -->
@@ -140,7 +141,7 @@
       CRAFTING_URL: CANONICAL_CRAFT,
       CRAFT_HOST_URL: CRAFT_HOST,
       WCS_URL: CANONICAL_CRAFT,
-      MAIN_PANEL_URL: 'https://ui.grudge-studio.com/main-panel.html?era=warlords&tab=craft',
+      MAIN_PANEL_URL: '/main-panel/?era=warlords&tab=craft',
       SKILL_TREE_URL: 'https://grudgewarlords.com/skill-tree.html',
       WEAPON_MASTERY_URL: 'https://grudgewarlords.com/weaponmastery.html',
       INVENTORY_SCOPE: 'account',
@@ -1613,7 +1614,7 @@ body .app {
 
     <div class="sidebar-section">
       <div class="sidebar-section-title">Links</div>
-      <a href="https://ui.grudge-studio.com/main-panel.html?era=warlords&tab=craft" target="_blank" rel="noopener" class="nav-btn"><span class="icon"><img referrerpolicy="no-referrer" class="nav-icon" data-icon-kind="pack" src="./crafting-icons/eagle-shield.png" alt="" loading="lazy" decoding="async"></span><span>Main Panel</span></a>
+      <a href="/main-panel/?era=warlords&tab=craft" class="nav-btn"><span class="icon"><img referrerpolicy="no-referrer" class="nav-icon" data-icon-kind="pack" src="./crafting-icons/eagle-shield.png" alt="" loading="lazy" decoding="async"></span><span>Main Panel</span></a>
       <a href="https://grudgewarlords.com" target="_blank" rel="noopener" class="nav-btn"><span class="icon"><img referrerpolicy="no-referrer" class="nav-icon" data-icon-kind="pack" src="./crafting-icons/management.png" alt="" loading="lazy" decoding="async"></span><span>Grudge Warlords</span></a>
       <a href="https://wcs.grudge-studio.com" target="_blank" rel="noopener" class="nav-btn"><span class="icon"><img referrerpolicy="no-referrer" class="nav-icon" data-icon-kind="pack" src="./crafting-icons/forester.png" alt="" loading="lazy" decoding="async"></span><span>WCS (host)</span></a>
       <a href="https://docs.grudge-studio.com/crafting" target="_blank" rel="noopener" class="nav-btn"><span class="icon"><img referrerpolicy="no-referrer" class="nav-icon" data-icon-kind="pack" src="./crafting-icons/management.png" alt="" loading="lazy" decoding="async"></span><span>Craft Skills Docs</span></a>
@@ -1646,7 +1647,7 @@ body .app {
       <span class="sab-actions" id="soft-auth-actions">
         <button type="button" onclick="doSignIn()">Sign in with Grudge ID</button>
         <button type="button" class="secondary" onclick="doCreateAccount()">Create account</button>
-        <a class="sab-btn secondary" href="https://ui.grudge-studio.com/main-panel.html?era=warlords&tab=craft" target="_blank" rel="noopener">Main Panel</a>
+        <a class="sab-btn secondary" href="/main-panel/?era=warlords&tab=craft">Main Panel</a>
       </span>
     </div>
 
