@@ -1,0 +1,48 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8"/>
+  <meta name="viewport" content="width=device-width, initial-scale=1.0"/>
+  <meta name="referrer" content="no-referrer"/>
+  <title>Grudge Warlords — Main Panel</title>
+  <link rel="icon" type="image/png" href="/main-panel/icons/warrior.png"/>
+  <link rel="stylesheet" href="/main-panel/panel.css"/>
+  <script>
+  (function earlySsoCapture() {
+    try {
+      var p = new URLSearchParams(location.search || "");
+      var h = new URLSearchParams((location.hash || "").replace(/^#/, ""));
+      function g(k) { return p.get(k) || h.get(k) || null; }
+      var token = g("sso_token") || g("token") || g("jwt") || g("access_token") || g("grudge_token");
+      var gid = g("grudge_id") || g("grudgeId") || g("user_id");
+      var un = g("grudge_username") || g("username");
+      var charId = g("characterId") || g("char_id") || g("charId");
+      if (token) {
+        ["grudge_auth_token","grudge_session_token","grudge_studio_session","grudge.token","sso_token","access_token","grudge_token"].forEach(function(k){
+          try { localStorage.setItem(k, token); } catch(e) {}
+        });
+        try {
+          var host = location.hostname || "";
+          var domain = (host === "grudgewarlords.com" || /\.grudgewarlords\.com$/i.test(host)) ? "; Domain=.grudgewarlords.com" : "";
+          var secure = location.protocol === "https:" ? "; Secure" : "";
+          document.cookie = "grudge_auth_token=" + encodeURIComponent(token) + "; path=/; max-age=1209600; SameSite=Lax" + secure + domain;
+        } catch (e) {}
+      }
+      if (gid) {
+        localStorage.setItem("grudge_id", gid);
+        localStorage.setItem("grudge_account_id", gid);
+        localStorage.setItem("grudge_user_id", gid);
+      }
+      if (un) localStorage.setItem("grudge_username", un);
+      if (charId) {
+        localStorage.setItem("grudge_active_character", charId);
+        localStorage.setItem("grudge.activeCharId", charId);
+      }
+    } catch (e) {}
+  })();
+  </script>
+</head>
+<body style="margin:0;background:#07070c">
+  <script src="/main-panel/panel.js" defer></script>
+</body>
+</html>
