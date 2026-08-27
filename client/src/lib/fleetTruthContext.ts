@@ -5,7 +5,7 @@ import { FLEET_URLS } from "@shared/fleet/manifest";
 import { runTruthAudit } from "@/lib/grudgeTruth";
 
 const FLEET_TRUTH_URL =
-  "https://objectstore.grudge-studio.com/api/v1/_meta/fleet-truth.json";
+  "https://info.grudge-studio.com/api/v1/_meta/fleet-truth.json";
 
 export async function buildFleetTruthContext(): Promise<string> {
   const [audit, fleetTruth] = await Promise.all([

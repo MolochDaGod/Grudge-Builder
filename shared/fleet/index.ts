@@ -25,6 +25,12 @@ export {
   canonicalSsoReturnOrigin,
 } from "./authReturn";
 
+export {
+  FLEET_AUTH_TOKEN_KEYS as WARLORDS_AUTH_TOKEN_KEYS,
+  FLEET_OPEN_TOKEN_KEY,
+  FLEET_AUTH_TOKEN_READ_FALLBACK,
+} from "./tokenKeys";
+
 /** Warlords era *.grudgewarlords.com product zone */
 export {
   WARLORDS_APEX,

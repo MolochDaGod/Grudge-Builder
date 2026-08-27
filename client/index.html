@@ -19,9 +19,11 @@
     <link rel="preconnect" href="https://fonts.googleapis.com">
     <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
     <link href="https://fonts.googleapis.com/css2?family=Cinzel:wght@400;700;900&family=Inter:wght@300;400;500;600;700&family=Jost:wght@400;600&family=Uncial+Antiqua&family=IM+Fell+English+SC&display=swap" rel="stylesheet">
-    <!-- Same-origin bootstrap (correct JS MIME). Do NOT load from id.grudge-studio.com —
-         that host has historically served application/octet-stream and browsers refuse it. -->
+    <!-- SSOT bootstrap: this same-origin file. Copies: id.grudge-studio.com + assets…/js/
+         (assets path must be application/javascript — never the info-hub HTML fallback). -->
     <script src="/grudge-game-bootstrap.js"></script>
+    <!-- Harvest / craft bag helpers expected by the SPA as window.GrudgeFleet -->
+    <script src="/grudge-fleet.js"></script>
   </head>
   <body>
     <div id="root"></div>
