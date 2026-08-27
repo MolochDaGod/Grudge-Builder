@@ -1366,11 +1366,14 @@ export function registerAuthRoutes(app: Express) {
         accountUpdates.walletType = 'crossmint';
         accountUpdates.crossmintEmail = walletEmail;
       }
+      
+      // Always grant first character on register (one per new account)
+      accountUpdates.firstCharacterGranted = true;
+      accountUpdates.characterTokens = (account.characterTokens || 1) + 1;
+      
+      // Track referral code if provided (independent of character grant)
       if (referrerAccount) {
         accountUpdates.referredBy = referrerAccount.referralCode;
-        // Grant first free character on successful referral claim (one per new account)
-        accountUpdates.firstCharacterGranted = true;
-        accountUpdates.characterTokens = (account.characterTokens || 1) + 1;
       }
       
       await storage.updateAccount(account.id, accountUpdates);
@@ -1383,7 +1386,7 @@ export function registerAuthRoutes(app: Express) {
           ? "Welcome to Grudge Warlords! Your referral bonus has been applied."
           : "Welcome to Grudge Warlords!",
         referralCode: myReferralCode,
-        firstCharacterGranted: !!referrerAccount,
+        firstCharacterGranted: true,
       });
     } catch (e: any) {
       console.error("[Auth/Register]", e);
