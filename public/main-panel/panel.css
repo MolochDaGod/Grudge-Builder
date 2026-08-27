@@ -88,27 +88,32 @@
 }
 .gmp-doll {
   position: relative;
-  width: min(520px, 100%);
+  width: min(28rem, 100%);
   margin: 0 auto;
-  aspect-ratio: 430 / 620;
+  isolation: isolate;
+  background: none;
 }
 .gmp-doll img.frame {
+  display: block;
   width: 100%;
-  height: 100%;
+  height: auto;
   object-fit: contain;
   pointer-events: none;
   user-select: none;
 }
 .gmp-doll .kit3d {
   position: absolute;
-  left: 28%;
-  top: 18%;
-  width: 44%;
-  height: 62%;
+  left: 24%;
+  top: 17%;
+  width: 52%;
+  height: 70%;
+  z-index: 1;
   pointer-events: none;
+  background: none;
 }
 .gmp-slot {
   position: absolute;
+  z-index: 2;
   border: 1px solid rgba(212,168,67,0.55);
   background: rgba(0,0,0,0.35);
   border-radius: 4px;
@@ -219,6 +224,10 @@
   grid-template-columns: minmax(0, 1fr) minmax(240px, 320px);
   gap: 16px;
   align-items: start;
+}
+.gmp-equip > .gmp-doll {
+  justify-self: center;
+  width: min(28rem, 100%);
 }
 .gmp-bar {
   display: grid;

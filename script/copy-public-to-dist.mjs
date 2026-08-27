@@ -9,7 +9,7 @@
  * not in these trees (see .gitignore / .vercelignore).
  */
 import { cp } from "node:fs/promises";
-import { existsSync } from "node:fs";
+import { existsSync, readFileSync } from "node:fs";
 import path from "node:path";
 import { fileURLToPath } from "node:url";
 
@@ -57,3 +57,11 @@ if (!existsSync(craftIndex)) {
 }
 console.log("public assets copied to client/dist (client/public SSOT last)");
 console.log("craft suite present:", path.relative(repoRoot, craftIndex));
+
+const panelJs = path.join(distDir, "main-panel", "panel.js");
+const panelSrc = existsSync(panelJs) ? readFileSync(panelJs, "utf8") : "";
+if (!panelSrc.includes("inspectHTML") || !panelSrc.includes("data-boat") || !panelSrc.includes("data-crew")) {
+  console.error("copy-public-to-dist: main-panel/panel.js missing inspect/boats/crew — refusing to ship a stub hub");
+  process.exit(1);
+}
+console.log("main panel present:", path.relative(repoRoot, panelJs), panelSrc.length, "bytes");

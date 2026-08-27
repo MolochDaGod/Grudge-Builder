@@ -362,6 +362,12 @@
     if (skillsBody.weapons) skillsBody.weapons.forEach(addW);
     if (skillsBody.prefabs) skillsBody.prefabs.forEach(addW);
     state.weapons = weapons;
+    if (!state.gear.main && weapons.length) {
+      const starter = weapons.find((w) => w.weaponType === "SWORD")
+        || weapons.find((w) => w.typeKey === "swords")
+        || weapons[0];
+      if (starter) state.gear.main = starter.id;
+    }
     let recBody = rec.ok ? rec.body : null;
     state.recipes = asList(recBody);
     if (!state.recipes.length) {
@@ -456,9 +462,14 @@
   }
   function skillArt(s) {
     if (!s) return null;
-    if (s.icon && String(s.icon).includes("/icons/")) return asset(s.icon);
-    if (s.iconUrl && String(s.iconUrl).includes("/icons/")) return asset(s.iconUrl);
-    return asset(s.icon || s.iconUrl);
+    const raw = (s.icon && String(s.icon).includes("/icons/") ? s.icon : null)
+      || (s.iconUrl && String(s.iconUrl).includes("/icons/") ? s.iconUrl : null)
+      || s.iconUrl
+      || s.icon;
+    const u = String(raw || "");
+    if (!u) return classIcon(state.classId);
+    if (/^(https?:|data:|blob:)/i.test(u) || u.includes("/") || /\.(png|webp|jpe?g|svg|gif)$/i.test(u)) return asset(u);
+    return classIcon(state.classId);
   }
   function skillTreeFor(w) {
     if (!w) return null;
@@ -753,7 +764,7 @@
       loop();
       kitStop = () => { live = false; renderer.dispose(); };
     } catch (e) {
-      canvas.replaceWith(el('<div class="gmp-muted" style="padding:8px;text-align:center">Kit loading…</div>'));
+      if (canvas && canvas.style) canvas.style.display = "none";
     }
   }
 
@@ -790,7 +801,7 @@
   function equipmentView() {
     const bag = state.weapons.slice(0, 48);
     return `<div class="gmp-equip">
-        <div class="gmp-card">${dollHTML()}</div>
+        ${dollHTML()}
         <div>${inspectHTML({ self: true, size: "panel", name: (state.character && state.character.name) || "You" })}</div>
       </div>
       <div class="gmp-card"><h3>Race</h3><div class="gmp-row">${RACES.map(([id, label]) =>
@@ -928,7 +939,7 @@
             return `<button type="button" class="gmp-hull${on?" on":""}" data-boat="${esc(h.id)}">
               <div class="gmp-row">${ic?`<img class="icon" src="${esc(ic)}" alt="">`:""}<div>
                 <div style="font-weight:600">${esc(h.label)}</div>
-                <div class="gmp-mono">crew ${h.crew} · speed ${h.speed}</div>
+                <div class="gmp-mono">${/boat|ship|raft|skiff|row/i.test(h.label) ? "hull" : "mount"} · crew ${h.crew} · speed ${h.speed}</div>
               </div></div>
               <p class="gmp-muted" style="margin:8px 0 0">${esc(h.description)}</p>
             </button>`;
@@ -962,7 +973,7 @@
     root.querySelectorAll(".gmp-chip[data-race]").forEach((b) => b.addEventListener("click", () => { state.race = b.dataset.race; render(); persist(); }));
     root.querySelectorAll(".gmp-chip[data-class]").forEach((b) => b.addEventListener("click", () => { state.classId = b.dataset.class; render(); persist(); }));
     root.querySelectorAll(".gmp-slot").forEach((b) => {
-      b.addEventListener("click", (e) => openSlotMenu(e, b.dataset.slot));
+      b.addEventListener("click", (e) => { e.preventDefault(); e.stopPropagation(); openSlotMenu(e, b.dataset.slot); });
       b.addEventListener("contextmenu", (e) => openSlotMenu(e, b.dataset.slot));
       b.addEventListener("mouseenter", (e) => {
         const slot = b.dataset.slot;
