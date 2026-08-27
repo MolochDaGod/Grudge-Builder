@@ -94,6 +94,13 @@
     undead: chrome({ shoulder:{x:12.05,y:20.54,w:10.23,h:9.54}, back:{x:12.05,y:35.06,w:10.23,h:9.54}, chest:{x:12.05,y:49.17,w:10.23,h:9.54}, legs:{x:12.05,y:63.28,w:10.23,h:9.54}, head:{x:77.05,y:20.54,w:10.23,h:9.54}, main:{x:77.05,y:35.06,w:10.23,h:9.54}, hands:{x:77.05,y:49.17,w:10.23,h:9.54}, feet:{x:77.05,y:63.28,w:10.23,h:9.54}, off:{x:77.5,y:76.97,w:9.55,h:8.09} }),
   };
 
+  const ALLY_CLASS = { human: "warrior", barbarian: "raider", elf: "ranger", dwarf: "priest", orc: "worge", undead: "mage" };
+  const SLOT_ARMOR = { head: "Helm", shoulder: "Shoulder", back: "Back", chest: "Chest", hands: "Hands", waist: "Waist", legs: "Legs", feet: "Feet" };
+  const TYPEKEY_WS = { swords: "SWORD", greatswords: "GREATSWORD", axes1h: "AXE", greataxes: "GREATAXE", hammers1h: "HAMMER", hammers2h: "HAMMER", fireStaves: "STAFF", frostStaves: "STAFF", natureStaves: "STAFF", holyStaves: "STAFF", arcaneStaves: "STAFF", staves: "STAFF", tomes: "TOME", fireTomes: "TOME", bows: "BOW", crossbows: "CROSSBOW", guns: "GUN", daggers: "DAGGER", spears: "SPEAR", shields: "SHIELD", claws: "CLAW", scythes: "SCYTHE", tools: "TOOL" };
+  const SLOT_UI = { primary: "Slot 1 · Standard", secondary: "Slot 2 · Shared", ability: "Slot 3 · Shared", ultimate: "Slot 4 · Signature" };
+  const CRAFT_ICONS = "/craft/crafting-icons";
+  const PROF_ICON = { mining: "miner.png", logging: "forester.png", skinning: "chef.png", fishing: "chef.png", herbalism: "mystic.png", scavenging: "engineer.png" };
+
   const state = {
     tab: "equipment",
     race: "human",
@@ -103,10 +110,16 @@
     character: null,
     characters: [],
     weapons: [],
+    armor: [],
     skills: [],
+    weaponTypes: [],
+    classes: {},
     recipes: [],
+    mounts: [],
     gear: { head: null, shoulder: null, back: null, chest: null, hands: null, waist: null, legs: null, feet: null, main: null, off: null, main2: null, off2: null, set: 1 },
     bag: [],
+    boat: null,
+    crew: [],
     menu: null,
     tip: null,
     status: "loading",
@@ -259,64 +272,289 @@
     }
   }
 
+  function asList(raw) {
+    if (Array.isArray(raw)) return raw;
+    if (!raw || typeof raw !== "object") return [];
+    for (const k of ["prefabs", "items", "weapons", "armor", "mounts", "recipes", "classes", "weaponTypes"]) {
+      if (Array.isArray(raw[k])) return raw[k];
+    }
+    return [];
+  }
+  function parseSkill(raw) {
+    if (!raw || typeof raw !== "object") return null;
+    const id = String(raw.id || raw.uuid || "");
+    const name = String(raw.name || "");
+    if (!id || !name) return null;
+    return {
+      id,
+      uuid: String(raw.uuid || id),
+      name,
+      description: String(raw.description || ""),
+      icon: raw.icon || null,
+      iconUrl: raw.iconUrl || null,
+      tier: Number(raw.tier) || 1,
+      damage: Number(raw.damage) || 0,
+      cooldown: Number(raw.cooldown) || 0,
+      castTime: raw.castTime == null || raw.castTime === "" ? null : Number(raw.castTime),
+      range: raw.range == null || raw.range === "" ? null : Number(raw.range),
+      damageType: String(raw.damageType || "physical"),
+      effects: Array.isArray(raw.effects) ? raw.effects.map(String) : [],
+    };
+  }
   async function loadCatalog() {
-    const [ws, infoWs, rec] = await Promise.all([
+    const [ws, infoWs, rec, pref, cls, mnt, arm] = await Promise.all([
       pull(FLEET.os + "/files/master-weaponSkills.json"),
       pull(FLEET.info + "/api/v1/master-weaponSkills.json"),
-      pull(FLEET.os + "/files/recipes.json"),
+      pull(FLEET.os + "/master-recipes.json"),
+      pull(FLEET.os + "/master-weapon-prefabs.json"),
+      pull(FLEET.os + "/classes.json"),
+      pull(FLEET.os + "/master-mounts.json"),
+      pull(FLEET.os + "/master-armor.json"),
     ]);
-    const skillsBody = (ws.ok && ws.body) || (infoWs.ok && infoWs.body) || {};
-    const skills = Array.isArray(skillsBody) ? skillsBody : skillsBody.skills || skillsBody.items || skillsBody.weaponSkills || [];
-    state.skills = skills;
+    const skillsBody = (infoWs.ok && infoWs.body) || (ws.ok && ws.body) || {};
+    const flat = [];
+    const types = [];
+    (Array.isArray(skillsBody.weaponTypes) ? skillsBody.weaponTypes : []).forEach((row) => {
+      const id = String(row.id || "").toUpperCase();
+      if (!id) return;
+      const slots = (Array.isArray(row.slots) ? row.slots : []).map((sl, i) => {
+        const type = String(sl.type || "primary").toLowerCase();
+        const skills = (Array.isArray(sl.skills) ? sl.skills : []).map(parseSkill).filter(Boolean);
+        skills.forEach((sk) => flat.push(sk));
+        return { type, label: String(sl.label || type), uiLabel: SLOT_UI[type] || ("Slot " + (i + 1)), skills, unlockTier: Number(sl.unlockTier) || 1 };
+      });
+      types.push({ id, name: String(row.name || id), icon: row.icon || null, slots });
+    });
+    state.weaponTypes = types;
+    state.skills = flat.length ? flat : (Array.isArray(skillsBody) ? skillsBody : skillsBody.skills || skillsBody.items || []);
     const weapons = [];
     const seen = new Set();
     function addW(w) {
       if (!w) return;
-      const id = String(w.id || w.uuid || w.slug || "");
+      const id = String(w.uuid || w.id || w.slug || "");
       if (!id || seen.has(id)) return;
       seen.add(id);
+      const assets = (w.assets && typeof w.assets === "object") ? w.assets : {};
+      const pack = (w.skills && typeof w.skills === "object") ? w.skills : {};
+      const skillSlots = Array.isArray(pack.slots)
+        ? pack.slots.map((sl) => ({
+            type: String(sl.type || "primary"),
+            label: String(sl.label || ""),
+            unlockTier: Number(sl.unlockTier) || 0,
+            skillIds: Array.isArray(sl.skillIds) ? sl.skillIds.map(String) : [],
+            skillUuids: Array.isArray(sl.skillUuids) ? sl.skillUuids.map(String) : [],
+          }))
+        : [];
       weapons.push({
         id,
         name: String(w.name || w.label || id),
-        typeKey: String(w.typeKey || w.weaponType || w.type || w.category || ""),
-        icon: w.icon || w.iconUrl,
-        iconUrl: w.iconUrl || w.icon,
+        typeKey: String(w.typeKey || w.category || ""),
+        icon: w.icon || assets.iconUrl || w.iconUrl,
+        iconUrl: assets.iconUrl || w.iconUrl || w.icon,
         lore: String(w.lore || w.description || ""),
-        weaponType: String(w.weaponType || ""),
-        skillSlots: w.skillSlots || [],
-        modelUrl: w.modelUrl || w.glb_url,
+        weaponType: String(w.weaponType || w.type || "").toUpperCase(),
+        skillSlots,
+        modelUrl: w.modelUrl || assets.modelUrl,
+        tier: Number(w.tier) || 0,
       });
     }
+    asList(pref.ok ? pref.body : null).forEach(addW);
     if (skillsBody.weapons) skillsBody.weapons.forEach(addW);
     if (skillsBody.prefabs) skillsBody.prefabs.forEach(addW);
-    skills.forEach((s) => {
-      if (s.weapon) addW(s.weapon);
-      if (s.prefab) addW(s.prefab);
-    });
     state.weapons = weapons;
-    const recBody = rec.ok ? rec.body : null;
-    state.recipes = Array.isArray(recBody) ? recBody : (recBody && (recBody.recipes || recBody.items)) || [];
+    let recBody = rec.ok ? rec.body : null;
+    state.recipes = asList(recBody);
+    if (!state.recipes.length) {
+      const rec2 = await pull(FLEET.os + "/files/recipes.json");
+      recBody = rec2.ok ? rec2.body : null;
+      state.recipes = asList(recBody);
+    }
+    const classPack = (cls.ok && cls.body && cls.body.classes) || {};
+    const cmap = {};
+    Object.keys(classPack).forEach((id) => {
+      const row = classPack[id] || {};
+      const abilities = (Array.isArray(row.abilities) ? row.abilities : []).map((a, i) => {
+        if (!a) return null;
+        if (typeof a === "string") return { id: id + "-" + i, name: a, description: "", iconUrl: null, type: "physical", damage: null, cooldown: null, role: "ability" };
+        return {
+          id: String(a.id || id + "-" + i),
+          name: String(a.name || "Ability"),
+          description: String(a.description || ""),
+          icon: a.icon || null,
+          iconUrl: a.iconUrl || a.icon || null,
+          type: String(a.type || "physical"),
+          damage: a.damage == null ? null : Number(a.damage),
+          cooldown: a.cooldown == null ? null : Number(a.cooldown),
+          role: "ability",
+        };
+      }).filter(Boolean);
+      const sig = row.signatureAbility;
+      if (sig && typeof sig === "object") {
+        abilities.push({
+          id: String(sig.id || id + "-sig"),
+          name: String(sig.name || "Signature"),
+          description: String(sig.description || ""),
+          icon: sig.icon || null,
+          iconUrl: sig.iconUrl || sig.icon || null,
+          type: String(sig.type || "buff"),
+          damage: sig.damage == null ? null : Number(sig.damage),
+          cooldown: sig.cooldown == null ? null : Number(sig.cooldown),
+          role: "signature",
+        });
+      }
+      cmap[id] = {
+        id,
+        label: String(row.name || id),
+        description: String(row.description || ""),
+        iconUrl: row.iconUrl || row.icon || classIcon(id),
+        abilities,
+      };
+    });
+    state.classes = cmap;
+    state.mounts = asList(mnt.ok ? mnt.body : null).map((m) => ({
+      id: String(m.uuid || m.id || ""),
+      label: String(m.name || "Hull"),
+      crew: Number(m.crew || m.capacity) || 2,
+      speed: Number(m.speed) || 1,
+      iconUrl: m.iconUrl || null,
+      description: String(m.description || ""),
+    })).filter((m) => m.id);
+    if (!state.boat && state.mounts.length) {
+      state.boat = (state.mounts.find((m) => /boat|ship|raft|skiff|hull/i.test(m.label)) || state.mounts[0]).id;
+    }
+    const armor = [];
+    asList(arm.ok ? arm.body : null).forEach((a) => {
+      const slotType = String(a.slotType || a.slot || a.type || "");
+      const slot = Object.keys(SLOT_ARMOR).find((k) => SLOT_ARMOR[k].toLowerCase() === slotType.toLowerCase() || slotType.toLowerCase().startsWith(SLOT_ARMOR[k].toLowerCase()));
+      if (!slot) return;
+      const id = String(a.uuid || a.id || "");
+      if (!id) return;
+      armor.push({
+        id,
+        name: String(a.name || a.baseName || "Armor"),
+        slot,
+        slotType,
+        material: String(a.material || ""),
+        iconUrl: a.iconUrl || (a.assets && a.assets.iconUrl) || a.icon,
+        lore: String(a.description || ""),
+        tier: Number(a.tier) || 1,
+      });
+    });
+    state.armor = armor;
   }
 
   function weaponById(id) {
     return state.weapons.find((w) => w.id === id) || null;
   }
+  function armorById(id) {
+    return state.armor.find((a) => a.id === id) || null;
+  }
+  function gearItem(slot) {
+    const id = state.gear[slot];
+    if (!id) return null;
+    return weaponById(id) || armorById(id);
+  }
+  function skillArt(s) {
+    if (!s) return null;
+    if (s.icon && String(s.icon).includes("/icons/")) return asset(s.icon);
+    if (s.iconUrl && String(s.iconUrl).includes("/icons/")) return asset(s.iconUrl);
+    return asset(s.icon || s.iconUrl);
+  }
+  function skillTreeFor(w) {
+    if (!w) return null;
+    const wt = String(w.weaponType || "").toUpperCase();
+    const mapped = TYPEKEY_WS[w.typeKey] || wt;
+    return state.weaponTypes.find((t) => t.id === mapped) || state.weaponTypes.find((t) => t.id === wt) || null;
+  }
   function slotsForWeapon(w) {
+    const tree = skillTreeFor(w);
+    if (tree) {
+      const out = [];
+      tree.slots.forEach((sl) => {
+        if (sl.skills[0]) out.push(Object.assign({ slotLabel: sl.uiLabel }, sl.skills[0]));
+      });
+      if (out.length) return out;
+    }
     if (w && Array.isArray(w.skillSlots) && w.skillSlots.length) {
       const ids = [];
       w.skillSlots.forEach((b) => (b.skillIds || []).forEach((id) => ids.push(id)));
       return ids.map((id) => state.skills.find((s) => s.id === id || s.uuid === id)).filter(Boolean);
     }
-    const tk = (w && (w.typeKey || w.weaponType) || "").toLowerCase();
-    return state.skills.filter((s) => {
-      const t = String(s.weaponType || s.typeKey || s.category || "").toLowerCase();
-      return tk && t && (t === tk || t.includes(tk) || tk.includes(t));
-    }).slice(0, 8);
+    return [];
   }
-  function skillArt(s) {
-    if (!s) return null;
-    if (s.icon && String(s.icon).includes("/icons/")) return asset(s.icon);
-    return asset(s.icon || s.iconUrl);
+  function classRow(id) {
+    return state.classes[id] || { id, label: (CLASSES.find((c) => c[0] === id) || [id, id])[1], description: "", abilities: [], iconUrl: classIcon(id) };
+  }
+  function raceLabel(id) {
+    return (RACES.find((r) => r[0] === id) || [id, id])[1];
+  }
+  function classLabel(id) {
+    return classRow(id).label;
+  }
+  function factionOf(race) {
+    const f = (RACES.find((r) => r[0] === race) || [0, 0, "crusade"])[2];
+    return f === "crusade" ? "The Crusade" : f === "fabled" ? "The Fabled" : "The Legion";
+  }
+  function profRank(race, prof, self) {
+    if (self) return 1;
+    const seed = [...(race + "-" + prof)].reduce((n, c) => n + c.charCodeAt(0), 0);
+    return 2 + (seed % 5);
+  }
+  function crewPool() {
+    const hands = RACES.map(([id, label]) => ({
+      id: "hand-" + id,
+      name: label + " hand",
+      role: "Hand",
+      race: id,
+      classId: ALLY_CLASS[id] || "warrior",
+      self: false,
+    }));
+    const chars = state.characters.map((c) => ({
+      id: "char-" + c.id,
+      name: c.name,
+      role: "Warlord",
+      race: c.raceId || state.race,
+      classId: c.classId || state.classId,
+      self: false,
+    }));
+    return hands.concat(chars);
+  }
+  function inspectHTML(opts) {
+    const race = opts.race || state.race;
+    const classId = opts.classId || state.classId;
+    const self = !!opts.self;
+    const size = opts.size || "panel";
+    const w = weaponById(opts.main || state.gear.main);
+    const cls = classRow(classId);
+    const skills = (cls.abilities || []).slice(0, size === "crew" ? 2 : 4);
+    const kicker = (self ? "Warlord" : "Faction unit") + " · " + factionOf(race);
+    const profs = HARVEST.map(([id, label]) => {
+      const rank = profRank(race, id, self);
+      const pct = Math.min(92, 18 + rank * 14);
+      const icon = CRAFT_ICONS + "/" + (PROF_ICON[id] || "management.png");
+      return `<div class="gmp-prof"><img src="${esc(icon)}" alt=""><div class="min-w-0" style="flex:1;min-width:0">
+        <div class="pl">${esc(label)}<span>Lv ${rank}</span></div>
+        <div class="gmp-xp"><i style="width:${pct}%"></i></div></div></div>`;
+    }).join("");
+    const sk = skills.map((sk) => {
+      const ic = skillArt(sk) || classIcon(classId);
+      return `<li>${ic ? `<img src="${esc(ic)}" alt="">` : ""}<span>${esc(sk.name)}</span></li>`;
+    }).join("");
+    const openLabel = self ? "Open crafting" : "Inspect in panel";
+    return `<article class="gmp-inspect ${esc(size)}" data-npc="${self ? "false" : "true"}" data-race="${esc(race)}" data-class="${esc(classId)}">
+      <header class="ban">
+        <img class="bust" src="${esc(raceFrame(race))}" alt="">
+        <div style="min-width:0;flex:1">
+          <div class="kicker">${esc(kicker)}</div>
+          <div class="iname">${esc(raceLabel(race))} ${esc(classLabel(classId))}</div>
+          <div class="isub">${esc(w ? w.name : "Unarmed")} · ${esc(opts.name || (self ? (state.character && state.character.name) || "You" : ""))}</div>
+        </div>
+        <img class="mark" src="${CRAFT_ICONS}/eagle-shield.png" alt="">
+      </header>
+      <div class="gmp-profs">${profs}</div>
+      ${size === "crew" ? "" : `<ul class="gmp-iskills">${sk}</ul>`}
+      <button type="button" class="gmp-iopen" data-inspect="${self ? "craft" : "equip"}" data-race="${esc(race)}" data-class="${esc(classId)}">${esc(openLabel)}</button>
+    </article>`;
   }
 
   function setTab(id) {
@@ -400,15 +638,56 @@
   function openSlotMenu(ev, slot) {
     ev.preventDefault();
     hideMenu(); hideTip();
-    const items = slot === "classBadge" ? CLASSES.map(([id, label]) => ({ id, name: label, icon: classIcon(id) }))
-      : slot === "weaponSwap" ? [{ id: "swap", name: "Swap to weapon set " + (state.gear.set === 1 ? "2" : "1") }]
-      : state.weapons.slice(0, 40).map((w) => ({ id: w.id, name: w.name, icon: iconOf(w) }));
+    const isWeapon = slot === "main" || slot === "off";
+    const armorSlot = SLOT_ARMOR[slot];
+    let items = [];
+    if (slot === "classBadge") items = CLASSES.map(([id, label]) => ({ id, name: label, icon: classIcon(id), kind: "class" }));
+    else if (slot === "weaponSwap") items = [{ id: "swap", name: "Swap to weapon set " + (state.gear.set === 1 ? "2" : "1"), kind: "set" }];
+    else if (armorSlot) items = state.armor.filter((a) => a.slot === slot).slice(0, 80).map((a) => ({ id: a.id, name: a.name, icon: asset(a.iconUrl), kind: a.material || "armor" }));
+    else {
+      let list = state.weapons;
+      if (slot === "off") list = list.filter((w) => /SHIELD|TOME|DAGGER|CLAW/i.test(w.weaponType || "") || /shield|tome|dagger|claw/i.test(w.typeKey || ""));
+      items = list.slice(0, 80).map((w) => ({ id: w.id, name: w.name, icon: iconOf(w), kind: w.weaponType || w.typeKey || "weapon" }));
+    }
     const m = el('<div class="gmp-menu"></div>');
-    m.appendChild(el('<button type="button" data-id="">Unequip</button>'));
+    const title = el('<div class="gmp-mono" style="padding:6px 10px"></div>');
+    title.textContent = (GEAR_SLOTS.find((x) => x[0] === slot) || [slot, slot])[1] + " · " + items.length;
+    m.appendChild(title);
+    if (items.length > 8) {
+      const inp = el('<input type="search" placeholder="Filter…">');
+      inp.addEventListener("input", () => {
+        const q = inp.value.trim().toLowerCase();
+        m.querySelectorAll("button[data-id]").forEach((b) => {
+          const hit = !q || (b.dataset.name || "").toLowerCase().includes(q) || (b.dataset.kind || "").toLowerCase().includes(q);
+          b.style.display = hit ? "" : "none";
+        });
+      });
+      m.appendChild(inp);
+    }
+    const unequip = el('<button type="button" data-id="">Unequip</button>');
+    unequip.dataset.name = "unequip";
+    m.appendChild(unequip);
     items.forEach((it) => {
-      const b = el('<button type="button"></button>');
+      const b = document.createElement("button");
+      b.type = "button";
       b.dataset.id = it.id;
-      b.textContent = it.name;
+      b.dataset.name = it.name;
+      b.dataset.kind = it.kind || "";
+      if (it.icon) {
+        const img = document.createElement("img");
+        img.src = it.icon;
+        img.alt = "";
+        b.appendChild(img);
+      }
+      const span = document.createElement("span");
+      span.textContent = it.name;
+      b.appendChild(span);
+      if (it.kind) {
+        const k = document.createElement("span");
+        k.className = "kind";
+        k.textContent = it.kind;
+        b.appendChild(k);
+      }
       m.appendChild(b);
     });
     m.addEventListener("click", (e) => {
@@ -419,9 +698,13 @@
       hideMenu();
     });
     document.body.appendChild(m);
-    m.style.left = Math.min(ev.clientX, innerWidth - 200) + "px";
-    m.style.top = Math.min(ev.clientY, innerHeight - 200) + "px";
+    const pad = 8;
+    const r = m.getBoundingClientRect();
+    m.style.left = Math.min(Math.max(pad, ev.clientX), innerWidth - r.width - pad) + "px";
+    m.style.top = Math.min(Math.max(pad, ev.clientY), innerHeight - r.height - pad) + "px";
     state.menu = m;
+    const inp = m.querySelector("input");
+    if (inp) inp.focus();
   }
 
   let kitStop = null;
@@ -506,30 +789,71 @@
 
   function equipmentView() {
     const bag = state.weapons.slice(0, 48);
-    return `<div class="gmp-card">${dollHTML()}</div>
+    return `<div class="gmp-equip">
+        <div class="gmp-card">${dollHTML()}</div>
+        <div>${inspectHTML({ self: true, size: "panel", name: (state.character && state.character.name) || "You" })}</div>
+      </div>
       <div class="gmp-card"><h3>Race</h3><div class="gmp-row">${RACES.map(([id, label]) =>
         `<button class="gmp-chip" data-race="${id}" ${id===state.race?"style='border-color:var(--gmp-gold);color:var(--gmp-gold-bright)'":""}>${esc(label)}</button>`).join("")}</div></div>
       <div class="gmp-card"><h3>Class</h3><div class="gmp-row">${CLASSES.map(([id, label]) =>
         `<button class="gmp-chip" data-class="${id}" ${id===state.classId?"style='border-color:var(--gmp-gold);color:var(--gmp-gold-bright)'":""}><img src="${classIcon(id)}" alt="" width="18" height="18" style="vertical-align:middle;margin-right:6px;border-radius:50%">${esc(label)}</button>`).join("")}</div></div>
       <div class="gmp-card"><h3>Bag · WCS prefabs</h3>
-        <p class="gmp-muted">LMB drag onto a slot · RMB a slot for the full list. Icons from info.grudge-studio.com /assets.</p>
+        <p class="gmp-muted">Click a slot or right-click for the list. Drag a prefab onto the doll. Icons from info.grudge-studio.com /assets.</p>
         <div class="gmp-grid">${bag.map((w) =>
-          `<div class="gmp-item" draggable="true" data-id="${esc(w.id)}" title="${esc(w.name)}">${iconOf(w)?`<img src="${esc(iconOf(w))}" alt="">`:esc(w.name.slice(0,2))}</div>`).join("") || '<div class="gmp-muted">Catalog loading…</div>'}</div>
+          `<div class="gmp-item" draggable="true" data-id="${esc(w.id)}" data-kind="weapon" title="${esc(w.name)}">${iconOf(w)?`<img src="${esc(iconOf(w))}" alt="">`:esc(w.name.slice(0,2))}</div>`).join("") || '<div class="gmp-muted">Catalog loading…</div>'}</div>
       </div>`;
   }
 
+  function skillCell(s, key, source) {
+    if (!s) return `<div class="gmp-skill"><b class="key">${esc(key)}</b><span class="gmp-muted">Empty</span></div>`;
+    const ic = skillArt(s) || classIcon(state.classId);
+    return `<div class="gmp-skill" title="${esc(s.name)} · ${esc(source)}">${ic?`<img src="${esc(ic)}" alt="">`:""}<span>${esc(s.name)}</span><b class="key">${esc(key)} · ${esc(source)}</b></div>`;
+  }
+  function skillRowHTML(sk) {
+    const ic = skillArt(sk);
+    const cd = sk.cooldown ? sk.cooldown + "s" : "—";
+    const cast = sk.castTime ? sk.castTime + "s" : "Instant";
+    const rng = sk.range ? sk.range + "m" : "—";
+    return `<div class="gmp-skrow">
+      ${ic?`<img src="${esc(ic)}" alt="">`:"<span></span>"}
+      <div style="min-width:0;flex:1">
+        <div><b>${esc(sk.name)}</b> <span class="gmp-mono">T${sk.tier||1}</span></div>
+        <div class="gmp-muted">${esc(sk.description || "")}</div>
+        <div class="meta"><div>DMG <span>${sk.damage || "—"}</span></div><div>CD <span>${esc(cd)}</span></div><div>Cast <span>${esc(cast)}</span></div><div>Range <span>${esc(rng)}</span></div></div>
+      </div>
+    </div>`;
+  }
   function skillsView() {
     const w = weaponById(state.gear.main);
-    const bar = slotsForWeapon(w);
-    const cls = CLASSES.find((c) => c[0] === state.classId)?.[1] || state.classId;
-    return `<div class="gmp-card"><h3>Weapon skills · ${esc(w ? w.name : "Unarmed")}</h3>
-      <p class="gmp-muted">Prefab skillSlots first (WCS truth). Fallback is the type tree on <a href="${FLEET.weaponSkills}" style="color:var(--gmp-gold)">WEAPON_SKILLS</a>.</p>
-      <div class="gmp-row">${bar.slice(0,8).map((s,i) =>
-        `<div class="gmp-skill" title="${esc(s.name||s.id)}">${skillArt(s)?`<img src="${esc(skillArt(s))}" alt="">`:""}<span>${esc(s.name||s.id)}</span><span class="gmp-mono">${i+1} · T${s.tier||s.unlockTier||1}</span></div>`).join("") || '<div class="gmp-muted">No skills on this prefab yet.</div>'}</div>
+    const tree = skillTreeFor(w);
+    const cls = classRow(state.classId);
+    const wbar = (tree ? tree.slots.map((sl) => sl.skills[0] || null) : slotsForWeapon(w)).slice(0, 4);
+    while (wbar.length < 4) wbar.push(null);
+    const cbar = (cls.abilities || []).slice(0, 4);
+    while (cbar.length < 4) cbar.push(null);
+    const keys = ["1","2","3","4","5","6","7","8"];
+    const bar = wbar.map((s, i) => skillCell(s, keys[i], "weapon")).join("") + cbar.map((s, i) => skillCell(s, keys[i+4], s && s.role === "signature" ? "signature" : "class")).join("");
+    const treeHTML = tree
+      ? `<div class="gmp-tree">${tree.slots.map((sl) =>
+          `<section class="gmp-slot-col"><h4>${esc(sl.uiLabel)}</h4>${(sl.skills.slice(0,6).map(skillRowHTML).join("")) || '<div class="gmp-muted">Empty slot</div>'}</section>`
+        ).join("")}</div>`
+      : '<p class="gmp-muted">No WCS tree on this prefab yet — equip a catalog weapon.</p>';
+    const classTree = (cls.abilities || []).length
+      ? `<div class="gmp-tree">${["ability","signature"].map((role) => {
+          const list = cls.abilities.filter((a) => (role === "signature" ? a.role === "signature" : a.role !== "signature"));
+          if (!list.length) return "";
+          return `<section class="gmp-slot-col"><h4>${role === "signature" ? "Signature" : "Class abilities"}</h4>${list.map(skillRowHTML).join("")}</section>`;
+        }).join("")}</div>`
+      : '<p class="gmp-muted">No class tree on this warlord yet.</p>';
+    return `<div class="gmp-card"><h3>Hotbar · ${esc(w ? w.name : "Unarmed")}</h3>
+      <p class="gmp-muted">Keys 1–4 are the equipped prefab. Keys 5–8 are class. Trees from info.grudge-studio.com weapon skills.</p>
+      <div class="gmp-bar">${bar}</div>
     </div>
-    <div class="gmp-card"><h3>Class · ${esc(cls)}</h3>
-      <div class="gmp-row"><img src="${classIcon(state.classId)}" width="48" height="48" style="border-radius:50%;border:1px solid var(--gmp-gold)">
-      <div><div>${esc(cls)}</div><div class="gmp-muted">Keys 5–8 are class. Signature lives on the class tree.</div></div></div>
+    <div class="gmp-card"><h3>Weapon tree · ${esc(tree ? tree.name : (w && w.weaponType) || "—")}</h3>${treeHTML}</div>
+    <div class="gmp-card"><h3>Class tree · ${esc(cls.label)}</h3>
+      <div class="gmp-row" style="margin-bottom:10px"><img src="${classIcon(state.classId)}" width="40" height="40" style="border-radius:50%;border:1px solid var(--gmp-gold)">
+      <div><div>${esc(cls.label)}</div><div class="gmp-muted">${esc(cls.description || "Class pack")}</div></div></div>
+      ${classTree}
     </div>
     <div class="gmp-card"><h3>3DFX</h3>
       <iframe title="3DFX" src="${FLEET.vfx}?spell=nature_heal" style="width:100%;height:240px;border:0;border-radius:8px;background:#000"></iframe>
@@ -590,13 +914,43 @@
       case "crafting": return craftingView();
       case "professions": return professionsView();
       case "camps": return simpleList("Camps", [["Wood frame","Modular base from the warlords pack"],["Benches","Stations feed the same recipes as /craft"],["Inside / outside","Three.js entry on the camp builder"]], "Warlords building materials only — no voxel mix.");
-      case "boats": return simpleList("Boats", [["Hull","Account-bound"],["Crew hold","Auto-harvest returns to bag/quiver/wood back slots"]], "Boats share the Grudge ID wallet.");
-      case "crew": return `<div class="gmp-card"><h3>Crew</h3><p class="gmp-muted">Inspect uses the compact craft widget. Paper doll + tooltips match this hero.</p>
-        ${(state.characters.length?state.characters:[{name:"You",raceId:state.race,classId:state.classId}]).map((c)=>
-          `<div class="gmp-row" style="padding:8px 0;border-bottom:1px solid var(--gmp-border)">
-            <img src="${raceFrame(c.raceId||state.race)}" width="36" height="48" style="object-fit:cover;border-radius:4px">
-            <div><b>${esc(c.name)}</b><div class="gmp-mono">${esc(c.raceId||"")} · ${esc(c.classId||"")}</div></div>
-          </div>`).join("")}</div>`;
+      case "boats": {
+        const hulls = state.mounts.slice().sort((a, b) => {
+          const aw = /boat|ship|raft|skiff|row/i.test(a.label) ? 0 : 1;
+          const bw = /boat|ship|raft|skiff|row/i.test(b.label) ? 0 : 1;
+          return aw - bw;
+        });
+        return `<div class="gmp-card"><h3>Hulls</h3>
+          <p class="gmp-muted">ObjectStore mounts. Crew rides the selected hull. Watercraft first.</p>
+          <div class="gmp-hulls">${hulls.map((h) => {
+            const ic = asset(h.iconUrl);
+            const on = state.boat === h.id;
+            return `<button type="button" class="gmp-hull${on?" on":""}" data-boat="${esc(h.id)}">
+              <div class="gmp-row">${ic?`<img class="icon" src="${esc(ic)}" alt="">`:""}<div>
+                <div style="font-weight:600">${esc(h.label)}</div>
+                <div class="gmp-mono">crew ${h.crew} · speed ${h.speed}</div>
+              </div></div>
+              <p class="gmp-muted" style="margin:8px 0 0">${esc(h.description)}</p>
+            </button>`;
+          }).join("") || '<p class="gmp-muted">No hulls in the catalog yet.</p>'}</div>
+        </div>`;
+      }
+      case "crew": {
+        const pool = crewPool();
+        return `<div class="gmp-card"><h3>Crew</h3>
+          <p class="gmp-muted">Each race-hand carries the compact inspect card. Board them onto the selected hull. Click a card to wear that loadout.</p>
+          <div class="gmp-crewgrid">${pool.map((c) => {
+            const aboard = state.crew.includes(c.id);
+            return `<div class="gmp-crewcard${aboard?" on":""}">
+              <div class="pick" data-wear-race="${esc(c.race)}" data-wear-class="${esc(c.classId)}">
+                ${inspectHTML({ race: c.race, classId: c.classId, self: false, size: "crew", name: c.name, main: state.gear.main })}
+              </div>
+              <button type="button" class="gmp-chip" data-crew="${esc(c.id)}" style="align-self:center">${aboard ? "Leave" : "Board"}</button>
+            </div>`;
+          }).join("")}</div>
+          <p class="gmp-muted" style="margin-top:10px">Self loadout is ${esc(raceLabel(state.race))} ${esc(classLabel(state.classId))}${state.boat ? " · hull " + esc((state.mounts.find((m)=>m.id===state.boat)||{}).label || "") : ""}.</p>
+        </div>`;
+      }
       case "pit": return `<div class="gmp-card"><h3>Grudge Pit</h3><p class="gmp-muted">WASD move, Space strike. Weapon skills 1–4, class 5–8.</p>
         <a class="gmp-chip" href="https://open.grudge-studio.com" style="display:inline-block;text-decoration:none">Open Pit</a></div>`;
       case "connections": return connectionsView();
@@ -605,16 +959,16 @@
   }
 
   function bindStage(root) {
-    root.querySelectorAll("[data-race]").forEach((b) => b.addEventListener("click", () => { state.race = b.dataset.race; render(); persist(); }));
-    root.querySelectorAll("[data-class]").forEach((b) => b.addEventListener("click", () => { state.classId = b.dataset.class; render(); persist(); }));
+    root.querySelectorAll(".gmp-chip[data-race]").forEach((b) => b.addEventListener("click", () => { state.race = b.dataset.race; render(); persist(); }));
+    root.querySelectorAll(".gmp-chip[data-class]").forEach((b) => b.addEventListener("click", () => { state.classId = b.dataset.class; render(); persist(); }));
     root.querySelectorAll(".gmp-slot").forEach((b) => {
-      b.addEventListener("click", () => {});
+      b.addEventListener("click", (e) => openSlotMenu(e, b.dataset.slot));
       b.addEventListener("contextmenu", (e) => openSlotMenu(e, b.dataset.slot));
       b.addEventListener("mouseenter", (e) => {
         const slot = b.dataset.slot;
-        const item = weaponById(state.gear[slot]);
-        const title = slot === "classBadge" ? (CLASSES.find((c)=>c[0]===state.classId)||[])[1] : (item ? item.name : GEAR_SLOTS.find((s)=>s[0]===slot)?.[1]);
-        const body = item ? ((item.lore || item.typeKey || "") + (item.skillSlots && item.skillSlots.length ? " · " + item.skillSlots.length + " skill slots" : "")) : "Empty · RMB for options";
+        const item = gearItem(slot);
+        const title = slot === "classBadge" ? classLabel(state.classId) : (item ? item.name : (GEAR_SLOTS.find((x)=>x[0]===slot)||[])[1]);
+        const body = item ? ((item.lore || item.typeKey || item.material || "") + (item.skillSlots && item.skillSlots.length ? " · " + item.skillSlots.length + " skill slots" : "")) : "Empty · click for options";
         tipShow(e, title || slot, body);
       });
       b.addEventListener("mouseleave", hideTip);
@@ -633,11 +987,36 @@
         e.dataTransfer.setData("text/plain", n.dataset.id);
       });
       n.addEventListener("mouseenter", (e) => {
-        const w = weaponById(n.dataset.id);
-        if (w) tipShow(e, w.name, (w.typeKey || w.weaponType || "") + " · " + (w.lore || "WCS prefab"));
+        const w = weaponById(n.dataset.id) || armorById(n.dataset.id);
+        if (w) tipShow(e, w.name, (w.typeKey || w.weaponType || w.material || "") + " · " + (w.lore || "WCS prefab"));
       });
       n.addEventListener("mouseleave", hideTip);
     });
+    root.querySelectorAll("[data-boat]").forEach((b) => b.addEventListener("click", () => {
+      state.boat = b.dataset.boat;
+      try { localStorage.setItem("gmp_boat", state.boat); } catch (e) {}
+      render();
+    }));
+    root.querySelectorAll("[data-crew]").forEach((b) => b.addEventListener("click", (e) => {
+      e.stopPropagation();
+      const id = b.dataset.crew;
+      if (state.crew.includes(id)) state.crew = state.crew.filter((x) => x !== id);
+      else state.crew = state.crew.concat([id]);
+      render();
+    }));
+    root.querySelectorAll("[data-wear-race]").forEach((b) => b.addEventListener("click", () => {
+      if (b.dataset.wearRace) state.race = b.dataset.wearRace;
+      if (b.dataset.wearClass) state.classId = b.dataset.wearClass;
+      setTab("equipment");
+      persist();
+    }));
+    root.querySelectorAll("[data-inspect]").forEach((b) => b.addEventListener("click", (e) => {
+      e.stopPropagation();
+      if (b.dataset.race) state.race = b.dataset.race;
+      if (b.dataset.class) state.classId = b.dataset.class;
+      setTab(b.dataset.inspect === "craft" ? "crafting" : "equipment");
+      persist();
+    }));
     const kit = root.querySelector("#gmp-kit");
     if (kit && state.tab === "equipment") mountKit(kit, state.race);
   }
@@ -664,13 +1043,7 @@
       <div class="gmp-body">
         <div class="gmp-stage" id="gmp-stage">${viewHTML()}</div>
         <aside class="gmp-side">
-          <div class="gmp-card"><h3>Hero</h3>
-            <div class="gmp-row">
-              <img src="${classIcon(state.classId)}" width="40" height="40" style="border-radius:50%;border:1px solid var(--gmp-gold)">
-              <div><b>${esc((RACES.find(r=>r[0]===state.race)||[])[1]||state.race)} ${esc((CLASSES.find(c=>c[0]===state.classId)||[])[1]||"")}</b>
-              <div class="gmp-mono">${esc(state.character?.name || "Unbound")}</div></div>
-            </div>
-          </div>
+          <div class="gmp-card" style="padding:8px">${inspectHTML({ self: true, size: "crew", name: (state.character && state.character.name) || "You" })}</div>
           <div class="gmp-card"><h3>Loadout</h3>
             ${[["Main", state.gear.main],["Off", state.gear.off],["Helm", state.gear.head],["Chest", state.gear.chest]].map(([k,v]) =>
               `<div class="gmp-row" style="justify-content:space-between"><span class="gmp-muted">${k}</span><span>${esc(weaponById(v)?.name || v || "—")}</span></div>`).join("")}
@@ -699,6 +1072,7 @@
     document.documentElement.style.overflow = "hidden";
     document.body.appendChild(root);
     document.addEventListener("click", (e) => { if (state.menu && !state.menu.contains(e.target)) hideMenu(); });
+    try { state.boat = localStorage.getItem("gmp_boat") || state.boat; } catch (e) {}
     render();
     Promise.all([loadSession(), loadCatalog()]).then(() => render());
   }

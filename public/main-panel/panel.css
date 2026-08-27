@@ -212,3 +212,151 @@
   .gmp-body { flex-direction: column; }
   .gmp-side { width: auto; border-left: 0; border-top: 1px solid var(--gmp-border); max-height: 36vh; }
 }
+
+/* Equipment + inspector + trees + hulls + crew */
+.gmp-equip {
+  display: grid;
+  grid-template-columns: minmax(0, 1fr) minmax(240px, 320px);
+  gap: 16px;
+  align-items: start;
+}
+.gmp-bar {
+  display: grid;
+  grid-template-columns: repeat(4, minmax(0, 1fr));
+  gap: 8px;
+}
+@media (min-width: 720px) {
+  .gmp-bar { grid-template-columns: repeat(8, minmax(0, 1fr)); }
+}
+.gmp-skill b.key {
+  font-family: ui-monospace, SFMono-Regular, Menlo, monospace;
+  font-size: 9px;
+  letter-spacing: 0.12em;
+  text-transform: uppercase;
+  color: var(--gmp-gold);
+}
+.gmp-tree {
+  display: grid;
+  gap: 10px;
+}
+@media (min-width: 900px) {
+  .gmp-tree { grid-template-columns: 1fr 1fr; }
+}
+.gmp-slot-col {
+  border: 1px solid var(--gmp-border);
+  background: var(--gmp-raised);
+  border-radius: 10px;
+  padding: 10px;
+}
+.gmp-slot-col h4 {
+  margin: 0 0 8px;
+  font-size: 11px;
+  letter-spacing: 0.1em;
+  text-transform: uppercase;
+  color: var(--gmp-gold);
+  font-weight: 600;
+}
+.gmp-skrow {
+  display: flex;
+  gap: 8px;
+  align-items: flex-start;
+  padding: 8px;
+  border: 1px solid var(--gmp-border);
+  border-radius: 8px;
+  margin-bottom: 6px;
+  background: var(--gmp-surface);
+}
+.gmp-skrow img {
+  width: 36px;
+  height: 36px;
+  object-fit: contain;
+  flex-shrink: 0;
+}
+.gmp-skrow .meta {
+  display: grid;
+  grid-template-columns: repeat(4, 1fr);
+  gap: 4px;
+  font-family: ui-monospace, SFMono-Regular, Menlo, monospace;
+  font-size: 9px;
+  letter-spacing: 0.08em;
+  text-transform: uppercase;
+  color: var(--gmp-dim);
+  margin-top: 4px;
+}
+.gmp-skrow .meta span { color: var(--gmp-text); }
+.gmp-inspect {
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+  border: 1px solid rgba(212,168,67,0.28);
+  border-radius: 10px;
+  background: #101018;
+  padding: 10px;
+}
+.gmp-inspect.crew { padding: 8px; }
+.gmp-inspect .ban { display: flex; align-items: center; gap: 8px; }
+.gmp-inspect .bust {
+  width: 48px; height: 54px; object-fit: cover; object-position: center top;
+  border-radius: 4px; box-shadow: 0 0 0 1px rgba(212,168,67,0.4); background: #0a0a10;
+}
+.gmp-inspect.crew .bust { width: 40px; height: 44px; }
+.gmp-inspect .kicker {
+  font-size: 9px; letter-spacing: 0.14em; text-transform: uppercase; color: var(--gmp-gold);
+}
+.gmp-inspect[data-npc="true"] .kicker { color: #d4a06a; }
+.gmp-inspect .iname { font-size: 13px; font-weight: 600; color: var(--gmp-gold-bright); line-height: 1.2; }
+.gmp-inspect .isub { font-size: 11px; color: var(--gmp-muted); }
+.gmp-inspect .mark { width: 22px; height: 22px; object-fit: contain; opacity: 0.85; margin-left: auto; }
+.gmp-profs { display: grid; grid-template-columns: 1fr 1fr; gap: 4px; }
+.gmp-prof {
+  display: flex; align-items: center; gap: 6px;
+  padding: 4px 6px; border-radius: 6px; background: rgba(0,0,0,0.35);
+}
+.gmp-prof img { width: 16px; height: 16px; object-fit: contain; }
+.gmp-prof .pl {
+  display: flex; justify-content: space-between; font-size: 9px;
+  letter-spacing: 0.06em; text-transform: uppercase; color: #bbb; gap: 6px;
+}
+.gmp-xp { margin-top: 3px; height: 3px; overflow: hidden; border-radius: 99px; background: #1a1a24; }
+.gmp-xp i { display: block; height: 100%; background: var(--gmp-gold); }
+.gmp-iskills { display: grid; gap: 3px; margin: 0; padding: 0; list-style: none; }
+.gmp-iskills li { display: flex; align-items: center; gap: 6px; font-size: 11px; color: #ccc; }
+.gmp-iskills img { width: 18px; height: 18px; object-fit: contain; }
+.gmp-iopen {
+  display: inline-flex; min-height: 36px; align-items: center; justify-content: center;
+  border: 0; border-radius: 8px; background: var(--gmp-gold); color: #0a0a10;
+  font-size: 11px; font-weight: 600; letter-spacing: 0.04em; text-transform: uppercase; cursor: pointer;
+}
+.gmp-iopen:hover { background: var(--gmp-gold-bright); }
+.gmp-hulls, .gmp-crewgrid { display: grid; gap: 10px; }
+@media (min-width: 720px) {
+  .gmp-hulls, .gmp-crewgrid { grid-template-columns: 1fr 1fr; }
+}
+.gmp-hull, .gmp-crewcard {
+  border: 1px solid var(--gmp-border);
+  background: var(--gmp-surface);
+  border-radius: 12px;
+  padding: 12px;
+  text-align: left;
+  color: var(--gmp-text);
+  cursor: pointer;
+  width: 100%;
+}
+.gmp-hull.on, .gmp-crewcard.on { border-color: var(--gmp-gold); background: rgba(212,168,67,0.08); }
+.gmp-hull img.icon, .gmp-item.armor img { width: 40px; height: 40px; object-fit: contain; }
+.gmp-crewcard { display: flex; gap: 8px; align-items: stretch; cursor: default; }
+.gmp-crewcard .pick { flex: 1; min-width: 0; background: none; border: 0; color: inherit; text-align: left; cursor: pointer; padding: 0; }
+.gmp-menu input {
+  width: 100%; box-sizing: border-box; margin: 4px 0 6px;
+  background: var(--gmp-raised); border: 1px solid var(--gmp-border);
+  color: var(--gmp-text); border-radius: 6px; padding: 8px 10px; font-size: 12px; min-height: 36px;
+}
+.gmp-menu button { display: flex; align-items: center; gap: 8px; }
+.gmp-menu button img { width: 22px; height: 22px; object-fit: contain; flex-shrink: 0; }
+.gmp-menu .kind { margin-left: auto; font-size: 9px; letter-spacing: 0.08em; text-transform: uppercase; color: var(--gmp-dim); }
+@media (max-width: 860px) {
+  .gmp-equip { grid-template-columns: 1fr; }
+}
+@media (prefers-reduced-motion: reduce) {
+  .gmp-tab, .gmp-chip, .gmp-hull, .gmp-iopen { transition: none; }
+}
