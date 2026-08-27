@@ -16,7 +16,12 @@ db
 attached_assets
 diabloweb
 puter-vanilla
-docs
+# Markdown SSOT only (repo-root). public/docs is the live Craft Skills page.
+/docs
+!/public/docs/
+!/public/docs/**
+!/client/public/docs/
+!/client/public/docs/**
 migrations
 /public/models/lobby/warlords-lobby/scene.glb
 /public/models/**/*.glb
