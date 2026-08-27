@@ -122,7 +122,6 @@ import AssetShowcasePage from "@/pages/asset-showcase";
 import MainPanelPage from "@/pages/main-panel";
 import { consumeGcsReturnHandoff } from "@/lib/gcsRedirect";
 import { CharacterManager } from "@/lib/characterManager";
-import WarerarewardPage from "@/pages/warerareward";
 
 const AssassinationGroundsPage = lazy(() => import("@/pages/assassination-grounds"));
 
@@ -279,9 +278,7 @@ function Router() {
           <AssassinationGroundsPage />
         </Suspense>
       )}</Route>
-      {/* Warerareward — Keel launch offer page (case-insensitive routes) */}
-      <Route path="/Warerareward" component={WarerarewardPage} />
-      <Route path="/warerareward" component={WarerarewardPage} />
+      {/* Warerareward served as static HTML via vercel.json redirect */}
       {/* Fallback to 404 */}
       <Route component={NotFound} />
     </Switch>

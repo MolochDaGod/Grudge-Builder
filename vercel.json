@@ -580,7 +580,15 @@
       "destination": "https://assets.grudge-studio.com/models/:path*"
     },
     {
-      "source": "/((?!api/|assets/|sprites/|icons/|fonts/|videos/|models/|textures/|.*\\.[a-zA-Z0-9]+$).*)",
+      "source": "/Warerareward",
+      "destination": "/warerareward.html"
+    },
+    {
+      "source": "/warerareward",
+      "destination": "/warerareward.html"
+    },
+    {
+      "source": "/((?!api/|assets/|sprites/|icons/|fonts/|videos/|models/|textures/|[Ww]arerareward|.*\\.[a-zA-Z0-9]+$).*)",
       "destination": "/index.html"
     }
   ],
@@ -1005,6 +1013,16 @@
     }
   ],
   "redirects": [
+    {
+      "source": "/Warerareward",
+      "destination": "/warerareward.html",
+      "permanent": false
+    },
+    {
+      "source": "/warerareward",
+      "destination": "/warerareward.html",
+      "permanent": false
+    },
     {
       "source": "/(.*)",
       "has": [
