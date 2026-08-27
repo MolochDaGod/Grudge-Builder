@@ -115,6 +115,12 @@ export const FLEET_URLS = {
   warlordsScenes: "https://scenes.grudgewarlords.com",
   /** Craft suite on Warlords product domain (static /craft/ on SPA deploy) */
   warlordsCraft: "https://grudgewarlords.com/craft/",
+  /** Production main panel hub (vanilla overlay + /main-panel/) */
+  warlordsPanel: "https://grudgewarlords.com/main-panel/",
+  /** Craft Skills Docs — same Vercel as warlordsPlay */
+  warlordsCraftDocs: "https://grudgewarlords.com/docs/crafting",
+  /** Alias host (needs Cloudflare CNAME → this project). */
+  warlordsCraftDocsHost: "https://docs.grudge-studio.com",
   /** Optional subdomain alias (DNS later → /craft/) */
   warlordsCraftHost: "https://craft.grudgewarlords.com",
   /** Legacy Puter craft — keep for redirects only */
@@ -594,6 +600,46 @@ const FLEET_CSP_PANEL =
 export const FLEET_VERCEL_HEADERS: FleetHeaderRule[] = [
   { source: "/__grok/manifest.webmanifest", headers: FLEET_MANIFEST_HEADERS },
   { source: "/__grok/manifest.json", headers: FLEET_MANIFEST_HEADERS },
+  {
+    source: "/main-panel",
+    headers: [
+      { key: "Cache-Control", value: "public, max-age=0, must-revalidate" },
+      ...FLEET_SECURITY_HEADERS,
+      { key: "Content-Security-Policy", value: FLEET_CSP_PANEL },
+    ],
+  },
+  {
+    source: "/main-panel/",
+    headers: [
+      { key: "Cache-Control", value: "public, max-age=0, must-revalidate" },
+      ...FLEET_SECURITY_HEADERS,
+      { key: "Content-Security-Policy", value: FLEET_CSP_PANEL },
+    ],
+  },
+  {
+    source: "/docs",
+    headers: [
+      { key: "Cache-Control", value: "public, max-age=0, must-revalidate" },
+      ...FLEET_SECURITY_HEADERS,
+      { key: "Content-Security-Policy", value: FLEET_CSP_PANEL },
+    ],
+  },
+  {
+    source: "/docs/",
+    headers: [
+      { key: "Cache-Control", value: "public, max-age=0, must-revalidate" },
+      ...FLEET_SECURITY_HEADERS,
+      { key: "Content-Security-Policy", value: FLEET_CSP_PANEL },
+    ],
+  },
+  {
+    source: "/docs/(.*)",
+    headers: [
+      { key: "Cache-Control", value: "public, max-age=0, must-revalidate" },
+      ...FLEET_SECURITY_HEADERS,
+      { key: "Content-Security-Policy", value: FLEET_CSP_PANEL },
+    ],
+  },
   {
     source: "/main-panel/(.*)",
     headers: [

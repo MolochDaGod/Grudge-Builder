@@ -1,0 +1,252 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8"/>
+  <meta name="viewport" content="width=device-width, initial-scale=1.0"/>
+  <meta name="referrer" content="no-referrer"/>
+  <title>Craft Skills Docs — Grudge Warlords</title>
+  <meta name="description" content="Warlords craft skills: 6 harvest professions on every character, 5 craft trees T1–T8, stations, milestones, and weapon skill loadouts."/>
+  <link rel="canonical" href="https://grudgewarlords.com/docs/crafting"/>
+  <link rel="icon" type="image/png" href="/main-panel/icons/warrior.png"/>
+  <style>
+    :root {
+      --bg: #07070c;
+      --card: #12121a;
+      --raised: #1a1a24;
+      --gold: #c9a227;
+      --gold-bright: #e8c547;
+      --text: #e8e4d8;
+      --muted: #9a9484;
+      --border: #2a2a36;
+    }
+    * { box-sizing: border-box; }
+    html, body { margin: 0; background: var(--bg); color: var(--text); font: 15px/1.55 "Segoe UI", system-ui, sans-serif; }
+    a { color: var(--gold); text-decoration: none; }
+    a:hover { color: var(--gold-bright); text-decoration: underline; }
+    header {
+      position: sticky; top: 0; z-index: 5;
+      display: flex; flex-wrap: wrap; gap: 12px; align-items: center;
+      justify-content: space-between;
+      padding: 14px 20px; border-bottom: 1px solid var(--border);
+      background: rgba(7,7,12,.92); backdrop-filter: blur(8px);
+    }
+    header b { color: var(--gold-bright); letter-spacing: .04em; }
+    header small { display: block; color: var(--muted); font-size: 11px; letter-spacing: .12em; text-transform: uppercase; }
+    nav { display: flex; gap: 8px; flex-wrap: wrap; }
+    nav a {
+      border: 1px solid var(--border); background: var(--raised);
+      padding: 7px 12px; border-radius: 8px; font-size: 13px;
+    }
+    nav a:hover { text-decoration: none; border-color: var(--gold); }
+    main { max-width: 1100px; margin: 0 auto; padding: 28px 20px 80px; }
+    .hero h1 { margin: 0 0 8px; font-size: clamp(1.6rem, 4vw, 2.4rem); color: var(--gold-bright); }
+    .hero p { color: var(--muted); max-width: 720px; }
+    .stats { display: grid; grid-template-columns: repeat(auto-fit, minmax(120px, 1fr)); gap: 1px; background: var(--border); border: 1px solid var(--border); border-radius: 12px; overflow: hidden; margin: 24px 0 36px; }
+    .stat { background: var(--card); padding: 16px 10px; text-align: center; }
+    .stat b { display: block; color: var(--gold); font-size: 1.5rem; }
+    .stat span { color: var(--muted); font-size: 11px; letter-spacing: .08em; text-transform: uppercase; }
+    h2 { color: var(--gold-bright); font-size: 1.15rem; letter-spacing: .08em; text-transform: uppercase; border-bottom: 1px solid var(--border); padding-bottom: 8px; }
+    .grid { display: grid; grid-template-columns: repeat(auto-fill, minmax(260px, 1fr)); gap: 14px; margin: 16px 0 36px; }
+    .card { background: var(--card); border: 1px solid var(--border); border-left: 4px solid var(--gold); border-radius: 10px; padding: 16px; }
+    .card h3 { margin: 0 0 4px; display: flex; gap: 8px; align-items: center; }
+    .card .role { color: var(--muted); font-size: 12px; margin-bottom: 8px; }
+    .tags { display: flex; flex-wrap: wrap; gap: 6px; }
+    .tag { background: var(--raised); border: 1px solid var(--border); border-radius: 4px; padding: 2px 7px; font-size: 11px; color: var(--muted); font-family: ui-monospace, monospace; }
+    .note { background: var(--card); border: 1px solid var(--border); border-radius: 10px; padding: 16px 18px; margin: 0 0 28px; color: var(--muted); }
+    .tiers { display: flex; flex-wrap: wrap; gap: 6px; margin: 12px 0 28px; }
+    .tier { flex: 1; min-width: 90px; background: var(--card); border: 1px solid var(--border); border-radius: 8px; padding: 10px; text-align: center; }
+    .tier b { display: block; color: var(--gold); font-size: 11px; }
+    table { width: 100%; border-collapse: collapse; margin: 12px 0 36px; font-size: 13px; }
+    th, td { border-bottom: 1px solid var(--border); padding: 8px 10px; text-align: left; }
+    th { color: var(--gold); font-size: 11px; letter-spacing: .08em; text-transform: uppercase; }
+    td.mono { font-family: ui-monospace, monospace; color: var(--muted); }
+    footer { color: var(--muted); font-size: 12px; }
+    img.icon { width: 28px; height: 28px; object-fit: contain; border-radius: 6px; }
+  </style>
+</head>
+<body>
+  <header>
+    <div>
+      <b>Grudge Warlords</b>
+      <small>Craft Skills Docs</small>
+    </div>
+    <nav>
+      <a href="/main-panel/?era=warlords&tab=professions">Main panel</a>
+      <a href="/craft/?era=warlords&classic=1">Craft suite</a>
+      <a href="https://info.grudge-studio.com/WEAPON_SKILLS.html">Weapon skills</a>
+      <a href="https://info.grudge-studio.com/profession-trees.html">Skill trees</a>
+    </nav>
+  </header>
+  <main>
+    <section class="hero">
+      <h1>Craft Skills</h1>
+      <p>
+        Every Warlord can run all six harvest jobs and all five craft professions.
+        Tools ride the hand bone. XP is per character. Tiers run Novice through Legendary (T1–T8).
+        Icons and trees come from info.grudge-studio.com — never generated art.
+      </p>
+    </section>
+    <div class="stats" id="stats">
+      <div class="stat"><b>6</b><span>Harvest</span></div>
+      <div class="stat"><b>5</b><span>Craft trees</span></div>
+      <div class="stat"><b>8</b><span>Tiers</span></div>
+      <div class="stat"><b id="nRecipes">—</b><span>Recipes</span></div>
+      <div class="stat"><b id="nMiles">—</b><span>Milestones</span></div>
+    </div>
+
+    <div class="note">
+      Production hub is <a href="/main-panel/?era=warlords">grudgewarlords.com/main-panel</a>.
+      This page is the Craft Skills Docs target for the craft sidebar
+      (same-origin <code>/docs/crafting</code>, also the destination for docs.grudge-studio.com/crafting).
+    </div>
+
+    <h2>Harvest — unlocked on every character</h2>
+    <p class="note" style="margin-top:-8px">Gathering feeds the five craft trees. Tool in parentheses is the hand-bone harvest kit.</p>
+    <div class="grid" id="harvest"></div>
+
+    <h2>Craft professions — every character</h2>
+    <div class="grid" id="craft"></div>
+
+    <h2>Tiers</h2>
+    <div class="tiers" id="tiers"></div>
+
+    <h2>Gathering milestones</h2>
+    <table>
+      <thead><tr><th>Level</th><th>Unlock</th><th>What it does</th></tr></thead>
+      <tbody id="miles"></tbody>
+    </table>
+
+    <h2>Weapon skills</h2>
+    <div class="note">
+      Prefab <code>skillSlots</code> first (WCS truth): primary, two shared, signature.
+      Pit keys 1–4 are those slots; 5–8 are class. Type trees live on
+      <a href="https://info.grudge-studio.com/WEAPON_SKILLS.html">WEAPON_SKILLS</a>.
+    </div>
+
+    <footer id="foot">Loading live professions.json from info.grudge-studio.com…</footer>
+  </main>
+  <script>
+  (function () {
+    var HARVEST_TOOLS = {
+      Mining: "pickaxe",
+      Logging: "axe",
+      Skinning: "dagger",
+      Fishing: "spear",
+      Herbalism: "hoe",
+      Scavenging: "hammer"
+    };
+    var CRAFT_ICON = {
+      miner: "miner.png",
+      forester: "forester.png",
+      mystic: "mystic.png",
+      chef: "chef.png",
+      engineer: "engineer.png"
+    };
+    function el(html) {
+      var d = document.createElement("div");
+      d.innerHTML = html.trim();
+      return d.firstElementChild;
+    }
+    function esc(s) {
+      return String(s == null ? "" : s).replace(/[&<>"]/g, function (ch) {
+        if (ch === "&") return String.fromCharCode(38) + "amp;";
+        if (ch === "<") return String.fromCharCode(38) + "lt;";
+        if (ch === ">") return String.fromCharCode(38) + "gt;";
+        return String.fromCharCode(38) + "quot;";
+      });
+    }
+    function tags(list) {
+      return (list || []).map(function (x) { return '<span class="tag">' + esc(x) + "</span>"; }).join("");
+    }
+    function iconFor(id) {
+      return "/craft/crafting-icons/" + (CRAFT_ICON[id] || "management.png");
+    }
+    function render(data) {
+      var harvest = data.gathering || {};
+      var profs = data.professions || {};
+      var miles = data.gatheringMilestones || [];
+      var tiers = data.tierNames || ["", "Novice", "Apprentice", "Journeyman", "Expert", "Artisan", "Master", "Grandmaster", "Legendary"];
+      var hRoot = document.getElementById("harvest");
+      var cRoot = document.getElementById("craft");
+      var tRoot = document.getElementById("tiers");
+      var mRoot = document.getElementById("miles");
+      hRoot.innerHTML = "";
+      Object.keys(harvest).forEach(function (name) {
+        var g = harvest[name] || {};
+        var tool = HARVEST_TOOLS[name] || "tool";
+        var feeds = g.feedsInto || [];
+        var res = g.resources || [];
+        hRoot.appendChild(el(
+          '<article class="card"><h3>' + esc(g.icon || "") + " " + esc(name) + "</h3>" +
+          '<div class="role">Tool · ' + esc(tool) + " · feeds " + esc(feeds.join(", ") || "craft") + "</div>" +
+          '<div class="tags">' + tags(res) + "</div></article>"
+        ));
+      });
+      cRoot.innerHTML = "";
+      var recipes = 0;
+      Object.keys(profs).forEach(function (id) {
+        var p = profs[id] || {};
+        recipes += Number(p.recipeCount || 0);
+        var specs = p.specializations || [];
+        if (specs && !Array.isArray(specs)) specs = Object.keys(specs);
+        cRoot.appendChild(el(
+          '<article class="card"><h3><img class="icon" alt="" src="' + iconFor(id) + '"> ' + esc(p.name || id) + "</h3>" +
+          '<div class="role">' + esc(p.role || "") + " · " + esc(String(p.recipeCount || 0)) + " recipes</div>" +
+          "<div>Gathers " + tags(p.gathers) + "</div>" +
+          "<div>Crafts " + tags(p.crafts) + "</div>" +
+          "<div>Tools " + tags(p.tools) + "</div>" +
+          "<div>Trees " + tags(specs) + "</div></article>"
+        ));
+      });
+      tRoot.innerHTML = "";
+      for (var i = 1; i < tiers.length; i++) {
+        tRoot.appendChild(el('<div class="tier"><b>T' + i + "</b>" + esc(tiers[i]) + "</div>"));
+      }
+      mRoot.innerHTML = miles.map(function (m) {
+        return "<tr><td class='mono'>L" + esc(m.level) + "</td><td>" + esc(m.unlock) + "</td><td>" + esc(m.description) + "</td></tr>";
+      }).join("");
+      document.getElementById("nRecipes").textContent = String(recipes || "—");
+      document.getElementById("nMiles").textContent = String(miles.length || "—");
+      document.getElementById("foot").textContent =
+        "Live data v" + (data.version || "?") + " updated " + (data.updated || "?") +
+        " · info.grudge-studio.com/api/v1/professions.json";
+    }
+    var FALLBACK = {
+      version: "2.0.0",
+      updated: "2026-02-26",
+      tierNames: ["", "Novice", "Apprentice", "Journeyman", "Expert", "Artisan", "Master", "Grandmaster", "Legendary"],
+      gathering: {
+        Mining: { icon: "⛏", resources: ["Stone", "Ore", "Gems"], feedsInto: ["Miner", "Engineer", "Mystic"] },
+        Logging: { icon: "🪓", resources: ["Wood", "Hemp"], feedsInto: ["Forester"] },
+        Skinning: { icon: "🔪", resources: ["Hide", "Leather", "Bones"], feedsInto: ["Forester", "Chef"] },
+        Fishing: { icon: "🎣", resources: ["Fish", "Pearls"], feedsInto: ["Chef"] },
+        Herbalism: { icon: "🌿", resources: ["Herbs", "Berries"], feedsInto: ["Mystic", "Chef"] },
+        Scavenging: { icon: "🧲", resources: ["Scrap", "Cogs"], feedsInto: ["Engineer"] }
+      },
+      professions: {
+        miner: { name: "Miner", role: "Weaponsmith & Armorsmith", tools: ["Mining Pick (T1-T8)"], gathers: ["Ore", "Gems"], crafts: ["Swords", "Axes", "Metal Armor", "Shields"], specializations: ["Weapons", "Gathering", "Armor"], recipeCount: 88 },
+        forester: { name: "Forester", role: "Ranger & Leatherworker", tools: ["Lumber Axe (T1-T8)", "Skinning Knife (T1-T8)"], gathers: ["Wood", "Leather"], crafts: ["Bows", "Leather Armor", "Structures"], specializations: ["Logging", "Leatherworking", "Fletching"], recipeCount: 50 },
+        mystic: { name: "Mystic", role: "Arcane Crafter & Enchanter", tools: ["Arcane Focus (T1-T8)"], gathers: ["Essence"], crafts: ["Staves", "Tomes", "Enchantments", "Cloth Armor"], specializations: ["Enchanter", "Spellwright", "Arcanist", "Soulbinder", "Chronoweaver"], recipeCount: 75 },
+        chef: { name: "Chef", role: "Culinary Master & Alchemist", tools: ["Chef's Knife (T1-T8)"], gathers: ["Herbs", "Meat", "Fish"], crafts: ["Foods", "Potions"], specializations: ["Butchery", "Baking", "Alchemy"], recipeCount: 90 },
+        engineer: { name: "Engineer", role: "Mechanist & Siege Master", tools: ["Engineer's Toolkit (T1-T8)"], gathers: ["Scrap"], crafts: ["Crossbows", "Guns", "Siege Weapons", "Airships"], specializations: ["Weaponry", "Automata", "Siege"], recipeCount: 60 }
+      },
+      gatheringMilestones: [
+        { level: 1, unlock: "Tier 1 Resources", description: "Basic resources like Iron Ore, Pine Logs, Common Fish" },
+        { level: 10, unlock: "+1 Quantity", description: "Gather +1 additional resource per harvest" },
+        { level: 13, unlock: "Tier 2 Resources", description: "Copper Ore, Oak Logs, Salmon, Fine Leather" },
+        { level: 20, unlock: "+2 Quantity", description: "Gather +2 additional resources per harvest" },
+        { level: 25, unlock: "Tier 3 Resources", description: "Steel Ore, Ironwood, Tuna, Moonpetal" },
+        { level: 30, unlock: "+3 Quantity", description: "Gather +3 additional resources per harvest" },
+        { level: 35, unlock: "5% Gear Drop", description: "5% chance for equipment drops while gathering" },
+        { level: 38, unlock: "Tier 4 Resources", description: "Gold Ore, Elderwood, Golden Fish, Dragon's Breath" }
+      ]
+    };
+    render(FALLBACK);
+    fetch("https://info.grudge-studio.com/api/v1/professions.json", { headers: { Accept: "application/json" } })
+      .then(function (r) { return r.ok ? r.json() : null; })
+      .then(function (data) { if (data && data.gathering) render(data); })
+      .catch(function () {});
+  })();
+  </script>
+</body>
+</html>

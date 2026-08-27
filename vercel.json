@@ -11,7 +11,8 @@
     "craft.grudgewarlords.com",
     "foundry.grudgewarlords.com",
     "client.grudge-studio.com",
-    "warlord3d.grudge-studio.com"
+    "warlord3d.grudge-studio.com",
+    "docs.grudge-studio.com"
   ],
   "buildCommand": "npm run build:client",
   "outputDirectory": "client/dist",
@@ -533,6 +534,32 @@
       "destination": "/main-panel/index.html"
     },
     {
+      "source": "/docs",
+      "destination": "/docs/crafting/index.html"
+    },
+    {
+      "source": "/docs/",
+      "destination": "/docs/crafting/index.html"
+    },
+    {
+      "source": "/docs/crafting",
+      "destination": "/docs/crafting/index.html"
+    },
+    {
+      "source": "/docs/crafting/",
+      "destination": "/docs/crafting/index.html"
+    },
+    {
+      "source": "/(.*)",
+      "has": [
+        {
+          "type": "host",
+          "value": "docs.grudge-studio.com"
+        }
+      ],
+      "destination": "/docs/crafting/index.html"
+    },
+    {
       "source": "/wcs",
       "destination": "/craft/index.html"
     },
@@ -631,6 +658,171 @@
         {
           "key": "Permissions-Policy",
           "value": "camera=(), microphone=(), geolocation=(), interest-cohort=()"
+        }
+      ]
+    },
+    {
+      "source": "/main-panel",
+      "headers": [
+        {
+          "key": "Cache-Control",
+          "value": "public, max-age=0, must-revalidate"
+        },
+        {
+          "key": "X-Content-Type-Options",
+          "value": "nosniff"
+        },
+        {
+          "key": "Referrer-Policy",
+          "value": "strict-origin-when-cross-origin"
+        },
+        {
+          "key": "Permissions-Policy",
+          "value": "camera=(), microphone=(), geolocation=(), interest-cohort=()"
+        },
+        {
+          "key": "X-DNS-Prefetch-Control",
+          "value": "off"
+        },
+        {
+          "key": "Strict-Transport-Security",
+          "value": "max-age=63072000; includeSubDomains; preload"
+        },
+        {
+          "key": "Content-Security-Policy",
+          "value": "default-src 'self'; script-src 'self' 'unsafe-inline' 'unsafe-eval' https://cdn.jsdelivr.net https://*.grudge-studio.com https://*.vercel.app; style-src 'self' 'unsafe-inline' https://fonts.googleapis.com; font-src 'self' https://fonts.gstatic.com data:; img-src 'self' data: blob: https: http:; connect-src 'self' https: wss: blob: data:; frame-src 'self' https://*.grudge-studio.com https://*.grudgewarlords.com; worker-src 'self' blob:; frame-ancestors 'self' https://*.grudge-studio.com https://*.grudgewarlords.com https://grudgewarlords.com https://*.grok.me; object-src 'none'; base-uri 'self'; form-action 'self' https://id.grudge-studio.com"
+        }
+      ]
+    },
+    {
+      "source": "/main-panel/",
+      "headers": [
+        {
+          "key": "Cache-Control",
+          "value": "public, max-age=0, must-revalidate"
+        },
+        {
+          "key": "X-Content-Type-Options",
+          "value": "nosniff"
+        },
+        {
+          "key": "Referrer-Policy",
+          "value": "strict-origin-when-cross-origin"
+        },
+        {
+          "key": "Permissions-Policy",
+          "value": "camera=(), microphone=(), geolocation=(), interest-cohort=()"
+        },
+        {
+          "key": "X-DNS-Prefetch-Control",
+          "value": "off"
+        },
+        {
+          "key": "Strict-Transport-Security",
+          "value": "max-age=63072000; includeSubDomains; preload"
+        },
+        {
+          "key": "Content-Security-Policy",
+          "value": "default-src 'self'; script-src 'self' 'unsafe-inline' 'unsafe-eval' https://cdn.jsdelivr.net https://*.grudge-studio.com https://*.vercel.app; style-src 'self' 'unsafe-inline' https://fonts.googleapis.com; font-src 'self' https://fonts.gstatic.com data:; img-src 'self' data: blob: https: http:; connect-src 'self' https: wss: blob: data:; frame-src 'self' https://*.grudge-studio.com https://*.grudgewarlords.com; worker-src 'self' blob:; frame-ancestors 'self' https://*.grudge-studio.com https://*.grudgewarlords.com https://grudgewarlords.com https://*.grok.me; object-src 'none'; base-uri 'self'; form-action 'self' https://id.grudge-studio.com"
+        }
+      ]
+    },
+    {
+      "source": "/docs",
+      "headers": [
+        {
+          "key": "Cache-Control",
+          "value": "public, max-age=0, must-revalidate"
+        },
+        {
+          "key": "X-Content-Type-Options",
+          "value": "nosniff"
+        },
+        {
+          "key": "Referrer-Policy",
+          "value": "strict-origin-when-cross-origin"
+        },
+        {
+          "key": "Permissions-Policy",
+          "value": "camera=(), microphone=(), geolocation=(), interest-cohort=()"
+        },
+        {
+          "key": "X-DNS-Prefetch-Control",
+          "value": "off"
+        },
+        {
+          "key": "Strict-Transport-Security",
+          "value": "max-age=63072000; includeSubDomains; preload"
+        },
+        {
+          "key": "Content-Security-Policy",
+          "value": "default-src 'self'; script-src 'self' 'unsafe-inline' 'unsafe-eval' https://cdn.jsdelivr.net https://*.grudge-studio.com https://*.vercel.app; style-src 'self' 'unsafe-inline' https://fonts.googleapis.com; font-src 'self' https://fonts.gstatic.com data:; img-src 'self' data: blob: https: http:; connect-src 'self' https: wss: blob: data:; frame-src 'self' https://*.grudge-studio.com https://*.grudgewarlords.com; worker-src 'self' blob:; frame-ancestors 'self' https://*.grudge-studio.com https://*.grudgewarlords.com https://grudgewarlords.com https://*.grok.me; object-src 'none'; base-uri 'self'; form-action 'self' https://id.grudge-studio.com"
+        }
+      ]
+    },
+    {
+      "source": "/docs/",
+      "headers": [
+        {
+          "key": "Cache-Control",
+          "value": "public, max-age=0, must-revalidate"
+        },
+        {
+          "key": "X-Content-Type-Options",
+          "value": "nosniff"
+        },
+        {
+          "key": "Referrer-Policy",
+          "value": "strict-origin-when-cross-origin"
+        },
+        {
+          "key": "Permissions-Policy",
+          "value": "camera=(), microphone=(), geolocation=(), interest-cohort=()"
+        },
+        {
+          "key": "X-DNS-Prefetch-Control",
+          "value": "off"
+        },
+        {
+          "key": "Strict-Transport-Security",
+          "value": "max-age=63072000; includeSubDomains; preload"
+        },
+        {
+          "key": "Content-Security-Policy",
+          "value": "default-src 'self'; script-src 'self' 'unsafe-inline' 'unsafe-eval' https://cdn.jsdelivr.net https://*.grudge-studio.com https://*.vercel.app; style-src 'self' 'unsafe-inline' https://fonts.googleapis.com; font-src 'self' https://fonts.gstatic.com data:; img-src 'self' data: blob: https: http:; connect-src 'self' https: wss: blob: data:; frame-src 'self' https://*.grudge-studio.com https://*.grudgewarlords.com; worker-src 'self' blob:; frame-ancestors 'self' https://*.grudge-studio.com https://*.grudgewarlords.com https://grudgewarlords.com https://*.grok.me; object-src 'none'; base-uri 'self'; form-action 'self' https://id.grudge-studio.com"
+        }
+      ]
+    },
+    {
+      "source": "/docs/(.*)",
+      "headers": [
+        {
+          "key": "Cache-Control",
+          "value": "public, max-age=0, must-revalidate"
+        },
+        {
+          "key": "X-Content-Type-Options",
+          "value": "nosniff"
+        },
+        {
+          "key": "Referrer-Policy",
+          "value": "strict-origin-when-cross-origin"
+        },
+        {
+          "key": "Permissions-Policy",
+          "value": "camera=(), microphone=(), geolocation=(), interest-cohort=()"
+        },
+        {
+          "key": "X-DNS-Prefetch-Control",
+          "value": "off"
+        },
+        {
+          "key": "Strict-Transport-Security",
+          "value": "max-age=63072000; includeSubDomains; preload"
+        },
+        {
+          "key": "Content-Security-Policy",
+          "value": "default-src 'self'; script-src 'self' 'unsafe-inline' 'unsafe-eval' https://cdn.jsdelivr.net https://*.grudge-studio.com https://*.vercel.app; style-src 'self' 'unsafe-inline' https://fonts.googleapis.com; font-src 'self' https://fonts.gstatic.com data:; img-src 'self' data: blob: https: http:; connect-src 'self' https: wss: blob: data:; frame-src 'self' https://*.grudge-studio.com https://*.grudgewarlords.com; worker-src 'self' blob:; frame-ancestors 'self' https://*.grudge-studio.com https://*.grudgewarlords.com https://grudgewarlords.com https://*.grok.me; object-src 'none'; base-uri 'self'; form-action 'self' https://id.grudge-studio.com"
         }
       ]
     },

@@ -184,8 +184,12 @@
     return d.firstElementChild;
   }
   function esc(s) {
-    return String(s == null ? "" : s)
-      .replace(/&/g, "&").replace(/</g, "<").replace(/>/g, ">").replace(/"/g, """);
+    return String(s == null ? "" : s).replace(/[&<>"]/g, function (ch) {
+      if (ch === "&") return String.fromCharCode(38) + "amp;";
+      if (ch === "<") return String.fromCharCode(38) + "lt;";
+      if (ch === ">") return String.fromCharCode(38) + "gt;";
+      return String.fromCharCode(38) + "quot;";
+    });
   }
 
   function login() {
@@ -551,7 +555,7 @@
         `<div class="gmp-skill"><span>${esc(label)}</span><span class="gmp-mono">${esc(tool)}</span></div>`).join("")}</div>
     </div>
     <div class="gmp-card"><h3>Crafting stations</h3>
-      <p class="gmp-muted">${state.recipes.length} recipes from ObjectStore. Every character can work every profession.</p>
+      <p class="gmp-muted">${state.recipes.length} recipes from ObjectStore. Every character can work every profession. <a href="/docs/crafting" style="color:var(--gmp-gold)">Craft skills docs</a>.</p>
       <div class="gmp-grid">${state.recipes.slice(0,24).map((r) =>
         `<div class="gmp-item" title="${esc(r.name||r.id)}">${esc((r.name||r.id||"?").toString().slice(0,3))}</div>`).join("")}</div>
     </div>`;
@@ -572,6 +576,7 @@
       ["Craft", location.origin + "/craft/?era=warlords"],
       ["Main panel", location.origin + "/main-panel/?era=warlords"],
       ["Weapon skills", FLEET.weaponSkills],
+      ["Craft skills docs", location.origin + "/docs/crafting"],
     ];
     return `<div class="gmp-card"><h3>Fleet · one truth</h3>
       ${rows.map(([k,v]) => `<div class="gmp-row" style="justify-content:space-between;padding:6px 0;border-bottom:1px solid var(--gmp-border)"><span>${esc(k)}</span><a href="${esc(v)}" style="color:var(--gmp-gold);font-size:12px">${esc(v.replace(/^https:\/\//,""))}</a></div>`).join("")}
