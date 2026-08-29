@@ -360,7 +360,7 @@
                 'Content-Type': 'application/json',
                 'Authorization': 'Bearer ' + (result.token || result.sessionToken || '')
               },
-              body: JSON.stringify({ referralCode: referralCode.trim().toUpperCase() })
+              body: JSON.stringify({ code: referralCode.trim().toUpperCase() })
             });
             
             if (!claimRes.ok) {
