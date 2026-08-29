@@ -114,17 +114,23 @@
 .gmp-slot {
   position: absolute;
   z-index: 2;
-  border: 1px solid rgba(212,168,67,0.55);
-  background: rgba(0,0,0,0.35);
-  border-radius: 4px;
-  display: flex;
-  align-items: center;
-  justify-content: center;
+  border: 0;
+  background: transparent;
+  border-radius: 2px;
+  display: block;
+  padding: 0;
   cursor: pointer;
   overflow: hidden;
 }
-.gmp-slot img { width: 86%; height: 86%; object-fit: contain; pointer-events: none; }
-.gmp-slot:hover, .gmp-slot.active { border-color: var(--gmp-gold-bright); box-shadow: 0 0 0 1px var(--gmp-gold); }
+.gmp-slot img {
+  display: block;
+  width: 100%;
+  height: 100%;
+  object-fit: contain;
+  object-position: center;
+  pointer-events: none;
+}
+.gmp-slot:hover, .gmp-slot.active { box-shadow: 0 0 0 2px var(--gmp-gold); }
 .gmp-slot .lbl {
   position: absolute;
   bottom: 1px;
@@ -137,6 +143,7 @@
   pointer-events: none;
   text-shadow: 0 1px 2px #000;
 }
+.gmp-slot:has(img) .lbl { display: none; }
 .gmp-grid { display: grid; grid-template-columns: repeat(auto-fill, minmax(64px, 1fr)); gap: 8px; }
 .gmp-item {
   aspect-ratio: 1;

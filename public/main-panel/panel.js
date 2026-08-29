@@ -71,7 +71,7 @@
     ["weaponSwap", "Swap"],
   ];
   function well(r) {
-    const i = 0.08;
+    const i = 0.04;
     return { x: +(r.x + r.w * i).toFixed(2), y: +(r.y + r.h * i).toFixed(2), w: +(r.w * (1 - 2 * i)).toFixed(2), h: +(r.h * (1 - 2 * i)).toFixed(2) };
   }
   function chrome(base) {
