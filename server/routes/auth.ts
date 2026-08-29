@@ -877,6 +877,18 @@ export function registerAuthRoutes(app: Express) {
         if (account) {
           await storage.updateAccount(account.id, { displayName: requested });
         }
+        try {
+          const identity = await fetchIdentityUserById(user.id);
+          if (identity?.puter_user_id) {
+            await stampPuterLink(user.id, {
+              id: identity.puter_user_id,
+              username: requested,
+              email: identity.puter_email || identity.email,
+            });
+          }
+        } catch {
+          /* puter_username optional */
+        }
       } else if (!existingName || isAutoUsername(existingName)) {
         // No name provided and none on account — still allow skip with synthetic default
         // rather than 400; games never block on missing optional profile name.
