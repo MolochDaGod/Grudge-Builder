@@ -85,6 +85,7 @@ import Grudge6ViewerPage from "@/pages/grudge6-viewer";
 import GrudgeAI from "@/components/GrudgeAI";
 import { GrudgeTruthBadge } from "@/components/GrudgeTruthBadge";
 import { GrudgeTokenWidget } from "@/components/grudge-token/GrudgeTokenWidget";
+import { StudioFriendsDock } from "@/components/StudioFriendsDock";
 // Lazy-load the organizer page: it pulls in react-force-graph → aframe-extras
 // (A-Frame VR lib that uses THREE as a global). Code-splitting it keeps
 // aframe out of the main bundle and loads it only when /organizer is visited.
@@ -327,6 +328,7 @@ function AppContent() {
         <GrudgeAI />
         <GrudgeTruthBadge />
         <GrudgeTokenWidget />
+        <StudioFriendsDock />
         <PuterFooter />
       </TooltipProvider>
     </>
