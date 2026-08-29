@@ -13,6 +13,12 @@ head_sampling_rate = 1
 
 # Secrets: wrangler secret put only if wallet edge gains private keys (prefer Railway).
 
+[assets]
+directory = "./public"
+binding = "ASSETS"
+run_worker_first = true
+html_handling = "none"
+
 [[routes]]
 pattern = "wallet.grudge-studio.com/*"
 zone_name = "grudge-studio.com"
@@ -29,6 +35,11 @@ POKER_ORIGIN = "https://poker.grudge-studio.com"
 [env.production]
 name = "grudge-wallet-site"
 workers_dev = true
+[env.production.assets]
+directory = "./public"
+binding = "ASSETS"
+run_worker_first = true
+html_handling = "none"
 [env.production.vars]
 ENVIRONMENT = "production"
 RAILWAY_API_ORIGIN = "https://grudge-api-production-0d46.up.railway.app"

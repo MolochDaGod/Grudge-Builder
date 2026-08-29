@@ -32,7 +32,9 @@ function corsHeaders(request) {
     if (
       CORS_ALLOW.includes(origin) ||
       /\.grudge-studio\.com$/.test(host) ||
-      /\.vercel\.app$/.test(host)
+      /\.grudge\.studio$/.test(host) ||
+      /\.vercel\.app$/.test(host) ||
+      /\.puter\.site$/.test(host)
     ) {
       allow = origin || CORS_ALLOW[0];
     }
@@ -115,6 +117,8 @@ export default {
             "exchange-swap",
             "game-handoff",
             "phantom-reconnect",
+            "app-tiles",
+            "auth-callback",
           ],
         },
         200,
@@ -122,55 +126,82 @@ export default {
       );
     }
 
+    if (url.pathname.startsWith("/media/") && env.ASSETS) {
+      const asset = await env.ASSETS.fetch(request);
+      if (asset.status !== 404) {
+        const h = new Headers(asset.headers);
+        h.set("X-Grudge-Edge", "grudge-wallet-site");
+        h.set("Cache-Control", "public, max-age=86400");
+        Object.entries(cors).forEach(([k, v]) => h.set(k, v));
+        return new Response(asset.body, {
+          status: asset.status,
+          statusText: asset.statusText,
+          headers: h,
+        });
+      }
+    }
+
     const railway =
       env.RAILWAY_API_ORIGIN ||
       "https://grudge-api-production-0d46.up.railway.app";
     const idGw = env.ID_GATEWAY_ORIGIN || "https://id.grudge-studio.com";
 
-    const railwayAuth =
-      url.pathname.startsWith("/api/auth/") || url.pathname === "/api/auth";
-    if (railwayAuth) {
-      const res = await proxyTo(railway, request, url.pathname + url.search);
-      const h = new Headers(res.headers);
-      Object.entries(cors).forEach(([k, v]) => h.set(k, v));
-      return new Response(res.body, { status: res.status, headers: h });
+    // Never fetch id.grudge-studio.com from this Worker (same-zone orange-cloud → 526).
+    // Browser goes to Grudge ID; return lands on /auth/callback HTML.
+    if (url.pathname === "/login") {
+      const dest = `${url.origin}/auth/callback`;
+      const loc =
+        `${idGw}/login?redirect_uri=${encodeURIComponent(dest)}` +
+        `&return=${encodeURIComponent(dest)}` +
+        `&origin=${encodeURIComponent(url.origin)}` +
+        `&app=grudge-wallet`;
+      return Response.redirect(loc, 302);
     }
 
-    if (url.pathname === "/login" || url.pathname.startsWith("/auth/")) {
-      const res = await proxyTo(idGw, request, url.pathname + url.search);
-      const h = new Headers(res.headers);
-      Object.entries(cors).forEach(([k, v]) => h.set(k, v));
-      return new Response(res.body, { status: res.status, headers: h });
-    }
-
-    if (url.pathname.startsWith("/api/")) {
-      const res = await proxyTo(railway, request, url.pathname + url.search);
-      const h = new Headers(res.headers);
-      Object.entries(cors).forEach(([k, v]) => h.set(k, v));
-      return new Response(res.body, { status: res.status, headers: h });
-    }
-
-    if (
-      url.pathname === "/" ||
-      url.pathname === "/index.html" ||
-      url.pathname === "/wallet"
-    ) {
+    const htmlPaths = new Set([
+      "/",
+      "/index.html",
+      "/wallet",
+      "/wallet/",
+      "/auth/callback",
+      "/auth/callback/",
+    ]);
+    if (htmlPaths.has(url.pathname)) {
       return new Response(htmlPage(env), {
         status: 200,
         headers: {
           "Content-Type": "text/html; charset=utf-8",
-          "Cache-Control": "public, max-age=30",
+          "Cache-Control": "no-store",
           "X-Grudge-Edge": "grudge-wallet-site",
           ...cors,
         },
       });
     }
 
+    if (url.pathname.startsWith("/api/")) {
+      try {
+        const res = await proxyTo(railway, request, url.pathname + url.search);
+        const h = new Headers(res.headers);
+        Object.entries(cors).forEach(([k, v]) => h.set(k, v));
+        return new Response(res.body, { status: res.status, headers: h });
+      } catch (err) {
+        return json(
+          {
+            ok: false,
+            error: "railway upstream unavailable",
+            service: "grudge-wallet-site",
+          },
+          502,
+          cors,
+        );
+      }
+    }
+
     return new Response(htmlPage(env), {
       status: 200,
       headers: {
         "Content-Type": "text/html; charset=utf-8",
-        "Cache-Control": "public, max-age=30",
+        "Cache-Control": "no-store",
         "X-Grudge-Edge": "grudge-wallet-site",
         ...cors,
       },
