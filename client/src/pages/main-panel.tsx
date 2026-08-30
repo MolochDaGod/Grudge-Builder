@@ -1,6 +1,6 @@
 /**
- * /main-panel — full-page Warlords main panel (ui.grudge-studio.com host).
- * Deep-link for fleet games and docs; in-game uses MainPanelHost overlay.
+ * /main-panel — full-page Warlords main panel on Grudge-Builder production.
+ * Static bundle lives at /main-panel/; this page also hosts the overlay.
  */
 import { useEffect, useMemo, useState } from "react";
 import MainPanelHost, { buildMainPanelUrl } from "@/components/MainPanelHost";
@@ -49,19 +49,11 @@ export default function MainPanelPage() {
           Warlords Main Panel
         </h1>
         <p className="text-sm text-stone-400 mt-1">
-          Hosted by{" "}
-          <a className="text-amber-400 underline" href="https://ui.grudge-studio.com/main-panel.html?era=warlords">
-            ui.grudge-studio.com
-          </a>
-          . Equipment uses the tactical paperdoll (portrait + slots). Legacy{" "}
-          <a className="text-stone-500 underline" href="https://info.grudge-studio.com/main-panel.html">
-            info.grudge-studio.com/main-panel.html
-          </a>{" "}
-          migrates here.
+          Production panel on this host — paperdoll, equipment, camps, boats, crew, pit, and skills.
         </p>
         <p className="text-xs text-stone-500 mt-2">
           Open fullscreen:{" "}
-          <a className="text-amber-500/90 underline" href={external} target="_blank" rel="noreferrer">
+          <a className="text-amber-500/90 underline" href={external}>
             {external}
           </a>
         </p>
