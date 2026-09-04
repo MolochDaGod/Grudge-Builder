@@ -120,6 +120,12 @@ export function getBGMDuck(): number {
   return bgmDuckMul;
 }
 
+function resolveSfxUrl(key: string): string {
+  if (key.startsWith('http://') || key.startsWith('https://')) return key;
+  if (key.startsWith('/')) return key; // same-origin (cinema WAV pack, etc.)
+  return audioCdnUrl(key);
+}
+
 /** Prefetch catalog / CDN audio so first play is not cold. */
 export function prefetchGameSfx(eventIds: string[]): void {
   if (typeof window === 'undefined') return;
@@ -128,7 +134,7 @@ export function prefetchGameSfx(eventIds: string[]): void {
     if (!ev) continue;
     const keys = [ev.key, ...(ev.variants ?? [])].slice(0, 3);
     for (const key of keys) {
-      const url = key.startsWith('http') ? key : audioCdnUrl(key);
+      const url = resolveSfxUrl(key);
       try {
         const a = new Audio();
         a.preload = 'auto';
@@ -186,7 +192,7 @@ export function playGameSfx(
     const pool = [ev.key, ...ev.variants];
     key = pool[Math.floor(Math.random() * pool.length)];
   }
-  const url = key.startsWith('http') ? key : audioCdnUrl(key);
+  const url = resolveSfxUrl(key);
   const audio = new Audio(url);
   audio.volume = Math.min(1, sfxVolume * (options?.volume ?? ev.volume ?? 1));
   audio.play().catch(() => {});
