@@ -1,8 +1,9 @@
 /**
  * CinemaSceneAudio — beat-driven BGM/SFX for LeviathanOceanCinema.
  *
- * SSOT: audioManager + gameAudioCatalog (CDN). No new audio stack.
- * Never put ElevenLabs keys here — VO is prebaked or WarVoice proxy elsewhere.
+ * Magic/combat stems: CinemaCastingSfx (the user WAV pack that was
+ * accidentally stuck only on casting.*). BGM + ship/thunder still come
+ * from audioManager + gameAudioCatalog (CDN OGGs).
  */
 import {
   playBGM,
@@ -17,16 +18,27 @@ import {
   type BGMTrack,
 } from '@/lib/audioManager';
 import type { CinBattleBeat } from './LeviathanBattleScript';
+import {
+  playCinemaSfx,
+  playCinemaMagicImpact,
+  setCinemaBurning,
+  prefetchCinemaSfx,
+  unlockCinemaSfx,
+  setCinemaSfxMuted,
+  disposeCinemaSfx,
+} from './CinemaCastingSfx';
 
-/** Critical stems to warm on cinema ready */
+/** Catalog stems still used for non-magic cinema cues */
 export const CINEMA_PREFETCH_SFX = [
-  'combat.magic.cast',
-  'combat.magic.fire',
   'combat.magic.thunder',
   'combat.hit.melee',
   'combat.death',
   'ui.levelup',
   'skill.warrior.charge',
+  'world.ship_sink',
+  'cinema.cast.ramp',
+  'cinema.impact.magic',
+  'cinema.parry.magic',
 ] as const;
 
 const CINEMA_PREFETCH_BGM: BGMTrack[] = ['ocean', 'battle', 'explore'];
@@ -39,12 +51,16 @@ export class CinemaSceneAudio {
   /** Cast SFX throttle (per mage index last fire time) */
   private lastCastSfx: number[] = [0, 0, 0, 0];
   private elapsed = 0;
+  private burning = false;
 
   setMuted(m: boolean): void {
     this.muted = m;
+    setCinemaSfxMuted(m);
     if (m) {
       stopBGM();
       duckBGM(1);
+      setCinemaBurning(false);
+      this.burning = false;
     }
   }
 
@@ -58,10 +74,12 @@ export class CinemaSceneAudio {
     this.started = true;
     prefetchBGM(CINEMA_PREFETCH_BGM);
     prefetchGameSfx([...CINEMA_PREFETCH_SFX]);
+    prefetchCinemaSfx();
+    void unlockCinemaSfx();
     // Slightly quieter bed under film mix
     setBGMVolume(0.28);
     playBGM('ocean', { volume: 0.28, loop: true });
-    console.info('[cinema audio] ocean bed + prefetch');
+    console.info('[cinema audio] ocean bed + casting WAV pack');
   }
 
   /** Per-frame: optional storm intensity duck (subtle). */
@@ -69,7 +87,6 @@ export class CinemaSceneAudio {
     this.elapsed += dt;
     if (this.muted || !this.started) return;
     const storm = beat.storm ?? 0.4;
-    // Keep BGM present; slight duck under heavy storm + beam
     const duck =
       beat.blackout && beat.blackout > 0.5
         ? 0.15
@@ -79,11 +96,23 @@ export class CinemaSceneAudio {
             ? 0.45
             : 1;
     duckBGM(duck);
+
+    const wantBurn = !!(
+      beat.fireBeam ||
+      beat.hullFire ||
+      beat.fireAura ||
+      beat.dragonPhase === 'blast' ||
+      beat.hotHands
+    );
+    if (wantBurn !== this.burning) {
+      this.burning = wantBurn;
+      setCinemaBurning(wantBurn, { volume: beat.fireBeam || beat.dragonPhase === 'blast' ? 0.34 : 0.22 });
+    }
   }
 
   /**
    * Fire on beat change (prev !== idx).
-   * Maps film beats → catalog SFX + BGM shifts.
+   * Maps film beats → cinema WAV pack + residual catalog SFX + BGM shifts.
    */
   onBeat(beat: CinBattleBeat, isNew: boolean): void {
     if (this.muted || !isNew) return;
@@ -93,42 +122,48 @@ export class CinemaSceneAudio {
 
     const storm = beat.storm ?? 0.4;
 
-    // BGM: ocean → battle when fight intensifies
     if (storm >= 0.72 || beat.shipPinata || beat.fireBeam || beat.dragonPhase === 'blast') {
       if (!this.stormLayer) {
         this.stormLayer = true;
         playBGM('battle', { volume: 0.32, loop: true });
       }
     } else if (storm < 0.55 && this.stormLayer && !beat.shipPinata) {
-      // Soft return to ocean after peak (rare — most scripts climb)
       this.stormLayer = false;
       playBGM('ocean', { volume: 0.28, loop: true });
     }
 
-    // One-shots by beat flags
     if (beat.shipPinata) {
-      playGameSfx('combat.magic.fire', { volume: 1.1 });
+      playCinemaMagicImpact({ volume: 1.05 });
+      playCinemaSfx('cast_chant', { volume: 0.7, rate: 0.92 });
       playGameSfx('combat.magic.thunder', { volume: 0.9 });
+      playGameSfx('world.ship_sink', { volume: 1.0 });
       playSFX('thunder');
       return;
     }
-    if (beat.shieldShatter || beat.shieldImpact) {
-      playGameSfx('combat.hit.melee', { volume: 0.85 });
-      playGameSfx('combat.magic.cast', { volume: 0.7 });
+    if (beat.shieldShatter || beat.shieldDefeat) {
+      playCinemaSfx('parry_magic', { volume: 0.92 });
+      playCinemaMagicImpact({ volume: 0.88 });
+    } else if (beat.shieldImpact || beat.shieldBounce) {
+      playCinemaSfx('parry_magic', { volume: 0.72, rate: 1.05 });
     }
     if (beat.fireBeam || beat.dragonPhase === 'blast') {
-      playGameSfx('combat.magic.fire', { volume: 0.95 });
-      playGameSfx('combat.magic.thunder', { volume: 0.65 });
+      playCinemaMagicImpact({ volume: 0.95 });
+      playGameSfx('combat.magic.thunder', { volume: 0.55 });
     }
     if (beat.dragonPhase === 'snap' || beat.dragonPhase === 'charge') {
-      playGameSfx('combat.magic.cast', { volume: 0.55 });
+      playCinemaSfx('cast_ramp', { volume: 0.62, rate: 0.9 });
+    }
+    if (beat.iceSnakeCast || beat.blizzard) {
+      playCinemaSfx('cast_chant', { volume: 0.58, rate: 0.88 });
+      playCinemaMagicImpact({ volume: 0.55 });
+    }
+    if (beat.tornado || beat.mageSplineKill) {
+      playCinemaSfx('cast_ramp', { volume: 0.7, rate: 1.08 });
     }
     if (beat.rings && !beat.fireBeam) {
-      // Ward up — soft cast bed
-      playGameSfx('combat.magic.cast', { volume: 0.45 });
+      playCinemaSfx('parry_magic', { volume: 0.5, rate: 0.95 });
     }
     if (beat.blackout && beat.blackout > 0.6) {
-      // Logo / cut to black — soft duck only (tick handles)
       duckBGM(0.2);
     }
   }
@@ -139,23 +174,26 @@ export class CinemaSceneAudio {
     const now = this.elapsed;
     if (now - (this.lastCastSfx[mageIndex] ?? 0) < 0.85) return;
     this.lastCastSfx[mageIndex] = now;
-    playGameSfx('combat.magic.cast', {
-      volume: 0.4 + (mageIndex % 3) * 0.08,
-      preferVariant: true,
+    playCinemaSfx('cast_ramp', {
+      volume: 0.52 + (mageIndex % 3) * 0.08,
+      rate: 0.96 + (mageIndex % 3) * 0.05,
     });
   }
 
   /** Mage flee / throw cue */
   onMageFlee(): void {
     if (this.muted) return;
-    playGameSfx('skill.warrior.charge', { volume: 0.55 });
+    playCinemaSfx('parry', { volume: 0.55, rate: 1.15 });
+    playGameSfx('skill.warrior.charge', { volume: 0.45 });
   }
 
   dispose(): void {
     duckBGM(1);
     stopBGM();
+    disposeCinemaSfx();
     this.started = false;
     this.stormLayer = false;
+    this.burning = false;
     this.lastBeatId = '';
   }
 }
