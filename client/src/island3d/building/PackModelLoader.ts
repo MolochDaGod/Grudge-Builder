@@ -1,6 +1,8 @@
 /**
  * PackModelLoader — load multipack GLB (or single-mesh FBX) and clone named nodes.
  * free_survival_asset_kit, medieval towers, Ultimate Fantasy RTS buildings.
+ * Island camp buildings (4 m SI) go through identity-checked fetchBuildingGlb
+ * so the stale 8.9 MB R2 cantina is not parsed as the placeable.
  * Uses shared DRACO + Meshopt pipeline for GLBs.
  */
 import * as THREE from 'three';
@@ -11,14 +13,50 @@ import {
   loadGltfCached,
   prepareMeshPerformance,
 } from '@/lib/three/SharedGltfPipeline';
+import {
+  fetchBuildingGlb,
+  ISLAND_BUILDINGS,
+} from '@shared/definitions/islandBuildingPrefabs';
 
 const fbxLoader = new FBXLoader();
 const packCache = new Map<string, THREE.Group>();
+
+function islandBuildingIdFromPath(path: string): string | null {
+  const lower = path.toLowerCase().split('?')[0];
+  for (const b of ISLAND_BUILDINGS) {
+    if (lower.endsWith(`/${b.r2Key}`) || lower.endsWith(`/${b.id}.glb`)) return b.id;
+  }
+  return null;
+}
+
+async function loadIslandBuildingPack(id: string, cacheKey: string): Promise<THREE.Group> {
+  const packed = await fetchBuildingGlb(id);
+  const blob = new Blob([packed.bytes], { type: 'model/gltf-binary' });
+  const objectUrl = URL.createObjectURL(blob);
+  try {
+    const gltf = await loadGltfCached(objectUrl, 'high');
+    const root = (gltf.scene || gltf.scenes?.[0]) as THREE.Group;
+    prepareMeshPerformance(root, {
+      castShadow: false,
+      receiveShadow: true,
+      frustumCulled: true,
+    });
+    packCache.set(cacheKey, root);
+    return root;
+  } finally {
+    URL.revokeObjectURL(objectUrl);
+  }
+}
 
 async function loadPack(path: string): Promise<THREE.Group> {
   const url = assetUrl(path);
   const hit = packCache.get(url);
   if (hit) return hit;
+
+  const islandId = islandBuildingIdFromPath(path) || islandBuildingIdFromPath(url);
+  if (islandId) {
+    return loadIslandBuildingPack(islandId, url);
+  }
 
   let root: THREE.Group;
   if (path.toLowerCase().endsWith('.fbx')) {
