@@ -105,6 +105,10 @@ export const WARLORDS_ENTITY_MESH_CDN =
 export const WARLORDS_ENTITY_CATALOG_URL =
   'https://objectstore.grudge-studio.com/api/v1/warlords-entity-prefabs.json';
 
+/** SI-baked camp buildings (4 m). Prefer mesh.cdnUrl from island-building-prefabs when islandPack is set. */
+export const ISLAND_BUILDING_PREFABS_URL =
+  'https://info.grudge-studio.com/api/v1/island-building-prefabs.json';
+
 export function entityMeshUrl(slugOrId: string): string {
   const slug = String(slugOrId)
     .replace(/^entities\//, '')

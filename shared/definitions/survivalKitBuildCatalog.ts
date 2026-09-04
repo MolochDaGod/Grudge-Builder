@@ -551,6 +551,7 @@ import {
   UFRTS_STARTER_BUILD_PIECES,
   UFRTS_STONE_MINE_PIECE,
 } from './ultimateFantasyRtsBuildPieces';
+import { ISLAND_CAMP_BUILD_PIECES } from './islandCampBuildPieces';
 
 /** Flat list for BuildingSystem / UI */
 export const ALL_SURVIVAL_BUILD_PIECES: BuildPieceDef[] = [
@@ -561,6 +562,7 @@ export const ALL_SURVIVAL_BUILD_PIECES: BuildPieceDef[] = [
   ...TOWER_PIECES,
   ...RACE_HOME_PIECES,
   ...RTS_BUILDING_PIECES,
+  ...ISLAND_CAMP_BUILD_PIECES,
   // Stone quarry mine + Age I L1 RTS buildings (Ultimate Fantasy RTS)
   UFRTS_STONE_MINE_PIECE,
   ...UFRTS_STARTER_BUILD_PIECES.filter((p) => p.id !== UFRTS_STONE_MINE_PIECE.id),
