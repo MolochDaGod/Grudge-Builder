@@ -2,7 +2,7 @@
  * PackModelLoader — load multipack GLB (or single-mesh FBX) and clone named nodes.
  * free_survival_asset_kit, medieval towers, Ultimate Fantasy RTS buildings.
  * Island camp buildings (4 m SI) go through identity-checked fetchBuildingGlb
- * so the stale 8.9 MB R2 cantina is not parsed as the placeable.
+ * so a stale R2 dollhouse is not parsed as the placeable.
  * Uses shared DRACO + Meshopt pipeline for GLBs.
  */
 import * as THREE from 'three';

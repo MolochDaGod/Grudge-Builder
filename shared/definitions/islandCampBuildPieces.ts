@@ -48,7 +48,7 @@ export const ISLAND_CAMP_BUILD_PIECES: BuildPieceDef[] = [
     category: 'rts_building',
     size: [1.7, 4, 1.7],
     cost: [{ itemId: 'wood', quantity: 60 }, { itemId: 'cloth', quantity: 12 }],
-    effect: { type: 'comfort', value: 18, description: 'Tavern bar. Baked 4 m (not the 8.9 MB dollhouse).' },
+    effect: { type: 'comfort', value: 18, description: 'Tavern bar. Baked 4 m (CDN key cantina-4m.glb).' },
   }),
   piece('tavern', {
     name: 'Tavern',
