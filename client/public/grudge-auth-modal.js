@@ -389,19 +389,80 @@
     return null;
   }
 
+  function b58encode(bytes) {
+    var B58 = '123456789ABCDEFGHJKLMNPQRSTUVWXYZabcdefghijkmnopqrstuvwxyz';
+    if (!bytes || !bytes.length) return '';
+    var digits = [0];
+    for (var i = 0; i < bytes.length; i++) {
+      var carry = bytes[i];
+      for (var j = 0; j < digits.length; j++) {
+        carry += digits[j] << 8;
+        digits[j] = carry % 58;
+        carry = (carry / 58) | 0;
+      }
+      while (carry) {
+        digits.push(carry % 58);
+        carry = (carry / 58) | 0;
+      }
+    }
+    var str = '';
+    for (var k = 0; bytes[k] === 0 && k < bytes.length - 1; k++) str += '1';
+    for (var q = digits.length - 1; q >= 0; q--) str += B58[digits[q]];
+    return str;
+  }
+
   function doWallet() {
     var wallet = detectSolanaWallet();
     if (!wallet) {
       return showError('No Solana wallet found. Install Phantom (phantom.app) or Solflare (solflare.com).');
     }
     showSuccess('Connecting ' + wallet.name + '\u2026');
+    var address = '';
     wallet.provider.connect()
       .then(function (resp) {
-        var walletAddress = resp.publicKey.toString();
-        return fetch(AUTH_BASE + '/api/auth/wallet', {
+        address = String((resp && resp.publicKey) || wallet.provider.publicKey);
+        return fetch(AUTH_BASE + '/api/auth/phantom/nonce', {
           method: 'POST',
+          credentials: 'include',
           headers: { 'Content-Type': 'application/json' },
-          body: JSON.stringify({ wallet_address: walletAddress }),
+          body: JSON.stringify({ address: address }),
+        });
+      })
+      .then(function (r) { return r.json(); })
+      .then(function (challenge) {
+        if (!challenge || !challenge.message) throw new Error(challenge && challenge.error || 'Wallet challenge failed');
+        var encoded = new TextEncoder().encode(challenge.message);
+        if (typeof wallet.provider.signIn === 'function' && challenge.siws) {
+          return wallet.provider.signIn(challenge.siws).then(function (out) {
+            var msg = out.signedMessage || out.signed_message || challenge.message;
+            if (msg && typeof msg !== 'string') msg = new TextDecoder().decode(msg);
+            var sig = out.signature;
+            return {
+              address: address,
+              message: msg,
+              signature: typeof sig === 'string' ? sig : b58encode(sig),
+              nonce: challenge.nonce,
+              provider: wallet.name.toLowerCase(),
+            };
+          });
+        }
+        return wallet.provider.signMessage(encoded, 'utf8').then(function (signed) {
+          var sigRaw = signed.signature || signed;
+          return {
+            address: address,
+            message: challenge.message,
+            signature: typeof sigRaw === 'string' ? sigRaw : b58encode(sigRaw),
+            nonce: challenge.nonce,
+            provider: wallet.name.toLowerCase(),
+          };
+        });
+      })
+      .then(function (payload) {
+        return fetch(AUTH_BASE + '/api/auth/phantom/verify', {
+          method: 'POST',
+          credentials: 'include',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify(payload),
         });
       })
       .then(function (r) { return r.json(); })
@@ -409,7 +470,7 @@
         if (!data.success) return showError(data.error || 'Wallet auth failed');
         onAuthSuccess(data, 'Signed in via ' + wallet.name);
       })
-      .catch(function (e) { showError('Wallet error: ' + e.message); });
+      .catch(function (e) { showError('Wallet error: ' + (e && e.message ? e.message : e)); });
   }
 
   // Puter Auth

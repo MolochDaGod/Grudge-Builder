@@ -456,6 +456,51 @@ body {
   margin-left: 8px;
 }
 .btn-copy:hover { text-decoration: underline; }
+.stat-hint { font-size: 0.7rem; color: var(--text-muted); margin-top: 3px; line-height: 1.4; width: 100%; }
+.stat-row.stack { flex-wrap: wrap; }
+.stat-row .mono { font-family: ui-monospace, SFMono-Regular, Menlo, Consolas, monospace; font-size: 0.75rem; word-break: break-all; }
+.wallet-modal-root {
+  position: fixed; inset: 0; z-index: 30;
+  background: rgba(5, 5, 10, 0.72);
+  display: grid; place-items: center;
+  padding: 20px;
+}
+.wallet-modal-root[hidden] { display: none !important; }
+.wallet-modal {
+  width: 100%; max-width: 400px;
+  background: rgba(17, 17, 24, 0.96);
+  border: 1px solid rgba(201, 162, 39, 0.22);
+  border-radius: var(--radius-lg);
+  box-shadow: var(--shadow);
+  padding: 24px 22px 16px;
+}
+.wallet-modal h2 { font-size: 1.05rem; font-weight: 600; margin-bottom: 6px; }
+.wallet-modal .view-sub { margin-bottom: 12px; }
+.wallet-list { display: grid; gap: 8px; margin: 12px 0 8px; }
+.wallet-opt {
+  width: 100%;
+  display: flex; align-items: center; gap: 10px;
+  padding: 12px 14px;
+  background: var(--surface-raised);
+  border: 1px solid var(--border);
+  border-radius: 10px;
+  color: var(--text);
+  cursor: pointer;
+  font: inherit;
+  text-align: left;
+}
+.wallet-opt:hover:not(:disabled) { border-color: var(--border-focus); }
+.wallet-opt:disabled { opacity: 0.55; cursor: wait; }
+.wallet-opt img, .wallet-opt .wicon {
+  width: 22px; height: 22px; border-radius: 6px; flex-shrink: 0;
+}
+.wallet-addr {
+  font-family: ui-monospace, SFMono-Regular, Menlo, Consolas, monospace;
+  font-size: 0.75rem;
+  word-break: break-all;
+  color: var(--text-secondary);
+  margin: 8px 0;
+}
 .foot-links { margin-top: 8px; }
 .foot-links a { margin: 0 6px; }
 @media (max-width: 440px) {
@@ -526,18 +571,18 @@ body {
 
   <section class="view" id="view-profile">
     <div class="view-title">Choose your username</div>
-    <div class="view-sub">This is how you'll sign in and appear across games.</div>
-    <div class="field"><label for="pf-username">Username</label><input class="input" id="pf-username" autocomplete="username" placeholder="e.g. ironjaw" maxlength="30" /><div class="hint" id="pf-username-hint">3–30 letters, numbers, _ or -</div></div>
-    <div class="field" id="pf-email-wrap"><label for="pf-email">Email <span style="font-weight:400;color:var(--text-muted)">(optional)</span></label><input class="input" id="pf-email" type="email" autocomplete="email" placeholder="you@example.com" /></div>
+    <div class="view-sub">Your public username is how you sign in. It is not your email and not your Grudge ID.</div>
+    <div class="field"><label for="pf-username">Public username</label><input class="input" id="pf-username" autocomplete="username" placeholder="e.g. ironjaw" maxlength="30" /><div class="hint" id="pf-username-hint">3–30 letters, numbers, _ or -. Email and GRUDGE_… are separate fields.</div></div>
+    <div class="field" id="pf-email-wrap"><label for="pf-email">Email <span style="font-weight:400;color:var(--text-muted)">(optional · also works for sign-in)</span></label><input class="input" id="pf-email" type="email" autocomplete="email" placeholder="you@example.com" /></div>
     <button class="btn btn-primary" id="pf-save" type="button"><span class="lead">Save and continue</span></button>
     <div style="text-align:center;margin-top:14px"><button class="btn-link" id="pf-skip" type="button">Skip for now</button></div>
   </section>
 
   <section class="view" id="view-email">
     <div class="view-title" id="em-title">Sign in with email</div>
-    <div class="view-sub" id="em-sub">Username, email, or Grudge ID.</div>
-    <div class="field" id="em-username-wrap"><label for="em-username">Username or email</label><input class="input" id="em-username" autocomplete="username" placeholder="username or email" /></div>
-    <div class="field" id="em-displayname-wrap" style="display:none"><label for="em-displayname">Display name <span style="font-weight:400;color:var(--text-muted)">(optional)</span></label><input class="input" id="em-displayname" placeholder="Shown in games" /></div>
+    <div class="view-sub" id="em-sub">Use your public username, the email on the account, or your Grudge ID (GRUDGE_…).</div>
+    <div class="field" id="em-username-wrap"><label for="em-username">Username, email, or Grudge ID</label><input class="input" id="em-username" autocomplete="username" placeholder="ironjaw, you@email, or GRUDGE_…" /><div class="hint" id="em-username-hint">Username is your public handle. Grudge ID is the account number starting with GRUDGE_.</div></div>
+    <div class="field" id="em-displayname-wrap" style="display:none"><label for="em-displayname">Display name <span style="font-weight:400;color:var(--text-muted)">(optional · shown in games)</span></label><input class="input" id="em-displayname" placeholder="Can differ from username" /></div>
     <div class="field"><label for="em-password">Password</label><input class="input" id="em-password" type="password" autocomplete="current-password" placeholder="••••••••" /></div>
     <button class="btn btn-primary" id="em-submit" type="button"><span class="lead">Sign in</span></button>
     <div style="text-align:center;margin-top:14px">
@@ -568,7 +613,11 @@ body {
     <div class="view-sub" id="done-sub" style="display:none"></div>
     <div class="identity"><div class="name" id="done-name">—</div><div class="gid" id="done-gid">—</div></div>
     <button class="btn btn-primary" id="done-continue" type="button"><span class="lead" id="done-continue-label">Continue</span></button>
-    <div style="text-align:center;margin-top:14px"><button class="btn-link" id="done-switch" type="button">Use a different account</button></div>
+    <button class="btn btn-secondary" id="done-add-wallet" type="button">Add Solana wallet</button>
+    <div style="text-align:center;margin-top:14px">
+      <button class="btn-link" id="done-account" type="button">Manage account</button>
+      <button class="btn-link" id="done-switch" type="button">Use a different account</button>
+    </div>
   </section>
 
   <section class="view" id="view-account">
@@ -577,13 +626,26 @@ body {
       <div class="name" id="acct-name">—</div>
       <div class="handle" id="acct-handle">@—</div>
     </div>
-    <div class="stat-row"><span>Grudge ID</span><span id="acct-gid-wrap"><span id="acct-gid">—</span><button type="button" class="btn-copy" id="acct-copy">Copy</button></span></div>
+    <div class="stat-row stack"><span>Display name</span><span id="acct-display">—</span><div class="stat-hint">Shown in games. Separate from username.</div></div>
+    <div class="stat-row stack" id="acct-username-row"><span>Username</span><span id="acct-username">—</span><div class="stat-hint" id="acct-username-hint">Public sign-in handle. Not email. Not Grudge ID.</div></div>
+    <div class="field" id="acct-claim-wrap" style="display:none">
+      <label for="acct-claim">Set public username</label>
+      <input class="input" id="acct-claim" maxlength="30" placeholder="e.g. ironjaw" autocomplete="username" />
+      <div class="hint" id="acct-claim-hint">3–30 letters, numbers, _ or -</div>
+      <button class="btn btn-secondary" id="acct-claim-save" type="button" style="margin-top:8px">Save username</button>
+    </div>
+    <div class="stat-row stack"><span>Email</span><span id="acct-email">—</span></div>
+    <div class="stat-row"><span>Grudge ID</span><span id="acct-gid-wrap"><span id="acct-gid" class="mono">—</span><button type="button" class="btn-copy" id="acct-copy">Copy</button></span></div>
+    <div class="stat-hint" style="margin:-2px 0 10px">Account number. Starts with GRUDGE_. Not a username.</div>
+    <div class="stat-row stack"><span>Your Solana</span><span id="acct-solana" class="mono">Not linked</span><div class="stat-hint">Phantom / Solflare you prove by signing. Used to withdraw.</div></div>
+    <div class="stat-row stack" id="acct-custodial-row" style="display:none"><span>Studio play wallet</span><span id="acct-custodial" class="mono">—</span><div class="stat-hint">Crossmint custodial on this Grudge ID. Not the trade vault.</div></div>
     <div class="stat-row" id="acct-gbux-row" style="display:none"><span>GBux balance</span><span id="acct-gbux">0</span></div>
     <div class="stat-row"><span>Account type</span><span id="acct-role">Player</span></div>
     <div class="conn-list">
       <h3>Connected sign-in methods</h3>
       <div id="acct-connections"></div>
     </div>
+    <button class="btn btn-primary" id="acct-add-wallet" type="button"><span class="lead">Add Solana wallet</span></button>
     <a class="btn btn-secondary" id="acct-nexus" href="https://nexus.grudge-studio.com" style="text-decoration:none;margin-bottom:8px">Open Nexus Hub</a>
     <button class="btn btn-ghost" id="acct-signout" type="button">Sign out everywhere</button>
     <button class="btn-link back-link" id="acct-back" type="button">← Sign in page</button>
@@ -602,6 +664,17 @@ body {
     <div class="foot-links"><a href="/account">Manage account</a></div>
   </footer>
 </main>
+</div>
+
+<div class="wallet-modal-root" id="wallet-modal" hidden>
+  <div class="wallet-modal" role="dialog" aria-modal="true" aria-labelledby="wallet-modal-title">
+    <h2 id="wallet-modal-title">Add Solana wallet</h2>
+    <div class="view-sub" id="wallet-modal-sub">Prove you own the wallet by signing a message. Grudge never asks for your seed phrase or private key.</div>
+    <div class="wallet-list" id="wallet-list"></div>
+    <div class="wallet-addr" id="wallet-picked" hidden></div>
+    <div class="hint" id="wallet-modal-hint">Phantom, Solflare, and Backpack work here. Use Wallet Standard if the extension supports it.</div>
+    <button class="btn btn-link back-link" id="wallet-modal-close" type="button">Cancel</button>
+  </div>
 </div>
 
 <div class="toast" id="toast" role="status" aria-live="polite"></div>
@@ -629,6 +702,8 @@ function resolveApiBase(){
   return "https://grudge-studio.com";
 }
 const CONFIG = { apiBase: resolveApiBase() };
+/** Last successful session JWT (login/SSO body) — /me never returns token. */
+let lastSessionToken = "";
 
 const qs = new URLSearchParams(location.search);
 const isPopup = (() => { try { return !!window.opener && window.opener !== window; } catch { return false; } })();
@@ -797,9 +872,14 @@ function busy(btn, on, labelHtml){
 }
 async function api(path, opts){
   opts = opts || {};
+  const headers = Object.assign(
+    { "Content-Type": "application/json", "Accept": "application/json" },
+    lastSessionToken ? { Authorization: "Bearer " + lastSessionToken } : {},
+    opts.headers || {},
+  );
   const res = await fetch(CONFIG.apiBase + path, {
     method: opts.method || "GET", credentials: "include",
-    headers: Object.assign({ "Content-Type": "application/json", "Accept": "application/json" }, opts.headers || {}),
+    headers,
     body: opts.body,
   });
   let data = {}; try { data = await res.json(); } catch {}
@@ -874,8 +954,6 @@ function buildHandoffUrl(returnUrl, launchToken, sessionToken, user){
     return returnUrl + sep + q;
   }
 }
-/** Last successful session JWT (login/SSO body) — /me never returns token. */
-let lastSessionToken = "";
 
 /** Mint a full session JWT from body or HttpOnly cookie (me endpoint strips token). */
 async function resolveSessionToken(user){
@@ -1131,24 +1209,183 @@ $("btn-github").addEventListener("click", () => startOAuth("github"));
 
 const B58 = "123456789ABCDEFGHJKLMNPQRSTUVWXYZabcdefghijkmnopqrstuvwxyz";
 function base58(bytes){ if (!bytes || !bytes.length) return ""; const digits = [0]; for (let i=0;i<bytes.length;i++){ let carry = bytes[i]; for (let j=0;j<digits.length;j++){ carry += digits[j] << 8; digits[j] = carry % 58; carry = (carry / 58) | 0; } while (carry){ digits.push(carry % 58); carry = (carry / 58) | 0; } } let str = ""; for (let k=0; bytes[k] === 0 && k < bytes.length - 1; k++) str += "1"; for (let q=digits.length-1; q>=0; q--) str += B58[digits[q]]; return str; }
-$("btn-phantom").addEventListener("click", async () => {
-  const btn = $("btn-phantom");
-  const provider = window.solana || (window.phantom && window.phantom.solana);
-  if (!provider || !provider.isPhantom){ toast("Install Phantom wallet to continue.", "error"); window.open("https://phantom.app/", "_blank"); return; }
-  busy(btn, true);
+function bytesToB58(sigRaw){ if (typeof sigRaw === "string") return sigRaw; return base58(sigRaw); }
+function decodeUtf8(bytes){ if (typeof bytes === "string") return bytes; return new TextDecoder().decode(bytes); }
+function shortAddr(a){ const s = String(a || ""); if (s.length < 12) return s || "—"; return s.slice(0, 4) + "…" + s.slice(-4); }
+
+function collectStandardWallets(){
+  const list = [];
+  const seen = new Set();
+  function add(wallet){
+    if (!wallet || seen.has(wallet)) return;
+    const features = wallet.features || {};
+    if (!(features["solana:signMessage"] || features["solana:signIn"] || features["standard:connect"])) return;
+    seen.add(wallet);
+    list.push({ id: wallet.name || "wallet", name: wallet.name || "Solana wallet", icon: wallet.icon || "", kind: "standard", wallet: wallet });
+  }
   try {
-    const resp = await provider.connect();
-    const address = (resp.publicKey || provider.publicKey).toString();
-    const { nonce, message } = await api("/api/auth/phantom/nonce", { method:"POST", body: JSON.stringify({ address }) });
-    const encoded = new TextEncoder().encode(message);
-    const signed = await provider.signMessage(encoded, "utf8");
-    const sigRaw = signed.signature || signed;
-    const signature = typeof sigRaw === "string" ? sigRaw : base58(sigRaw);
-    const user = await api("/api/auth/phantom/verify", { method:"POST", body: JSON.stringify({ address, nonce, signature }) });
-    afterAuth(user);
-  } catch (e){ toast(e.message || "Wallet sign-in failed.", "error"); }
-  finally { busy(btn, false); }
+    const apiW = navigator.wallets;
+    if (apiW && typeof apiW.get === "function") (apiW.get() || []).forEach(add);
+  } catch {}
+  try {
+    window.dispatchEvent(new CustomEvent("wallet-standard:app-ready", { detail: { register: add } }));
+  } catch {}
+  return list;
+}
+function collectInjectedWallets(){
+  const out = [];
+  const ph = window.phantom && window.phantom.solana;
+  const sol = window.solana;
+  if (ph && ph.isPhantom) out.push({ id: "phantom", name: "Phantom", kind: "injected", provider: ph, providerKey: "phantom" });
+  else if (sol && sol.isPhantom) out.push({ id: "phantom", name: "Phantom", kind: "injected", provider: sol, providerKey: "phantom" });
+  if (window.solflare) out.push({ id: "solflare", name: "Solflare", kind: "injected", provider: window.solflare, providerKey: "solflare" });
+  if (window.backpack && window.backpack.solana) out.push({ id: "backpack", name: "Backpack", kind: "injected", provider: window.backpack.solana, providerKey: "backpack" });
+  return out;
+}
+function discoverSolanaWallets(){
+  const std = collectStandardWallets();
+  const names = new Set(std.map((w) => (w.name || "").toLowerCase()));
+  for (const w of collectInjectedWallets()) {
+    if (!names.has(w.name.toLowerCase())) std.push(w);
+  }
+  return std;
+}
+async function connectWalletAddress(w){
+  if (w.kind === "standard") {
+    const connect = w.wallet.features["standard:connect"];
+    if (connect && typeof connect.connect === "function") await connect.connect();
+    const acc = (w.wallet.accounts && w.wallet.accounts[0]) || null;
+    const address = acc && (acc.address || acc.publicKey);
+    if (!address) throw new Error("Wallet connected but no Solana address returned.");
+    return String(address);
+  }
+  const resp = await w.provider.connect();
+  return String((resp && resp.publicKey) || w.provider.publicKey);
+}
+async function signSiws(w, challenge, address){
+  const siws = challenge.siws || {};
+  const message = challenge.message;
+  const input = {
+    domain: siws.domain,
+    address: siws.address || address,
+    statement: siws.statement,
+    uri: siws.uri,
+    version: siws.version,
+    chainId: siws.chainId,
+    nonce: siws.nonce,
+    issuedAt: siws.issuedAt,
+    expirationTime: siws.expirationTime,
+    requestId: siws.requestId,
+  };
+  if (w.kind === "standard") {
+    const signIn = w.wallet.features["solana:signIn"];
+    if (signIn && typeof signIn.signIn === "function") {
+      const outs = await signIn.signIn(input);
+      const out = Array.isArray(outs) ? outs[0] : outs;
+      const signedMessage = out.signedMessage || out.signed_message || message;
+      const addr = (out.account && out.account.address) || address;
+      return { address: String(addr), message: decodeUtf8(signedMessage), signature: bytesToB58(out.signature), provider: (w.name || "other").toLowerCase() };
+    }
+    const signMessage = w.wallet.features["solana:signMessage"];
+    if (signMessage && typeof signMessage.signMessage === "function") {
+      const acc = w.wallet.accounts[0];
+      const encoded = new TextEncoder().encode(message);
+      const out = await signMessage.signMessage({ account: acc, message: encoded });
+      const sig = out.signature || out;
+      return { address, message, signature: bytesToB58(sig), provider: (w.name || "other").toLowerCase() };
+    }
+    throw new Error((w.name || "Wallet") + " cannot sign messages.");
+  }
+  if (typeof w.provider.signIn === "function") {
+    const out = await w.provider.signIn(input);
+    const signedMessage = out.signedMessage || out.signed_message || message;
+    const addr = (out.address && out.address.toString ? out.address.toString() : out.address) || (out.account && out.account.address) || address;
+    return { address: String(addr), message: decodeUtf8(signedMessage), signature: bytesToB58(out.signature), provider: w.providerKey || "phantom" };
+  }
+  const encoded = new TextEncoder().encode(message);
+  const signed = await w.provider.signMessage(encoded, "utf8");
+  const sigRaw = signed.signature || signed;
+  return { address, message, signature: bytesToB58(sigRaw), provider: w.providerKey || "other" };
+}
+
+let walletModalMode = "link";
+function closeWalletModal(){ const m = $("wallet-modal"); if (m) m.hidden = true; }
+function openWalletModal(mode){
+  walletModalMode = mode === "login" ? "login" : "link";
+  const title = $("wallet-modal-title");
+  const sub = $("wallet-modal-sub");
+  if (title) title.textContent = walletModalMode === "login" ? "Sign in with Solana" : "Add Solana wallet";
+  if (sub) sub.textContent = walletModalMode === "login"
+    ? "Sign a message to prove you own the wallet. This signs you into the Grudge ID already linked to it, or creates one if none exists."
+    : "Sign a message to attach this wallet to your current Grudge ID. Never paste a seed phrase or private key.";
+  const list = $("wallet-list");
+  const wallets = discoverSolanaWallets();
+  if (!list) return;
+  if (!wallets.length) {
+    list.innerHTML = '<div class="hint">No Solana wallet found in this browser. Install Phantom or Solflare, then refresh.</div>';
+  } else {
+    list.innerHTML = wallets.map((w, i) =>
+      '<button class="wallet-opt" type="button" data-i="' + i + '">' +
+        (w.icon ? '<img alt="" src="' + String(w.icon).replace(/"/g, "") + '"/>' : '<span class="wicon" aria-hidden="true">◎</span>') +
+        '<span>' + (w.name || "Wallet") + '</span></button>'
+    ).join("");
+    list.querySelectorAll(".wallet-opt").forEach((btn) => {
+      btn.addEventListener("click", () => runWalletFlow(wallets[Number(btn.getAttribute("data-i"))], btn));
+    });
+  }
+  $("wallet-picked").hidden = true;
+  $("wallet-modal").hidden = false;
+}
+
+async function runWalletFlow(w, btn){
+  if (!w) return;
+  if (btn) busy(btn, true, "Approve in wallet…");
+  try {
+    const address = await connectWalletAddress(w);
+    $("wallet-picked").hidden = false;
+    $("wallet-picked").textContent = "Wallet: " + address;
+    const challenge = await api("/api/auth/phantom/nonce", { method:"POST", body: JSON.stringify({ address }) });
+    const signed = await signSiws(w, challenge, address);
+    const user = await api("/api/auth/phantom/verify", {
+      method:"POST",
+      body: JSON.stringify({
+        address: signed.address,
+        nonce: challenge.nonce,
+        message: signed.message,
+        signature: signed.signature,
+        provider: signed.provider,
+      }),
+    });
+    closeWalletModal();
+    if (walletModalMode === "link" || isAccountMode) {
+      toast("Solana wallet linked.", "success");
+      try {
+        const me = await api("/api/auth/me");
+        await renderAccount(me);
+      } catch {
+        await renderAccount(user);
+      }
+    } else {
+      afterAuth(user);
+    }
+  } catch (e) {
+    toast((e && e.message) || "Wallet request failed.", "error");
+  } finally {
+    if (btn) busy(btn, false);
+  }
+}
+
+$("btn-phantom").addEventListener("click", () => {
+  const wallets = discoverSolanaWallets();
+  if (!wallets.length) {
+    toast("Install Phantom or Solflare to continue.", "error");
+    window.open("https://phantom.app/", "_blank");
+    return;
+  }
+  openWalletModal("login");
 });
+if ($("wallet-modal-close")) $("wallet-modal-close").addEventListener("click", closeWalletModal);
+if ($("wallet-modal")) $("wallet-modal").addEventListener("click", (e) => { if (e.target === $("wallet-modal")) closeWalletModal(); });
 
 let emailMode = "login";
 $("btn-email").addEventListener("click", () => { setEmailMode("login"); show("email"); });
@@ -1157,9 +1394,13 @@ $("em-toggle").addEventListener("click", () => setEmailMode(emailMode === "login
 function setEmailMode(mode){
   emailMode = mode; const reg = mode === "register";
   $("em-title").textContent = reg ? "Create account" : "Sign in with email";
-  $("em-sub").textContent = reg ? "Pick a username for your Grudge Studio account." : "Username, email, or Grudge ID.";
+  $("em-sub").textContent = reg ? "Pick a public username for this Grudge Studio account. Not your email, not your Grudge ID." : "Use your public username, the email on the account, or your Grudge ID (GRUDGE_…).";
   $("em-displayname-wrap").style.display = reg ? "block" : "none";
-  $("em-username").placeholder = reg ? "username" : "username or email";
+  $("em-username").placeholder = reg ? "public username (e.g. ironjaw)" : "ironjaw, you@email, or GRUDGE_…";
+  const emLab = document.querySelector('label[for="em-username"]');
+  if (emLab) emLab.textContent = reg ? "Public username" : "Username, email, or Grudge ID";
+  const emHint = $("em-username-hint");
+  if (emHint) emHint.textContent = reg ? "3–30 letters, numbers, _ or -. This is how you sign in." : "Username is your public handle. Grudge ID is the account number starting with GRUDGE_.";
   $("em-password").setAttribute("autocomplete", reg ? "new-password" : "current-password");
   $("em-submit").querySelector(".lead").textContent = reg ? "Create account" : "Sign in";
   $("em-toggle").textContent = reg ? "Already have an account? Sign in" : "Create an account";
@@ -1351,20 +1592,41 @@ function renderConnectionList(conn){
   ).join("");
 }
 
+function isClaimedHandle(raw){
+  const n = String(raw || "").trim();
+  if (!n) return false;
+  if (/^(puter:|Puter_|guest_|Guest_|wallet:|discord:|phone:|google:|github:)/i.test(n)) return false;
+  return /^[a-zA-Z0-9_\-]{3,30}$/.test(n);
+}
+
 async function renderAccount(me){
-  const name = me.displayName || me.username || "Player";
-  $("acct-avatar").textContent = initialsFor(name);
-  $("acct-name").textContent = name;
-  $("acct-handle").textContent = "@" + (me.username || "player");
+  const display = me.displayName || me.username || "Player";
+  const handle = me.handle || (isClaimedHandle(me.loginUsername) ? me.loginUsername : (isClaimedHandle(me.username) ? me.username : null));
+  $("acct-avatar").textContent = initialsFor(display);
+  $("acct-name").textContent = display;
+  $("acct-handle").textContent = handle ? ("@" + handle) : "Username not set";
+  $("acct-display").textContent = display;
+  $("acct-username").textContent = handle ? ("@" + handle) : "Not set";
+  $("acct-email").textContent = me.email || "Not set";
   $("acct-gid").textContent = me.grudgeId || "—";
   $("acct-role").textContent = (me.role || "player").charAt(0).toUpperCase() + (me.role || "player").slice(1);
+  const claimWrap = $("acct-claim-wrap");
+  if (claimWrap) claimWrap.style.display = handle ? "none" : "block";
+  const hint = $("acct-username-hint");
+  if (hint) hint.textContent = handle
+    ? "Public sign-in handle. Not email. Not Grudge ID."
+    : "Not set yet. Pick a public username (3–30 letters, numbers, _ or -). This is how you sign in.";
   if (me.gbuxBalance != null) {
     $("acct-gbux-row").style.display = "flex";
     $("acct-gbux").textContent = String(me.gbuxBalance);
   }
+  let solana = me.linkedSolana || (Array.isArray(me.linkedWallets) && me.linkedWallets[0]) || (me.walletType === "external" ? me.walletAddress : "") || me.solanaAddress || "";
+  const custodial = me.custodialWallet || (me.walletType === "crossmint" ? me.walletAddress : "");
   try {
     const conn = await api("/api/me/connections");
     renderConnectionList(conn);
+    if (conn.solanaAddress) solana = conn.solanaAddress;
+    if (conn.email) $("acct-email").textContent = conn.email;
   } catch {
     renderConnectionList({
       email: me.email,
@@ -1373,9 +1635,26 @@ async function renderAccount(me){
       github: me.githubId,
       puter: me.puterId,
       phone: me.phone,
-      solana: me.solanaAddress,
+      solana: solana,
     });
   }
+  try {
+    const lw = await api("/api/wallet/linked");
+    const addrs = (lw.linkedWallets || []).map((w) => w.walletAddress || w.address).filter(Boolean);
+    if (addrs[0]) solana = addrs[0];
+  } catch {}
+  $("acct-solana").textContent = solana ? solana : "Not linked";
+  const crow = $("acct-custodial-row");
+  if (crow) {
+    if (custodial && custodial !== solana) {
+      crow.style.display = "flex";
+      $("acct-custodial").textContent = custodial;
+    } else {
+      crow.style.display = "none";
+    }
+  }
+  const addBtn = $("acct-add-wallet");
+  if (addBtn) addBtn.querySelector(".lead").textContent = solana ? "Add another Solana wallet" : "Add Solana wallet";
   show("account");
 }
 
@@ -1395,7 +1674,24 @@ $("acct-signout").addEventListener("click", async () => {
   if (isAccountMode) { show("choose"); applyContextBanner(); }
   else location.href = "/api/auth/page";
 });
-$("acct-back").addEventListener("click", () => { location.href = "/api/auth/page"; });
+$("acct-back").addEventListener("click", () => { location.href = "/login"; });
+if ($("acct-add-wallet")) $("acct-add-wallet").addEventListener("click", () => openWalletModal("link"));
+if ($("done-add-wallet")) $("done-add-wallet").addEventListener("click", () => openWalletModal("link"));
+if ($("done-account")) $("done-account").addEventListener("click", () => { location.href = "/account"; });
+if ($("acct-claim-save")) $("acct-claim-save").addEventListener("click", async () => {
+  const btn = $("acct-claim-save");
+  const username = $("acct-claim").value.trim();
+  if (!/^[a-zA-Z0-9_\-]{3,30}$/.test(username)) { toast("Usernames are 3–30 letters, numbers, _ or -.", "error"); return; }
+  busy(btn, true);
+  try {
+    const user = await api("/api/auth/complete-profile", { method:"POST", body: JSON.stringify({ username }) });
+    toast("Username saved.", "success");
+    const me = await api("/api/auth/me").catch(() => user);
+    await renderAccount(me);
+  } catch (e) {
+    toast((e && e.message) || "Could not save username.", "error");
+  } finally { busy(btn, false); }
+});
 
 async function boot(){
   show("loading");

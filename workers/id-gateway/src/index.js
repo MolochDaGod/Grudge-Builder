@@ -99,6 +99,14 @@ function mapUpstreamPath(url) {
   const path = url.pathname;
   const params = new URLSearchParams(url.search);
 
+  // Account settings (Add Solana wallet + username) — same auth HTML, account view
+  if (path === "/account" || path === "/account/") {
+    const q = new URLSearchParams();
+    q.set("view", "account");
+    if (params.get("api")) q.set("api", params.get("api"));
+    return "/api/auth/page?" + q.toString();
+  }
+
   // Pretty login entry — canonical for all apps
   if (path === "/login" || path === "/login/") {
     // Auth page now accepts redirect_uri|redirect|return|return_to (browser bar keeps public query).
