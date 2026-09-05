@@ -1,55 +1,30 @@
 /**
- * BattleNatureScatter — same trees/rocks/bushes as
- * https://game.grudge-studio.com/game/battle (NatureDecor.tsx).
+ * BattleNatureScatter — legacy export name for the production home-island
+ * ecosystem scatter.
  *
- * SSOT paths: assets.grudge-studio.com/models/nature/CommonTree_*.gltf etc.
- * Used on home island instead of stylized multi-pack / realistic_trees.
+ * Warlords production rule:
+ * - only approved, real GLB multi-mesh packs from natureAssetCatalog
+ * - never procedural billboards, square-leaf island_tree, or megakit dumps
+ * - clone named variants instead of dropping an entire source scene
+ * - fit every prop in meters and reject implausible slopes
+ *
+ * The function name is preserved because Island3DEngine already imports it.
  */
 import * as THREE from 'three';
-import { GLTFLoader } from 'three/addons/loaders/GLTFLoader.js';
-import { assetUrl } from '@/lib/assetConfig';
-import { getTerrainHeightAt } from '../terrain/IslandTerrainGenerator';
 import {
-  BATTLE_NATURE_PACK,
-  battleNaturePathCandidates,
-  pickBattleNaturePath,
+  getTerrainHeightAt,
+  getTerrainNormalAt,
+} from '../terrain/IslandTerrainGenerator';
+import {
+  STYLIZED_PACK_PATHS,
+  STYLIZED_VARIANTS,
+  isBannedNaturePath,
 } from '@shared/definitions/natureAssetCatalog';
-import { fitModelToHeight } from './IslandResourceLoader';
-
-const loader = new GLTFLoader();
-const templateCache = new Map<string, THREE.Group>();
-
-async function loadTemplate(path: string): Promise<THREE.Group> {
-  const cached = templateCache.get(path);
-  if (cached) return cached;
-  const candidates = battleNaturePathCandidates(path);
-  let lastErr: unknown;
-  for (const cand of candidates) {
-    try {
-      const gltf = await loader.loadAsync(assetUrl(cand));
-      const g = gltf.scene as THREE.Group;
-      g.traverse((c) => {
-        if ((c as THREE.Mesh).isMesh) {
-          c.castShadow = true;
-          c.receiveShadow = true;
-          const m = (c as THREE.Mesh).material;
-          if (m && !Array.isArray(m)) {
-            const sm = m as THREE.MeshStandardMaterial;
-            if (sm.map) sm.map.colorSpace = THREE.SRGBColorSpace;
-            if (sm.normalMap) sm.normalMap.colorSpace = THREE.NoColorSpace;
-            sm.needsUpdate = true;
-          }
-        }
-      });
-      templateCache.set(path, g);
-      templateCache.set(cand, g);
-      return g;
-    } catch (e) {
-      lastErr = e;
-    }
-  }
-  throw lastErr ?? new Error(`Failed to load battle nature: ${path}`);
-}
+import {
+  cloneFromPackPath,
+  fitModelToHeight,
+} from './IslandResourceLoader';
+import { HOME_ISLAND_NATURE_INSTANCE_BUDGET } from '@shared/definitions/homeIslandQuality';
 
 function hashSeed(s: string): number {
   let h = 2166136261 >>> 0;
@@ -74,19 +49,107 @@ export interface BattleNatureScatterOpts {
   campClearRadiusM?: number;
   campX?: number;
   campZ?: number;
-  /** Tree count target (CommonTree + DeadTree + Pine) */
   treeCount?: number;
   rockCount?: number;
   bushCount?: number;
   /** Meadow / forest floor cover */
   grassCount?: number;
-  /** Extra density ring layers (battle-style border + inland) */
+  /** Extra density passes */
   layers?: number;
 }
 
+type ScatterKind = 'tree' | 'pine' | 'rock' | 'bush' | 'plant' | 'flower';
+
+interface ScatterSource {
+  path: string;
+  variants: readonly string[];
+  targetHeight: [number, number];
+  maxSlopeRad: number;
+}
+
+function pick<T>(list: readonly T[], rng: () => number): T {
+  return list[Math.min(list.length - 1, Math.floor(rng() * list.length))]!;
+}
+
+function sourceFor(kind: ScatterKind, rng: () => number): ScatterSource {
+  switch (kind) {
+    case 'tree':
+      return rng() < 0.7
+        ? {
+            path: STYLIZED_PACK_PATHS.vegetation,
+            variants: STYLIZED_VARIANTS.vegetationTrees,
+            targetHeight: [7.5, 13.5],
+            maxSlopeRad: 0.5,
+          }
+        : {
+            path: STYLIZED_PACK_PATHS.plainsTrees,
+            variants: STYLIZED_VARIANTS.plainsTrees,
+            targetHeight: [8.5, 14.5],
+            maxSlopeRad: 0.48,
+          };
+    case 'pine':
+      return {
+        path: STYLIZED_PACK_PATHS.vegetation,
+        variants: STYLIZED_VARIANTS.vegetationTrees.filter((n) => /pine|conifer/i.test(n)),
+        targetHeight: [9, 15.5],
+        maxSlopeRad: 0.55,
+      };
+    case 'rock':
+      return {
+        path: STYLIZED_PACK_PATHS.rocks,
+        variants: STYLIZED_VARIANTS.stylizedRocks,
+        targetHeight: [1.1, 3.8],
+        maxSlopeRad: 0.78,
+      };
+    case 'bush':
+      return {
+        path: STYLIZED_PACK_PATHS.vegetation,
+        variants: STYLIZED_VARIANTS.vegetationRocks.filter((n) => /bush/i.test(n)),
+        targetHeight: [0.8, 1.8],
+        maxSlopeRad: 0.48,
+      };
+    case 'flower':
+      return {
+        path: STYLIZED_PACK_PATHS.flowers,
+        variants: STYLIZED_VARIANTS.flowers,
+        targetHeight: [0.35, 0.8],
+        maxSlopeRad: 0.42,
+      };
+    case 'plant':
+    default:
+      return {
+        path: STYLIZED_PACK_PATHS.foliage,
+        variants: STYLIZED_VARIANTS.foliage,
+        targetHeight: [0.45, 1.25],
+        maxSlopeRad: 0.42,
+      };
+  }
+}
+
+function targetHeight(src: ScatterSource, rng: () => number): number {
+  return src.targetHeight[0] + (src.targetHeight[1] - src.targetHeight[0]) * rng();
+}
+
+function enablePbrShadows(root: THREE.Object3D): void {
+  root.traverse((obj) => {
+    const mesh = obj as THREE.Mesh;
+    if (!mesh.isMesh) return;
+    mesh.castShadow = true;
+    mesh.receiveShadow = true;
+    const mats = Array.isArray(mesh.material) ? mesh.material : [mesh.material];
+    for (const mat of mats) {
+      const std = mat as THREE.MeshStandardMaterial;
+      if (std?.map) std.map.colorSpace = THREE.SRGBColorSpace;
+      if (std?.normalMap) std.normalMap.colorSpace = THREE.NoColorSpace;
+      if (std) std.needsUpdate = true;
+    }
+  });
+}
+
 /**
- * Scatter battle nature pack across the home-island board.
- * Pattern mirrors NatureDecor border density + inland clusters.
+ * Scatter approved premium nature across the home island. Requested counts are
+ * scaled toward HOME_ISLAND_NATURE_INSTANCE_BUDGET so the quality bar remains a
+ * single shared constant rather than a second hard-coded density list.
  */
 export async function scatterBattleNatureOnTerrain(
   scene: THREE.Scene,
@@ -94,54 +157,62 @@ export async function scatterBattleNatureOnTerrain(
   opts: BattleNatureScatterOpts,
 ): Promise<THREE.Group> {
   const root = new THREE.Group();
-  root.name = 'battle_nature_scatter';
+  root.name = 'warlords_premium_nature_scatter';
 
   const world = opts.worldSizeM;
-  const half = world / 2;
-  const rng = makeRng(hashSeed(opts.seed + ':battle-nature'));
+  const rng = makeRng(hashSeed(`${opts.seed}:warlords-premium-nature-v2`));
   const campR = opts.campClearRadiusM ?? 80;
   const cx = opts.campX ?? 0;
   const cz = opts.campZ ?? 0;
-  const layers = Math.max(1, opts.layers ?? 4);
-  const treeTarget = opts.treeCount ?? 180;
-  const rockTarget = opts.rockCount ?? 90;
-  const bushTarget = opts.bushCount ?? 70;
-  const grassTarget = opts.grassCount ?? 220;
+  const layers = Math.max(1, opts.layers ?? 5);
 
-  // Preload common templates
-  await Promise.all(
-    [
-      ...BATTLE_NATURE_PACK.trees,
-      ...BATTLE_NATURE_PACK.deadTrees.slice(0, 2),
-      ...BATTLE_NATURE_PACK.rocks.slice(0, 4),
-      ...BATTLE_NATURE_PACK.bushes,
-      ...BATTLE_NATURE_PACK.grasses.slice(0, 4),
-      ...BATTLE_NATURE_PACK.plants.slice(0, 2),
-    ].map((p) => loadTemplate(p).catch(() => null)),
-  );
+  const requested = {
+    trees: opts.treeCount ?? 220,
+    rocks: opts.rockCount ?? 110,
+    bushes: opts.bushCount ?? 90,
+    ground: opts.grassCount ?? 240,
+  };
+  const requestedTotal = requested.trees + requested.rocks + requested.bushes + requested.ground;
+  const densityScale = Math.max(1, Math.min(1.75, HOME_ISLAND_NATURE_INSTANCE_BUDGET / Math.max(1, requestedTotal)));
+  const treeTarget = Math.round(requested.trees * densityScale);
+  const rockTarget = Math.round(requested.rocks * densityScale);
+  const bushTarget = Math.round(requested.bushes * densityScale);
+  const groundTarget = Math.round(requested.ground * densityScale);
 
-  const tryPlace = async (
-    kind: keyof typeof BATTLE_NATURE_PACK,
-    heightM: number,
-    scaleJitter: number,
-  ): Promise<boolean> => {
+  // Warm the canonical real GLB packs once; IslandResourceLoader caches templates.
+  await Promise.all([
+    cloneFromPackPath(STYLIZED_PACK_PATHS.vegetation, [...STYLIZED_VARIANTS.vegetationTrees]).catch(() => null),
+    cloneFromPackPath(STYLIZED_PACK_PATHS.plainsTrees, [...STYLIZED_VARIANTS.plainsTrees]).catch(() => null),
+    cloneFromPackPath(STYLIZED_PACK_PATHS.rocks, [...STYLIZED_VARIANTS.stylizedRocks]).catch(() => null),
+    cloneFromPackPath(STYLIZED_PACK_PATHS.foliage, [...STYLIZED_VARIANTS.foliage]).catch(() => null),
+    cloneFromPackPath(STYLIZED_PACK_PATHS.flowers, [...STYLIZED_VARIANTS.flowers]).catch(() => null),
+  ]);
+
+  const tryPlace = async (kind: ScatterKind): Promise<boolean> => {
     const x = (rng() - 0.5) * world * 0.92;
     const z = (rng() - 0.5) * world * 0.92;
     if (Math.hypot(x - cx, z - cz) < campR) return false;
-    const y = getTerrainHeightAt(terrainMesh, x, z);
-    if (y == null || y < 0.5) return false;
-    // Prefer mid/high land for trees; grasses/plants need dry land only
-    if ((kind === 'trees' || kind === 'pines' || kind === 'deadTrees') && y < 2.5) return false;
-    if ((kind === 'grasses' || kind === 'plants' || kind === 'flowers') && y < 1.0) return false;
 
-    const path = pickBattleNaturePath(kind, rng);
+    const y = getTerrainHeightAt(terrainMesh, x, z);
+    if (y == null || y < 0.4) return false;
+
+    const src = sourceFor(kind, rng);
+    if (isBannedNaturePath(src.path) || src.variants.length === 0) return false;
+
+    const normal = getTerrainNormalAt(terrainMesh, x, z);
+    const slope = normal
+      ? Math.acos(THREE.MathUtils.clamp(normal.y, -1, 1))
+      : 0;
+    if (slope > src.maxSlopeRad) return false;
+
     try {
-      const tpl = await loadTemplate(path);
-      const obj = tpl.clone(true);
-      fitModelToHeight(obj, heightM * (0.85 + rng() * scaleJitter));
+      const obj = await cloneFromPackPath(src.path, [...src.variants]);
+      fitModelToHeight(obj, targetHeight(src, rng));
+      enablePbrShadows(obj);
       obj.rotation.y = rng() * Math.PI * 2;
       obj.position.set(x, y, z);
-      obj.userData.battleNature = kind;
+      obj.userData.warlordsNature = kind;
+      obj.userData.sourcePath = src.path;
       root.add(obj);
       return true;
     } catch {
@@ -149,51 +220,33 @@ export async function scatterBattleNatureOnTerrain(
     }
   };
 
-  // Layered placement (4+ rings of density like battle border + inland)
   let trees = 0;
   let rocks = 0;
   let bushes = 0;
-  let grasses = 0;
-  const attemptsPerLayer =
-    Math.ceil((treeTarget + rockTarget + bushTarget + grassTarget) / layers) * 4;
+  let ground = 0;
+  const totalTarget = treeTarget + rockTarget + bushTarget + groundTarget;
+  const attemptsPerLayer = Math.ceil(totalTarget / layers) * 5;
 
   for (let layer = 0; layer < layers; layer++) {
     for (let i = 0; i < attemptsPerLayer; i++) {
+      if (trees >= treeTarget && rocks >= rockTarget && bushes >= bushTarget && ground >= groundTarget) break;
       const roll = rng();
-      if (roll < 0.42 && trees < treeTarget) {
-        const usePine = rng() > 0.75;
-        const useDead = !usePine && rng() > 0.88;
-        const ok = await tryPlace(
-          useDead ? 'deadTrees' : usePine ? 'pines' : 'trees',
-          usePine ? 9 + rng() * 4 : 6 + rng() * 5,
-          0.4,
-        );
-        if (ok) trees++;
-      } else if (roll < 0.58 && rocks < rockTarget) {
-        if (await tryPlace('rocks', 0.8 + rng() * 1.4, 0.5)) rocks++;
-      } else if (roll < 0.72 && bushes < bushTarget) {
-        if (await tryPlace('bushes', 0.7 + rng() * 0.6, 0.35)) bushes++;
-        else if (rng() > 0.7 && (await tryPlace('mushrooms', 0.25 + rng() * 0.2, 0.3))) {
-          bushes++;
-        }
-      } else if (grasses < grassTarget) {
-        const plant = rng() > 0.85;
-        if (
-          await tryPlace(
-            plant ? 'plants' : 'grasses',
-            plant ? 0.6 + rng() * 0.8 : 0.35 + rng() * 0.45,
-            0.4,
-          )
-        ) {
-          grasses++;
-        }
+      if (roll < 0.43 && trees < treeTarget) {
+        if (await tryPlace(rng() > 0.78 ? 'pine' : 'tree')) trees++;
+      } else if (roll < 0.6 && rocks < rockTarget) {
+        if (await tryPlace('rock')) rocks++;
+      } else if (roll < 0.75 && bushes < bushTarget) {
+        if (await tryPlace('bush')) bushes++;
+      } else if (ground < groundTarget) {
+        if (await tryPlace(rng() > 0.78 ? 'flower' : 'plant')) ground++;
       }
     }
   }
 
   scene.add(root);
   console.log(
-    `[BattleNature] home island: ${trees} trees, ${rocks} rocks, ${bushes} bushes, ${grasses} ground-cover · ${layers} layers · land/coast SSOT`,
+    `[WarlordsNature] premium home island: ${trees} trees, ${rocks} rocks, ` +
+      `${bushes} bushes, ${ground} ground-cover · ${layers} passes · approved GLB packs only`,
   );
   return root;
 }
