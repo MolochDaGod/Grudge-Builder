@@ -33,7 +33,7 @@ export interface TutorialShellProps {
   onCraft: (recipeId: string) => void;
   onEquip: (itemId: string) => void;
   onUnequip: () => void;
-  /** Server-authoritative raft launch/board after item_raft is crafted. */
+  /** Optional direct raft launch; otherwise routes through onCraft('board_raft'). */
   onBoardRaft?: () => void;
   /** Called whenever a Traveler step transitions to complete. */
   onMissionComplete?: (stepId: string, title: string) => void;
@@ -69,10 +69,6 @@ export function TutorialShell(props: TutorialShellProps) {
     };
   }, [missions, props.eventBridgeRef]);
 
-  // Bridge the client Traveler state machine into the authoritative room. This
-  // catches automatic steps (harvest counts, panel tour, combat) as well as the
-  // explicit traveler interaction and prevents the server/client quest chains
-  // from drifting apart.
   useEffect(() => {
     for (const step of missions.checklist) {
       if (!step.completed || reportedMissionIdsRef.current.has(step.id)) continue;
@@ -82,10 +78,14 @@ export function TutorialShell(props: TutorialShellProps) {
   }, [missions.checklist, props.onMissionComplete]);
 
   useEffect(() => {
-    if (missions.completedAll) {
-      props.onAllMissionsComplete?.();
-    }
+    if (missions.completedAll) props.onAllMissionsComplete?.();
   }, [missions.completedAll, props.onAllMissionsComplete]);
+
+  const boardRaft = useCallback(() => {
+    if (props.onBoardRaft) props.onBoardRaft();
+    else props.onCraft('board_raft');
+    missions.onGameEvent({ type: 'board' });
+  }, [missions, props.onBoardRaft, props.onCraft]);
 
   useEffect(() => {
     const onKey = (e: KeyboardEvent) => {
@@ -101,12 +101,9 @@ export function TutorialShell(props: TutorialShellProps) {
         return;
       }
 
-      // Once the real coastal raft has been crafted, E is the canonical launch
-      // and board action. This runs before the traveler interaction shortcut.
-      if (e.key.toLowerCase() === 'e' && props.inventory.includes('raft') && props.onBoardRaft) {
+      if (e.key.toLowerCase() === 'e' && props.inventory.includes('raft')) {
         e.preventDefault();
-        props.onBoardRaft();
-        missions.onGameEvent({ type: 'board' });
+        boardRaft();
         return;
       }
 
@@ -137,7 +134,7 @@ export function TutorialShell(props: TutorialShellProps) {
     };
     window.addEventListener('keydown', onKey);
     return () => window.removeEventListener('keydown', onKey);
-  }, [panelOpen, openPanel, missions, props.inventory, props.onBoardRaft]);
+  }, [panelOpen, openPanel, missions, props.inventory, boardRaft]);
 
   const talkTraveler = useCallback(() => {
     missions.completeStep('meet_traveler');
@@ -171,13 +168,10 @@ export function TutorialShell(props: TutorialShellProps) {
         chunkHits={props.chunkHits}
       />
 
-      {raftReady && props.onBoardRaft && (
+      {raftReady && (
         <button
           type="button"
-          onClick={() => {
-            props.onBoardRaft?.();
-            missions.onGameEvent({ type: 'board' });
-          }}
+          onClick={boardRaft}
           className="absolute bottom-28 left-1/2 z-[58] -translate-x-1/2 rounded-xl border border-cyan-400/60 bg-slate-950/90 px-5 py-3 text-sm font-black tracking-wide text-cyan-100 shadow-xl shadow-cyan-950/40 hover:bg-cyan-950/90"
         >
           Launch &amp; Board Coastal Raft · E
