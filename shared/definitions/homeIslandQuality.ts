@@ -52,8 +52,12 @@ export const HOME_ISLAND_NAVMESH_CELL_M = 6;
 /** Ocean plane diameter (meters) — generous horizon around the 1024m landmass */
 export const HOME_ISLAND_OCEAN_SIZE_M = 4096;
 
-/** Ocean mesh segments (Gerstner wave detail; reflection/refraction remains the polish layer) */
-export const HOME_ISLAND_OCEAN_SEGMENTS = 128;
+/**
+ * Ocean mesh segments (Gerstner wave detail). Island3DEngine intentionally caps the
+ * procedural home-ocean grid at 96; reflection/refraction and underwater post supply
+ * the remaining polish without exploding mobile vertex cost.
+ */
+export const HOME_ISLAND_OCEAN_SEGMENTS = 96;
 
 /** Seafloor depth under water plane (meters, local height) */
 export const HOME_ISLAND_SEAFLOOR_DEPTH_M = -30;
