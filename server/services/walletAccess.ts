@@ -117,6 +117,35 @@ export function parseSiwsAddress(message: string): string | null {
   return null;
 }
 
+export function parseSiwsDomain(message: string): string | null {
+  const text = String(message || "");
+  const lines = text.split("\n");
+  const firstLine = lines[0] || "";
+  const domainMatch = firstLine.match(/^(.+?)\s+wants you to sign in with your Solana account/i);
+  if (domainMatch) {
+    return domainMatch[1].trim() || null;
+  }
+  return null;
+}
+
+export function parseSiwsUri(message: string): string | null {
+  const text = String(message || "");
+  const uriLine = text.split("\n").find((l) => /^URI:\s*/i.test(l));
+  if (uriLine) {
+    return uriLine.replace(/^URI:\s*/i, "").trim() || null;
+  }
+  return null;
+}
+
+export function parseSiwsChainId(message: string): string | null {
+  const text = String(message || "");
+  const chainLine = text.split("\n").find((l) => /^Chain ID:\s*/i.test(l));
+  if (chainLine) {
+    return chainLine.replace(/^Chain ID:\s*/i, "").trim() || null;
+  }
+  return null;
+}
+
 function buildSiwsMessage(fields: SiwsFields): string {
   const lines = [
     `${fields.domain} wants you to sign in with your Solana account:`,
@@ -213,6 +242,22 @@ export function consumeSiwsChallenge(opts: {
   if (msgAddr && msgAddr !== opts.walletAddress) {
     throw new Error("Signed address does not match wallet");
   }
+
+  // CRITICAL: Verify the signed message contains the exact issued domain, URI, and chain ID.
+  // This binds the signature to the specific context that was issued, not just nonce+signature.
+  const msgDomain = parseSiwsDomain(opts.message);
+  if (!msgDomain || msgDomain !== SIWS_DOMAIN) {
+    throw new Error("Signed message domain does not match issued challenge");
+  }
+  const msgUri = parseSiwsUri(opts.message);
+  if (!msgUri || msgUri !== SIWS_URI) {
+    throw new Error("Signed message URI does not match issued challenge");
+  }
+  const msgChain = parseSiwsChainId(opts.message);
+  if (!msgChain || msgChain !== SIWS_CHAIN) {
+    throw new Error("Signed message chain ID does not match issued challenge");
+  }
+
   if (!verifyWalletSignature(opts.walletAddress, opts.message, opts.signature)) {
     throw new Error("Invalid wallet signature");
   }
