@@ -15,7 +15,11 @@ import { users, accounts } from '../shared/schema.js';
 import { eq, sql } from 'drizzle-orm';
 import jwt from 'jsonwebtoken';
 
-const JWT_SECRET = process.env.SESSION_SECRET || process.env.JWT_SECRET || 'grudge-dev-secret';
+if (!process.env.SESSION_SECRET && !process.env.JWT_SECRET) {
+  console.error('❌ SESSION_SECRET or JWT_SECRET required for referral test');
+  process.exit(1);
+}
+const JWT_SECRET = process.env.SESSION_SECRET || process.env.JWT_SECRET;
 const TEST_API_URL = process.env.TEST_API_URL || 'http://localhost:5000';
 
 console.log('🧪 Warerareward Referral System Test\n');

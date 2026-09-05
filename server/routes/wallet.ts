@@ -21,7 +21,9 @@ const JWT_SECRET_CANDIDATES = [
   process.env.SESSION_SECRET,
   process.env.JWT_SECRET,
   process.env.GRUDGE_JWT_SECRET,
-].filter((s): s is string => !!s && s.length > 0);
+]
+  .map((s) => s?.trim())
+  .filter((s): s is string => !!s && s.length > 0);
 
 const JWT_SECRET = JWT_SECRET_CANDIDATES[0] || "";
 
@@ -287,9 +289,9 @@ export function registerWalletRoutes(app: Express): void {
       const pokerOrigin =
         process.env.POKER_ORIGIN || "https://poker.grudge-studio.com";
       const fleetSecret =
-        process.env.FLEET_PLAY_CREDIT_SECRET ||
-        process.env.SESSION_SECRET ||
-        process.env.JWT_SECRET ||
+        process.env.FLEET_PLAY_CREDIT_SECRET?.trim() ||
+        process.env.SESSION_SECRET?.trim() ||
+        process.env.JWT_SECRET?.trim() ||
         "";
       let playCredit: Record<string, unknown> | null = null;
       let playError: string | null = null;
