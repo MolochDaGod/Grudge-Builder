@@ -67,10 +67,6 @@ interface ScatterSource {
   maxSlopeRad: number;
 }
 
-function pick<T>(list: readonly T[], rng: () => number): T {
-  return list[Math.min(list.length - 1, Math.floor(rng() * list.length))]!;
-}
-
 function sourceFor(kind: ScatterKind, rng: () => number): ScatterSource {
   switch (kind) {
     case 'tree':
