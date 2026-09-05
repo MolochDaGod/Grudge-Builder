@@ -6,7 +6,7 @@
 import type { Express, Request, Response, NextFunction } from "express";
 import jwt from "jsonwebtoken";
 import { storage } from "../storage";
-import { getWalletOverview } from "../services/walletAccess";
+import { getWalletOverview, listLinkedWallets } from "../services/walletAccess";
 import type { AccountInventoryItem } from "@shared/schema";
 
 const JWT_SECRET = process.env.SESSION_SECRET || process.env.JWT_SECRET || "grudge-dev-secret";
@@ -246,7 +246,45 @@ export function registerMeRoutes(app: Express): void {
     }
   });
 
+  app.get("/api/me/connections", requireSession, async (req, res) => {
+    try {
+      const userId = (req as Request & { userId: string }).userId;
+      const user = await storage.getUser(userId);
+      if (!user) {
+        res.status(404).json({ error: "User not found" });
+        return;
+      }
+      const account = await storage.getOrCreateAccountForUser(userId);
+      const linked = await listLinkedWallets(account.id);
+      const solanaAddress =
+        account.walletAddress ||
+        linked.find((w) => w.isPrimary)?.walletAddress ||
+        linked[0]?.walletAddress ||
+        (user.username.startsWith("wallet:") ? user.username.slice("wallet:".length) : null);
+      const usernameClaimed = !/^(puter:|wallet:|discord:|phone:|google:|github:|guest_)/i.test(
+        user.username,
+      );
+      res.json({
+        email: user.email || null,
+        google: false,
+        discord: !!user.username.startsWith("discord:"),
+        github: false,
+        puter: !!user.username.startsWith("puter:"),
+        phone: !!user.username.startsWith("phone:"),
+        solana: !!solanaAddress,
+        solanaAddress,
+        username: usernameClaimed ? user.username : null,
+        displayName: account.displayName || null,
+        grudgeId: user.grudgeId || account.grudgeId || null,
+        usernameClaimed,
+      });
+    } catch (e) {
+      console.error("[Me/Connections]", e);
+      res.status(500).json({ error: "Failed to load connections" });
+    }
+  });
+
   console.log(
-    "[Me] Dash routes: GET /api/me/{overview,characters,wallet,assets,notifications,identities}",
+    "[Me] Dash routes: GET /api/me/{overview,characters,wallet,assets,notifications,identities,connections}",
   );
 }

@@ -878,11 +878,6 @@ export class CrossmintWalletService {
     }
     const mint = opts.mint.trim();
     const tokenLocator = `solana:${mint}`;
-    const locators = [opts.fromWallet];
-    if (opts.emailLocator) locators.push(opts.emailLocator);
-
-    let last = "no locator accepted";
-    const tokenLocator = `solana:${opts.mint.trim()}`;
     const locators = [
       opts.fromWallet,
       opts.emailLocator,

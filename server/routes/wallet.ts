@@ -18,9 +18,17 @@ import { WALLET_PURCHASE_CURRENCIES } from "@shared/schema";
 
 const JWT_SECRET = process.env.SESSION_SECRET || process.env.JWT_SECRET || "grudge-dev-secret";
 
+function readWalletSessionToken(req: Request): string | null {
+  const authHeader = req.get("Authorization") || req.get("X-Session-Token") || "";
+  if (authHeader.startsWith("Bearer ")) return authHeader.slice(7);
+  if (authHeader) return authHeader;
+  const cookie = req.get("Cookie") || "";
+  const match = cookie.match(/(?:^|;\s*)grudge_auth_token=([^;]+)/);
+  return match ? decodeURIComponent(match[1]) : null;
+}
+
 function requireAuth(req: Request, res: Response, next: NextFunction): void {
-  const authHeader = req.get("Authorization") || req.get("X-Session-Token");
-  const token = authHeader?.startsWith("Bearer ") ? authHeader.slice(7) : authHeader || null;
+  const token = readWalletSessionToken(req);
   if (!token) {
     res.status(401).json({ error: "Authentication required" });
     return;
@@ -81,8 +89,13 @@ export function registerWalletRoutes(app: Express): void {
       if (!walletAddress) {
         return res.status(400).json({ error: "walletAddress required" });
       }
-      const message = createLinkChallenge(account.id, walletAddress);
-      res.json({ message, walletAddress });
+      const challenge = createLinkChallenge(account.id, walletAddress);
+      res.json({
+        message: challenge.message,
+        nonce: challenge.nonce,
+        walletAddress: challenge.walletAddress,
+        siws: challenge.siws,
+      });
     } catch (e: any) {
       res.status(400).json({ error: e.message });
     }
@@ -346,36 +359,24 @@ export function registerWalletRoutes(app: Express): void {
       if (!Number.isFinite(amount) || amount <= 0) {
         return res.status(400).json({ error: "amount must be > 0" });
       }
-      const overview = await getWalletOverview(account.id);
-      const custodial = String(
-      const { crossmintWalletService } = await import(
-        "../services/crossmintWallet"
-      );
-      const grudgeId = String(
-        (account as { grudgeId?: string }).grudgeId || "",
-      );
+      const { crossmintWalletService } = await import("../services/crossmintWallet");
+      const grudgeId = String((account as { grudgeId?: string }).grudgeId || "");
       const cm = grudgeId
         ? await crossmintWalletService.getOrCreateWalletForGrudgeId(grudgeId)
         : null;
       const overview = await getWalletOverview(account.id);
       const stored = String(
-        overview?.custodialWallet ||
+        (overview as { custodialWallet?: string; primaryWallet?: string } | null)?.custodialWallet ||
           overview?.primaryWallet ||
           account.walletAddress ||
           "",
       ).trim();
-      const fromWallet = String(body.fromWallet || custodial).trim();
       // JWT identity owns the Crossmint wallet. Ignore client fromWallet so a
       // linked Phantom cannot be used as the custodial signer source.
       const fromWallet = String(cm?.address || stored).trim();
       if (fromWallet.length < 32) {
         return res.status(400).json({
           error: "No Crossmint play wallet on this Grudge ID",
-        });
-      }
-      if (custodial && fromWallet !== custodial) {
-        return res.status(403).json({
-          error: "fromWallet must be this account's Crossmint address",
         });
       }
       const to = String(
@@ -386,19 +387,6 @@ export function registerWalletRoutes(app: Express): void {
       if (to.length < 32) {
         return res.status(400).json({ error: "recipient required" });
       }
-
-      const { crossmintWalletService } = await import(
-        "../services/crossmintWallet"
-      );
-      const GBUX_MINT =
-        process.env.GBUX_MINT ||
-        "55TpSoMNxbfsNJ9U1dQoo9H3dRtDmjBZVMcKqvU2nray";
-      const grudgeId = String(
-        (account as { grudgeId?: string }).grudgeId || "",
-      );
-      const emailLocator = grudgeId
-        ? `email:${crossmintWalletService.stableEmailForGrudgeId(grudgeId)}:solana`
-        : undefined;
       const GBUX_MINT =
         process.env.GBUX_MINT ||
         "55TpSoMNxbfsNJ9U1dQoo9H3dRtDmjBZVMcKqvU2nray";
