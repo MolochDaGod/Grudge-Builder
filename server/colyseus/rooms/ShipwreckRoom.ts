@@ -1,13 +1,11 @@
 /**
- * ShipwreckRoom — shared multiplayer starting adventure.
+ * ShipwreckRoom — shared authoritative multiplayer starting adventure.
  *
  * Canonical room: joinOrCreate("tutorial", { characterId, ... })
  * Alias:          joinOrCreate("shipwreck", { characterId, ... })
  *
- * The world is shared (pirate-islands / Shipwreck Cove), while tutorial
- * progression and economy are authoritative per character. Players can see
- * and help one another without stealing resources or completing each other's
- * onboarding state.
+ * World state is shared on pirate-islands / Shipwreck Cove. Tutorial steps,
+ * economy, crafting and completion are private per character.
  */
 
 import { Room, Client } from "colyseus";
@@ -24,6 +22,7 @@ import {
   TUTORIAL_REVIEW_BOOKS,
   buildShipwreckWakeHarvestNodes,
 } from "../../../shared/definitions/tutorialShipwreckScene";
+import { TUTORIAL_QUICK_CRAFT } from "../../../shared/definitions/tutorialFirstSegment";
 import { MULTIPLAYER_SHIPWRECK } from "../../../shared/definitions/multiplayerTutorial";
 
 interface TutorialJoinOptions {
@@ -70,17 +69,26 @@ const BOAR_XP = 25;
 const TUTORIAL_LOCKED_HP = 5;
 const HARVEST_COOLDOWN_MS = 450;
 
+/** Traveler quest ids → server tutorial ids. */
+const STEP_ALIASES: Record<string, string> = {
+  meet_traveler: "meet_traveler",
+  gather_basics: "gather_sticks",
+  craft_tools: "craft_t0_tools",
+  equip_tool: "craft_t0_tools",
+  harvest_node: "claim_and_harvest",
+  claim_flag: "claim_and_harvest",
+  first_fight: "fight_boar",
+  ui_basics: "ui_ux_tour",
+  craft_raft: "craft_raft",
+  board_raft: "board_raft",
+  sail_faction: "sail_faction_island",
+};
+
 function emptyProgress(characterId: string): TutorialProgress {
   return {
     characterId,
     completedSteps: new Set<string>(),
-    gatherCounts: {
-      sticks: 0,
-      stones: 0,
-      fiber: 0,
-      rawMeat: 0,
-      cookedMeat: 0,
-    },
+    gatherCounts: { sticks: 0, stones: 0, fiber: 0, rawMeat: 0, cookedMeat: 0 },
     craftedTools: new Set<string>(),
     campfirePlaced: false,
     raftDeployed: false,
@@ -107,7 +115,6 @@ export class ShipwreckRoom extends Room<ShipwreckState> {
   maxClients = MULTIPLAYER_SHIPWRECK.maxPlayers;
   autoDispose = true;
 
-  /** Progress is keyed by character, not room, so every player advances independently. */
   private progressByCharacter = new Map<string, TutorialProgress>();
   private sessionCharacter = new Map<string, string>();
   private boarSpawnTimers = new Map<string, ReturnType<typeof setTimeout>>();
@@ -116,8 +123,6 @@ export class ShipwreckRoom extends Room<ShipwreckState> {
 
   onCreate(_options: TutorialJoinOptions) {
     const state = new ShipwreckState();
-    // These legacy room-level identity fields intentionally remain blank in a
-    // multiplayer shard. Identity lives on SectorPlayer rows.
     state.accountId = "";
     state.characterId = "";
     state.characterName = "Shipwreck Cove";
@@ -135,8 +140,7 @@ export class ShipwreckRoom extends Room<ShipwreckState> {
       maxPlayers: MULTIPLAYER_SHIPWRECK.maxPlayers,
     });
 
-    // Shared schema exposes canonical tutorial titles only. Completion is sent
-    // privately per character through tutorial_snapshot / step_complete.
+    // Public schema provides the canonical titles only. Completion is private.
     for (const step of TUTORIAL_STEPS) {
       const ts = new TutorialStep();
       ts.id = step.id;
@@ -145,8 +149,7 @@ export class ShipwreckRoom extends Room<ShipwreckState> {
       state.steps.set(step.id, ts);
     }
 
-    // Logical harvest anchors. Tutorial resources are non-competitive: requests
-    // are validated/rate-limited per player and do not globally deplete nodes.
+    // Shared visual anchors; tutorial harvesting is non-competitive per player.
     const nodes = [
       ...buildShipwreckWakeHarvestNodes(),
       { id: "stick_outer_1", type: "forest" as const, x: 18, z: 22 },
@@ -154,15 +157,12 @@ export class ShipwreckRoom extends Room<ShipwreckState> {
       { id: "stone_outer_1", type: "mining" as const, x: 12, z: -28 },
       { id: "stone_outer_2", type: "mining" as const, x: -18, z: -32 },
     ];
-
     for (const n of nodes) {
       const node = new HarvestNode();
       node.id = n.id;
       node.resourceType = n.type;
       node.x = n.x;
       node.z = n.z;
-      node.depleted = false;
-      node.respawnAt = 0;
       state.harvestNodes.set(n.id, node);
     }
 
@@ -171,24 +171,16 @@ export class ShipwreckRoom extends Room<ShipwreckState> {
       this.updateEnemyAI(delta);
     }, 1000 / TICK_RATE);
 
-    // ── Movement / social ───────────────────────────────────────
-
-    this.onMessage(
-      "move",
-      (
-        client,
-        data: { x: number; y: number; z: number; facing: number; state: string },
-      ) => {
-        const player = state.players.get(client.sessionId);
-        if (!player) return;
-        if (![data.x, data.y, data.z, data.facing].every(Number.isFinite)) return;
-        player.x = data.x;
-        player.y = data.y;
-        player.z = data.z;
-        player.facing = data.facing;
-        player.state = String(data.state || "idle").slice(0, 24);
-      },
-    );
+    this.onMessage("move", (client, data: { x: number; y: number; z: number; facing: number; state: string }) => {
+      const player = state.players.get(client.sessionId);
+      if (!player) return;
+      if (![data.x, data.y, data.z, data.facing].every(Number.isFinite)) return;
+      player.x = data.x;
+      player.y = data.y;
+      player.z = data.z;
+      player.facing = data.facing;
+      player.state = String(data.state || "idle").slice(0, 24);
+    });
 
     this.onMessage("chat", (client, data: { text?: string }) => {
       const player = state.players.get(client.sessionId);
@@ -203,7 +195,6 @@ export class ShipwreckRoom extends Room<ShipwreckState> {
       });
     });
 
-    /** Client finished wake-up cinematic. */
     this.onMessage("intro_complete", (client) => {
       this.completeStep(client, "intro_video");
       this.completeStep(client, "meet_traveler");
@@ -213,19 +204,15 @@ export class ShipwreckRoom extends Room<ShipwreckState> {
       });
     });
 
-    // ── Per-player harvest / craft progression ──────────────────
-
     this.onMessage("harvest", (client, data: { nodeId: string }) => {
       const progress = this.progressForClient(client);
       if (!progress) return;
-
       const nodeId = String(data?.nodeId || "").trim();
       if (!nodeId) return;
 
       const cooldownKey = `${progress.characterId}:${nodeId}`;
       const now = Date.now();
-      const availableAt = this.harvestCooldowns.get(cooldownKey) || 0;
-      if (availableAt > now) return;
+      if ((this.harvestCooldowns.get(cooldownKey) || 0) > now) return;
       this.harvestCooldowns.set(cooldownKey, now + HARVEST_COOLDOWN_MS);
 
       const node = state.harvestNodes.get(nodeId);
@@ -236,114 +223,81 @@ export class ShipwreckRoom extends Room<ShipwreckState> {
 
       if (resourceType === "forest") {
         progress.gatherCounts.sticks++;
-        client.send("harvest_complete", {
-          nodeId,
-          resource: "stick",
-          quantity: 1,
-        });
+        client.send("harvest_complete", { nodeId, resource: "stick", quantity: 1 });
         if (progress.gatherCounts.sticks >= 3) this.completeStep(client, "gather_sticks");
       } else if (resourceType === "mining") {
         progress.gatherCounts.stones++;
-        client.send("harvest_complete", {
-          nodeId,
-          resource: "stone",
-          quantity: 1,
-        });
+        client.send("harvest_complete", { nodeId, resource: "stone", quantity: 1 });
         if (progress.gatherCounts.stones >= 2) this.completeStep(client, "gather_stones");
       } else {
         progress.gatherCounts.fiber++;
-        client.send("harvest_complete", {
-          nodeId,
-          resource: "fiber",
-          quantity: 1,
-        });
+        client.send("harvest_complete", { nodeId, resource: "fiber", quantity: 1 });
       }
+      this.sendResourceState(client);
     });
 
-    /** Quick-craft from main panel / T0 wake tools. */
     this.onMessage("craft", (client, data: { recipeId: string }) => {
       this.handleCraft(client, String(data?.recipeId || ""));
     });
+    this.onMessage("build_raft", (client) => this.handleCraft(client, "raft"));
 
-    /** Existing TutorialShell sends build_raft directly. */
-    this.onMessage("build_raft", (client) => {
-      this.handleCraft(client, "raft");
-    });
+    this.onMessage("pve_attack", (client, data: { enemyId: string; damage: number }) => {
+      const enemy = state.enemies.get(String(data?.enemyId || ""));
+      if (!enemy || enemy.state === "dead") return;
+      const damage = Math.max(1, Math.min(50, Number(data?.damage) || 1));
+      enemy.hp = Math.max(0, enemy.hp - damage);
+      if (enemy.hp > 0) return;
 
-    this.onMessage(
-      "pve_attack",
-      (client, data: { enemyId: string; damage: number }) => {
-        const enemy = state.enemies.get(String(data?.enemyId || ""));
-        if (!enemy || enemy.state === "dead") return;
+      enemy.state = "dead";
+      const killerProgress = this.progressForClient(client);
+      if (killerProgress) {
+        killerProgress.gatherCounts.rawMeat += 1;
+        this.completeStep(client, "fight_boar");
+        client.send("enemy_killed", {
+          enemyId: enemy.id,
+          killerId: client.sessionId,
+          xp: BOAR_XP,
+          type: enemy.enemyType,
+          loot: { rawMeat: 1 },
+        });
+        this.sendResourceState(client);
+      }
 
-        const damage = Math.max(1, Math.min(50, Number(data?.damage) || 1));
-        enemy.hp = Math.max(0, enemy.hp - damage);
-        if (enemy.hp > 0) return;
-
-        enemy.state = "dead";
-        const killerProgress = this.progressForClient(client);
-        if (killerProgress) {
-          killerProgress.gatherCounts.rawMeat += 1;
-          this.completeStep(client, "fight_boar");
-          client.send("enemy_killed", {
+      // Co-op final blow cannot deadlock the owner player's tutorial.
+      const ownerCharacterId = this.boarOwnerCharacter.get(enemy.id);
+      if (ownerCharacterId && ownerCharacterId !== killerProgress?.characterId) {
+        const ownerClient = this.clientForCharacter(ownerCharacterId);
+        const ownerProgress = this.progressByCharacter.get(ownerCharacterId);
+        if (ownerClient && ownerProgress) {
+          ownerProgress.gatherCounts.rawMeat += 1;
+          this.completeStep(ownerClient, "fight_boar");
+          ownerClient.send("enemy_killed", {
             enemyId: enemy.id,
             killerId: client.sessionId,
             xp: BOAR_XP,
             type: enemy.enemyType,
             loot: { rawMeat: 1 },
+            assisted: true,
           });
-          client.send("ally_assist", {
-            message: "Boar skinned. Cook the meat at your campfire.",
-          });
+          this.sendResourceState(ownerClient);
         }
+      }
 
-        // Cooperative protection: if another survivor lands the final blow on
-        // your spawned boar, your tutorial cannot deadlock. Both get credit.
-        const ownerCharacterId = this.boarOwnerCharacter.get(enemy.id);
-        if (ownerCharacterId && ownerCharacterId !== killerProgress?.characterId) {
-          const ownerClient = this.clientForCharacter(ownerCharacterId);
-          const ownerProgress = this.progressByCharacter.get(ownerCharacterId);
-          if (ownerClient && ownerProgress) {
-            ownerProgress.gatherCounts.rawMeat += 1;
-            this.completeStep(ownerClient, "fight_boar");
-            ownerClient.send("enemy_killed", {
-              enemyId: enemy.id,
-              killerId: client.sessionId,
-              xp: BOAR_XP,
-              type: enemy.enemyType,
-              loot: { rawMeat: 1 },
-              assisted: true,
-            });
-            ownerClient.send("ally_assist", {
-              message: "Another survivor helped finish your boar. Skinning credit is yours — cook the meat at your campfire.",
-            });
-          }
-        }
-
-        this.broadcast("enemy_defeated_public", {
-          enemyId: enemy.id,
-          killerId: client.sessionId,
-          killerName: state.players.get(client.sessionId)?.characterName || "Survivor",
-        });
-
-        setTimeout(() => {
-          state.enemies.delete(enemy.id);
-          this.boarOwnerCharacter.delete(enemy.id);
-        }, 3000);
-      },
-    );
-
-    /** Client finished UI/UX walkthrough panels. */
-    this.onMessage("ui_tour_complete", (client) => {
-      if (!this.isStepComplete(client, "cook_meat")) return;
-      this.completeStep(client, "ui_ux_tour");
-      client.send("ally_assist", {
-        message:
-          "Dock Traveler: Last craft of the shore — a raft. Build it true, board with E, then sail to your race faction island on the outer ring.",
+      this.broadcast("enemy_defeated_public", {
+        enemyId: enemy.id,
+        killerId: client.sessionId,
+        killerName: state.players.get(client.sessionId)?.characterName || "Survivor",
       });
+      setTimeout(() => {
+        state.enemies.delete(enemy.id);
+        this.boarOwnerCharacter.delete(enemy.id);
+      }, 3000);
     });
 
-    /** Client placed raft mesh in water. */
+    this.onMessage("ui_tour_complete", (client) => {
+      this.completeStep(client, "ui_ux_tour");
+    });
+
     this.onMessage("deploy_raft", (client) => {
       const progress = this.progressForClient(client);
       if (!progress || !this.isStepComplete(client, "craft_raft")) return;
@@ -351,34 +305,22 @@ export class ShipwreckRoom extends Room<ShipwreckState> {
       client.send("raft_deployed", { ready: true });
     });
 
-    /** Client pressed E near raft — boards → multiplayer faction lobby. */
-    this.onMessage("board_raft", (client) => {
-      const progress = this.progressForClient(client);
-      if (!progress || !this.isStepComplete(client, "craft_raft")) return;
-      if (!progress.raftDeployed) progress.raftDeployed = true;
+    this.onMessage("board_raft", (client) => this.completeTutorialDeparture(client));
 
-      this.completeStep(client, "board_raft");
-      this.completeStep(client, "sail_faction_island");
-
-      const race = (state.players.get(client.sessionId)?.heroRace || "human").toLowerCase();
-      client.send("tutorial_complete", {
-        message:
-          "The Dock Traveler waves you off. Sail to your race faction island on the outer multiplayer lobby ring and report to the commander.",
-        next: "faction_island_report",
-        nextPath: `/island-3d?mode=lobby&map=pirate-islands&from=tutorial&race=${encodeURIComponent(race)}&focus=faction`,
-        nextRoom: "lobby",
-        raceId: race,
-      });
-      client.send("ally_assist", {
-        message:
-          "Traveler: Same road for every bloodline — only the shore changes. Your faction island waits on the outer ring. Dock and report to the commander.",
-      });
-    });
-
-    /** Mission bridge may explicitly report a canonical tutorial step. */
+    // Bridge the richer Traveler mission ids into the server tutorial checklist.
     this.onMessage("step_complete", (client, data: { stepId?: string }) => {
-      const id = String(data?.stepId || "");
-      if (id && state.steps.has(id)) this.completeStep(client, id);
+      const raw = String(data?.stepId || "");
+      if (!raw) return;
+      const id = STEP_ALIASES[raw] || raw;
+      if (state.steps.has(id)) this.completeStep(client, id);
+      // gather_basics represents both gathering gates, but only mark stones if
+      // the authoritative counts prove the requirement was actually reached.
+      if (raw === "gather_basics") {
+        const p = this.progressForClient(client);
+        if (p?.gatherCounts.stones && p.gatherCounts.stones >= 2) {
+          this.completeStep(client, "gather_stones");
+        }
+      }
     });
 
     console.log(
@@ -388,18 +330,13 @@ export class ShipwreckRoom extends Room<ShipwreckState> {
 
   onJoin(client: Client, options: TutorialJoinOptions) {
     const characterId = String(options.characterId || "").trim();
-    if (!characterId) {
-      throw new Error("characterId is required for multiplayer shipwreck tutorial");
-    }
+    if (!characterId) throw new Error("characterId is required for multiplayer shipwreck tutorial");
 
-    // One live socket per character in a tutorial shard.
     let duplicate = false;
     this.state.players.forEach((p) => {
       if (p.characterId === characterId) duplicate = true;
     });
-    if (duplicate) {
-      throw new Error("character is already connected to Shipwreck Cove");
-    }
+    if (duplicate) throw new Error("character is already connected to Shipwreck Cove");
 
     const player = new SectorPlayer();
     player.id = client.sessionId;
@@ -421,8 +358,6 @@ export class ShipwreckRoom extends Room<ShipwreckState> {
     player.armorColor = String(options.armorColor || "#ffffff");
     player.equippedWeaponType = String(options.equippedWeaponType || "unarmed");
 
-    // Spread initial schema positions slightly; clients snap to real cove ground and
-    // begin authoritative move updates as soon as Island3DEngine is ready.
     const slot = this.state.players.size;
     const angle = (slot % 12) * (Math.PI * 2 / 12);
     const radius = 2 + Math.floor(slot / 12) * 2;
@@ -438,17 +373,13 @@ export class ShipwreckRoom extends Room<ShipwreckState> {
 
     this.sendTutorialSnapshot(client);
     this.broadcastPopulation();
-    this.broadcast(
-      "player_joined",
-      {
-        sessionId: client.sessionId,
-        characterId,
-        characterName: player.characterName,
-        heroRace: player.heroRace,
-        heroClass: player.heroClass,
-      },
-      { except: client },
-    );
+    this.broadcast("player_joined", {
+      sessionId: client.sessionId,
+      characterId,
+      characterName: player.characterName,
+      heroRace: player.heroRace,
+      heroClass: player.heroClass,
+    }, { except: client });
 
     client.send("ally_assist", {
       message:
@@ -456,10 +387,6 @@ export class ShipwreckRoom extends Room<ShipwreckState> {
           ? `Dock Traveler: ${this.clients.length} survivors are active in this Shipwreck Cove shard.`
           : "Dock Traveler: You're first on this shore. More survivors may wash in at any time.",
     });
-
-    console.log(
-      `[Tutorial] ${player.characterName} washed ashore multiplayer room=${this.roomId} players=${this.clients.length}/${this.maxClients}`,
-    );
   }
 
   async onLeave(client: Client, consented?: boolean) {
@@ -473,18 +400,12 @@ export class ShipwreckRoom extends Room<ShipwreckState> {
         const name = this.state.players.get(client.sessionId)?.characterName || "Survivor";
         this.state.players.delete(client.sessionId);
         this.sessionCharacter.delete(client.sessionId);
-        this.broadcast("player_left", {
-          sessionId: client.sessionId,
-          characterId,
-          characterName: name,
-        });
+        this.broadcast("player_left", { sessionId: client.sessionId, characterId, characterName: name });
         this.broadcastPopulation();
-        console.log(`[Tutorial] ${name} left multiplayer Shipwreck Cove`);
       },
       () => {
         this.sendTutorialSnapshot(client);
         this.broadcastPopulation();
-        console.log("[Tutorial] Player reconnected to multiplayer Shipwreck Cove");
       },
       RECONNECT_SECONDS,
     );
@@ -495,7 +416,6 @@ export class ShipwreckRoom extends Room<ShipwreckState> {
     this.boarSpawnTimers.clear();
     this.boarOwnerCharacter.clear();
     this.harvestCooldowns.clear();
-    console.log(`[Tutorial] Multiplayer shard disposed room=${this.roomId}`);
   }
 
   private handleCraft(client: Client, recipeRaw: string): void {
@@ -503,28 +423,31 @@ export class ShipwreckRoom extends Room<ShipwreckState> {
     if (!progress) return;
     const recipe = String(recipeRaw || "").trim();
 
+    if (recipe === "board_raft") {
+      this.completeTutorialDeparture(client);
+      return;
+    }
+
     const t0 = TUTORIAL_T0_TOOLS.find((t) => t.id === recipe || t.itemId === recipe);
     if (t0) {
+      const quick = TUTORIAL_QUICK_CRAFT.find((r) => r.id === t0.itemId);
+      const cost = quick?.cost ?? t0.cost;
       if (progress.craftedTools.has(t0.itemId)) {
         client.send("craft_fail", { reason: "already_owned", itemId: t0.itemId });
         return;
       }
-      const needFiber = t0.cost.fiber ?? 0;
+      const fiber = "fiber" in cost ? Number(cost.fiber || 0) : 0;
       if (
-        progress.gatherCounts.sticks < t0.cost.stick
-        || progress.gatherCounts.stones < t0.cost.stone
-        || progress.gatherCounts.fiber < needFiber
+        progress.gatherCounts.sticks < cost.stick
+        || progress.gatherCounts.stones < cost.stone
+        || progress.gatherCounts.fiber < fiber
       ) {
-        client.send("craft_fail", {
-          reason: "materials",
-          need: t0.cost,
-          have: { ...progress.gatherCounts },
-        });
+        client.send("craft_fail", { reason: "materials", need: cost, have: { ...progress.gatherCounts } });
         return;
       }
-      progress.gatherCounts.sticks -= t0.cost.stick;
-      progress.gatherCounts.stones -= t0.cost.stone;
-      progress.gatherCounts.fiber -= needFiber;
+      progress.gatherCounts.sticks -= cost.stick;
+      progress.gatherCounts.stones -= cost.stone;
+      progress.gatherCounts.fiber -= fiber;
       progress.craftedTools.add(t0.itemId);
       client.send("craft_complete", {
         itemId: t0.itemId,
@@ -533,9 +456,7 @@ export class ShipwreckRoom extends Room<ShipwreckState> {
         results: t0.results,
       });
       this.completeStep(client, "craft_t0_tools");
-      client.send("ally_assist", {
-        message: `${t0.name} crafted. Equip it in harvest mode — ${t0.results[0]}`,
-      });
+      this.sendResourceState(client);
       return;
     }
 
@@ -549,58 +470,29 @@ export class ShipwreckRoom extends Room<ShipwreckState> {
         progress.gatherCounts.sticks -= book.cost.stick;
         progress.gatherCounts.stones -= book.cost.stone;
         progress.craftedTools.add(book.id);
-        client.send("craft_complete", {
-          itemId: book.id,
-          name: book.name,
-          summary: book.summary,
-          kind: "book",
-        });
-        client.send("ally_assist", {
-          message: `📖 ${book.name}: ${book.summary}`,
-        });
+        client.send("craft_complete", { itemId: book.id, name: book.name, summary: book.summary, kind: "book" });
+        this.sendResourceState(client);
       }
       return;
     }
 
     if (recipe === "campfire") {
+      const quick = TUTORIAL_QUICK_CRAFT.find((r) => r.id === "campfire")!;
       if (
-        progress.gatherCounts.sticks >= 2
-        && progress.gatherCounts.stones >= 1
+        progress.gatherCounts.sticks >= quick.cost.stick
+        && progress.gatherCounts.stones >= quick.cost.stone
         && !this.isStepComplete(client, "craft_campfire")
       ) {
-        progress.gatherCounts.sticks -= 2;
-        progress.gatherCounts.stones -= 1;
+        progress.gatherCounts.sticks -= quick.cost.stick;
+        progress.gatherCounts.stones -= quick.cost.stone;
         progress.campfirePlaced = true;
+        progress.craftedTools.add("campfire");
         this.completeStep(client, "craft_campfire");
         client.send("craft_complete", { itemId: "campfire", name: "Campfire" });
-        client.send("ally_assist", {
-          message: "Campfire lit. A wild boar is nearby — defeat it! Other survivors can assist.",
-        });
+        this.sendResourceState(client);
         this.scheduleBoar(client);
-      }
-      return;
-    }
-
-    if (recipe === "raft" || recipe === "craft_raft") {
-      if (
-        progress.gatherCounts.sticks >= 3
-        && this.isStepComplete(client, "ui_ux_tour")
-        && !this.isStepComplete(client, "craft_raft")
-      ) {
-        progress.gatherCounts.sticks -= 3;
-        this.completeStep(client, "craft_raft");
-        client.send("craft_complete", { itemId: "raft", name: "Raft" });
-        client.send("ally_assist", {
-          message: "Deploy the raft in the water, then press E to board and leave Shipwreck Cove.",
-        });
-      } else if (!this.isStepComplete(client, "ui_ux_tour")) {
-        client.send("craft_fail", { reason: "finish_ui_tour" });
       } else {
-        client.send("craft_fail", {
-          reason: "materials",
-          need: { stick: 3 },
-          have: { ...progress.gatherCounts },
-        });
+        client.send("craft_fail", { reason: "materials", need: quick.cost, have: { ...progress.gatherCounts } });
       }
       return;
     }
@@ -613,13 +505,58 @@ export class ShipwreckRoom extends Room<ShipwreckState> {
       ) {
         progress.gatherCounts.rawMeat -= 1;
         progress.gatherCounts.cookedMeat += 1;
+        progress.craftedTools.add("cooked_meat");
         this.completeStep(client, "cook_meat");
-        client.send("craft_complete", { itemId: "cooked_meat", name: "Cooked Meat" });
-        client.send("ally_assist", {
-          message: "Well fed. Next: learn the UI panels and basic gameplay controls.",
-        });
+        client.send("craft_complete", { itemId: "cooked_meat", name: "Cooked Boar Meat" });
+        this.sendResourceState(client);
+      } else {
+        client.send("craft_fail", { reason: progress.campfirePlaced ? "raw_meat" : "campfire" });
       }
+      return;
     }
+
+    if (recipe === "raft" || recipe === "craft_raft") {
+      const quick = TUTORIAL_QUICK_CRAFT.find((r) => r.id === "raft")!;
+      if (!this.isStepComplete(client, "cook_meat")) {
+        client.send("craft_fail", { reason: "finish_shore_trial" });
+        return;
+      }
+      if (
+        progress.gatherCounts.sticks >= quick.cost.stick
+        && !this.isStepComplete(client, "craft_raft")
+      ) {
+        progress.gatherCounts.sticks -= quick.cost.stick;
+        progress.craftedTools.add("raft");
+        this.completeStep(client, "craft_raft");
+        client.send("craft_complete", { itemId: "raft", name: "Coastal Raft" });
+        this.sendResourceState(client);
+      } else {
+        client.send("craft_fail", { reason: "materials", need: quick.cost, have: { ...progress.gatherCounts } });
+      }
+      return;
+    }
+
+    client.send("craft_fail", { reason: "recipe_unavailable", recipeId: recipe });
+  }
+
+  private completeTutorialDeparture(client: Client): void {
+    const progress = this.progressForClient(client);
+    if (!progress || !this.isStepComplete(client, "craft_raft")) {
+      client.send("craft_fail", { reason: "craft_raft_first" });
+      return;
+    }
+    progress.raftDeployed = true;
+    this.completeStep(client, "board_raft");
+    this.completeStep(client, "sail_faction_island");
+    const race = (this.state.players.get(client.sessionId)?.heroRace || "human").toLowerCase();
+    client.send("tutorial_complete", {
+      message:
+        "The Dock Traveler waves you off. Enter the shared faction lobby and report to your race commander.",
+      next: "faction_island_report",
+      nextPath: `/island-3d?mode=lobby&map=pirate-islands&from=tutorial&race=${encodeURIComponent(race)}&focus=faction`,
+      nextRoom: "lobby",
+      raceId: race,
+    });
   }
 
   private progressForClient(client: Client): TutorialProgress | null {
@@ -642,21 +579,19 @@ export class ShipwreckRoom extends Room<ShipwreckState> {
     const progress = this.progressForClient(client);
     const step = this.state.steps.get(stepId);
     if (!progress || !step || progress.completedSteps.has(stepId)) return;
-
     progress.completedSteps.add(stepId);
     client.send("step_complete", { stepId, title: step.title });
-    this.broadcast(
-      "tutorial_progress_public",
-      {
-        sessionId: client.sessionId,
-        characterName: this.state.players.get(client.sessionId)?.characterName || "Survivor",
-        stepId,
-      },
-      { except: client },
-    );
-    console.log(
-      `[Tutorial] character=${progress.characterId} step=${stepId} room=${this.roomId}`,
-    );
+    this.broadcast("tutorial_progress_public", {
+      sessionId: client.sessionId,
+      characterName: this.state.players.get(client.sessionId)?.characterName || "Survivor",
+      stepId,
+    }, { except: client });
+  }
+
+  private sendResourceState(client: Client): void {
+    const p = this.progressForClient(client);
+    if (!p) return;
+    client.send("resource_state", { ...p.gatherCounts });
   }
 
   private sendTutorialSnapshot(client: Client): void {
@@ -667,11 +602,7 @@ export class ShipwreckRoom extends Room<ShipwreckState> {
       roomId: this.roomId,
       playerCount: this.clients.length,
       maxPlayers: this.maxClients,
-      steps: TUTORIAL_STEPS.map((step) => ({
-        id: step.id,
-        title: step.title,
-        completed: progress.completedSteps.has(step.id),
-      })),
+      steps: TUTORIAL_STEPS.map((step) => ({ id: step.id, title: step.title, completed: progress.completedSteps.has(step.id) })),
       resources: { ...progress.gatherCounts },
       craftedTools: [...progress.craftedTools],
       raftDeployed: progress.raftDeployed,
@@ -709,7 +640,6 @@ export class ShipwreckRoom extends Room<ShipwreckState> {
   private spawnBoarFor(client: Client, ownerCharacterId: string): void {
     const owner = this.state.players.get(client.sessionId);
     if (!owner) return;
-
     const boar = new SectorEnemy();
     boar.id = `boar_${ownerCharacterId.replace(/[^a-zA-Z0-9_-]/g, "").slice(-18)}_${Date.now()}`;
     boar.enemyType = "boar";
@@ -738,10 +668,8 @@ export class ShipwreckRoom extends Room<ShipwreckState> {
   private updateEnemyAI(_delta: number): void {
     this.state.enemies.forEach((enemy) => {
       if (enemy.state === "dead") return;
-
       let nearest: SectorPlayer | null = null;
       let nearestDist = Infinity;
-
       this.state.players.forEach((player) => {
         const dx = player.x - enemy.x;
         const dz = player.z - enemy.z;
@@ -751,23 +679,17 @@ export class ShipwreckRoom extends Room<ShipwreckState> {
           nearest = player;
         }
       });
-
       if (!nearest || nearestDist > 24) {
         enemy.state = "idle";
         return;
       }
-
       const p = nearest as SectorPlayer;
       enemy.targetId = p.id;
-
       if (nearestDist < 2.2) {
         enemy.state = "attacking";
         if (this.state.tick % TICK_RATE === 0) {
-          // Shipwreck opener remains non-lethal. The client and server both
-          // enforce the canonical injured 5-HP tutorial presentation.
           p.hp = TUTORIAL_LOCKED_HP;
-          const targetClient = this.clients.find((c) => c.sessionId === p.id);
-          targetClient?.send("player_damaged", {
+          this.clients.find((c) => c.sessionId === p.id)?.send("player_damaged", {
             hp: TUTORIAL_LOCKED_HP,
             maxHp: TUTORIAL_LOCKED_HP,
             damage: BOAR_DAMAGE,
@@ -776,7 +698,6 @@ export class ShipwreckRoom extends Room<ShipwreckState> {
         }
         return;
       }
-
       enemy.state = "chase";
       const dx = p.x - enemy.x;
       const dz = p.z - enemy.z;
