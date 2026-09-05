@@ -7,7 +7,7 @@
  */
 import type { Character, ProfessionLevel } from '@/lib/characterManager';
 import { resolveProfessionLevel } from '@/lib/professionLevels';
-import { weaponTypeFromModel3d } from '@shared/fleet';
+import { defaultModel3d, weaponTypeFromModel3d } from '@shared/fleet';
 import {
   CLASS_SKILL_TREES,
   getClassSkillTree,
@@ -169,15 +169,12 @@ function inferEquippedWeaponType(
   const model3d = char?.model3d;
   if (model3d) {
     try {
-      return weaponTypeFromModel3d({
-        baseModelId: model3d.baseModelId ?? char?.raceId ?? 'human',
+      const canonical = defaultModel3d(char?.raceId ?? 'human', {
+        ...model3d,
         equippedMeshes: model3d.equippedMeshes ?? {},
         weaponSlots: model3d.weaponSlots ?? {},
-        skinColor: model3d.skinColor ?? '#ffffff',
-        armorColor: model3d.armorColor ?? '#ffffff',
-        scale: model3d.scale ?? 1,
-        gameEra: model3d.gameEra ?? char?.gameEra ?? 'warlords',
-      } as any, char?.classId);
+      });
+      return weaponTypeFromModel3d(canonical, char?.classId);
     } catch {
       /* fall through to legacy equippedWeaponId */
     }
