@@ -7,9 +7,7 @@
  * 4. Equip pickaxe inventory → MainHand (harvest tool in hand + anim)
  * 5. Soft-lock multi-hit stone that chunks apart
  * 6. Walk forward to trees, flowers, chest
- *
- * Camp props (claim flag, campfire, torch, tent, storage, benches) listed for
- * later refine / over-time harvest loop — unlocked after first segment.
+ * 7. Campfire → training foe → cook → coastal raft → faction lobby
  */
 
 export type TutorialSegmentPhase =
@@ -31,7 +29,7 @@ export const TUTORIAL_FIRST_PHASES: Array<{
   {
     id: 'intro_zoom',
     title: 'Wash ashore',
-    objective: 'Arrive on shipwreck island',
+    objective: 'Arrive on Shipwreck Cove',
     hint: 'Slow zoom to your unarmed hero in harvest mode',
   },
   {
@@ -50,7 +48,7 @@ export const TUTORIAL_FIRST_PHASES: Array<{
     id: 'craft_pickaxe',
     title: 'Craft flint pickaxe',
     objective: 'Craft t0_pickaxe from sticks + stones',
-    hint: 'Costs 1 stick · 1 stone (wake materials)',
+    hint: 'Tutorial teach cost: 1 stick · 1 stone',
   },
   {
     id: 'equip_pickaxe',
@@ -73,21 +71,25 @@ export const TUTORIAL_FIRST_PHASES: Array<{
   {
     id: 'segment_complete',
     title: 'First segment done',
-    objective: 'Ready for camp props & refine loop',
-    hint: 'Claim flag · campfire · torch · tent · storage · benches next',
+    objective: 'Ready for camp, cooking and raft loop',
+    hint: 'Campfire · training foe · cooking · coastal raft',
   },
 ];
 
-/** Quick-craft recipes for first segment + camp loop */
+/**
+ * Quick-craft recipes visible in the production tutorial Main Panel.
+ * Server remains authoritative for material spend and prerequisite checks.
+ * `cook_meat` intentionally has no stick/stone cost; the server requires a
+ * placed campfire + raw meat. `raft` requires the shore-trial prerequisite.
+ */
 export const TUTORIAL_QUICK_CRAFT = [
   {
     id: 't0_pickaxe',
     name: 'Flint Pickaxe',
     icon: '⛏️',
     tab: 'tools' as const,
-    /** First-segment teach cost (wake stick + stone); later tools use full T0 costs */
     cost: { stick: 1, stone: 1 },
-    description: 'Equip to MainHand in harvest mode. Soft-locks stone nodes and multi-hits until they chunk apart.',
+    description: 'Tutorial tool. Equip to MainHand and break stone nodes.',
     equipSlot: 'MainHand',
     harvestTool: 'pickaxe',
     unlockPhase: 'prompt_pickaxe' as TutorialSegmentPhase,
@@ -109,7 +111,29 @@ export const TUTORIAL_QUICK_CRAFT = [
     icon: '🔥',
     tab: 'camp' as const,
     cost: { stick: 3, stone: 2 },
-    description: 'Placeable camp fire — cook & refine over time.',
+    description: 'Place the shore campfire; this starts the cooperative training encounter.',
+    equipSlot: null,
+    harvestTool: null,
+    unlockPhase: 'segment_complete' as TutorialSegmentPhase,
+  },
+  {
+    id: 'cook_meat',
+    name: 'Cook Boar Meat',
+    icon: '🍖',
+    tab: 'camp' as const,
+    cost: { stick: 0, stone: 0 },
+    description: 'Requires your campfire and raw meat from the training boar.',
+    equipSlot: null,
+    harvestTool: null,
+    unlockPhase: 'segment_complete' as TutorialSegmentPhase,
+  },
+  {
+    id: 'raft',
+    name: 'Coastal Raft',
+    icon: '🛶',
+    tab: 'camp' as const,
+    cost: { stick: 3, stone: 0 },
+    description: 'Final shore craft. Launch and board it to enter the multiplayer faction lobby.',
     equipSlot: null,
     harvestTool: null,
     unlockPhase: 'segment_complete' as TutorialSegmentPhase,
@@ -176,12 +200,9 @@ export type TutorialQuickCraftId = (typeof TUTORIAL_QUICK_CRAFT)[number]['id'];
 /** World layout for first segment (meters, relative to wake spawn 0,1.2,4) */
 export const TUTORIAL_FIRST_LAYOUT = {
   spawn: { x: 0, y: 1.2, z: 4 },
-  /** Unarmed simple harvest props right at feet */
   nearStick: { x: 1.4, y: 0.12, z: 5.2 },
   nearStone: { x: -1.2, y: 0.15, z: 5.0 },
-  /** Multi-hit chunk rock after pickaxe equipped */
   chunkRock: { x: 2.5, y: 0.4, z: 7.5 },
-  /** Inland grove — trees, flowers, chest */
   groveCenter: { x: 0, y: 0.5, z: 22 },
   trees: [
     { x: -4, z: 20 },
@@ -194,7 +215,6 @@ export const TUTORIAL_FIRST_LAYOUT = {
     { x: 2, z: 24 },
   ],
   chest: { x: 0.5, y: 0.3, z: 24.5 },
-  /** Camera intro */
   camStart: { x: 22, y: 36, z: 40 },
   camEnd: { x: 3.2, y: 4.0, z: 9.0 },
   zoomSec: 6.5,
@@ -205,7 +225,6 @@ export const TUTORIAL_HARVEST_INPUTS = {
   interact: ['e', 'E'],
   autoHarvest: ['1'],
   simpleHarvest: ['2'],
-  /** RMB is mouse button 2 */
   rmbHarvest: true,
   softLockHold: true,
 } as const;
