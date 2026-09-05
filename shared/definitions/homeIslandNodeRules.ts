@@ -8,8 +8,10 @@
  * Used by:
  *  - client NodePlacer / HarvestZonePlacer / HarvestZoneBuilder
  *  - TerrainNavMesh walkability (same dry band as land nodes)
+ *  - CreatureManager fauna height / fish water-column placement
  *  - 2D island map generators (optional import)
  */
+import { WORLD_SURFACE } from './worldSurfaceLayers';
 
 /** Meters above water surface required for land nodes (trees, rocks, etc.) */
 export const NODE_LAND_CLEARANCE_M = 0.75;
@@ -24,6 +26,38 @@ export const FISHING_Y_ABOVE_WATER_M = 1.25;
 /** Dock: on beach / shore band slightly above water */
 export const DOCK_MIN_Y_ABOVE_WATER_M = 0.1;
 export const DOCK_MAX_Y_ABOVE_WATER_M = 3.5;
+
+/**
+ * Canonical fauna vertical placement in SI metres.
+ *
+ * Bird height restores the established creature behavior (30 m above sampled
+ * terrain). Fish margins are shared with the production water-column rules so
+ * aquatic meshes never scrape the seabed or break the ocean surface.
+ */
+export const FAUNA_HEIGHT = {
+  birdAboveTerrainM: 30,
+  fishMinAboveSeabedM: 0.4,
+  fishMinUnderSurfaceM: WORLD_SURFACE.minSwimUnderSurfaceM,
+  /** Default fish swims 45% of the way down from the water surface. */
+  fishDepthFraction: 0.45,
+} as const;
+
+/**
+ * Resolve a safe default Y for a fish in a valid water column.
+ * Returns null when the sampled column is too shallow for aquatic spawning.
+ */
+export function fishSwimY(groundY: number, waterLevel: number): number | null {
+  if (!Number.isFinite(groundY) || !Number.isFinite(waterLevel)) return null;
+  const columnDepth = waterLevel - groundY;
+  if (columnDepth < WORLD_SURFACE.minWaterColumnM) return null;
+
+  const minY = groundY + FAUNA_HEIGHT.fishMinAboveSeabedM;
+  const maxY = waterLevel - FAUNA_HEIGHT.fishMinUnderSurfaceM;
+  if (minY >= maxY) return null;
+
+  const desiredY = waterLevel - columnDepth * FAUNA_HEIGHT.fishDepthFraction;
+  return Math.min(maxY, Math.max(minY, desiredY));
+}
 
 export type NodeSurfaceKind = 'land' | 'fishing' | 'shore';
 
@@ -140,22 +174,23 @@ export function isValidWaterColumn(opts: {
   entityY?: number;
   minWaterDepthM?: number;
 }): boolean {
-  const minDepth = opts.minWaterDepthM ?? 0.75;
+  const minDepth = opts.minWaterDepthM ?? WORLD_SURFACE.minWaterColumnM;
   // Seabed must be below water by minDepth
   if (opts.groundY > opts.waterLevel - minDepth) return false;
   if (opts.entityY != null) {
-    // Entity must be under surface and above seabed
-    if (opts.entityY >= opts.waterLevel - 0.15) return false;
-    if (opts.entityY <= opts.groundY + 0.25) return false;
+    // Entity must be under surface and above seabed using the fauna SSOT margins.
+    if (opts.entityY > opts.waterLevel - FAUNA_HEIGHT.fishMinUnderSurfaceM) return false;
+    if (opts.entityY < opts.groundY + FAUNA_HEIGHT.fishMinAboveSeabedM) return false;
   }
   return true;
 }
 
 /** Serialize rules for dash / ObjectStore docs */
 export const HOME_ISLAND_NODE_RULESET_META = {
-  version: '1.1.0',
+  version: '1.2.0',
   landClearanceM: NODE_LAND_CLEARANCE_M,
   fishingOnlyInWater: true,
+  faunaHeight: FAUNA_HEIGHT,
   rule:
     'Land nodes on dry terrain only. Fishing/fish only in water columns ' +
     '(seabed < waterLevel - minDepth; entity under surface). Never under land mesh.',

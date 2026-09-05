@@ -3,12 +3,14 @@
  */
 import * as THREE from 'three';
 import {
-  plantBossArenaSi,
   tagBossArenaMesh,
   colliderRoleForArenaLayer,
   type BossArenaLayer,
-  type BossArenaPlaySurface,
 } from '@shared/definitions/bossArenaPlay';
+import {
+  plantBossArenaSi,
+  type BossArenaPlaySurface,
+} from './prepareBossArenaPlay';
 import {
   classifyDockRaftMesh,
   DOCK_RAFT_SOLID,
