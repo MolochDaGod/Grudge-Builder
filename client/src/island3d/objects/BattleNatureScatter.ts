@@ -24,7 +24,10 @@ import {
   fitModelToHeight,
   loadIslandResourceTemplate,
 } from './IslandResourceLoader';
-import { HOME_ISLAND_NATURE_INSTANCE_BUDGET } from '@shared/definitions/homeIslandQuality';
+import {
+  HOME_ISLAND_NATURE_INSTANCE_BUDGET,
+  HOME_ISLAND_TREE_CANOPY_LAYERS,
+} from '@shared/definitions/homeIslandQuality';
 
 function hashSeed(s: string): number {
   let h = 2166136261 >>> 0;
@@ -165,7 +168,7 @@ export async function scatterBattleNatureOnTerrain(
   const campR = opts.campClearRadiusM ?? 80;
   const cx = opts.campX ?? 0;
   const cz = opts.campZ ?? 0;
-  const layers = Math.max(1, opts.layers ?? 5);
+  const layers = Math.max(1, HOME_ISLAND_TREE_CANOPY_LAYERS, opts.layers ?? 0);
 
   const requested = {
     trees: opts.treeCount ?? 220,
