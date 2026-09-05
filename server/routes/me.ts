@@ -268,9 +268,9 @@ export function registerMeRoutes(app: Express): void {
       const account = await storage.getOrCreateAccountForUser(userId);
       const linked = await listLinkedWallets(account.id);
       const solanaAddress =
-        account.walletAddress ||
         linked.find((w) => w.isPrimary)?.walletAddress ||
         linked[0]?.walletAddress ||
+        account.walletAddress ||
         (user.username.startsWith("wallet:") ? user.username.slice("wallet:".length) : null);
       const usernameClaimed = !/^(puter:|wallet:|discord:|phone:|google:|github:|guest_)/i.test(
         user.username,
