@@ -5,7 +5,7 @@
  * Warlords production rule:
  * - only approved, real GLB multi-mesh packs from natureAssetCatalog
  * - never procedural billboards, square-leaf island_tree, or megakit dumps
- * - clone named variants instead of dropping an entire source scene
+ * - clone exact catalogued named variants; never fall back to an arbitrary pack mesh
  * - fit every prop in meters and reject implausible slopes
  *
  * The function name is preserved because Island3DEngine already imports it.
@@ -21,8 +21,8 @@ import {
   isBannedNaturePath,
 } from '@shared/definitions/natureAssetCatalog';
 import {
-  cloneFromPackPath,
   fitModelToHeight,
+  loadIslandResourceTemplate,
 } from './IslandResourceLoader';
 import { HOME_ISLAND_NATURE_INSTANCE_BUDGET } from '@shared/definitions/homeIslandQuality';
 
@@ -126,6 +126,11 @@ function targetHeight(src: ScatterSource, rng: () => number): number {
   return src.targetHeight[0] + (src.targetHeight[1] - src.targetHeight[0]) * rng();
 }
 
+function exactVariantName(src: ScatterSource, rng: () => number): string | null {
+  if (!src.variants.length) return null;
+  return src.variants[Math.min(src.variants.length - 1, Math.floor(rng() * src.variants.length))] ?? null;
+}
+
 function enablePbrShadows(root: THREE.Object3D): void {
   root.traverse((obj) => {
     const mesh = obj as THREE.Mesh;
@@ -175,14 +180,14 @@ export async function scatterBattleNatureOnTerrain(
   const bushTarget = Math.round(requested.bushes * densityScale);
   const groundTarget = Math.round(requested.ground * densityScale);
 
-  // Warm the canonical real GLB packs once; IslandResourceLoader caches templates.
+  // Warm only the approved production packs; IslandResourceLoader caches templates.
   await Promise.all([
-    cloneFromPackPath(STYLIZED_PACK_PATHS.vegetation, [...STYLIZED_VARIANTS.vegetationTrees]).catch(() => null),
-    cloneFromPackPath(STYLIZED_PACK_PATHS.plainsTrees, [...STYLIZED_VARIANTS.plainsTrees]).catch(() => null),
-    cloneFromPackPath(STYLIZED_PACK_PATHS.rocks, [...STYLIZED_VARIANTS.stylizedRocks]).catch(() => null),
-    cloneFromPackPath(STYLIZED_PACK_PATHS.foliage, [...STYLIZED_VARIANTS.foliage]).catch(() => null),
-    cloneFromPackPath(STYLIZED_PACK_PATHS.flowers, [...STYLIZED_VARIANTS.flowers]).catch(() => null),
-  ]);
+    STYLIZED_PACK_PATHS.vegetation,
+    STYLIZED_PACK_PATHS.plainsTrees,
+    STYLIZED_PACK_PATHS.rocks,
+    STYLIZED_PACK_PATHS.foliage,
+    STYLIZED_PACK_PATHS.flowers,
+  ].map((path) => loadIslandResourceTemplate(path).catch(() => null)));
 
   const tryPlace = async (kind: ScatterKind): Promise<boolean> => {
     const x = (rng() - 0.5) * world * 0.92;
@@ -201,14 +206,22 @@ export async function scatterBattleNatureOnTerrain(
       : 0;
     if (slope > src.maxSlopeRad) return false;
 
+    const variantName = exactVariantName(src, rng);
+    if (!variantName) return false;
+
     try {
-      const obj = await cloneFromPackPath(src.path, [...src.variants]);
+      const template = await loadIslandResourceTemplate(src.path);
+      const source = template.getObjectByName(variantName);
+      if (!source) return false;
+
+      const obj = source.clone(true);
       fitModelToHeight(obj, targetHeight(src, rng));
       enablePbrShadows(obj);
       obj.rotation.y = rng() * Math.PI * 2;
       obj.position.set(x, y, z);
       obj.userData.warlordsNature = kind;
       obj.userData.sourcePath = src.path;
+      obj.userData.sourceVariant = variantName;
       root.add(obj);
       return true;
     } catch {
@@ -242,7 +255,7 @@ export async function scatterBattleNatureOnTerrain(
   scene.add(root);
   console.log(
     `[WarlordsNature] premium home island: ${trees} trees, ${rocks} rocks, ` +
-      `${bushes} bushes, ${ground} ground-cover · ${layers} passes · approved GLB packs only`,
+      `${bushes} bushes, ${ground} ground-cover · ${layers} passes · exact approved GLB variants only`,
   );
   return root;
 }
