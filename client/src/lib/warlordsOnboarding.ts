@@ -44,6 +44,15 @@ export function markTutorialComplete(): void {
   setFlowFlag(WARLORDS_FLOW_FLAGS.tutorialComplete);
 }
 
+/**
+ * Owning a persisted home island is stronger evidence than a browser tutorial
+ * flag. Record the claim locally and treat first-voyage onboarding as complete.
+ */
+export function markHomeIslandClaimed(): void {
+  setFlowFlag('warlords_home_island_claimed_v1');
+  markTutorialComplete();
+}
+
 export function markAirshipSeen(): void {
   setFlowFlag(WARLORDS_FLOW_FLAGS.airshipSeen);
 }
