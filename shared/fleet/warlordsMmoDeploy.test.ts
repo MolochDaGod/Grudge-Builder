@@ -4,6 +4,7 @@ import {
   CHARACTER_HEIGHT_M,
   WARLORDS_MMO_CATALOGS,
   WARLORDS_MMO_HOST,
+  WARLORDS_MMO_KEYS,
   WARLORDS_MMO_MAP_FAMILIES,
   WARLORDS_MMO_NOT_HOST,
   WARLORDS_MMO_ROUTES,
@@ -37,5 +38,10 @@ describe("warlordsMmoDeploy", () => {
   it("recognizes host play paths", () => {
     expect(isWarlordsMmoPlayPath("/home-island")).toBe(true);
     expect(isWarlordsMmoPlayPath("/forge")).toBe(false);
+  });
+
+  it("opens the schematic chart with M", () => {
+    expect(WARLORDS_MMO_KEYS.worldMap).toBe("m");
+    expect(WARLORDS_MMO_ROUTES.worldMap).toBe("/world-map");
   });
 });
