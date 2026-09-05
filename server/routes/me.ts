@@ -266,7 +266,6 @@ export function registerMeRoutes(app: Express): void {
         return;
       }
       const account = await storage.getOrCreateAccountForUser(userId);
-<<<<<<< HEAD
       const linked = await listLinkedWallets(account.id);
       const solanaAddress =
         linked.find((w) => w.isPrimary)?.walletAddress ||
@@ -276,25 +275,6 @@ export function registerMeRoutes(app: Express): void {
       const usernameClaimed = !/^(puter:|wallet:|discord:|phone:|google:|github:|guest_)/i.test(
         user.username,
       );
-=======
-      const providers = detectProviders(user.username);
-
-      let solanaAddress: string | null = null;
-      if (account) {
-        const { getWalletOverview } = await import("../services/walletAccess");
-        const overview = await getWalletOverview(account.id);
-        
-        const primaryLinked = overview?.linkedWallets?.find((w) => w.isPrimary);
-        if (primaryLinked?.walletAddress) {
-          solanaAddress = primaryLinked.walletAddress;
-        } else if (overview?.linkedWallets?.[0]?.walletAddress) {
-          solanaAddress = overview.linkedWallets[0].walletAddress;
-        } else if (account.walletAddress) {
-          solanaAddress = account.walletAddress;
-        }
-      }
-
->>>>>>> b1880907 (fix: read linkedWallets table for Solana preference)
       res.json({
         email: user.email || null,
         google: false,
