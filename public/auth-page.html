@@ -775,6 +775,8 @@ const APP_LABELS = {
   islands: "Grudge Studio Tool",
   "grudge-islands": "Grudge Studio Tool",
   "studio-tool": "Grudge Studio Tool",
+  trader: "Grudge Trader",
+  "grudge-trader": "Grudge Trader",
 };
 const HOST_LABELS = {
   "nexus.grudge-studio.com": "Nexus Hub",
@@ -797,6 +799,7 @@ const HOST_LABELS = {
   "mine-loader.vercel.app": "Mine-Loader",
   "mine.grudge-studio.com": "Mine-Loader",
   "grudge-studio-tool.vercel.app": "Grudge Studio Tool",
+  "trader.grudge-studio.com": "Grudge Trader",
 };
 
 function resolveAppLabel(){
@@ -1105,7 +1108,11 @@ async function afterAuth(user, puterEmail){
       user.needsProfile = false;
     } catch { user.needsProfile = false; }
   }
-  if (user && user.needsProfile && !hasAccountUsername(user)){ openProfileStep(user, puterEmail); return; }
+  // Returning to an app (Trader, Open, …) is the entry. Username is optional — claim on /account.
+  if (user && user.needsProfile && !hasAccountUsername(user) && !returnTo && !isPopup){
+    openProfileStep(user, puterEmail);
+    return;
+  }
   try { await handoff(user); }
   catch (e) { toast(e.message || "Could not complete sign-in.", "error"); show("choose"); refreshPuterButton(); }
 }
@@ -1699,8 +1706,8 @@ async function boot(){
     const me = await api("/api/auth/me"); const user = normalizeMe(me);
     if (isAccountMode) return renderAccount(me);
     if (isHandoffReturn) return handoff(user);
-    if (user.needsProfile) return openProfileStep(user, me.email || "");
     if (returnTo || isPopup) return handoff(user);
+    if (user.needsProfile) return openProfileStep(user, me.email || "");
     return renderDone(user, false, resolveAppLabel());
   } catch {
     if (urlLaunchToken){
