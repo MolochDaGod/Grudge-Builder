@@ -56,7 +56,7 @@ import {
 } from "../services/walletAccess";
 import type { LinkedWalletProvider } from "@shared/schema";
 
-/** Prefer SESSION_SECRET (auth.ts) then JWT_SECRET / GRUDGE_JWT_SECRET — try all on verify. */
+/** Prefer SESSION_SECRET (auth.ts) then JWT_SECRET / GRUDGE_JWT_SECRET — use first non-empty candidate only. */
 const JWT_SECRET_CANDIDATES = [
   process.env.SESSION_SECRET,
   process.env.JWT_SECRET,
@@ -415,7 +415,7 @@ function readSessionToken(req: Request): string | null {
 
 function trySessionUserId(req: Request): string | null {
   const token = readSessionToken(req);
-  if (!token) return null;
+  if (!token || !JWT_SECRET) return null;
   try {
     const payload = jwt.verify(token, JWT_SECRET) as { userId?: string; sub?: string };
     return payload.userId || (payload.sub != null ? String(payload.sub) : null);
@@ -693,6 +693,10 @@ export function registerAuthRoutes(app: Express) {
       return res.redirect(302, loginFallback);
     }
 
+    if (!JWT_SECRET) {
+      return res.status(500).send("Authentication not configured");
+    }
+
     try {
       const payload = jwt.verify(token, JWT_SECRET) as {
         userId?: string;
@@ -917,6 +921,7 @@ export function registerAuthRoutes(app: Express) {
     try {
       const token = readSessionToken(req);
       if (!token) return res.status(401).json({ success: false, error: "Not authenticated" });
+      if (!JWT_SECRET) return res.status(500).json({ success: false, error: "Authentication not configured" });
 
       const payload = jwt.verify(token, JWT_SECRET) as { userId: string };
       const { username, email, displayName: bodyDisplay } = req.body as {
@@ -984,6 +989,7 @@ export function registerAuthRoutes(app: Express) {
     try {
       const token = readSessionToken(req);
       if (!token) return res.status(401).json({ error: "Authentication required" });
+      if (!JWT_SECRET) return res.status(500).json({ error: "Authentication not configured" });
 
       const payload = jwt.verify(token, JWT_SECRET) as { userId: string; grudgeId?: string };
       const audience = (req.body?.audience as string) || "";
@@ -1023,6 +1029,7 @@ export function registerAuthRoutes(app: Express) {
     try {
       const token = readSessionToken(req) || (req.body?.token as string) || "";
       if (!token) return res.status(401).json({ success: false, error: "Authentication required" });
+      if (!JWT_SECRET) return res.status(500).json({ success: false, error: "Authentication not configured" });
 
       const payload = jwt.verify(token, JWT_SECRET) as {
         userId?: string;
@@ -1079,6 +1086,10 @@ export function registerAuthRoutes(app: Express) {
         });
       }
 
+      if (!JWT_SECRET) {
+        return res.status(500).json({ error: "Authentication not configured" });
+      }
+
       const payload = jwt.verify(token, JWT_SECRET) as {
         userId?: string;
         grudgeId?: string;
@@ -1123,6 +1134,10 @@ export function registerAuthRoutes(app: Express) {
     let grudgeId = "";
     let identityUserId = "";
     let decodedAud = "";
+
+    if (!JWT_SECRET) {
+      throw new Error("Authentication not configured");
+    }
 
     try {
       const decoded = jwt.verify(launchToken, JWT_SECRET) as {
@@ -1578,6 +1593,10 @@ export function registerAuthRoutes(app: Express) {
         return res.json({ success: false, valid: false });
       }
 
+      if (!JWT_SECRET) {
+        return res.status(500).json({ success: false, valid: false, error: "Authentication not configured" });
+      }
+
       const payload = jwt.verify(token, JWT_SECRET) as any;
       res.json({
         success: true,
@@ -1600,6 +1619,7 @@ export function registerAuthRoutes(app: Express) {
       const authHeader = req.get("Authorization") || "";
       const token = authHeader.startsWith("Bearer ") ? authHeader.slice(7) : "";
       if (!token) return res.status(401).json({ success: false, error: "Auth required" });
+      if (!JWT_SECRET) return res.status(500).json({ success: false, error: "Authentication not configured" });
 
       const payload = jwt.verify(token, JWT_SECRET) as { userId?: string; grudgeId?: string };
       if (!payload.userId) return res.status(401).json({ success: false, error: "Invalid token" });
@@ -1684,6 +1704,7 @@ export function registerAuthRoutes(app: Express) {
       const authHeader = req.get("Authorization") || "";
       const token = authHeader.startsWith("Bearer ") ? authHeader.slice(7) : "";
       if (!token) return res.status(401).json({ success: false, error: "No token" });
+      if (!JWT_SECRET) return res.status(500).json({ success: false, error: "Authentication not configured" });
 
       const payload = jwt.verify(token, JWT_SECRET) as { userId?: string };
       if (!payload.userId) return res.status(401).json({ success: false, error: "Invalid token" });
@@ -1841,6 +1862,10 @@ export function registerAuthRoutes(app: Express) {
       const token = readSessionToken(req);
       if (!token) {
         return res.status(401).json({ success: false, error: "No token provided" });
+      }
+
+      if (!JWT_SECRET) {
+        return res.status(500).json({ success: false, error: "Authentication not configured" });
       }
 
       const payload = jwt.verify(token, JWT_SECRET) as any;
@@ -2059,6 +2084,10 @@ export function registerAuthRoutes(app: Express) {
         return res.status(401).json({ success: false, error: "Authentication required" });
       }
 
+      if (!JWT_SECRET) {
+        return res.status(500).json({ success: false, error: "Authentication not configured" });
+      }
+
       const payload = jwt.verify(token, JWT_SECRET) as { userId: string };
       const { code } = req.body as { code?: string };
       
@@ -2139,6 +2168,10 @@ export function registerAuthRoutes(app: Express) {
       const token = readSessionToken(req);
       if (!token) {
         return res.status(401).json({ success: false, error: "Authentication required" });
+      }
+
+      if (!JWT_SECRET) {
+        return res.status(500).json({ success: false, error: "Authentication not configured" });
       }
 
       const payload = jwt.verify(token, JWT_SECRET) as { userId: string };

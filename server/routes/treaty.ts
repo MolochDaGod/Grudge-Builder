@@ -27,7 +27,7 @@ import {
   ensureTreatyServerChannels,
 } from "../services/treatyChat";
 
-/** Prefer SESSION_SECRET (auth.ts) then JWT_SECRET / GRUDGE_JWT_SECRET — try all on verify. */
+/** Prefer SESSION_SECRET (auth.ts) then JWT_SECRET / GRUDGE_JWT_SECRET — use first non-empty candidate only. */
 const JWT_SECRET_CANDIDATES = [
   process.env.SESSION_SECRET,
   process.env.JWT_SECRET,
@@ -41,6 +41,10 @@ function requireAuth(req: Request, res: Response, next: NextFunction): void {
   const token = authHeader?.startsWith("Bearer ") ? authHeader.slice(7) : authHeader || null;
   if (!token) {
     res.status(401).json({ error: "Authentication required" });
+    return;
+  }
+  if (!JWT_SECRET) {
+    res.status(500).json({ error: "Authentication not configured (SESSION_SECRET, JWT_SECRET, or GRUDGE_JWT_SECRET required)" });
     return;
   }
   try {
