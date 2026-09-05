@@ -227,3 +227,19 @@ export {
   type MountDef,
   type SiegeDef,
 } from "./vehicles";
+
+/** Warlords MMO host contract — grudgewarlords.com only */
+export {
+  WARLORDS_MMO_HOST,
+  WARLORDS_MMO_CONTRACT,
+  WARLORDS_MMO_ROUTES,
+  WARLORDS_MMO_MAP_FAMILIES,
+  WARLORDS_MMO_CATALOGS,
+  WARLORDS_MMO_KEYS,
+  WARLORDS_MMO_NOT_HOST,
+  CHARACTER_HEIGHT_M,
+  BUILDING_HEIGHT_M,
+  HOME_ISLAND_DIAMETER_M,
+  catalogUrls,
+  isWarlordsMmoPlayPath,
+} from "./warlordsMmoDeploy";
