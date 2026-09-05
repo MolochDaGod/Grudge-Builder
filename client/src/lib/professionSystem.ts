@@ -138,6 +138,30 @@ export function getGatherXp(resourceType: string, tier: number = 1): number {
   return Math.floor(baseXp * (1 + (tier - 1) * 0.5));
 }
 
+/** Resource tier from gathering profession LEVEL (not node quality). SSOT: harvest-loot-by-profession.json */
+export function resourceTierFromProfessionLevel(level: number): number {
+  const clamped = Math.max(1, Math.min(100, level));
+  const table: Array<[number, number]> = [
+    [88, 8],
+    [76, 7],
+    [63, 6],
+    [50, 5],
+    [38, 4],
+    [25, 3],
+    [13, 2],
+    [1, 1],
+  ];
+  for (const [min, tier] of table) {
+    if (clamped >= min) return tier;
+  }
+  return 1;
+}
+
+/** XP for a harvest swing — keyed to profession level, never node.tier */
+export function getGatherXpForProfessionLevel(professionLevel: number): number {
+  return getGatherXp("gather", resourceTierFromProfessionLevel(professionLevel));
+}
+
 export function getCraftXp(itemTier: number, itemRarity: string): number {
   const baseXp = 25;
   const tierMult = 1 + (itemTier - 1) * 0.5;
