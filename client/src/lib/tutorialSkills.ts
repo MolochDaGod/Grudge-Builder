@@ -7,6 +7,7 @@
  */
 import type { Character, ProfessionLevel } from '@/lib/characterManager';
 import { resolveProfessionLevel } from '@/lib/professionLevels';
+import { weaponTypeFromModel3d } from '@shared/fleet';
 import {
   CLASS_SKILL_TREES,
   getClassSkillTree,
@@ -160,6 +161,30 @@ function resolveWeaponDefinition(weaponType?: string | null): WeaponTypeDefiniti
   return undefined;
 }
 
+function inferEquippedWeaponType(
+  char: Character | null | undefined,
+  explicit?: string | null,
+): string | null {
+  if (explicit) return explicit;
+  const model3d = char?.model3d;
+  if (model3d) {
+    try {
+      return weaponTypeFromModel3d({
+        baseModelId: model3d.baseModelId ?? char?.raceId ?? 'human',
+        equippedMeshes: model3d.equippedMeshes ?? {},
+        weaponSlots: model3d.weaponSlots ?? {},
+        skinColor: model3d.skinColor ?? '#ffffff',
+        armorColor: model3d.armorColor ?? '#ffffff',
+        scale: model3d.scale ?? 1,
+        gameEra: model3d.gameEra ?? char?.gameEra ?? 'warlords',
+      } as any, char?.classId);
+    } catch {
+      /* fall through to legacy equippedWeaponId */
+    }
+  }
+  return char?.equippedWeaponId ?? null;
+}
+
 function findWeaponSkillById(skillId: string): WeaponSkillOption | undefined {
   for (const def of Object.values(WEAPON_TYPE_DEFINITIONS)) {
     for (const slot of def.slots) {
@@ -210,8 +235,9 @@ export function buildWeaponHotbar(
 ): HotbarSlot[] {
   if (!hasWeapon) return [];
 
+  const resolvedWeaponType = inferEquippedWeaponType(char, equippedWeaponType);
   const masteryTier = Math.max(1, Number(char?.weaponSkillLevel ?? 1));
-  const persisted = persistedWeaponSkillIds(char, equippedWeaponType);
+  const persisted = persistedWeaponSkillIds(char, resolvedWeaponType);
   if (persisted.length) {
     return persisted
       .map((id) => findWeaponSkillById(id))
@@ -230,7 +256,7 @@ export function buildWeaponHotbar(
       }));
   }
 
-  const def = resolveWeaponDefinition(equippedWeaponType ?? char?.equippedWeaponId);
+  const def = resolveWeaponDefinition(resolvedWeaponType);
   if (!def) return [];
 
   const maxSlots = Math.max(1, Math.min(5, def.hotbarSlots ?? 4));
