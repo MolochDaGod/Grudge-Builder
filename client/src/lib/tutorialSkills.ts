@@ -7,6 +7,7 @@
  */
 import type { Character, ProfessionLevel } from '@/lib/characterManager';
 import { resolveProfessionLevel } from '@/lib/professionLevels';
+import { RESOURCE_TO_PROFESSION } from '@/lib/professionSystem';
 import { defaultModel3d, weaponTypeFromModel3d } from '@shared/fleet';
 import {
   CLASS_SKILL_TREES,
@@ -39,6 +40,29 @@ export interface GatheringProfession {
   id: string;
   name: string;
   level: number;
+}
+
+/**
+ * Home/open-world resource aliases missing from the legacy synchronous map.
+ * App.tsx already hydrates the profession XP table from ObjectStore; this extends
+ * only resource→profession routing so scrap/salvage actually trains Scavenging and
+ * shore loot actually trains Fishing instead of falling through to Logging.
+ */
+const WARLORDS_RESOURCE_PROFESSION_EXTENSIONS: Record<string, string> = {
+  scrap: 'Scavenging',
+  salvage: 'Scavenging',
+  debris: 'Scavenging',
+  component: 'Scavenging',
+  components: 'Scavenging',
+  bolts: 'Scavenging',
+  gear_fragment: 'Scavenging',
+  shell: 'Fishing',
+  shells: 'Fishing',
+  pearl: 'Fishing',
+  pearls: 'Fishing',
+};
+for (const [resource, profession] of Object.entries(WARLORDS_RESOURCE_PROFESSION_EXTENSIONS)) {
+  if (!RESOURCE_TO_PROFESSION[resource]) RESOURCE_TO_PROFESSION[resource] = profession;
 }
 
 /** All six production gathering professions from ObjectStore profession SSOT. */
