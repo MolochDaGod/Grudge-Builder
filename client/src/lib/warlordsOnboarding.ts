@@ -35,6 +35,11 @@ export function markOpeningSeen(): void {
   setFlowFlag(WARLORDS_FLOW_FLAGS.openingSeen);
 }
 
+/** Raft craft is a tutorial milestone, not tutorial completion. */
+export function markRaftCrafted(): void {
+  setFlowFlag(WARLORDS_FLOW_FLAGS.raftCrafted);
+}
+
 export function markTutorialComplete(): void {
   setFlowFlag(WARLORDS_FLOW_FLAGS.tutorialComplete);
 }
@@ -46,6 +51,10 @@ export function markAirshipSeen(): void {
 /** True once this browser completed shipwreck tutorial (account first voyage). */
 export function isTutorialComplete(): boolean {
   return readFlowFlag(WARLORDS_FLOW_FLAGS.tutorialComplete);
+}
+
+export function isRaftCrafted(): boolean {
+  return readFlowFlag(WARLORDS_FLOW_FLAGS.raftCrafted);
 }
 
 export function isOpeningSeen(): boolean {
