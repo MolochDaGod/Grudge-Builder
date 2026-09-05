@@ -93,7 +93,7 @@ export const MULTIPACK_LIBRARY = {
     mapFamilies: ['home_island', 'warlords_sector', 'chicken_gun_lobby'] as MapFamily[],
     catalog: '/api/objectstore/v1/island-building-prefabs.json',
     notes:
-      'Cantina/tavern/inn/house/blacksmith/market baked to 4 m. Standalone GLBs (nodeName root). Loader identity-checks bytes so the stale 8.9 MB R2 cantina is not used.',
+      'Cantina/tavern/inn/house/blacksmith/market baked to 4 m. Standalone GLBs (nodeName root). Cantina CDN key is cantina-4m.glb; identity-check still rejects size drift.',
   },
 } as const;
 

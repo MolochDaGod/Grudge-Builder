@@ -1,8 +1,8 @@
 /**
  * Island camp buildings — 4 m SI GLBs via ObjectStore prefab catalog.
  *
- * Does not use loadAssetGltf on the CDN path directly: v2.2.1 still serves
- * the 8.9 MB raw cantina (valid glTF, wrong scale). Identity-check first.
+ * Does not use loadAssetGltf on the CDN path directly: identity-check first.
+ * Cantina public key is cantina-4m.glb (canonical R2 cantina.glb is still 8.9 MB).
  */
 import * as THREE from 'three';
 import { loadGltfCached } from '@/lib/three/SharedGltfPipeline';

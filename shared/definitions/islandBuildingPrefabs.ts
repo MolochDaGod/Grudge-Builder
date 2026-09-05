@@ -6,7 +6,8 @@
  * Bake:         ObjectStore scripts/bake-island-buildings.mjs  (glb2glb --height 4)
  *
  * Binary identity: glTF magic + exact catalog byte length.
- * CDN v2.2.1 still serves the 8.9 MB raw cantina on R2 — reject it, use info.*.
+ * Canonical R2 models/buildings/cantina.glb is still the 8.9 MB dollhouse
+ * (worker 2.2.1 purge does not overwrite). Public CDN key is cantina-4m.glb.
  * Never GET models/_optimized/buildings/* until CDN 2.3 html-guard is live.
  */
 
@@ -51,9 +52,9 @@ export const ISLAND_BUILDINGS: IslandBuildingPrefab[] = [
     id: 'cantina',
     name: 'Cantina',
     role: 'tavern_bar',
-    r2Key: 'models/buildings/cantina.glb',
+    r2Key: 'models/buildings/cantina-4m.glb',
     r2KeyOptimized: 'models/_optimized/buildings/cantina.glb',
-    cdnUrl: `${ASSETS_CDN}/models/buildings/cantina.glb`,
+    cdnUrl: `${ASSETS_CDN}/models/buildings/cantina-4m.glb`,
     infoUrl: `${INFO_ORIGIN}/models/buildings/cantina.glb`,
     bytes: 158656,
     md5: '3f2ead9e89a8aaa076433494ddec8874',
@@ -153,7 +154,7 @@ export function identityError(buf: Uint8Array, prefab: IslandBuildingPrefab): st
   return null;
 }
 
-/** CDN canonical then info.* same key. Never _optimized on 2.2.1. */
+/** CDN public key then info.* tracked key. Never _optimized on 2.2.1. */
 export function buildingFetchUrls(id: string): string[] {
   const b = BY_ID.get(id);
   if (!b) return [];
