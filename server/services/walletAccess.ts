@@ -43,6 +43,7 @@ type StoredChallenge = {
   accountId: string | null;
   walletAddress: string;
   expiresAt: number;
+  messageHash: string;
 };
 
 export type SiwsFields = {
@@ -189,14 +190,20 @@ function createSiwsChallenge(opts: {
     expirationTime,
     requestId: opts.accountId || undefined,
   };
+
+  const message = buildSiwsMessage(siws);
+  const messageHash = crypto.createHash("sha256").update(message, "utf8").digest("hex");
+
   siwsChallenges.set(nonce, {
     purpose: opts.purpose,
     accountId: opts.accountId || null,
     walletAddress: opts.walletAddress,
     expiresAt,
+    messageHash,
   });
+
   return {
-    message: buildSiwsMessage(siws),
+    message,
     nonce,
     walletAddress: opts.walletAddress,
     siws,
@@ -241,6 +248,13 @@ export function consumeSiwsChallenge(opts: {
   const msgAddr = parseSiwsAddress(opts.message);
   if (msgAddr && msgAddr !== opts.walletAddress) {
     throw new Error("Signed address does not match wallet");
+  }
+
+  // CRITICAL: Verify the signed message hash matches the exact issued SIWS message.
+  // This cryptographically binds verification to the complete issued statement.
+  const providedMessageHash = crypto.createHash("sha256").update(opts.message, "utf8").digest("hex");
+  if (providedMessageHash !== challenge.messageHash) {
+    throw new Error("Message does not match issued SIWS challenge");
   }
 
   // CRITICAL: Verify the signed message contains the exact issued domain, URI, and chain ID.
