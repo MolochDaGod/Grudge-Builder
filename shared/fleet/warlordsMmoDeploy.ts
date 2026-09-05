@@ -87,6 +87,7 @@ export const WARLORDS_MMO_KEYS = {
   goHome: "F3",
   attack: "F4",
   groupOnMe: "F5",
+  worldMap: "m",
 } as const;
 
 export const WARLORDS_MMO_NOT_HOST = [
