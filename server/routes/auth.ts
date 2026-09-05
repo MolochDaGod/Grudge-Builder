@@ -56,7 +56,14 @@ import {
 } from "../services/walletAccess";
 import type { LinkedWalletProvider } from "@shared/schema";
 
-const JWT_SECRET = process.env.SESSION_SECRET || process.env.JWT_SECRET || "grudge-dev-secret";
+/** Prefer SESSION_SECRET (auth.ts) then JWT_SECRET / GRUDGE_JWT_SECRET — try all on verify. */
+const JWT_SECRET_CANDIDATES = [
+  process.env.SESSION_SECRET,
+  process.env.JWT_SECRET,
+  process.env.GRUDGE_JWT_SECRET,
+].filter((s): s is string => !!s && s.length > 0);
+
+const JWT_SECRET = JWT_SECRET_CANDIDATES[0] || "";
 /**
  * Session JWT lifetime — max allowed “stay signed in” for fleet SSO.
  * Default **365d**. Override JWT_SESSION_TTL (capped at 365d).
@@ -202,6 +209,9 @@ function signToken(payload: {
   isAdmin?: boolean;
   email?: string | null;
 }): string {
+  if (!JWT_SECRET) {
+    throw new Error("JWT secret not configured (SESSION_SECRET, JWT_SECRET, or GRUDGE_JWT_SECRET required)");
+  }
   const role = payload.role ?? "player";
   return jwt.sign(
     {
@@ -592,6 +602,9 @@ async function resolvePuterGrudgeAccount(
 }
 
 function mintLaunchToken(userId: string, grudgeId: string, audience: string): string {
+  if (!JWT_SECRET) {
+    throw new Error("JWT secret not configured (SESSION_SECRET, JWT_SECRET, or GRUDGE_JWT_SECRET required)");
+  }
   return jwt.sign(
     { type: "launch", userId, grudgeId, aud: audience },
     JWT_SECRET,

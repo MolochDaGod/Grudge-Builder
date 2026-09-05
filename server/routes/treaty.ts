@@ -27,7 +27,14 @@ import {
   ensureTreatyServerChannels,
 } from "../services/treatyChat";
 
-const JWT_SECRET = process.env.SESSION_SECRET || process.env.JWT_SECRET || "grudge-dev-secret";
+/** Prefer SESSION_SECRET (auth.ts) then JWT_SECRET / GRUDGE_JWT_SECRET — try all on verify. */
+const JWT_SECRET_CANDIDATES = [
+  process.env.SESSION_SECRET,
+  process.env.JWT_SECRET,
+  process.env.GRUDGE_JWT_SECRET,
+].filter((s): s is string => !!s && s.length > 0);
+
+const JWT_SECRET = JWT_SECRET_CANDIDATES[0] || "";
 
 function requireAuth(req: Request, res: Response, next: NextFunction): void {
   const authHeader = req.get("Authorization") || req.get("X-Session-Token");
