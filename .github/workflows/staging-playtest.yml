@@ -5,16 +5,10 @@ on:
     branches: [staging]
     paths:
       - "client/**"
-      - "server/**"
       - "shared/**"
-      - "script/**"
-      - "scripts/**"
-      - "production/**"
       - "vercel.json"
       - "vite.config.ts"
       - "vitest.staging.config.ts"
-      - "railway.json"
-      - "nixpacks.toml"
       - "package.json"
       - "package-lock.json"
       - ".github/workflows/staging-playtest.yml"
@@ -25,10 +19,6 @@ concurrency:
   cancel-in-progress: true
 
 env:
-  RAILWAY_PROJECT_ID: 92f039ec-2cce-4e1e-b06a-dd0ac6256d70
-  RAILWAY_PRODUCTION_ENVIRONMENT: production
-  RAILWAY_STAGING_ENVIRONMENT: staging
-  RAILWAY_SERVICE: grudge-api
   PROD_RAILWAY_HOST: grudge-api-production-0d46.up.railway.app
   TEST_DOMAIN: test.grudgewarlords.com
 
@@ -51,148 +41,26 @@ jobs:
       - name: Install dependencies
         run: npm install --legacy-peer-deps --include=dev
 
-      - name: Verify multiplayer Shipwreck contract
+      - name: Verify canonical multiplayer Shipwreck contract
         run: npx vitest run --config vitest.staging.config.ts
 
-  railway-staging:
-    name: Railway staging sandbox
-    needs: multiplayer-contract
-    runs-on: ubuntu-latest
-    timeout-minutes: 35
-    outputs:
-      railway_host: ${{ steps.domain.outputs.host }}
-      railway_url: ${{ steps.domain.outputs.url }}
-    container: ghcr.io/railwayapp/cli:latest
-    env:
-      RAILWAY_TOKEN: ${{ secrets.RAILWAY_TOKEN }}
-      RAILWAY_API_TOKEN: ${{ secrets.RAILWAY_API_TOKEN }}
-    steps:
-      - name: Checkout
-        uses: actions/checkout@v4
-
-      - name: Link production source environment
+      - name: Verify live transport exposes isolated Shipwreck alias
         run: |
-          set -eu
-          railway link \
-            --project "${RAILWAY_PROJECT_ID}" \
-            --environment "${RAILWAY_PRODUCTION_ENVIRONMENT}" \
-            --service "${RAILWAY_SERVICE}" \
-            --json
-
-      - name: Ensure persistent staging environment
-        run: |
-          set -eu
-          railway environment list --json > /tmp/railway-envs.json
-          if grep -Eq '"name"[[:space:]]*:[[:space:]]*"staging"' /tmp/railway-envs.json; then
-            echo "✅ Railway staging environment already exists"
-          else
-            echo "Creating isolated staging environment from production configuration"
-            railway environment new "${RAILWAY_STAGING_ENVIRONMENT}" \
-              --copy "${RAILWAY_PRODUCTION_ENVIRONMENT}" \
-              --json
-          fi
-
-      - name: Link staging service
-        run: |
-          set -eu
-          railway link \
-            --project "${RAILWAY_PROJECT_ID}" \
-            --environment "${RAILWAY_STAGING_ENVIRONMENT}" \
-            --service "${RAILWAY_SERVICE}" \
-            --json
-
-      - name: Force safe sandbox mode
-        run: |
-          set -eu
-          railway variable delete DATABASE_URL \
-            --service "${RAILWAY_SERVICE}" \
-            --environment "${RAILWAY_STAGING_ENVIRONMENT}" \
-            --json || true
-          railway variable set \
-            GRUDGE_ENVIRONMENT=staging \
-            GRUDGE_PLAYTEST=1 \
-            --service "${RAILWAY_SERVICE}" \
-            --environment "${RAILWAY_STAGING_ENVIRONMENT}" \
-            --skip-deploys \
-            --json
-
-      - name: Deploy staging backend
-        run: |
-          set -eu
-          railway up --ci \
-            --project "${RAILWAY_PROJECT_ID}" \
-            --environment "${RAILWAY_STAGING_ENVIRONMENT}" \
-            --service "${RAILWAY_SERVICE}" \
-            --message "staging playtest ${{ github.sha }}"
-
-      - name: Ensure staging Railway domain
-        id: domain
-        run: |
-          set -eu
-          railway domain list \
-            --project "${RAILWAY_PROJECT_ID}" \
-            --environment "${RAILWAY_STAGING_ENVIRONMENT}" \
-            --service "${RAILWAY_SERVICE}" \
-            --json > /tmp/domains.json || true
-
-          HOST=$(grep -Eo '[A-Za-z0-9.-]+\.up\.railway\.app' /tmp/domains.json | head -1 || true)
-          if [ -z "${HOST}" ]; then
-            railway domain \
-              --project "${RAILWAY_PROJECT_ID}" \
-              --environment "${RAILWAY_STAGING_ENVIRONMENT}" \
-              --service "${RAILWAY_SERVICE}" \
-              --json > /tmp/domain-create.json
-            railway domain list \
-              --project "${RAILWAY_PROJECT_ID}" \
-              --environment "${RAILWAY_STAGING_ENVIRONMENT}" \
-              --service "${RAILWAY_SERVICE}" \
-              --json > /tmp/domains.json
-            HOST=$(grep -Eo '[A-Za-z0-9.-]+\.up\.railway\.app' /tmp/domains.json | head -1 || true)
-          fi
-
-          if [ -z "${HOST}" ]; then
-            echo "❌ Could not determine Railway staging host"
-            cat /tmp/domains.json || true
-            exit 1
-          fi
-
-          echo "host=${HOST}" >> "$GITHUB_OUTPUT"
-          echo "url=https://${HOST}" >> "$GITHUB_OUTPUT"
-          echo "✅ staging backend: https://${HOST}"
-
-      - name: Smoke staging API + Colyseus
-        run: |
-          set -eu
-          BASE="https://${{ steps.domain.outputs.host }}"
-          for i in $(seq 1 40); do
-            CODE=$(curl -sS -o /tmp/health.json -w "%{http_code}" "${BASE}/api/health" || true)
-            if [ "$CODE" = "200" ] && grep -q '"status"' /tmp/health.json; then
-              echo "✅ staging API health OK (attempt $i)"
-              break
-            fi
-            if [ "$i" -eq 40 ]; then
-              echo "❌ staging API did not become ready"
-              cat /tmp/health.json 2>/dev/null || true
-              exit 1
-            fi
-            sleep 10
-          done
-
-          CODE=$(curl -sS -o /tmp/colyseus.json -w "%{http_code}" "${BASE}/api/colyseus/health" || true)
-          test "$CODE" = "200"
-          grep -Eq 'tutorial|shipwreck' /tmp/colyseus.json
-          echo "✅ Colyseus tutorial/shipwreck rooms advertised"
+          set -euo pipefail
+          curl -fsS "https://${PROD_RAILWAY_HOST}/api/colyseus/health" -o /tmp/colyseus.json
+          grep -q '"shipwreck"' /tmp/colyseus.json
+          grep -q '"tutorial"' /tmp/colyseus.json
+          echo "✅ live transport advertises tutorial + separate shipwreck alias"
 
   vercel-staging:
-    name: Vercel staging domain
-    needs: [multiplayer-contract, railway-staging]
+    name: Vercel playtest domain
+    needs: multiplayer-contract
     runs-on: ubuntu-latest
     timeout-minutes: 35
     env:
       VERCEL_TOKEN: ${{ secrets.VERCEL_TOKEN }}
       VERCEL_ORG_ID: team_VZ7uiFGiR9QBdqtzne04xygG
       VERCEL_PROJECT_ID: prj_AT8CcdGZRjg838A2B0EyYtw65Fvb
-      RAILWAY_HOST: ${{ needs.railway-staging.outputs.railway_host }}
     steps:
       - name: Checkout staging branch
         uses: actions/checkout@v4
@@ -216,53 +84,87 @@ jobs:
       - name: Install dependencies
         run: npm install --legacy-peer-deps --include=dev
 
-      - name: Rewrite deployment config for isolated staging
+      - name: Make tutorial build playtest-safe
         run: |
           node <<'NODE'
           const fs = require('fs');
-          const host = process.env.RAILWAY_HOST;
-          const testDomain = process.env.TEST_DOMAIN;
-          if (!host) throw new Error('RAILWAY_HOST missing');
+          const file = 'client/src/pages/tutorial.tsx';
+          let src = fs.readFileSync(file, 'utf8');
 
-          const config = JSON.parse(fs.readFileSync('vercel.json', 'utf8'));
-          const prodHttp = `https://${process.env.PROD_RAILWAY_HOST}`;
-          const prodWs = `wss://${process.env.PROD_RAILWAY_HOST}`;
-          const stageHttp = `https://${host}`;
-          const stageWs = `wss://${host}`;
+          const roomNeedle = 'room = await client.joinOrCreate(MULTIPLAYER_SHIPWRECK.roomName, {';
+          if (!src.includes(roomNeedle)) throw new Error('tutorial room join signature changed');
+          src = src.replace(
+            roomNeedle,
+            'room = await client.joinOrCreate(MULTIPLAYER_SHIPWRECK.legacyAlias, {'
+          );
 
-          function rewrite(value) {
-            if (typeof value === 'string') {
-              return value.split(prodHttp).join(stageHttp).split(prodWs).join(stageWs);
-            }
-            if (Array.isArray(value)) return value.map(rewrite);
-            if (value && typeof value === 'object') {
-              for (const key of Object.keys(value)) value[key] = rewrite(value[key]);
-            }
-            return value;
+          const writes = [
+            [
+              'await characterAPI.update(char.id, { professionLevels: updatedLevels });',
+              'await Promise.resolve(); // PLAYTEST: do not persist profession XP'
+            ],
+            [
+              'await characterAPI.update(char.id, { inventory: inv });',
+              'await Promise.resolve(); // PLAYTEST: do not persist tutorial inventory'
+            ],
+            [
+              "void depositHarvestResource(itemId, qty, 'tutorial-harvest');",
+              'void 0; // PLAYTEST: do not deposit tutorial harvest'
+            ],
+            [
+              'void flushOfflineHarvestQueue();',
+              'void 0; // PLAYTEST: do not flush persistence queue'
+            ]
+          ];
+
+          for (const [from, to] of writes) {
+            if (!src.includes(from)) throw new Error(`playtest safety signature missing: ${from}`);
+            src = src.split(from).join(to);
           }
 
-          rewrite(config);
+          fs.writeFileSync(file, src);
+          console.log('✅ tutorial patched to shipwreck alias + no-persist playtest mode');
+          NODE
+
+      - name: Rewrite deployment config for test.grudgewarlords.com
+        run: |
+          node <<'NODE'
+          const fs = require('fs');
+          const host = process.env.PROD_RAILWAY_HOST;
+          const testDomain = process.env.TEST_DOMAIN;
+          const http = `https://${host}`;
+          const ws = `wss://${host}`;
+          const config = JSON.parse(fs.readFileSync('vercel.json', 'utf8'));
+
           config.alias = [testDomain];
           config.env = {
             ...(config.env || {}),
-            VITE_GAME_DATA_API: stageHttp,
-            VITE_COLYSEUS_URL: stageWs,
-            VITE_GRUDGE_ENVIRONMENT: 'staging',
+            VITE_GAME_DATA_API: http,
+            VITE_API_URL: http,
+            VITE_COLYSEUS_URL: ws,
+            VITE_GRUDGE_ENVIRONMENT: 'playtest',
             VITE_PLAYTEST: '1'
           };
+          config.redirects = [
+            { source: '/', destination: '/leviathan-cinema?playtest=1', permanent: false },
+            ...(config.redirects || []).filter((r) => r?.source !== '/')
+          ];
           config.headers = [
             ...(config.headers || []),
             {
               source: '/(.*)',
-              headers: [{ key: 'X-Robots-Tag', value: 'noindex, nofollow, noarchive' }]
+              headers: [
+                { key: 'X-Robots-Tag', value: 'noindex, nofollow, noarchive' },
+                { key: 'X-Grudge-Environment', value: 'playtest' }
+              ]
             }
           ];
 
           fs.writeFileSync('vercel.json', JSON.stringify(config, null, 2) + '\n');
-          console.log(`staging config -> ${testDomain} / ${stageHttp}`);
+          console.log(`✅ playtest config -> https://${testDomain} using isolated shipwreck room`);
           NODE
 
-      - name: Build staging client
+      - name: Build playtest client
         run: npm run build:client
 
       - name: Deploy preview and bind stable test domain
@@ -278,37 +180,36 @@ jobs:
           fi
           echo "url=$DEPLOY_URL" >> "$GITHUB_OUTPUT"
           npx vercel@latest alias set "$DEPLOY_URL" "$TEST_DOMAIN" --token "$VERCEL_TOKEN"
-          echo "✅ staging frontend: https://${TEST_DOMAIN}"
+          echo "✅ playtest frontend: https://${TEST_DOMAIN}"
 
-      - name: Smoke deployment URL
+      - name: Smoke immutable deployment
         run: |
           set -euo pipefail
           URL="${{ steps.deploy.outputs.url }}"
           for i in $(seq 1 18); do
-            CODE=$(curl -sS -L -o /tmp/staging.html -w "%{http_code}" "$URL" || true)
+            CODE=$(curl -sS -L -o /tmp/playtest.html -w "%{http_code}" "$URL" || true)
             if [ "$CODE" = "200" ]; then
-              echo "✅ Vercel staging deployment responds"
-              break
-            fi
-            if [ "$i" -eq 18 ]; then
-              echo "❌ Vercel staging deployment unavailable (HTTP $CODE)"
-              exit 1
-            fi
-            sleep 5
-          done
-
-      - name: Verify custom test domain
-        continue-on-error: true
-        run: |
-          set -euo pipefail
-          for i in $(seq 1 18); do
-            CODE=$(curl -sS -L -o /tmp/test-domain.html -w "%{http_code}" "https://${TEST_DOMAIN}" || true)
-            if [ "$CODE" = "200" ]; then
-              echo "✅ https://${TEST_DOMAIN} is live"
+              grep -qi '<html' /tmp/playtest.html
+              echo "✅ immutable Vercel playtest deployment responds"
               exit 0
             fi
-            echo "test domain attempt $i/18 — HTTP $CODE"
             sleep 5
           done
-          echo "⚠ Vercel alias exists but DNS may still need a test.grudgewarlords.com record"
+          echo "❌ immutable Vercel playtest deployment unavailable"
+          exit 1
+
+      - name: Verify custom test domain
+        run: |
+          set -euo pipefail
+          for i in $(seq 1 24); do
+            HEADERS=$(mktemp)
+            CODE=$(curl -sS -L -D "$HEADERS" -o /tmp/test-domain.html -w "%{http_code}" "https://${TEST_DOMAIN}" || true)
+            if [ "$CODE" = "200" ] && grep -qi 'x-grudge-environment: playtest' "$HEADERS"; then
+              echo "✅ https://${TEST_DOMAIN} is live in playtest mode"
+              exit 0
+            fi
+            echo "test domain attempt $i/24 — HTTP $CODE"
+            sleep 5
+          done
+          echo "❌ test domain alias/DNS is not live yet"
           exit 1
