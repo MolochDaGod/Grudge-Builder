@@ -1861,7 +1861,7 @@ export async function registerRoutes(
   });
 
   // Get the player's home island (creates one if doesn't exist)
-  app.get("/api/island", async (req, res) => {
+  app.get("/api/island", requireAuth, async (req, res) => {
     try {
       const userId = getUserId(req);
       const account = await storage.getOrCreateAccountForUser(userId);
@@ -1901,7 +1901,7 @@ export async function registerRoutes(
     }
   });
 
-  app.get("/api/island/status", async (req, res) => {
+  app.get("/api/island/status", requireAuth, async (req, res) => {
     try {
       const userId = getUserId(req);
       const account = await storage.getOrCreateAccountForUser(userId);

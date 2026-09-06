@@ -50,7 +50,7 @@ const PLAY_PATH = [
     n: '01',
     title: 'Opening',
     detail: 'Intro video · sign in',
-    href: '/intro',
+    href: '/lobby',
     icon: Flame,
     art: PRODUCTION_PATH_ART.opening,
   },
@@ -230,11 +230,7 @@ export default function WarlordsLandingPage() {
               <button
                 type="button"
                 onClick={() => {
-                  if (!isAuthenticated) {
-                    openLogin();
-                    return;
-                  }
-                  setLocation('/home');
+                  setLocation('/lobby');
                 }}
                 className="px-8 py-3.5 rounded-xl font-bold tracking-wider border-0 cursor-pointer"
                 style={{

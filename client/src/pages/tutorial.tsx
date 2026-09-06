@@ -1,3 +1,8 @@
+import { useAuth } from '@/contexts/AuthContext';
+import { authHeaders } from '@/lib/grudgeBackend';
+import { GameRecovery } from '@/components/GameRecovery';
+import { createGameClient } from '@/lib/gameClient';
+import { getStateCallbacks } from '@colyseus/sdk';
 /**
  * TutorialPage — multiplayer Shipwreck Cove tutorial with production 3-state gameplay.
  *
@@ -7,7 +12,7 @@
  */
 import { useEffect, useRef, useState, useCallback } from 'react';
 import { useLocation } from 'wouter';
-import { Client, Room } from 'colyseus.js';
+import { Client, Room } from '@colyseus/sdk';
 import * as THREE from 'three';
 import { Island3DEngine, type Island3DEngineConfig } from '@/island3d/engine/Island3DEngine';
 import { RemotePlayerManager } from '@/island3d/sync/RemotePlayerManager';
@@ -94,54 +99,24 @@ interface TutorialSnapshot {
 
 export default function TutorialPage() {
   const [, setLocation] = useLocation();
+  const { isAuthenticated, authLoading, openLogin } = useAuth();
+  const [characterReady, setCharacterReady] = useState(false);
+  const [loadError, setLoadError] = useState<string | null>(null);
 
-  // Skip tutorial forever once home island is claimed (or tutorial already done)
+  // Status is a read-only ownership check; GET /api/island creates an island.
   useEffect(() => {
-    let cancelled = false;
-    (async () => {
-      if (!isTutorialComplete()) {
-        try {
-          const res = await fetch('/api/island/current', { credentials: 'include' });
-          if (res.ok && !cancelled) {
-            markTutorialComplete();
-            try {
-              localStorage.setItem('warlords_home_island_claimed_v1', '1');
-            } catch {
-              /* ignore */
-            }
-            const id = getActiveCharacterId();
-            setLocation(
-              id
-                ? `/home-island?characterId=${encodeURIComponent(id)}&from=skip-tutorial`
-                : '/home-island?from=skip-tutorial',
-            );
-            return;
-          }
-        } catch {
-          /* offline — stay on tutorial */
-        }
-        return;
-      }
-      try {
-        const res = await fetch('/api/island/current', { credentials: 'include' });
-        if (res.ok && !cancelled) {
-          const id = getActiveCharacterId();
-          setLocation(
-            id
-              ? `/home-island?characterId=${encodeURIComponent(id)}&from=skip-tutorial`
-              : '/home-island?from=skip-tutorial',
-          );
-        } else if (!cancelled) {
-          setLocation(AFTER_TUTORIAL_PATH);
-        }
-      } catch {
-        if (!cancelled) setLocation(AFTER_TUTORIAL_PATH);
-      }
-    })();
-    return () => {
-      cancelled = true;
-    };
-  }, [setLocation]);
+    if (!isAuthenticated) return;
+    const controller = new AbortController();
+    void fetch('/api/island/status', { headers: authHeaders(), signal: controller.signal })
+      .then(async response => {
+        if (!response.ok) return;
+        const status = await response.json();
+        if (controller.signal.aborted || !status.homeIsland) return;
+        markTutorialComplete();
+        setLocation('/home-island' + window.location.search);
+      }).catch(() => {});
+    return () => controller.abort();
+  }, [isAuthenticated, setLocation]);
 
   const canvasRef = useRef<HTMLCanvasElement>(null);
   const engineRef = useRef<Island3DEngine | null>(null);
@@ -207,6 +182,8 @@ export default function TutorialPage() {
   // Handoff: /tutorial?characterId=<uuid>&from=heroes|gcs|foundry|open
 
   useEffect(() => {
+    if (!isAuthenticated) return;
+    let cancelled = false;
     async function load() {
       try {
         const { ensurePlayEntrySession } = await import('@/lib/characterHandoff');
@@ -225,6 +202,7 @@ export default function TutorialPage() {
         }
 
         const char = await characterAPI.get(activeId);
+        if (cancelled) return;
         characterRef.current = char;
         const unarmedChar = {
           ...char,
@@ -239,6 +217,7 @@ export default function TutorialPage() {
         cfg.weaponSlots = {};
         cfg.equippedWeaponType = 'unarmed';
         loadConfigRef.current = cfg;
+        setCharacterReady(true);
 
         setCharacterName(char.name);
         setHeroRace(char.raceId);
@@ -258,22 +237,12 @@ export default function TutorialPage() {
           );
         }
       } catch (err) {
-        console.error('[Tutorial] character load failed', err);
-        const handoff = applyCharacterHandoffFromLocation();
-        if (handoff.characterId) {
-          setLocation(
-            `/home?characterId=${encodeURIComponent(handoff.characterId)}&from=tutorial-load-fail`,
-          );
-        } else {
-          setLocation(
-            '/create-character?returnTo=' +
-              encodeURIComponent('/leviathan-cinema?from=gcs'),
-          );
-        }
+        if (!cancelled) setLoadError(err instanceof Error ? err.message : 'Character could not be loaded.');
       }
     }
-    load();
-  }, [setLocation]);
+    void load();
+    return () => { cancelled = true; };
+  }, [isAuthenticated, setLocation]);
 
   useEffect(() => {
     void flushOfflineHarvestQueue();
@@ -341,6 +310,8 @@ export default function TutorialPage() {
   // World state is shared; tutorial progression/rewards are per character.
 
   useEffect(() => {
+    if (!characterReady || !isAuthenticated) return;
+    let cancelled = false;
     let client: Client | null = null;
     let room: Room | null = null;
 
@@ -356,7 +327,7 @@ export default function TutorialPage() {
 
       try {
         const endpoint = getColyseusEndpoint();
-        client = new Client(endpoint);
+        client = createGameClient(endpoint);
         room = await client.joinOrCreate(MULTIPLAYER_SHIPWRECK.roomName, {
           ...multiplayerShipwreckJoinOptions(),
           characterId,
@@ -380,6 +351,7 @@ export default function TutorialPage() {
             cfg.equippedWeaponType,
           ),
         });
+        if (cancelled) { await room.leave(); return; }
         roomRef.current = room;
         setRoomId(room.roomId);
         setNetworkReady(true);
@@ -544,9 +516,9 @@ export default function TutorialPage() {
           setTimeout(() => setLocation(dest), 2800);
         });
 
-        room.state.enemies?.onAdd?.((enemy: any, id: string) => {
+        getStateCallbacks(room)(room.state).enemies.onAdd?.((enemy: any, id: string) => {
           enemiesRef.current.set(id, { id, x: enemy.x, z: enemy.z, hp: enemy.hp, state: enemy.state });
-          enemy.onChange?.(() => {
+          getStateCallbacks(room)(enemy).onChange(() => {
             enemiesRef.current.set(id, { id, x: enemy.x, z: enemy.z, hp: enemy.hp, state: enemy.state });
             const marker = markerMeshesRef.current.get(`enemy_${id}`);
             if (marker) {
@@ -556,14 +528,14 @@ export default function TutorialPage() {
           });
           addEntityMarker(`enemy_${id}`, enemy.x, enemy.z, 'enemy');
         });
-        room.state.enemies?.onRemove?.((_: any, id: string) => {
+        getStateCallbacks(room)(room.state).enemies.onRemove?.((_: any, id: string) => {
           enemiesRef.current.delete(id);
           removeEntityMarker(`enemy_${id}`);
         });
 
-        room.state.harvestNodes?.onAdd?.((node: any, id: string) => {
+        getStateCallbacks(room)(room.state).harvestNodes.onAdd?.((node: any, id: string) => {
           nodesRef.current.set(id, { id, type: node.resourceType, x: node.x, z: node.z, depleted: node.depleted });
-          node.onChange?.(() => {
+          getStateCallbacks(room)(node).onChange(() => {
             nodesRef.current.set(id, { id, type: node.resourceType, x: node.x, z: node.z, depleted: node.depleted });
           });
         });
@@ -576,8 +548,9 @@ export default function TutorialPage() {
     if (loadConfigRef.current) connect();
 
     return () => {
+      cancelled = true;
       setNetworkReady(false);
-      room?.leave();
+      void room?.leave().catch(() => {});
       roomRef.current = null;
       markerMeshesRef.current.forEach((mesh) => {
         mesh.geometry?.dispose();
@@ -585,7 +558,7 @@ export default function TutorialPage() {
       });
       markerMeshesRef.current.clear();
     };
-  }, [characterName, showNotification, persistProfessionXp, addInventoryItem, setLocation, ally.name]);
+  }, [characterReady, isAuthenticated, characterName, showNotification, persistProfessionXp, addInventoryItem, setLocation, ally.name]);
 
   function addEntityMarker(key: string, x: number, z: number, type: 'enemy' | 'wood' | 'stone') {
     const engine = engineRef.current;
@@ -617,7 +590,8 @@ export default function TutorialPage() {
 
   useEffect(() => {
     const canvas = canvasRef.current;
-    if (!canvas || engineRef.current) return;
+    if (!characterReady || !isAuthenticated || !canvas || engineRef.current) return;
+    let cancelled = false;
 
     // Production tutorial = real pirate-islands lobby map, Shipwreck Cove pocket.
     const config: Island3DEngineConfig = {
@@ -639,10 +613,13 @@ export default function TutorialPage() {
       onHarvest: (evt) => onHarvestRef.current(evt),
     };
 
-    const engine = new Island3DEngine(config);
+    let engine: Island3DEngine;
+    try { engine = new Island3DEngine(config); }
+    catch (error) { setLoadError(error instanceof Error ? error.message : 'Graphics initialization failed.'); return; }
     engineRef.current = engine;
 
     engine.init().then(async () => {
+      if (cancelled) { engine.dispose(); return; }
       setLoaded(true);
       engine.start();
 
@@ -794,7 +771,7 @@ export default function TutorialPage() {
         cinematic.start();
       }
     }).catch((err) => {
-      console.error('[Tutorial] Engine init failed:', err);
+      if (!cancelled) setLoadError(err instanceof Error ? err.message : 'Game assets could not load.');
     });
 
     let raf = 0;
@@ -824,6 +801,12 @@ export default function TutorialPage() {
     };
     raf = requestAnimationFrame(tick);
 
+    const onContextLost = (event: Event) => {
+      event.preventDefault();
+      engine.stop();
+      setLoadError('The graphics context was lost. Retry to reopen the game canvas.');
+    };
+    canvas.addEventListener('webglcontextlost', onContextLost);
     const handleResize = () => engine.resize(window.innerWidth, window.innerHeight);
     window.addEventListener('resize', handleResize);
     const onKey = (e: KeyboardEvent) => {
@@ -843,6 +826,9 @@ export default function TutorialPage() {
     };
     window.addEventListener('keydown', onKey);
     return () => {
+      cancelled = true;
+      canvas.removeEventListener('webglcontextlost', onContextLost);
+      setLoaded(false);
       cancelAnimationFrame(raf);
       window.removeEventListener('resize', handleResize);
       window.removeEventListener('keydown', onKey);
@@ -855,7 +841,7 @@ export default function TutorialPage() {
       engine.dispose();
       engineRef.current = null;
     };
-  }, [heroRace, heroClass]);
+  }, [characterReady, isAuthenticated]);
 
   // ── Multiplayer remote Grudge6 characters ─────────────────────
 
@@ -868,7 +854,7 @@ export default function TutorialPage() {
     rpmRef.current = rpm;
     const unregister = engine.onUpdate((dt) => rpm.update(dt));
 
-    room.state.players?.onAdd?.((player: any, sessionId: string) => {
+    getStateCallbacks(room)(room.state).players.onAdd?.((player: any, sessionId: string) => {
       setPlayerCount(room.state.players.size);
       if (sessionId === localId) return;
       rpm.addPlayer(sessionId, {
@@ -892,7 +878,7 @@ export default function TutorialPage() {
         armorColor: player.armorColor || '#ffffff',
         equippedWeaponType: player.equippedWeaponType || 'unarmed',
       });
-      player.onChange?.(() => {
+      getStateCallbacks(room)(player).onChange(() => {
         rpm.updatePlayer(sessionId, {
           x: player.x,
           y: player.y,
@@ -903,7 +889,7 @@ export default function TutorialPage() {
       });
     });
 
-    room.state.players?.onRemove?.((_player: any, sessionId: string) => {
+    getStateCallbacks(room)(room.state).players.onRemove?.((_player: any, sessionId: string) => {
       setPlayerCount(room.state.players.size);
       rpm.removePlayer(sessionId);
     });
@@ -1093,10 +1079,14 @@ export default function TutorialPage() {
     showNotification('MainHand cleared');
   };
 
+  if (loadError) return <GameRecovery message={loadError} />;
+  if (authLoading) return <main className="min-h-screen bg-slate-950 text-white grid place-items-center">Checking your account…</main>;
+  if (!isAuthenticated) return <main className="min-h-screen bg-slate-950 text-white grid place-items-center"><button onClick={() => openLogin('/tutorial' + window.location.search)}>Sign in to enter Shipwreck Cove</button></main>;
   return (
     <div className="fixed inset-0 bg-black">
       <canvas
         ref={canvasRef}
+        onContextMenu={event => event.preventDefault()}
         className="w-full h-full"
         onClick={(e) => {
           if (wakeCinematicRef.current?.active) return;

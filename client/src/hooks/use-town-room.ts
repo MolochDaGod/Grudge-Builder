@@ -1,3 +1,6 @@
+import { CharacterManager } from '@/lib/characterManager';
+import { createGameClient } from '@/lib/gameClient';
+import { getStateCallbacks } from '@colyseus/sdk';
 /**
  * useTownRoom — Colyseus hook for faction town instances.
  *
@@ -15,7 +18,7 @@
  *   - leaveTown()
  */
 import { useState, useEffect, useRef, useCallback } from 'react';
-import { Client, Room } from 'colyseus.js';
+import { Client, Room } from '@colyseus/sdk';
 import { getColyseusEndpoint } from '@/lib/colyseusEndpoint';
 
 // ── Types ────────────────────────────────────────────────────────
@@ -64,6 +67,7 @@ export interface TownRoomState {
 }
 
 interface TownJoinOptions {
+  characterId?: string;
   sectorId: string;
   accountId?: string;
   characterName?: string;
@@ -102,10 +106,11 @@ export function useTownRoom(options: TownJoinOptions | null) {
 
       try {
         const endpoint = getColyseusEndpoint();
-        const client = new Client(endpoint);
+        const client = createGameClient(endpoint);
         clientRef.current = client;
 
         room = await client.joinOrCreate('town', {
+          characterId: options!.characterId || CharacterManager.getActiveId(),
           sectorId: options!.sectorId,
           accountId: options!.accountId || '',
           characterName: options!.characterName || 'Traveler',
@@ -125,7 +130,7 @@ export function useTownRoom(options: TownJoinOptions | null) {
         }));
 
         // ── Sync NPCs ──────────────────────────────────────────
-        room.state.npcs.onAdd((npc: any, id: string) => {
+        getStateCallbacks(room)(room.state).npcs.onAdd((npc: any, id: string) => {
           setState(s => {
             const npcs = new Map(s.npcs);
             npcs.set(id, {
@@ -135,7 +140,7 @@ export function useTownRoom(options: TownJoinOptions | null) {
             return { ...s, npcs };
           });
 
-          npc.onChange(() => {
+          getStateCallbacks(room)(npc).onChange(() => {
             setState(s => {
               const npcs = new Map(s.npcs);
               npcs.set(id, {
@@ -148,7 +153,7 @@ export function useTownRoom(options: TownJoinOptions | null) {
         });
 
         // ── Sync harvest nodes ─────────────────────────────────
-        room.state.harvestNodes?.onAdd?.((node: any, id: string) => {
+        getStateCallbacks(room)(room.state).harvestNodes.onAdd?.((node: any, id: string) => {
           setState(s => {
             const harvestNodes = new Map(s.harvestNodes);
             harvestNodes.set(id, {
@@ -158,7 +163,7 @@ export function useTownRoom(options: TownJoinOptions | null) {
             return { ...s, harvestNodes };
           });
 
-          node.onChange(() => {
+          getStateCallbacks(room)(node).onChange(() => {
             setState(s => {
               const harvestNodes = new Map(s.harvestNodes);
               harvestNodes.set(id, {
@@ -171,7 +176,7 @@ export function useTownRoom(options: TownJoinOptions | null) {
         });
 
         // ── Sync players ───────────────────────────────────────
-        room.state.players.onAdd((player: any, sessionId: string) => {
+        getStateCallbacks(room)(room.state).players.onAdd((player: any, sessionId: string) => {
           setState(s => {
             const players = new Map(s.players);
             players.set(sessionId, {
@@ -184,7 +189,7 @@ export function useTownRoom(options: TownJoinOptions | null) {
             return { ...s, players };
           });
 
-          player.onChange(() => {
+          getStateCallbacks(room)(player).onChange(() => {
             setState(s => {
               const players = new Map(s.players);
               players.set(sessionId, {
@@ -199,7 +204,7 @@ export function useTownRoom(options: TownJoinOptions | null) {
           });
         });
 
-        room.state.players.onRemove((_: any, sessionId: string) => {
+        getStateCallbacks(room)(room.state).players.onRemove((_: any, sessionId: string) => {
           setState(s => {
             const players = new Map(s.players);
             players.delete(sessionId);

@@ -1,3 +1,4 @@
+import { getStateCallbacks } from '@colyseus/sdk';
 /**
  * useZoneColyseus — Colyseus multiplayer bridge for Island3D zone mode.
  *
@@ -76,7 +77,7 @@ export function useZoneColyseus({
     const unregister = engine.onUpdate((dt) => rpm.update(dt));
     const room = colyseus.sectorRoom;
 
-    room.state.players.onAdd((player: any, sessionId: string) => {
+    getStateCallbacks(room)(room.state).players.onAdd((player: any, sessionId: string) => {
       if (sessionId === colyseus.localSessionId) return;
       rpm.addPlayer(sessionId, {
         id: player.id,
@@ -96,7 +97,7 @@ export function useZoneColyseus({
         armorColor: player.armorColor,
         equippedWeaponType: player.equippedWeaponType,
       });
-      player.onChange(() => {
+      getStateCallbacks(room)(player).onChange(() => {
         rpm.updatePlayer(sessionId, {
           x: player.x, y: player.y, z: player.z,
           facing: player.facing,
@@ -106,7 +107,7 @@ export function useZoneColyseus({
       });
     });
 
-    room.state.players.onRemove((_player: any, sessionId: string) => {
+    getStateCallbacks(room)(room.state).players.onRemove((_player: any, sessionId: string) => {
       rpm.removePlayer(sessionId);
     });
 
@@ -126,9 +127,9 @@ export function useZoneColyseus({
       syncHarvestNodeDepleted(engine, id, node.depleted);
     };
 
-    room.state.harvestNodes?.onAdd?.((node: any, id: string) => {
+    getStateCallbacks(room)(room.state).harvestNodes.onAdd?.((node: any, id: string) => {
       applyNode(node, id);
-      node.onChange(() => applyNode(node, id));
+      getStateCallbacks(room)(node).onChange(() => applyNode(node, id));
     });
 
     room.state.harvestNodes?.forEach?.((node: any, id: string) => {

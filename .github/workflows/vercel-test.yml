@@ -15,9 +15,10 @@ concurrency:
 jobs:
   deploy-test:
     runs-on: ubuntu-latest
-    timeout-minutes: 40
+    timeout-minutes: 60
     env:
       VERCEL_TOKEN: ${{ secrets.VERCEL_TOKEN }}
+      RAILWAY_TOKEN: ${{ secrets.RAILWAY_TOKEN }}
       VERCEL_ORG_ID: team_VZ7uiFGiR9QBdqtzne04xygG
       VERCEL_PROJECT_ID: prj_AT8CcdGZRjg838A2B0EyYtw65Fvb
       GRUDGE_MONOREPO_GIT_TOKEN: ${{ secrets.GRUDGE_MONOREPO_GIT_TOKEN }}
@@ -49,6 +50,41 @@ jobs:
         env:
           NODE_OPTIONS: --max-old-space-size=6144
         run: vercel build --token "$VERCEL_TOKEN"
+      - name: Verify multiplayer protocol and graphics preflight
+        run: node --import tsx --test scripts/test-warlords-lobby.mjs
+      - name: Build compatible server
+        run: npm run build:server
+      - name: Stamp client release identity
+        run: |
+          node --input-type=module <<'JS'
+          import fs from 'node:fs';
+          fs.writeFileSync('.vercel/output/static/release.json', JSON.stringify({ commit: process.env.GITHUB_SHA, builtAt: new Date().toISOString(), target: 'test.grudge-studio.com' }));
+          JS
+      - name: Deploy compatible multiplayer server
+        run: |
+          set -euo pipefail
+          if [ -z "$RAILWAY_TOKEN" ]; then
+            echo 'RAILWAY_TOKEN is missing. Compatible server deployment is required before publishing the multiplayer client.'
+            exit 1
+          fi
+          npx --yes @railway/cli@5.49.2 up --ci \
+            --project 92f039ec-2cce-4e1e-b06a-dd0ac6256d70 \
+            --environment production --service grudge-api \
+            --message "Warlords compatibility $GITHUB_SHA"
+      - name: Verify new room protocol is live
+        run: |
+          node --input-type=module <<'JS'
+          const url = 'https://grudge-api-production-0d46.up.railway.app/api/colyseus/health';
+          let ready = false;
+          for (let attempt = 0; attempt < 24; attempt++) {
+            const response = await fetch(url, { signal: AbortSignal.timeout(10000) }).catch(() => null);
+            const data = response?.ok ? await response.json() : null;
+            if (data?.matchMakerReady && data?.definedRooms?.includes('custom_lobby') && data?.definedRooms?.includes('game_lobby')) { ready = true; break; }
+            await new Promise(resolve => setTimeout(resolve, 5000));
+          }
+          if (!ready) throw new Error('The compatible multiplayer server is not ready; test alias was not changed.');
+          console.log('Verified game_lobby and custom_lobby on the live multiplayer server.');
+          JS
       - name: Deploy preview and verify before assigning test domain
         run: |
           set -euo pipefail

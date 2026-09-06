@@ -50,31 +50,16 @@ export async function fetchPlayReadiness(): Promise<PlayReadiness> {
 
   let hasHomeIsland = false;
   let islandSeed: string | null = null;
-  let hasCharacter = !!activeCharacterId;
-  let resolvedActiveId = activeCharacterId;
-
-  try {
-    const res = await fetch('/api/island/status', { headers: authHeaders() });
-    if (res.ok) {
-      const data = await res.json();
-      hasHomeIsland = !!data.homeIsland;
-      islandSeed = data.seed ?? null;
-    }
-  } catch { /* offline */ }
-
-  if (!hasCharacter) {
-    try {
-      const envelope = await characterAPI.getEnvelope(WARLORDS_ERA);
-      if (envelope.characters.length > 0) {
-        hasCharacter = true;
-        const eraActive = envelope.eraSlots?.warlords?.activeCharacterId;
-        resolvedActiveId =
-          eraActive && envelope.characters.some((c) => c.id === eraActive)
-            ? eraActive
-            : envelope.characters[0].id;
-      }
-    } catch { /* offline */ }
-  }
+  // A cached UUID is never proof that this account owns a playable hero.
+  const envelope = await characterAPI.getEnvelope(WARLORDS_ERA);
+  const eraActive = envelope.eraSlots?.warlords?.activeCharacterId;
+  const resolvedActiveId = [eraActive, activeCharacterId].find(id => id && envelope.characters.some(c => c.id === id)) || envelope.characters[0]?.id || null;
+  const hasCharacter = !!resolvedActiveId;
+  const res = await fetch('/api/island/status', { headers: authHeaders() });
+  if (!res.ok) throw new Error(`Island status unavailable (HTTP ${res.status})`);
+  const data = await res.json();
+  hasHomeIsland = data.homeIsland === true;
+  islandSeed = data.seed ?? null;
 
   return {
     signedIn: true,

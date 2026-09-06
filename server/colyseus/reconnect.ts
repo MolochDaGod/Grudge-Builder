@@ -7,7 +7,7 @@
  *
  * Docs: docs/INDUSTRY_BEST_PRACTICES_MP_PERF.md
  */
-import type { Client, Room } from "colyseus";
+import { CloseCode, type Client, type Room } from "colyseus";
 
 /** Combat / zone rejoin window (seconds) */
 export const RECONNECT_SECONDS = 60;
@@ -25,12 +25,12 @@ export const RECONNECT_SECONDS_LOBBY = 30;
 export async function leaveWithReconnect(
   room: Room,
   client: Client,
-  consented: boolean | undefined,
+  consented: number | boolean | undefined,
   onDrop: () => void,
   onRejoined?: () => void,
   seconds: number = RECONNECT_SECONDS,
 ): Promise<void> {
-  if (consented) {
+  if (consented === true || consented === CloseCode.CONSENTED) {
     onDrop();
     return;
   }

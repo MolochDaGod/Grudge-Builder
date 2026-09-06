@@ -1,3 +1,5 @@
+import { createGameClient } from '@/lib/gameClient';
+import { getStateCallbacks } from '@colyseus/sdk';
 /**
  * NetworkManager — single multiplayer facade for Warlords zones / home / lobby.
  *
@@ -10,7 +12,7 @@
  *
  * Does not replace Colyseus rooms — wraps them with best practices.
  */
-import { Client, Room } from 'colyseus.js';
+import { Client, Room } from '@colyseus/sdk';
 import { getColyseusEndpoint } from '@/lib/colyseusEndpoint';
 import { resolveZoneSectorId } from '@shared/definitions/sectorBridge';
 import {
@@ -75,7 +77,7 @@ export class NetworkManager {
   // ── REST bootstrap ───────────────────────────────────────────────────────
 
   async fetchSession(sectorId?: string): Promise<MultiplayerSessionInfo> {
-    const base = (FLEET_URLS.gameData || GAME_DATA_API || '').replace(/\/$/, '');
+    const base = '';
     const q = sectorId ? `?sector=${encodeURIComponent(sectorId)}` : '';
     try {
       const res = await fetch(`${base}/api/multiplayer/session${q}`, {
@@ -101,7 +103,7 @@ export class NetworkManager {
       protocolVersion: SYNC_PROTOCOL_VERSION,
       colyseusUrl: getColyseusEndpoint(),
       rooms: ['sector', 'home_island', 'lobby', 'world', 'town', 'dungeon', 'tutorial'],
-      matchMakerReady: true,
+      matchMakerReady: false,
       recommendedSendHz: NETWORK_RATES.moveHz,
       assetCdn: FLEET_URLS.assets || 'https://assets.grudge-studio.com',
       sectorPreload: ['human', 'elf', 'orc', 'dwarf', 'barbarian', 'undead'],
@@ -158,7 +160,7 @@ export class NetworkManager {
   async connectWorld(player: NetworkPlayerJoin): Promise<void> {
     await this.fetchSession();
     const endpoint = this.session?.colyseusUrl || getColyseusEndpoint();
-    this.client = new Client(endpoint);
+    this.client = createGameClient(endpoint);
     this.worldRoom = await this.client.joinOrCreate('world', {
       characterName: player.characterName,
       heroClass: player.heroClass,
@@ -280,33 +282,33 @@ export class NetworkManager {
   }
 
   private wireSectorRoom(room: Room): void {
-    room.state.players?.onAdd?.((player: any, sessionId: string) => {
+    getStateCallbacks(room)(room.state).players.onAdd?.((player: any, sessionId: string) => {
       this.emit('playerAdd', { sessionId, player });
       // Preload remote race mesh at priority 1
       if (sessionId !== this.sessionId && player.heroRace) {
         void AssetLoadQueue.loadRaceModel(player.heroRace, 1);
       }
-      player.onChange?.(() => {
+      getStateCallbacks(room)(player).onChange(() => {
         this.emit('playerChange', { sessionId, player });
       });
     });
-    room.state.players?.onRemove?.((_p: any, sessionId: string) => {
+    getStateCallbacks(room)(room.state).players.onRemove?.((_p: any, sessionId: string) => {
       this.emit('playerRemove', { sessionId });
     });
 
-    room.state.buildings?.onAdd?.((building: any, id: string) => {
+    getStateCallbacks(room)(room.state).buildings.onAdd?.((building: any, id: string) => {
       this.emit('buildingAdd', { id, building });
     });
-    room.state.buildings?.onRemove?.((_b: any, id: string) => {
+    getStateCallbacks(room)(room.state).buildings.onRemove?.((_b: any, id: string) => {
       this.emit('buildingRemove', { id });
     });
     room.state.buildings?.forEach?.((building: any, id: string) => {
       this.emit('buildingAdd', { id, building });
     });
 
-    room.state.harvestNodes?.onAdd?.((node: any, id: string) => {
+    getStateCallbacks(room)(room.state).harvestNodes.onAdd?.((node: any, id: string) => {
       this.emit('harvest', { nodeId: id, depleted: !!node.depleted });
-      node.onChange?.(() => {
+      getStateCallbacks(room)(node).onChange(() => {
         this.emit('harvest', { nodeId: id, depleted: !!node.depleted });
       });
     });

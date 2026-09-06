@@ -154,7 +154,7 @@ function setFleetCookie(name: string, value: string, maxAge = COOKIE_MAX_AGE): v
 
 /** Claim Railway session from cookie or refresh JWT into local fleet keys. */
 export async function ensureFleetSessionClaim(): Promise<boolean> {
-  if (typeof window === "undefined") return false;
+  if (typeof window === "undefined" || isAuthRejected()) return false;
   if (isAuthenticated()) {
     // Refresh profile / ensure cookie mirror
     try {
@@ -268,6 +268,7 @@ let authRejectedThisLoad = false;
 
 export function markAuthRejected(): void {
   authRejectedThisLoad = true;
+  if (typeof window !== 'undefined') window.dispatchEvent(new Event('grudge:auth:rejected'));
 }
 
 export function isAuthRejected(): boolean {
@@ -756,6 +757,7 @@ const EMPTY_WALLET_OVERVIEW: WalletOverview = {
 };
 
 export async function fetchWalletOverview(): Promise<WalletOverview> {
+  if (!getToken()) return { ...EMPTY_WALLET_OVERVIEW };
   const res = await fetch(`${API_BASE}/wallet/overview`, { headers: authHeaders() });
   // Guest / expired JWT — quiet empty shell (do not throw → no console red on public pages)
   if (res.status === 401 || res.status === 403) return { ...EMPTY_WALLET_OVERVIEW };
@@ -951,33 +953,34 @@ export async function loginWithPuterSDK(): Promise<AuthResponse> {
 
 // ── Token verification ───────────────────────────────────────────────
 
-export async function verifyToken(): Promise<{
-  valid: boolean;
-  grudgeId?: string;
-  username?: string;
-}> {
+type TokenVerification = { valid: boolean; grudgeId?: string; username?: string };
+let verification: { token: string; until: number; promise: Promise<TokenVerification> } | null = null;
+
+/** Local token presence is a hint; only the identity service verifies a session. */
+export async function verifyToken(): Promise<TokenVerification> {
   const token = getToken();
   if (!token) return { valid: false };
-
-  // Client-side only validation (No separate backend). If it's a JWT, check expiry.
-  try {
-    const parts = token.split(".");
-    if (parts.length === 3) {
-      const payload = JSON.parse(atob(parts[1]));
-      if (payload.exp && payload.exp * 1000 < Date.now()) {
-        console.warn("[Auth] Token expired, logging out");
-        logout();
-        return { valid: false };
-      }
+  if (verification?.token === token && verification.until > Date.now()) return verification.promise;
+  const promise = (async (): Promise<TokenVerification> => {
+    const response = await fetch('/api/auth/verify', {
+      headers: { Authorization: `Bearer ${token}` },
+      credentials: 'include',
+      signal: AbortSignal.timeout(10000),
+    });
+    if (!response.ok) throw new Error(`Account verification failed (HTTP ${response.status})`);
+    const result = await response.json();
+    if (getToken() !== token) return { valid: false };
+    if (result.valid !== true) {
+      markAuthRejected();
+      return { valid: false };
     }
-  } catch {
-    // Not a JWT — treat any non-empty token as valid (Puter session tokens aren't JWTs)
-  }
-
-  // Token exists and isn't expired — valid
-  const grudgeId = localStorage.getItem("grudge_id") || undefined;
-  const username = localStorage.getItem("grudge_username") || undefined;
-  return { valid: true, grudgeId, username };
+    if (result.grudgeId) localStorage.setItem('grudge_id', result.grudgeId);
+    if (result.username) localStorage.setItem('grudge_username', result.username);
+    return { valid: true, grudgeId: result.grudgeId, username: result.username };
+  })();
+  verification = { token, until: Date.now() + 60000, promise };
+  try { return await promise; }
+  catch (error) { if (verification?.promise === promise) verification = null; throw error; }
 }
 
 // ── Periodic token re-verification (every 5 minutes) ─────────────────
