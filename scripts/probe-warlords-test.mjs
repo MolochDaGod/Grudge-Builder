@@ -1,0 +1,47 @@
+/** Read-only HTTP readiness gate. Does not claim gameplay or load-test coverage. */
+const origin = new URL(process.argv[2] || 'https://test.grudge-studio.com');
+if (origin.protocol !== 'https:' || origin.username || origin.password ||
+    !(origin.hostname === 'test.grudge-studio.com' || origin.hostname.endsWith('.vercel.app'))) {
+  throw new Error('Expected the stable test origin or an HTTPS Vercel preview URL.');
+}
+const headers = {};
+if (process.env.VERCEL_AUTOMATION_BYPASS_SECRET) {
+  headers['x-vercel-protection-bypass'] = process.env.VERCEL_AUTOMATION_BYPASS_SECRET;
+}
+const checks = [
+  ['/intro', 'html'],
+  ['/tutorial', 'html'],
+  ['/home-island', 'html'],
+  ['/world-map', 'html'],
+  ['/play?sector=haven_shore&mode=zone&city=haven_port', 'html'],
+  ['/lore', 'html'],
+  ['/api/health', 'json'],
+  ['/api/colyseus/health', 'json'],
+];
+const results = await Promise.allSettled(checks.map(async ([path, kind]) => {
+  const response = await fetch(new URL(path, origin.origin), {
+    headers, redirect: 'manual', signal: AbortSignal.timeout(20000),
+  });
+  if (response.status !== 200) throw new Error(`${path}: HTTP ${response.status}`);
+  const mime = response.headers.get('content-type') || '';
+  if (!mime.includes(kind === 'json' ? 'application/json' : 'text/html')) {
+    throw new Error(`${path}: unexpected content type (possible SPA fallback)`);
+  }
+  if (kind === 'json') {
+    const data = await response.json();
+    if (!data || typeof data !== 'object' || Array.isArray(data) ||
+        data.error || data.ok === false || data.success === false ||
+        ['error', 'unhealthy', 'degraded', 'down'].includes(data.status)) {
+      throw new Error(`${path}: service reports unhealthy response`);
+    }
+  } else {
+    const html = await response.text();
+    if (!html.includes('<script') || !/id=["']root["']/.test(html)) {
+      throw new Error(`${path}: expected React game shell`);
+    }
+  }
+  console.log(`PASS ${path}`);
+}));
+const failures = results.filter(r => r.status === 'rejected');
+for (const failure of failures) console.error(failure.reason.message);
+if (failures.length) process.exitCode = 1;
