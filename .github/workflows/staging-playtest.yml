@@ -12,6 +12,7 @@ on:
       - "production/**"
       - "vercel.json"
       - "vite.config.ts"
+      - "vitest.staging.config.ts"
       - "railway.json"
       - "nixpacks.toml"
       - "package.json"
@@ -41,7 +42,6 @@ jobs:
         with:
           sparse-checkout: |
             shared
-            client/vite
 
       - uses: actions/setup-node@v4
         with:
@@ -52,7 +52,7 @@ jobs:
         run: npm install --legacy-peer-deps --include=dev
 
       - name: Verify multiplayer Shipwreck contract
-        run: npx vitest run shared/definitions/multiplayerTutorial.test.ts
+        run: npx vitest run --config vitest.staging.config.ts
 
   railway-staging:
     name: Railway staging sandbox
@@ -104,9 +104,6 @@ jobs:
       - name: Force safe sandbox mode
         run: |
           set -eu
-          # The server intentionally enters SANDBOX_MODE when DATABASE_URL is absent.
-          # This keeps Colyseus/scene/gameplay networking live while preventing
-          # staging playtests from writing account/inventory data to production.
           railway variable delete DATABASE_URL \
             --service "${RAILWAY_SERVICE}" \
             --environment "${RAILWAY_STAGING_ENVIRONMENT}" \
