@@ -14,7 +14,7 @@ const checks = [
   ['/home-island', 'html'],
   ['/world-map', 'html'],
   ['/play?sector=haven_shore&mode=zone&city=haven_port', 'html'],
-  ['/lore', 'html'],
+  ['/lore', 'lore'],
   ['/api/health', 'json'],
   ['/api/colyseus/health', 'json'],
 ];
@@ -36,7 +36,12 @@ const results = await Promise.allSettled(checks.map(async ([path, kind]) => {
     }
   } else {
     const html = await response.text();
-    if (!html.includes('<script') || !/id=["']root["']/.test(html)) {
+    if (kind === 'lore') {
+      if (!html.includes('Lore Library | Grudge Studio') ||
+          !html.includes('/lore/tome-of-seasons-and-gods.html')) {
+        throw new Error(`${path}: expected canonical lore library and Black Tome link`);
+      }
+    } else if (!html.includes('<script') || !/id=["']root["']/.test(html)) {
       throw new Error(`${path}: expected React game shell`);
     }
   }
