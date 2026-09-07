@@ -39,6 +39,11 @@ jobs:
       - name: Run client acceptance tests
         run: npm run test:client -- --run
       - name: Verify production route contract
+        # The stable test alias may intentionally point at the previous green
+        # release while this candidate is being validated. The exact SHA is
+        # checked again on the staged preview and after promotion below.
+        env:
+          GITHUB_SHA: ''
         run: node scripts/probe-warlords-test.mjs https://test.grudge-studio.com
 
   deploy-api:
