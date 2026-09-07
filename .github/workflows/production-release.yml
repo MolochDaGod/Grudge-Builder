@@ -44,6 +44,7 @@ jobs:
         # checked again on the staged preview and after promotion below.
         env:
           GITHUB_SHA: ''
+          PROBE_EXPECT_RELEASE: 'false'
         run: node scripts/probe-warlords-test.mjs https://test.grudge-studio.com
 
   deploy-api:
