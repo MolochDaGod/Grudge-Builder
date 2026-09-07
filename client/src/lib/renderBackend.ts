@@ -221,7 +221,7 @@ export async function tryCreateWebGPURenderer(
       canvas: opts.canvas,
       antialias: opts.antialias !== false,
       alpha: !!opts.alpha,
-      powerPreference: opts.powerPreference ?? "high-performance",
+      powerPreference: opts.powerPreference === "default" ? undefined : opts.powerPreference ?? "high-performance",
     });
     await r.init();
     return r;
