@@ -177,8 +177,8 @@ export function createWebGLPlayRenderer(
   const canvas = opts.canvas ?? document.createElement("canvas");
   let gl: WebGL2RenderingContext | null = null;
   try {
-    gl = canvas.getContext("webgl2", common);
-    if (!gl) gl = canvas.getContext("webgl2", { ...common, antialias: false, powerPreference: "default" });
+    gl = canvas.getContext("webgl2", common) as WebGL2RenderingContext | null;
+    if (!gl) gl = canvas.getContext("webgl2", { ...common, antialias: false, powerPreference: "default" }) as WebGL2RenderingContext | null;
     assertUsableWebGL2(gl);
   } catch (error) {
     throw new Error("WebGL2 is unavailable on this canvas. Enable hardware acceleration and retry.");
@@ -215,9 +215,7 @@ export async function tryCreateWebGPURenderer(
   const caps = await detectRenderCapabilities();
   if (!caps.webgpu) return null;
   try {
-    const mod = await import("three/webgpu");
-    const WebGPURenderer = (mod as { WebGPURenderer: new (o: object) => { init: () => Promise<void> } })
-      .WebGPURenderer;
+    const { WebGPURenderer } = await import("three/webgpu");
     if (!WebGPURenderer) return null;
     const r = new WebGPURenderer({
       canvas: opts.canvas,

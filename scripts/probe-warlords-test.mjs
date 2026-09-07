@@ -4,12 +4,17 @@ if (origin.protocol !== 'https:' || origin.username || origin.password ||
     !(origin.hostname === 'test.grudge-studio.com' || origin.hostname.endsWith('.vercel.app'))) {
   throw new Error('Expected the stable test origin or an HTTPS Vercel preview URL.');
 }
-const headers = {};
+const headers = { 'Cache-Control': 'no-cache' };
 if (process.env.VERCEL_AUTOMATION_BYPASS_SECRET) {
   headers['x-vercel-protection-bypass'] = process.env.VERCEL_AUTOMATION_BYPASS_SECRET;
 }
 const checks = [
   ['/intro', 'html'],
+  ['/lobby', 'html'],
+  ['/lobby/maps', 'html'],
+  ['/account', 'html'],
+  ['/deployments', 'html'],
+  ['/release.json', 'release'],
   ['/tutorial', 'html'],
   ['/home-island', 'html'],
   ['/world-map', 'html'],
@@ -24,11 +29,14 @@ const results = await Promise.allSettled(checks.map(async ([path, kind]) => {
   });
   if (response.status !== 200) throw new Error(`${path}: HTTP ${response.status}`);
   const mime = response.headers.get('content-type') || '';
-  if (!mime.includes(kind === 'json' ? 'application/json' : 'text/html')) {
+  if (!mime.includes(['json', 'release'].includes(kind) ? 'application/json' : 'text/html')) {
     throw new Error(`${path}: unexpected content type (possible SPA fallback)`);
   }
-  if (kind === 'json') {
+  if (kind === 'json' || kind === 'release') {
     const data = await response.json();
+    if (kind === 'release' && process.env.GITHUB_SHA && data.commit !== process.env.GITHUB_SHA) {
+      throw new Error(`${path}: deployment commit does not match this build`);
+    }
     if (!data || typeof data !== 'object' || Array.isArray(data) ||
         data.error || data.ok === false || data.success === false ||
         ['error', 'unhealthy', 'degraded', 'down'].includes(data.status)) {

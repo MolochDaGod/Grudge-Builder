@@ -129,7 +129,7 @@ export default function TutorialPage() {
   const [loaded, setLoaded] = useState(false);
   const [networkReady, setNetworkReady] = useState(false);
   const [playerCount, setPlayerCount] = useState(1);
-  const [maxPlayers, setMaxPlayers] = useState(MULTIPLAYER_SHIPWRECK.maxPlayers);
+  const [maxPlayers, setMaxPlayers] = useState<number>(MULTIPLAYER_SHIPWRECK.maxPlayers);
   const [roomId, setRoomId] = useState<string | null>(null);
   const [steps, setSteps] = useState<TutorialStep[]>(() =>
     TUTORIAL_STEPS.map((step) => ({ id: step.id, title: step.title, completed: false })),
@@ -353,6 +353,7 @@ export default function TutorialPage() {
         });
         if (cancelled) { await room.leave(); return; }
         roomRef.current = room;
+        const callbacks = getStateCallbacks(room);
         setRoomId(room.roomId);
         setNetworkReady(true);
 
@@ -516,9 +517,9 @@ export default function TutorialPage() {
           setTimeout(() => setLocation(dest), 2800);
         });
 
-        getStateCallbacks(room)(room.state).enemies.onAdd?.((enemy: any, id: string) => {
+        callbacks(room.state).enemies.onAdd?.((enemy: any, id: string) => {
           enemiesRef.current.set(id, { id, x: enemy.x, z: enemy.z, hp: enemy.hp, state: enemy.state });
-          getStateCallbacks(room)(enemy).onChange(() => {
+          callbacks(enemy).onChange(() => {
             enemiesRef.current.set(id, { id, x: enemy.x, z: enemy.z, hp: enemy.hp, state: enemy.state });
             const marker = markerMeshesRef.current.get(`enemy_${id}`);
             if (marker) {
@@ -528,14 +529,14 @@ export default function TutorialPage() {
           });
           addEntityMarker(`enemy_${id}`, enemy.x, enemy.z, 'enemy');
         });
-        getStateCallbacks(room)(room.state).enemies.onRemove?.((_: any, id: string) => {
+        callbacks(room.state).enemies.onRemove?.((_: any, id: string) => {
           enemiesRef.current.delete(id);
           removeEntityMarker(`enemy_${id}`);
         });
 
-        getStateCallbacks(room)(room.state).harvestNodes.onAdd?.((node: any, id: string) => {
+        callbacks(room.state).harvestNodes.onAdd?.((node: any, id: string) => {
           nodesRef.current.set(id, { id, type: node.resourceType, x: node.x, z: node.z, depleted: node.depleted });
-          getStateCallbacks(room)(node).onChange(() => {
+          callbacks(node).onChange(() => {
             nodesRef.current.set(id, { id, type: node.resourceType, x: node.x, z: node.z, depleted: node.depleted });
           });
         });

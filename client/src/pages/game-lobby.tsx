@@ -93,7 +93,7 @@ export default function GameLobby() {
       room.onMessage('chat', (message: Chat) => setMessages(current => [...current, message].slice(-80)));
       room.onMessage('notice', (text: string) => setNotice(text));
       room.onMessage('launch', (path: string) => {
-        if (!path.startsWith('/play?')) return;
+        if (roomRef.current !== room || ticket !== generation.current || !path.startsWith('/play?')) return;
         navigate(path);
       });
       room.onDrop(() => setConnection('Reconnecting…'));
@@ -115,7 +115,10 @@ export default function GameLobby() {
   }, [navigate]);
 
   useEffect(() => {
-    if (!isAuthenticated) return;
+    if (!isAuthenticated) {
+      setCouncil(null); setMessages([]); setConnection('Sign in to join chat'); setBusy(false);
+      return;
+    }
     const invitation = new URLSearchParams(window.location.search).get('room');
     if (invitation && rosterLoading) return;
     void join(invitation ? 'join' : 'general', invitation ? { roomId: invitation } : {});
@@ -125,7 +128,7 @@ export default function GameLobby() {
       roomRef.current = null;
       void room?.leave().catch(() => {});
     };
-  }, [isAuthenticated, join, rosterLoading]);
+  }, [isAuthenticated, user?.grudgeId, join, rosterLoading]);
 
   async function continueGame() {
     if (!isAuthenticated) { openLogin('/lobby'); return; }
@@ -173,7 +176,7 @@ export default function GameLobby() {
             const active = rooms.filter(r => r.name === 'sector' && r.metadata?.sectorId === s.id);
             const count = active.reduce((sum, r) => sum + r.clients, 0);
             return <button className={selected === s.id ? 'selected' : ''} key={s.id} onClick={() => setSelected(s.id)}><span className={`war-map-dot biome-${s.biome}`} /><span><strong>{s.name}</strong><small>{s.biome} · {serviceReady ? active.length ? `${active.length} active shard${active.length > 1 ? 's' : ''}` : 'Opens on entry' : 'Status unavailable'}</small></span><b>{serviceReady ? `${count} players` : '—'}</b></button>;
-          })}</div> : <div className="war-sector-list">{!customRooms.length && <p className="war-empty">{serviceReady ? 'No public custom games are waiting. Create a game for your crew.' : 'The room list is unavailable.'}</p>}{customRooms.map(room => <button key={room.roomId} disabled={busy || !isAuthenticated || !activeCharacter} onClick={() => void join('join', { roomId: room.roomId })}><span><strong>{room.metadata?.title || room.roomId}</strong><small>{room.metadata?.sectorId?.replaceAll('_', ' ')}</small></span><b>{room.clients}/{room.maxClients} · Join</b></button>)}</div>}
+          })}</div> : <div className="war-sector-list">{!customRooms.length && <p className="war-empty">{serviceReady ? 'No public custom games are waiting. Create a game for your crew.' : 'The room list is unavailable.'}</p>}{customRooms.map(room => <button key={room.roomId} disabled={busy || !isAuthenticated || !activeCharacter} onClick={() => void join('join', { roomId: room.roomId })}><span><strong>{room.metadata?.title || room.roomId}</strong><small>{room.metadata?.sectorId?.replace(/_/g, ' ')}</small></span><b>{room.clients}/{room.maxClients} · Join</b></button>)}</div>}
         </section>
         <section className="war-panel war-map-details"><div className={`war-map-banner biome-${sector.biome}`}><span className="war-eyebrow">{sector.biome} FRONTIER</span><h2>{sector.name}</h2><span>Warlords open world</span></div><div className="war-map-copy"><p>{sector.description}</p><blockquote>{sector.lore}</blockquote><div className="war-actions"><button className="war-primary" disabled={busy || !serviceReady} onClick={enterSector}>Enter sector</button><a href={`/lore/sectors/${sector.id}`}>Read sector lore</a></div></div>
           <form className="war-create" onSubmit={e => { e.preventDefault(); void join('create', { title, sectorId: selected, capacity, private: inviteOnly }); }}><h3>Create a custom sector game</h3><label>Game name<input required maxLength={60} value={title} onChange={e => setTitle(e.target.value)} placeholder="Name your expedition" /></label><div className="war-form-row"><label>Player slots<select value={capacity} onChange={e => setCapacity(Number(e.target.value))}>{[2,4,8,12,24].map(n => <option key={n}>{n}</option>)}</select></label><label>Visibility<select value={inviteOnly ? 'invite' : 'public'} onChange={e => setInviteOnly(e.target.value === 'invite')}><option value="public">Public</option><option value="invite">Invite link</option></select></label></div><p>Uses {sector.name} with a separate world seed. Invite links let signed-in players join.</p><button className="war-secondary" disabled={busy || !isAuthenticated || !activeCharacter || !serviceReady}>Create game</button></form>

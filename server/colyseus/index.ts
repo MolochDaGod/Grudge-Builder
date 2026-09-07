@@ -118,7 +118,7 @@ function mountExpressMatchmake(app: Express) {
           {
             token: getBearerToken(req.headers.authorization || ""),
             headers,
-            ip: forwarded,
+            ip: forwarded || "",
             req: req as any,
           },
         );

@@ -93,6 +93,8 @@ jobs:
           DEPLOYMENT_URL=$(vercel deploy --prebuilt --yes --token "$VERCEL_TOKEN")
           node scripts/probe-warlords-test.mjs "$DEPLOYMENT_URL"
           vercel alias set "$DEPLOYMENT_URL" test.grudge-studio.com --scope "$VERCEL_ORG_ID" --token "$VERCEL_TOKEN"
+          vercel cache purge --yes --scope "$VERCEL_ORG_ID" --token "$VERCEL_TOKEN"
           node scripts/probe-warlords-test.mjs https://test.grudge-studio.com
           echo "Test deployment: $DEPLOYMENT_URL" >> "$GITHUB_STEP_SUMMARY"
+          echo 'Vercel CDN and data caches purged; stable-domain checks passed.' >> "$GITHUB_STEP_SUMMARY"
           echo 'Target: https://test.grudge-studio.com. HTTP checks passed; authenticated gameplay acceptance remains required.' >> "$GITHUB_STEP_SUMMARY"

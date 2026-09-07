@@ -299,6 +299,7 @@ export default function HomeIslandPage() {
     let client: Client | null = null;
     let room: Room | null = null;
     const cfg = loadConfigRef.current;
+    const seed = islandSeed;
 
     async function connect() {
       try {
@@ -320,6 +321,7 @@ export default function HomeIslandPage() {
         setOwnerAccountId(roomAccountId);
 
         const joinOpts = {
+          characterId: cfg.characterId,
           accountId: roomAccountId,
           visitorAccountId: visiting ? myAccountId : undefined,
           isVisitor: visiting,
@@ -327,7 +329,7 @@ export default function HomeIslandPage() {
           heroRace: cfg.raceId,
           heroClass: cfg.classId,
           islandUUID: islandDto?.id || roomAccountId,
-          islandSeed: hashIslandSeedForColyseus(islandSeed),
+          islandSeed: hashIslandSeedForColyseus(seed),
           level: cfg.level,
           baseModelId: cfg.baseModelId,
           equippedMeshes: cfg.equippedMeshes,
@@ -350,12 +352,13 @@ export default function HomeIslandPage() {
         }
         if (cancelled) { await room.leave(); return; }
         roomRef.current = room;
+        const callbacks = getStateCallbacks(room);
 
-        getStateCallbacks(room)(room.state).players.onAdd(() => setPlayerCount(room!.state.players.size));
-        getStateCallbacks(room)(room.state).players.onRemove(() => setPlayerCount(room!.state.players.size));
+        callbacks(room.state).players.onAdd(() => setPlayerCount(room!.state.players.size));
+        callbacks(room.state).players.onRemove(() => setPlayerCount(room!.state.players.size));
         setPlayerCount(room.state.players.size);
 
-        room.state.listen('buildingCount', (v: number) => setBuildingCount(v));
+        callbacks(room.state).listen('buildingCount', (v: number) => setBuildingCount(v));
 
         room.onMessage('island_role', (role: { isVisitor?: boolean; isOwner?: boolean }) => {
           const guest = role.isVisitor === true || role.isOwner === false;
@@ -404,12 +407,12 @@ export default function HomeIslandPage() {
           room.onMessage('resources', (data: Record<string, number>) => setResources(data));
         }
 
-        getStateCallbacks(room)(room.state).harvestNodes.onAdd?.((node: any, id: string) => {
+        callbacks(room.state).harvestNodes.onAdd?.((node: any, id: string) => {
           nodesRef.current.set(id, {
             id, type: node.resourceType,
             x: node.x, z: node.z, depleted: node.depleted,
           });
-          getStateCallbacks(room)(node).onChange(() => {
+          callbacks(node).onChange(() => {
             nodesRef.current.set(id, {
               id, type: node.resourceType,
               x: node.x, z: node.z, depleted: node.depleted,
@@ -417,7 +420,7 @@ export default function HomeIslandPage() {
           });
         });
 
-        getStateCallbacks(room)(room.state).players.onAdd((player: any, sessionId: string) => {
+        callbacks(room.state).players.onAdd((player: any, sessionId: string) => {
           if (sessionId === room!.sessionId) return;
           showNotification(
             visiting

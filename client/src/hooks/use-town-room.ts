@@ -119,6 +119,7 @@ export function useTownRoom(options: TownJoinOptions | null) {
 
         if (cancelled) { room.leave(); return; }
         roomRef.current = room;
+        const callbacks = getStateCallbacks(room);
 
         setState(s => ({
           ...s,
@@ -130,7 +131,7 @@ export function useTownRoom(options: TownJoinOptions | null) {
         }));
 
         // ── Sync NPCs ──────────────────────────────────────────
-        getStateCallbacks(room)(room.state).npcs.onAdd((npc: any, id: string) => {
+        callbacks(room.state).npcs.onAdd((npc: any, id: string) => {
           setState(s => {
             const npcs = new Map(s.npcs);
             npcs.set(id, {
@@ -140,7 +141,7 @@ export function useTownRoom(options: TownJoinOptions | null) {
             return { ...s, npcs };
           });
 
-          getStateCallbacks(room)(npc).onChange(() => {
+          callbacks(npc).onChange(() => {
             setState(s => {
               const npcs = new Map(s.npcs);
               npcs.set(id, {
@@ -153,7 +154,7 @@ export function useTownRoom(options: TownJoinOptions | null) {
         });
 
         // ── Sync harvest nodes ─────────────────────────────────
-        getStateCallbacks(room)(room.state).harvestNodes.onAdd?.((node: any, id: string) => {
+        callbacks(room.state).harvestNodes.onAdd?.((node: any, id: string) => {
           setState(s => {
             const harvestNodes = new Map(s.harvestNodes);
             harvestNodes.set(id, {
@@ -163,7 +164,7 @@ export function useTownRoom(options: TownJoinOptions | null) {
             return { ...s, harvestNodes };
           });
 
-          getStateCallbacks(room)(node).onChange(() => {
+          callbacks(node).onChange(() => {
             setState(s => {
               const harvestNodes = new Map(s.harvestNodes);
               harvestNodes.set(id, {
@@ -176,7 +177,7 @@ export function useTownRoom(options: TownJoinOptions | null) {
         });
 
         // ── Sync players ───────────────────────────────────────
-        getStateCallbacks(room)(room.state).players.onAdd((player: any, sessionId: string) => {
+        callbacks(room.state).players.onAdd((player: any, sessionId: string) => {
           setState(s => {
             const players = new Map(s.players);
             players.set(sessionId, {
@@ -189,7 +190,7 @@ export function useTownRoom(options: TownJoinOptions | null) {
             return { ...s, players };
           });
 
-          getStateCallbacks(room)(player).onChange(() => {
+          callbacks(player).onChange(() => {
             setState(s => {
               const players = new Map(s.players);
               players.set(sessionId, {
@@ -204,7 +205,7 @@ export function useTownRoom(options: TownJoinOptions | null) {
           });
         });
 
-        getStateCallbacks(room)(room.state).players.onRemove((_: any, sessionId: string) => {
+        callbacks(room.state).players.onRemove((_: any, sessionId: string) => {
           setState(s => {
             const players = new Map(s.players);
             players.delete(sessionId);
