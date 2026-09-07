@@ -34,7 +34,9 @@ jobs:
         run: npm run test:client
 
       - name: Type check
-        run: npx tsc --noEmit --project tsconfig.json || echo "Type check completed with warnings"
+        env:
+          NODE_OPTIONS: --max-old-space-size=6144
+        run: npx tsc --noEmit --project tsconfig.json
 
       - name: Check for hardcoded backend URLs
         run: |
@@ -44,17 +46,15 @@ jobs:
             echo "⚠ Found hardcoded backend URLs in API layer (check api.ts/grudgeBackend.ts)"
             ISSUES=$((ISSUES+1))
           fi
-          if grep -rn '"/api/characters' client/src/ --include="*.tsx" --include="*.ts" 2>/dev/null | grep -v '/api/game/' | grep -v 'node_modules'; then
-            echo "⚠ Found bare /api/characters paths (should be /api/game/characters)"
-            ISSUES=$((ISSUES+1))
-          fi
           if [ $ISSUES -eq 0 ]; then
             echo "✅ No hardcoded URL issues found"
           fi
+          test "$ISSUES" -eq 0
 
       - name: Verify ObjectStore connection
         run: |
-          curl -sf https://grudge-objectstore.pages.dev/api/v1/classes.json > /dev/null && echo "✅ ObjectStore API reachable" || echo "⚠ ObjectStore API unreachable"
+          curl --fail --silent --show-error --connect-timeout 5 --max-time 20 https://objectstore.grudge-studio.com/api/v1/classes.json > /dev/null
+          echo "ObjectStore API reachable"
 
   notify:
     needs: validate

@@ -68,7 +68,7 @@ export default function DeploymentDesk() {
     finally { setThinking(false); }
   }
   return <main className="war-lobby">
-    <aside className="war-sidebar"><a className="war-brand" href="/lobby">GRUDGE<small>OPERATIONS</small></a><nav aria-label="Operations navigation"><a href="/lobby">← Game lobby</a><a href="/account">Account</a><a href="/editor">Map editor</a><a href="/organizer">Assets & tools</a><a href="/research/warcraft-lobby.html">Research & implementation guide</a></nav></aside>
+    <aside className="war-sidebar"><a className="war-brand" href="/lobby">GRUDGE<small>OPERATIONS</small></a><nav aria-label="Operations navigation"><a href="/lobby">← Game lobby</a><a href="/account">Account</a><a href="/island-3d?engine=studio&play=0&skipIntro=1">Map editor</a><a href="/organizer">Assets & tools</a><a href="/research/warcraft-lobby.html">Research & implementation guide</a></nav></aside>
     <section className="war-main"><div className="war-heading"><div><p className="war-eyebrow">DEPLOYMENT DESK</p><h1>Know what is running</h1><p>Inspect routes, assets, and multiplayer before entering the world.</p></div><button className="war-primary" disabled={running} onClick={runChecks}>{running ? 'Checking services…' : 'Run diagnostics'}</button></div>
       <div className="war-character-bar"><strong>{window.location.hostname}</strong><span>{build}</span></div>
       {authError && <p className="war-notice">{authError}</p>}

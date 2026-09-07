@@ -153,7 +153,7 @@ export default function GameLobby() {
         <a href="/heroes">Characters & crew</a><a href="/account">My account</a><a href="/lore">Chronicles & lore</a>
       </nav>
       <p className="war-eyebrow">CREATOR TOOLS</p>
-      <nav aria-label="Creator navigation"><a href="/editor">Map editor</a><a href="/organizer">Asset organizer</a><a href="/diagnostics">Diagnostics & AI helper</a><a href="/deployments">Deployment desk</a></nav>
+      <nav aria-label="Creator navigation"><a href="/island-3d?engine=studio&play=0&skipIntro=1">Map editor</a><a href="/organizer">Asset organizer</a><a href="/diagnostics">Diagnostics & AI helper</a><a href="/deployments">Deployment desk</a></nav>
       <div className="war-profile">
         {activeCharacter && <img src={assetUrl(`races/${activeCharacter.raceId}-portrait.png`)} alt="" onError={e => { e.currentTarget.hidden = true; }} />}
         <strong>{user?.username || 'Guest explorer'}</strong>
