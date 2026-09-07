@@ -52,6 +52,8 @@ jobs:
         run: vercel build --token "$VERCEL_TOKEN"
       - name: Verify multiplayer protocol and graphics preflight
         run: node --import tsx --test scripts/test-warlords-lobby.mjs
+      - name: Verify client account and gameplay tests
+        run: npm run test:client
       - name: Build compatible server
         run: npm run build:server
       - name: Stamp client release identity

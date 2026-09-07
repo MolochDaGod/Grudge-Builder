@@ -1,6 +1,6 @@
 /**
  * Smoke test: random-boxes hold-to-jump integrates upward while Space held.
- * Run: npx tsx client/src/island3d/physics/PlatformerJump.test.ts
+ * Run: npx vitest run --config client/vitest.config.ts client/src/island3d/physics/PlatformerJump.test.ts
  */
 import {
   AIRSHIP_DECK_JUMP,
@@ -8,6 +8,9 @@ import {
   stepPlatformerJump,
 } from './PlatformerJump.ts';
 
+import { test } from 'vitest';
+
+test('PlatformerJump gameplay invariants', () => {
 function assert(c: boolean, m: string) {
   if (!c) throw new Error(m);
 }
@@ -77,3 +80,4 @@ for (let i = 0; i < 90; i++) {
 
 assert(fullPeak > shortPeak + 0.3, `full hold higher: full=${fullPeak} short=${shortPeak}`);
 console.log('PlatformerJump.test.ts OK', { shortPeak, fullPeak });
+});

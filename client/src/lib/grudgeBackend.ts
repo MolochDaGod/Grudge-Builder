@@ -967,6 +967,10 @@ export async function verifyToken(): Promise<TokenVerification> {
       credentials: 'include',
       signal: AbortSignal.timeout(10000),
     });
+    if (response.status === 401 || response.status === 403) {
+      if (getToken() === token) markAuthRejected();
+      return { valid: false };
+    }
     if (!response.ok) throw new Error(`Account verification failed (HTTP ${response.status})`);
     const result = await response.json();
     if (getToken() !== token) return { valid: false };
@@ -992,7 +996,9 @@ export function startTokenMonitor(): void {
   if (_tokenCheckInterval) return;
   _tokenCheckInterval = setInterval(async () => {
     if (!getToken()) return;
-    const result = await verifyToken();
+    let result: TokenVerification;
+    try { result = await verifyToken(); }
+    catch { return; } // Transient service failure must not erase a valid session.
     if (!result.valid && getToken()) {
       // Token was present but invalid — it was revoked or expired
       console.warn("[Auth] Session expired, clearing");

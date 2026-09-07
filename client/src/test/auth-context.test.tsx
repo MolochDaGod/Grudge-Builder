@@ -19,6 +19,7 @@ vi.mock("@/lib/grudgeBackend", () => ({
   getSession: vi.fn(() => null),
   logout: vi.fn(),
   verifyToken: vi.fn(async () => ({ valid: false })),
+  ensureFleetSessionClaim: vi.fn(async () => {}),
 }));
 
 vi.mock("@/lib/grudgeFleet", () => ({

@@ -20,6 +20,7 @@ async function loadModule() {
 
 afterEach(() => {
   vi.useRealTimers();
+  vi.unstubAllGlobals();
 });
 
 describe("Token helpers", () => {
@@ -39,12 +40,12 @@ describe("Token helpers", () => {
   it("getToken reads canonical key first, falls back to legacy", async () => {
     const mod = await loadModule();
 
-    localStorage.setItem("grudge_auth_token", "primary");
-    expect(mod.getToken()).toBe("primary");
+    localStorage.setItem("grudge_auth_token", "fixture_session_primary_1234567890");
+    expect(mod.getToken()).toBe("fixture_session_primary_1234567890");
 
     localStorage.removeItem("grudge_auth_token");
-    localStorage.setItem("grudge_session_token", "fallback");
-    expect(mod.getToken()).toBe("fallback");
+    localStorage.setItem("grudge_session_token", "fixture_session_fallback_1234567890");
+    expect(mod.getToken()).toBe("fixture_session_fallback_1234567890");
   });
 
   it("clearToken removes both keys and cookie", async () => {
@@ -61,7 +62,7 @@ describe("Token helpers", () => {
     const mod = await loadModule();
     expect(mod.isAuthenticated()).toBe(false);
 
-    mod.setToken("tok_123");
+    mod.setToken("fixture_session_tok_123_1234567890");
     expect(mod.isAuthenticated()).toBe(true);
   });
 
@@ -69,10 +70,10 @@ describe("Token helpers", () => {
     const mod = await loadModule();
     expect(mod.authHeaders()).toEqual({});
 
-    mod.setToken("tok_hdr");
+    mod.setToken("fixture_session_tok_hdr_1234567890");
     expect(mod.authHeaders()).toEqual({
-      Authorization: "Bearer tok_hdr",
-      "X-Session-Token": "tok_hdr",
+      Authorization: "Bearer fixture_session_tok_hdr_1234567890",
+      "X-Session-Token": "fixture_session_tok_hdr_1234567890",
     });
   });
 });
@@ -131,7 +132,7 @@ describe("getCurrentUser", () => {
 
   it("reconstructs user from session object", async () => {
     const mod = await loadModule();
-    mod.setToken("tok");
+    mod.setToken("fixture_session_tok_1234567890");
     mod.setSession({
       type: "puter" as const,
       username: "PuterGuy",
@@ -147,7 +148,7 @@ describe("getCurrentUser", () => {
 
   it("reconstructs user from individual localStorage keys when no session object", async () => {
     const mod = await loadModule();
-    mod.setToken("tok");
+    mod.setToken("fixture_session_tok_1234567890");
     localStorage.setItem("grudge_id", "GRUDGE_KEYS");
     localStorage.setItem("grudge_username", "KeyUser");
     localStorage.setItem("grudge_user_id", "42");
@@ -171,46 +172,50 @@ describe("verifyToken", () => {
     expect(result.valid).toBe(false);
   });
 
-  it("returns { valid: true } for a non-JWT token (Puter session)", async () => {
+  it("accepts only server-verified sessions and caches concurrent verification", async () => {
+    const fetchMock = vi.fn().mockResolvedValue(new Response(JSON.stringify({
+      valid: true, grudgeId: "GRUDGE_V", username: "ValidUser",
+    }), { status: 200 }));
+    vi.stubGlobal("fetch", fetchMock);
     const mod = await loadModule();
-    mod.setToken("puter_session_opaque_token");
-    localStorage.setItem("grudge_id", "GRUDGE_V");
-    localStorage.setItem("grudge_username", "ValidUser");
-
-    const result = await mod.verifyToken();
-    expect(result.valid).toBe(true);
-    expect(result.grudgeId).toBe("GRUDGE_V");
-    expect(result.username).toBe("ValidUser");
+    mod.setToken("fixture_session_verified_1234567890");
+    const [first, second] = await Promise.all([mod.verifyToken(), mod.verifyToken()]);
+    expect(first).toEqual({ valid: true, grudgeId: "GRUDGE_V", username: "ValidUser" });
+    expect(second).toEqual(first);
+    expect(fetchMock).toHaveBeenCalledOnce();
+    expect(fetchMock).toHaveBeenCalledWith("/api/auth/verify", expect.objectContaining({
+      headers: { Authorization: "Bearer fixture_session_verified_1234567890" },
+    }));
   });
 
-  it("returns { valid: false } and calls logout for an expired JWT", async () => {
+  it.each([401, 403])("clears a session rejected with HTTP %s", async (status) => {
+    vi.stubGlobal("fetch", vi.fn().mockResolvedValue(new Response("{}", { status })));
     const mod = await loadModule();
-    // Create a JWT with exp in the past
-    const header = btoa(JSON.stringify({ alg: "HS256", typ: "JWT" }));
-    const payload = btoa(
-      JSON.stringify({ userId: "1", exp: Math.floor(Date.now() / 1000) - 3600 }),
-    );
-    const expiredJwt = `${header}.${payload}.fakesig`;
-
-    mod.setToken(expiredJwt);
-    const result = await mod.verifyToken();
-    expect(result.valid).toBe(false);
-    // Verify logout was triggered (token cleared)
+    mod.setToken("fixture_session_rejected_1234567890");
+    expect((await mod.verifyToken()).valid).toBe(false);
     expect(mod.getToken()).toBeNull();
   });
 
-  it("returns { valid: true } for a JWT with future exp", async () => {
+  it("does not trust an opaque token merely because it exists", async () => {
+    vi.stubGlobal("fetch", vi.fn().mockResolvedValue(new Response('{"valid":false}')));
     const mod = await loadModule();
-    const header = btoa(JSON.stringify({ alg: "HS256", typ: "JWT" }));
-    const payload = btoa(
-      JSON.stringify({ userId: "1", exp: Math.floor(Date.now() / 1000) + 3600 }),
-    );
-    const validJwt = `${header}.${payload}.fakesig`;
-
-    mod.setToken(validJwt);
-    const result = await mod.verifyToken();
-    expect(result.valid).toBe(true);
+    mod.setToken("fixture_session_unverified_1234567890");
+    expect((await mod.verifyToken()).valid).toBe(false);
+    expect(mod.getToken()).toBeNull();
   });
+
+  it("preserves the token and retries verification after a service outage", async () => {
+    const fetchMock = vi.fn().mockResolvedValueOnce(new Response("{}", { status: 503 }))
+      .mockResolvedValueOnce(new Response('{"valid":true}'));
+    vi.stubGlobal("fetch", fetchMock);
+    const mod = await loadModule();
+    mod.setToken("fixture_session_retry_1234567890");
+    await expect(mod.verifyToken()).rejects.toThrow("HTTP 503");
+    expect(mod.getToken()).toBe("fixture_session_retry_1234567890");
+    expect((await mod.verifyToken()).valid).toBe(true);
+    expect(fetchMock).toHaveBeenCalledTimes(2);
+  });
+
 });
 
 describe("logout", () => {
@@ -218,7 +223,7 @@ describe("logout", () => {
     const mod = await loadModule();
 
     // Set up a full session
-    mod.setToken("tok_logout");
+    mod.setToken("fixture_session_tok_logout_1234567890");
     mod.setSession({
       type: "grudge" as const,
       username: "LogoutUser",
