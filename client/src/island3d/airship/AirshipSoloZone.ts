@@ -419,7 +419,7 @@ export class AirshipSoloZone {
     for (const def of AIRSHIP_NPCS) {
       try {
         const actor = await createDeckActor({
-          raceId: def.raceId,
+          raceId: def.id === 'john_wayne' ? 'crusade' : def.id === 'scourge_faithbearer' ? 'legion' : 'fabled',
           role: this.npcOriginalRole(def),
           name: `npc_${def.id}`,
         });
@@ -427,7 +427,7 @@ export class AirshipSoloZone {
         actor.model.userData.interactable = true;
         actor.model.userData.safeNpc = true;
         actor.model.userData.postRole = def.role;
-        actor.model.userData.factionRace = def.raceId;
+        actor.model.userData.factionRace = actor.raceId;
 
         const wp0 = def.waypoints[0]!;
         actor.root.position.set(wp0.x, wp0.y, wp0.z);

@@ -187,7 +187,7 @@ export interface BiomeEcosystem {
 }
 
 function eco(
-  partial: Omit<BiomeEcosystem, 'mountainPeakHeightM' | 'harvestRegenMs' | 'fishPool' | 'reviewGlb'> & {
+  partial: Omit<BiomeEcosystem, 'mountainPeakHeightM' | 'harvestRegenMs' | 'fishPool' | 'reviewGlb' | 'treeCdn'> & {
     fishPool?: readonly string[];
   },
 ): BiomeEcosystem {
@@ -564,3 +564,4 @@ export function exportBiomeEcosystemDoc() {
     })),
   };
 }
+

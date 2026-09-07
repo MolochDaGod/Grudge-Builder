@@ -113,7 +113,6 @@ import {
 } from '../terrain/OceanReflectionRig';
 import { UnderwaterPost } from '../terrain/UnderwaterPost';
 import { BoatWakeSystem } from '../terrain/BoatWakeSystem';
-import type { QualityPreset } from '../render/PostProcessing';
 import { registerMeshPrefabs, sculptSandPrefab } from '../map/MeshPrefabRegistry';
 import { PostProcessing, type QualityPreset } from '../render/PostProcessing';
 import { DayNightCycle, type DayNightConfig } from '../environment/DayNightCycle';
@@ -469,7 +468,7 @@ export class Island3DEngine {
       'inn_trader',
       'stationmaster',
     ]);
-    let best: { d: number; o: THREE.Object3D } | null = null;
+    const nearby: { d: number; o: THREE.Object3D }[] = [];
     const wp = new THREE.Vector3();
     this.scene.traverse((o) => {
       const id = String(o.userData?.npcId ?? '');
@@ -477,8 +476,9 @@ export class Island3DEngine {
       o.getWorldPosition(wp);
       const d = Math.hypot(playerPos.x - wp.x, playerPos.z - wp.z);
       if (d > 3.2) return;
-      if (!best || d < best.d) best = { d, o };
+      nearby.push({ d, o });
     });
+    const best = nearby.sort((a, b) => a.d - b.d)[0];
     if (!best) return null;
     const u = best.o.userData;
     return {

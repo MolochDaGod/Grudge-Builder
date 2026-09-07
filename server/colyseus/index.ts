@@ -1,3 +1,5 @@
+import { createWarCouncilRoom } from './rooms/WarCouncilRoom';
+import { authenticateGameJoin } from './gameAuth';
 /**
  * Colyseus game server setup (v0.17).
  *
@@ -41,6 +43,8 @@ let gameServer: Server | null = null;
  * - home_island / sector / town / world / dungeon = persistent multiplayer game
  */
 const ROOM_NAMES = [
+  "game_lobby",
+  "custom_lobby",
   "tutorial",
   "shipwreck",
   "lobby",
@@ -114,7 +118,7 @@ function mountExpressMatchmake(app: Express) {
           {
             token: getBearerToken(req.headers.authorization || ""),
             headers,
-            ip: forwarded,
+            ip: forwarded || "",
             req: req as any,
           },
         );
@@ -164,6 +168,9 @@ export async function setupColyseus(httpServer: HttpServer, app: Express) {
 
   // Multiplayer social hub reached after raft completion.
   gameServer.define("lobby", LobbyRoom);
+  const CouncilRoom = createWarCouncilRoom((token, options) => authenticateGameJoin(token, options, false));
+  gameServer.define("game_lobby", CouncilRoom);
+  gameServer.define("custom_lobby", CouncilRoom, { custom: true });
 
   gameServer.define("dungeon", DungeonRoom);
   gameServer.define("sector", SectorRoom).filterBy(["sectorId", "worldSeed"]);
@@ -194,11 +201,12 @@ export async function setupColyseus(httpServer: HttpServer, app: Express) {
           sector: "9-sector open world zones",
           world: "overworld router / social",
         },
-        activeRooms: rooms.map((r) => ({
+        activeRooms: rooms.filter(r => !r.private).map((r) => ({
           roomId: r.roomId,
           name: r.name,
           clients: r.clients,
           maxClients: r.maxClients,
+          locked: r.locked,
           metadata: r.metadata,
         })),
         processId: matchMaker.processId,

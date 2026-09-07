@@ -1,26 +1,11 @@
+import { useAuth } from '@/contexts/AuthContext';
+import { getToken } from '@/lib/grudgeBackend';
 import { useEffect } from "react";
 
 const NEXUS = "https://nemesis.grudge-studio.com";
 const APP_SLUG = "grudge-builder";
 
-function readToken(): string {
-  try {
-    const raw = localStorage.getItem("auth_tokens");
-    if (raw) {
-      const tokens = JSON.parse(raw);
-      if (tokens?.access_token) return String(tokens.access_token);
-    }
-  } catch {
-    /* ignore */
-  }
-  return (
-    localStorage.getItem("access_token") ||
-    localStorage.getItem("grudge_auth_token") ||
-    localStorage.getItem("grudge_session_token") ||
-    localStorage.getItem("sso_token") ||
-    ""
-  );
-}
+function readToken(): string { return getToken() ?? ''; }
 
 export function openStudioFriends() {
   const token = readToken();
@@ -37,11 +22,13 @@ export function openStudioFriends() {
 
 /** Steam-style friends rail that pops out the canonical Nexus friends list. */
 export function StudioFriendsDock() {
+  const { isAuthenticated } = useAuth();
   useEffect(() => {
+    let rejectedToken = '';
     const ping = () => {
       const token = readToken();
-      if (!token) return;
-      fetch(`${NEXUS}/api/user/presence`, {
+      if (!isAuthenticated || !token || token === rejectedToken) return;
+      fetch(`/api/social/presence`, {
         method: "POST",
         headers: {
           "Content-Type": "application/json",
@@ -52,6 +39,8 @@ export function StudioFriendsDock() {
           location: window.location.pathname,
           app: APP_SLUG,
         }),
+      }).then(response => {
+        if (response.status === 401 || response.status === 403) rejectedToken = token;
       }).catch(() => {});
     };
     ping();
@@ -62,7 +51,7 @@ export function StudioFriendsDock() {
       window.clearInterval(t);
       window.removeEventListener("nexus:popout-friends", onPop);
     };
-  }, []);
+  }, [isAuthenticated]);
 
   return (
     <button

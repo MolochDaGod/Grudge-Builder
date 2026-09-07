@@ -183,7 +183,7 @@ function StatusIcon({
         {imgSrc ? (
           <img
             src={imgSrc}
-            alt={def?.name ?? magic?.name ?? effect.statusId}
+            alt={def?.label ?? magic?.label ?? effect.statusId}
             className="w-full h-full object-cover"
             onError={() => setImgFailed(true)}
             draggable={false}
@@ -219,12 +219,12 @@ function StatusIcon({
             polarity === 'debuff' ? 'text-red-400' : 'text-emerald-400',
           )}
         >
-          {def?.name ?? effect.statusId}
+          {def?.label ?? effect.statusId}
           {effect.stacks > 1 ? ` ×${effect.stacks}` : ''}
         </div>
         {magic && (
           <div className="text-[9px] mb-0.5" style={{ color: magic.color }}>
-            {magic.name} {polarity === 'debuff' ? 'debuff' : 'buff'} orb
+            {magic.label} {polarity === 'debuff' ? 'debuff' : 'buff'} orb
           </div>
         )}
         <div className="text-slate-400 leading-snug">{def?.description}</div>

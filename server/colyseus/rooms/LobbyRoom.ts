@@ -1,3 +1,4 @@
+import { authenticateGameJoin } from '../gameAuth';
 /**
  * LobbyRoom — multiplayer social / matchmaking hub (AFTER tutorial).
  *
@@ -19,7 +20,13 @@ interface JoinOptions {
   sourceGame?: string;
 }
 
-export class LobbyRoom extends Room<RoomState> {
+export class LobbyRoom extends Room<{ state: RoomState }> {
+  async onAuth(client: Client, options: any, context: any) {
+    const identity = await authenticateGameJoin(context?.token, options, false);
+    Object.assign(options, identity.join);
+    return identity;
+  }
+
   maxClients = 50;
   /** Keep lobby alive so joinOrCreate reuses one room */
   autoDispose = false;
@@ -75,7 +82,7 @@ export class LobbyRoom extends Room<RoomState> {
     console.log(`[LobbyRoom] ${player.characterName} joined multiplayer lobby`);
   }
 
-  async onLeave(client: Client, consented?: boolean) {
+  async onLeave(client: Client, consented?: number) {
     const player = this.state.players.get(client.sessionId);
     const { leaveWithReconnect, RECONNECT_SECONDS_LOBBY } = await import("../reconnect");
     await leaveWithReconnect(

@@ -1,23 +1,9 @@
 {
-  "alias": [
-    "grudgewarlords.com",
-    "www.grudgewarlords.com",
-    "play.grudgewarlords.com",
-    "client.grudgewarlords.com",
-    "home.grudgewarlords.com",
-    "map.grudgewarlords.com",
-    "scenes.grudgewarlords.com",
-    "airship.grudgewarlords.com",
-    "craft.grudgewarlords.com",
-    "foundry.grudgewarlords.com",
-    "client.grudge-studio.com",
-    "warlord3d.grudge-studio.com",
-    "docs.grudge-studio.com"
-  ],
   "buildCommand": "npm run build:client",
   "outputDirectory": "client/dist",
   "devCommand": "npm run dev:client",
-  "installCommand": "npm install --legacy-peer-deps --include=dev",
+  "installCommand": "npm ci --ignore-scripts --include=dev",
+  "git": { "deploymentEnabled": false },
   "framework": null,
   "build": {
     "env": {
@@ -486,8 +472,16 @@
       "destination": "https://ai.grudge-studio.com/:path*"
     },
     {
-      "source": "/api/:path*",
-      "destination": "https://grudge-studio.com/api/:path*"
+      "source": "/api/multiplayer/:path*",
+      "destination": "https://grudge-api-production-0d46.up.railway.app/api/multiplayer/:path*"
+    },
+    {
+      "source": "/api/me/:path*",
+      "destination": "https://grudge-api-production-0d46.up.railway.app/api/me/:path*"
+    },
+    {
+      "source": "/api/social/presence",
+      "destination": "https://nemesis.grudge-studio.com/api/user/presence"
     },
     {
       "source": "/api/polyhaven/:path*",
@@ -496,6 +490,10 @@
     {
       "source": "/api/polyhaven-dl/:path*",
       "destination": "https://dl.polyhaven.org/:path*"
+    },
+    {
+      "source": "/api/:path*",
+      "destination": "https://grudge-studio.com/api/:path*"
     },
     {
       "source": "/models/lobby/pirate-islands/:path*",

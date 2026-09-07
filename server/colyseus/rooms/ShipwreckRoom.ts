@@ -1,3 +1,4 @@
+import { authenticateGameJoin } from '../gameAuth';
 /**
  * ShipwreckRoom — shared authoritative multiplayer starting adventure.
  *
@@ -111,7 +112,13 @@ function resourceTypeFromNodeId(nodeId: string): "forest" | "mining" | "fiber" |
   return null;
 }
 
-export class ShipwreckRoom extends Room<ShipwreckState> {
+export class ShipwreckRoom extends Room<{ state: ShipwreckState }> {
+  async onAuth(client: Client, options: any, context: any) {
+    const identity = await authenticateGameJoin(context?.token, options, true);
+    Object.assign(options, identity.join);
+    return identity;
+  }
+
   maxClients = MULTIPLAYER_SHIPWRECK.maxPlayers;
   autoDispose = true;
 
@@ -389,7 +396,7 @@ export class ShipwreckRoom extends Room<ShipwreckState> {
     });
   }
 
-  async onLeave(client: Client, consented?: boolean) {
+  async onLeave(client: Client, consented?: number) {
     const { leaveWithReconnect, RECONNECT_SECONDS } = await import("../reconnect");
     await leaveWithReconnect(
       this,

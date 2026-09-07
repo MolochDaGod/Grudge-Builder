@@ -54,8 +54,7 @@ export class LavaCaesarPartyBrain {
       });
       const pool = onPad.length ? onPad : snap.minions;
       const i = hashPick(`tank:${snap.combatT.toFixed(0)}`, pool.length);
-      ally.commandAttackAggressive();
-      (ally as AllyController & { target?: CombatTarget }).target = pool[i]!;
+      ally.commandAttackTarget(pool[i]!);
       return;
     }
     if (snap.bossState === 'stunned' || snap.bossHpRatio < 0.35) {
@@ -109,8 +108,7 @@ export class LavaCaesarPartyBrain {
   }
 
   private forceTarget(ally: AllyController, t: CombatTarget): void {
-    ally.commandAttackAggressive();
-    (ally as AllyController & { target?: CombatTarget }).target = t;
+    ally.commandAttackTarget(t);
   }
 
   clear(): void {

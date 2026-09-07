@@ -1,5 +1,5 @@
 import type { Character } from "./characterManager";
-import { authHeaders } from "./grudgeBackend";
+import { authHeaders, verifyToken } from "./grudgeBackend";
 import { fleetApi } from "./grudgeFleet";
 import {
   ERA_META,
@@ -37,7 +37,9 @@ function isJwtExpired(token: string): boolean {
 }
 
 async function apiFetch<T>(path: string, options: RequestInit = {}): Promise<T> {
-  const headers = {
+  const privateRoute = /^\/api\/(characters|account|wallet|party|inventory|professions|island)(\/|\?|$)/.test(path);
+  if (privateRoute && !(await verifyToken()).valid) throw new Error('Sign in with Grudge ID to continue.');
+  const headers: Record<string, string> = {
     "Content-Type": "application/json",
     ...authHeaders(),
     ...(options.headers as Record<string, string> | undefined),

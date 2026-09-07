@@ -1,5 +1,6 @@
+import { GameErrorBoundary } from '@/components/GameRecovery';
 import { useEffect, useLayoutEffect, lazy, Suspense } from "react";
-import { Switch, Route } from "wouter";
+import { Switch, Route, useLocation } from "wouter";
 import { queryClient } from "./lib/queryClient";
 import { QueryClientProvider } from "@tanstack/react-query";
 import { Toaster } from "@/components/ui/toaster";
@@ -126,6 +127,9 @@ import { CharacterManager } from "@/lib/characterManager";
 
 const AssassinationGroundsPage = lazy(() => import("@/pages/assassination-grounds"));
 
+const GameLobbyPage = lazy(() => import('@/pages/game-lobby'));
+const DeploymentDeskPage = lazy(() => import('@/pages/deployment-desk'));
+
 function Router() {
   return (
     <Suspense fallback={<div className="min-h-screen bg-black" />}>
@@ -188,7 +192,10 @@ function Router() {
       <Route path="/island-v2" component={IslandV2Page} />
       <Route path="/admin-island-v2" component={AdminIslandV2Page} />
       <Route path="/admin-island-3d" component={AdminIsland3DPage} />
-      <Route path="/lobby" component={HomePage} />
+      <Route path="/lobby" component={GameLobbyPage} />
+      <Route path="/lobby/maps" component={GameLobbyPage} />
+      <Route path="/diagnostics" component={DeploymentDeskPage} />
+      <Route path="/deployments" component={DeploymentDeskPage} />
       <Route path="/launcher" component={LauncherPage} />
       <Route path="/rts-grudge" component={RtsGrudgePage} />
       <Route path="/open-world" component={OpenWorldEntryPage} />
@@ -288,6 +295,8 @@ function Router() {
 }
 
 function AppContent() {
+  const [currentPath] = useLocation();
+  const hasCouncilShell = ['/lobby', '/lobby/maps', '/diagnostics', '/deployments'].includes(currentPath);
   const { isTransitioning, isAdmin } = useAdmin();
 
   useEffect(() => {
@@ -324,12 +333,14 @@ function AppContent() {
       <RtsDomainBootstrap />
       <TooltipProvider>
         <Toaster />
-        <Router />
-        <GrudgeAI />
-        <GrudgeTruthBadge />
-        <GrudgeTokenWidget />
-        <StudioFriendsDock />
-        <PuterFooter />
+        <GameErrorBoundary><Router /></GameErrorBoundary>
+        {!hasCouncilShell && <>
+          <GrudgeAI />
+          <GrudgeTruthBadge />
+          <GrudgeTokenWidget />
+          <StudioFriendsDock />
+          <PuterFooter />
+        </>}
       </TooltipProvider>
     </>
   );

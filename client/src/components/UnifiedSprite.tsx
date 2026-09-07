@@ -2,7 +2,8 @@ import { useState, useEffect } from "react";
 import { cn } from "@/lib/utils";
 import { 
   getSpriteUnit, 
-  getAnimation, 
+  getAnimation,
+  getSpriteSheetPath, 
   AnimationState, 
   ColorPalette, 
   COLOR_PALETTES,
@@ -98,7 +99,7 @@ export default function UnifiedSprite({
       style={{
         width: containerWidth,
         height: containerHeight,
-        backgroundImage: `url(${unit.spriteSheet})`,
+        backgroundImage: `url(${getSpriteSheetPath(unit, animation)})`,
         backgroundPosition: `-${frameIndex * containerWidth}px -${row * containerHeight}px`,
         backgroundSize: `${framesPerRow * containerWidth}px auto`,
         imageRendering: 'pixelated',
@@ -106,7 +107,7 @@ export default function UnifiedSprite({
       }}
     >
       <img 
-        src={unit.spriteSheet} 
+        src={getSpriteSheetPath(unit, animation)} 
         onError={() => setError(true)} 
         style={{ display: 'none' }}
         alt=""
