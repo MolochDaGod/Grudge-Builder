@@ -196,7 +196,7 @@ export async function createHiddenMountainCity(
 
   opts.scene.add(root);
 
-  let bossHp = HIDDEN_MOUNTAIN_CITY_BOSS.maxHp;
+  let bossHp: number = HIDDEN_MOUNTAIN_CITY_BOSS.maxHp;
   const bossMaxHp = HIDDEN_MOUNTAIN_CITY_BOSS.maxHp;
   let bossDefeated = false;
   let attackCooldown = 0;

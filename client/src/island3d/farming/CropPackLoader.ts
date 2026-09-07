@@ -1,54 +1,81 @@
-/**
- * Crop pack loader — soil + crop stage meshes from crops_low_poly.glb (CDN).
- * Safe stubs until the pack is present; FarmPlotSystem still works with primitives.
- */
-import * as THREE from "three";
-import type { CropStage } from "@shared/definitions/farming";
+/** Crop and soil meshes from the canonical R2 multipack. */
+import * as THREE from 'three';
+import {
+  CROPS_PACK_PATH, CROP_PACK_MESHES, CROP_SOIL_NODES,
+  type CropStage, type CropKind,
+} from '@shared/definitions/farming';
+import { loadAssetGltf } from '@/lib/three/SharedGltfPipeline';
 
 let ready = false;
-let soilTemplate: THREE.Object3D | null = null;
+let pending: Promise<boolean> | null = null;
+const soilTemplates: THREE.Object3D[] = [];
 const stageTemplates = new Map<string, THREE.Object3D>();
 
-export function isCropPackReady(): boolean {
-  return ready;
+export function isCropPackReady(): boolean { return ready; }
+export function preloadCropPack(): Promise<boolean> { return loadCropPack(); }
+
+export function loadCropPack(): Promise<boolean> {
+  if (ready) return Promise.resolve(true);
+  if (pending) return pending;
+  pending = (async () => {
+    const gltf = await loadAssetGltf(CROPS_PACK_PATH);
+    if (!gltf) return false;
+    gltf.scene.updateMatrixWorld(true);
+    const stages = new Map<string, THREE.Object3D>();
+    for (const def of Object.values(CROP_PACK_MESHES)) {
+      for (const stage of [0, 1, 2] as const) {
+        const node = gltf.scene.getObjectByName(def.stages[stage]) ||
+          (def.meshStages ? gltf.scene.getObjectByName(def.meshStages[stage]) : undefined);
+        if (!node) return false;
+        stages.set(`${def.kind}:${stage}`, node);
+      }
+    }
+    const soils = CROP_SOIL_NODES.map(name => gltf.scene.getObjectByName(name))
+      .filter((node): node is THREE.Object3D => !!node);
+    if (!soils.length) return false;
+    stageTemplates.clear();
+    for (const [key, node] of stages) stageTemplates.set(key, node);
+    soilTemplates.splice(0, soilTemplates.length, ...soils);
+    ready = true;
+    return true;
+  })().catch(() => false).finally(() => { pending = null; });
+  return pending;
 }
 
-export async function preloadCropPack(): Promise<boolean> {
-  return loadCropPack();
+/** Each plot owns its disposable mesh resources; cached pack resources stay intact. */
+function cloneFitted(template: THREE.Object3D, size: number, axis: 'height' | 'width'): THREE.Group {
+  const root = new THREE.Group();
+  const copy = template.clone(true);
+  template.matrixWorld.decompose(copy.position, copy.quaternion, copy.scale);
+  copy.traverse(object => {
+    if (!(object instanceof THREE.Mesh)) return;
+    object.geometry = object.geometry.clone();
+    object.material = Array.isArray(object.material)
+      ? object.material.map(material => material.clone()) : object.material.clone();
+    object.castShadow = true;
+    object.receiveShadow = true;
+  });
+  root.add(copy);
+  const box = new THREE.Box3().setFromObject(root);
+  const dimensions = box.getSize(new THREE.Vector3());
+  const divisor = axis === 'height' ? dimensions.y : Math.max(dimensions.x, dimensions.z);
+  if (divisor > 0 && size > 0) root.scale.setScalar(size / divisor);
+  const fitted = new THREE.Box3().setFromObject(root);
+  const center = fitted.getCenter(new THREE.Vector3());
+  root.position.set(-center.x, -fitted.min.y, -center.z);
+  // Keep caller placement independent of the pack's authored origin.
+  const placed = new THREE.Group();
+  placed.add(root);
+  return placed;
 }
 
-export async function loadCropPack(): Promise<boolean> {
-  if (ready) return true;
-  // Primitive soil tile fallback
-  const soil = new THREE.Mesh(
-    new THREE.BoxGeometry(0.9, 0.08, 0.9),
-    new THREE.MeshStandardMaterial({ color: 0x5c4033, roughness: 1.1 }),
-  );
-  soil.name = "soil_tile_fallback";
-  soilTemplate = soil;
-
-  for (const stage of ["F1", "F2", "F3"] as CropStage[]) {
-    const h = stage === "F1" ? 0.25 : stage === "F2" ? 0.45 : 0.7;
-    const plant = new THREE.Mesh(
-      new THREE.ConeGeometry(0.12, h, 6),
-      new THREE.MeshStandardMaterial({ color: stage === "F3" ? 0x4ade80 : 0x65a30d }),
-    );
-    plant.name = `crop_${stage}_fallback`;
-    stageTemplates.set(stage, plant);
-  }
-  ready = true;
-  return true;
+export function cloneSoilTile(variant = 0, width = 0.92): THREE.Object3D | null {
+  if (!soilTemplates.length) return null;
+  const template = soilTemplates[Math.abs(Math.trunc(variant)) % soilTemplates.length];
+  return template ? cloneFitted(template, width, 'width') : null;
 }
 
-export function cloneSoilTile(): THREE.Object3D {
-  if (!soilTemplate) {
-    void loadCropPack();
-  }
-  return (soilTemplate ?? new THREE.Object3D()).clone(true);
-}
-
-export function cloneCropStage(stage: CropStage, _seedId?: string): THREE.Object3D {
-  if (!ready) void loadCropPack();
-  const tpl = stageTemplates.get(stage) ?? stageTemplates.get("F1");
-  return (tpl ?? new THREE.Object3D()).clone(true);
+export function cloneCropStage(kind: CropKind, stage: CropStage, height: number): THREE.Object3D | null {
+  const template = stageTemplates.get(`${kind}:${stage}`);
+  return template ? cloneFitted(template, height, 'height') : null;
 }

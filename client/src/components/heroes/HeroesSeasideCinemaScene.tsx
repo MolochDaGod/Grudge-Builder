@@ -1138,8 +1138,8 @@ export default function HeroesSeasideCinemaScene({
             const active = lessonStep === t || boardedTier === t;
             const done =
               lessonStep === "complete" ||
-              (t === "raft" && (lessonStep === "dinghy" || lessonStep === "fishingBoat" || lessonStep === "complete")) ||
-              (t === "dinghy" && (lessonStep === "fishingBoat" || lessonStep === "complete"));
+              (t === "raft" && (lessonStep === "dinghy" || lessonStep === "fishingBoat")) ||
+              (t === "dinghy" && lessonStep === "fishingBoat");
             return (
               <span
                 key={t}

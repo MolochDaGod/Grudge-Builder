@@ -1,0 +1,100 @@
+name: Production release — Grudge Warlords
+
+on:
+  push:
+    branches: [main]
+  workflow_dispatch:
+
+concurrency:
+  group: grudge-production-release
+  cancel-in-progress: false
+
+permissions:
+  contents: read
+
+env:
+  VERCEL_ORG_ID: team_VZ7uiFGiR9QBdqtzne04xygG
+  VERCEL_PROJECT_ID: prj_AT8CcdGZRjg838A2B0EyYtw65Fvb
+  RAILWAY_PROJECT_ID: 92f039ec-2cce-4e1e-b06a-dd0ac6256d70
+  RAILWAY_ENVIRONMENT: production
+  RAILWAY_SERVICE: grudge-api
+  RAILWAY_URL: https://grudge-api-production-0d46.up.railway.app
+
+jobs:
+  validate:
+    runs-on: ubuntu-latest
+    timeout-minutes: 45
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 22
+          cache: npm
+      - name: Install locked dependencies
+        run: npm ci --ignore-scripts --include=dev
+      - name: Build client and server
+        run: |
+          npm run build:client
+          npm run build:server
+      - name: Run client acceptance tests
+        run: npm run test:client -- --run
+      - name: Verify production route contract
+        run: node scripts/probe-warlords-test.mjs https://test.grudge-studio.com
+
+  deploy-api:
+    needs: validate
+    runs-on: ubuntu-latest
+    timeout-minutes: 30
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 22
+          cache: npm
+      - run: npm ci --ignore-scripts --include=dev
+      - name: Install pinned Railway CLI
+        run: npm install --global @railway/cli@5.49.2
+      - name: Deploy API and wait for readiness
+        env:
+          RAILWAY_TOKEN: ${{ secrets.RAILWAY_TOKEN }}
+        run: |
+          railway up --ci --project "$RAILWAY_PROJECT_ID" --environment "$RAILWAY_ENVIRONMENT" --service "$RAILWAY_SERVICE" --message "production $GITHUB_SHA"
+          for i in $(seq 1 36); do
+            code=$(curl -sS -o /tmp/health.json -w '%{http_code}' "$RAILWAY_URL/api/health" || true)
+            if [ "$code" = 200 ]; then cat /tmp/health.json; exit 0; fi
+            sleep 10
+          done
+          cat /tmp/health.json || true
+          exit 1
+
+  deploy-client:
+    needs: [validate, deploy-api]
+    runs-on: ubuntu-latest
+    timeout-minutes: 30
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 22
+          cache: npm
+      - run: npm ci --ignore-scripts --include=dev
+      - name: Install pinned Vercel CLI
+        run: npm install --global vercel@59.11.7
+      - name: Build and stage immutable production artifact
+        env:
+          VERCEL_TOKEN: ${{ secrets.VERCEL_TOKEN }}
+        run: |
+          vercel pull --yes --environment=production --token "$VERCEL_TOKEN"
+          vercel build --prod --token "$VERCEL_TOKEN"
+          url=$(vercel deploy --prebuilt --prod --skip-domain --yes --token "$VERCEL_TOKEN")
+          echo "RELEASE_URL=$url" >> "$GITHUB_ENV"
+          node scripts/probe-warlords-test.mjs "$url"
+      - name: Promote after preview probes
+        env:
+          VERCEL_TOKEN: ${{ secrets.VERCEL_TOKEN }}
+        run: |
+          vercel promote "$RELEASE_URL" --token "$VERCEL_TOKEN"
+          vercel cache purge --yes --scope "$VERCEL_ORG_ID" --token "$VERCEL_TOKEN"
+          node scripts/probe-warlords-test.mjs https://grudgewarlords.com
+          node scripts/probe-warlords-test.mjs https://client.grudge-studio.com
+          node scripts/probe-warlords-test.mjs https://test.grudge-studio.com

@@ -43,7 +43,7 @@ export interface LoadedIslandBuilding {
  */
 export async function loadIslandBuildingMesh(id: string): Promise<LoadedIslandBuilding> {
   const packed = await fetchBuildingGlb(id);
-  const blob = new Blob([packed.bytes], { type: 'model/gltf-binary' });
+  const blob = new Blob([new Uint8Array(packed.bytes)], { type: 'model/gltf-binary' });
   const objectUrl = URL.createObjectURL(blob);
   try {
     const gltf = await loadGltfCached(objectUrl, 'high');
