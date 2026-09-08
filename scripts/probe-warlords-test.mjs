@@ -34,7 +34,7 @@ const results = await Promise.allSettled(checks.map(async ([path, kind]) => {
   }
   if (kind === 'json' || kind === 'release') {
     const data = await response.json();
-    if (kind === 'release' && process.env.PROBE_EXPECT_RELEASE !== 'false' && process.env.GITHUB_SHA && data.commit !== process.env.GITHUB_SHA) {
+    if (kind === 'release' && process.env.GITHUB_SHA && data.commit !== process.env.GITHUB_SHA) {
       throw new Error(`${path}: deployment commit does not match this build`);
     }
     if (!data || typeof data !== 'object' || Array.isArray(data) ||

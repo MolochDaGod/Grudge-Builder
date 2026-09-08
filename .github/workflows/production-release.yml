@@ -89,6 +89,7 @@ jobs:
       - name: Build and stage immutable production artifact
         env:
           VERCEL_TOKEN: ${{ secrets.VERCEL_TOKEN }}
+          NODE_OPTIONS: --max-old-space-size=8192
         run: |
           vercel pull --yes --environment=production --token "$VERCEL_TOKEN"
           vercel build --prod --token "$VERCEL_TOKEN"
