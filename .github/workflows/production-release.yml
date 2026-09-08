@@ -91,6 +91,7 @@ jobs:
           VERCEL_TOKEN: ${{ secrets.VERCEL_TOKEN }}
           NODE_OPTIONS: --max-old-space-size=8192
         run: |
+          node -e "require('fs').writeFileSync('client/public/release.json', JSON.stringify({ commit: process.env.GITHUB_SHA, builtAt: new Date().toISOString() }) + '\\n')"
           vercel pull --yes --environment=production --token "$VERCEL_TOKEN"
           vercel build --prod --token "$VERCEL_TOKEN"
           url=$(vercel deploy --prebuilt --prod --skip-domain --yes --token "$VERCEL_TOKEN")
