@@ -17,10 +17,10 @@
   "outputDirectory": "client/dist",
   "devCommand": "npm run dev:client",
   "installCommand": "npm install --legacy-peer-deps --include=dev",
-  "framework": null,
+  "framework": "vite",
   "build": {
     "env": {
-      "NODE_VERSION": "22"
+      "NODE_VERSION": "24"
     }
   },
   "rewrites": [
@@ -749,38 +749,42 @@
       "permanent": false
     },
     {
-      "source": "/((?!heroes(?:/|$)|characters(?:/|$)|select-character(?:/|$)|crew(?:/|$)|api/).*)",
-      "has": [
-        {
-          "type": "host",
-          "value": "client.grudge-studio.com"
-        }
-      ],
-      "destination": "https://grudgewarlords.com/$1",
-      "permanent": true
+      "source": "/",
+      "has": [{ "type": "host", "value": "client.grudge-studio.com" }],
+      "destination": "https://grudgewarlords.com/",
+      "permanent": false
     },
     {
-      "source": "/",
-      "has": [
-        {
-          "type": "host",
-          "value": "client.grudge-studio.com"
-        }
-      ],
-      "destination": "https://grudgewarlords.com/",
-      "permanent": true
+      "source": "/combat",
+      "has": [{ "type": "host", "value": "client.grudge-studio.com" }],
+      "destination": "https://grudgewarlords.com/combat",
+      "permanent": false
+    },
+    {
+      "source": "/airship-zone",
+      "has": [{ "type": "host", "value": "client.grudge-studio.com" }],
+      "destination": "https://grudgewarlords.com/combat",
+      "permanent": false
+    },
+    {
+      "source": "/home-island",
+      "has": [{ "type": "host", "value": "client.grudge-studio.com" }],
+      "destination": "https://grudgewarlords.com/home-island",
+      "permanent": false
+    },
+    {
+      "source": "/island-reveal",
+      "has": [{ "type": "host", "value": "client.grudge-studio.com" }],
+      "destination": "https://grudgewarlords.com/island-reveal",
+      "permanent": false
     },
     {
       "source": "/:path*",
-      "has": [
-        {
-          "type": "host",
-          "value": "warlord3d.grudge-studio.com"
-        }
-      ],
+      "has": [{ "type": "host", "value": "warlord3d.grudge-studio.com" }],
       "destination": "https://grudgewarlords.com/:path*",
       "permanent": true
     },
+
     {
       "source": "/(.*)",
       "has": [

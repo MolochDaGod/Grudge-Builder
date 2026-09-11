@@ -1,12 +1,12 @@
 {
   "version": "1.1.0",
-  "description": "Baked Bip001 packs from D:\\Games\\Models\\_anim_packs → assets CDN. Wire via bip001DrcAnims.ts.",
+  "description": "Baked Bip001 packs from author _anim_packs → assets CDN. Wire via bip001DrcAnims.ts.",
   "cdnBase": "https://assets.grudge-studio.com/anims/baked",
   "cdnBaseMirror": "https://open.grudge-studio.com/anims/baked",
   "clientSameOrigin": "/anims/baked",
   "format": "json",
   "skeleton": "Bip001",
-  "authorDisk": "D:/Games/Models/_anim_packs",
+  "authorDisk": "_anim_packs",
   "packs": {
     "locomotion": {
       "idle": "locomotion/idle.json",
