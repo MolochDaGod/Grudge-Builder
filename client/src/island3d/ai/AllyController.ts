@@ -199,6 +199,12 @@ export class AllyController {
   }
 
   /** F4 — Attack: aggressive pursue hostiles */
+  commandAttackTarget(target: CombatTarget): void {
+    if (this.state === 'dead' || target.dead || target.hp <= 0) return;
+    this.target = target;
+    this.commandAttackAggressive();
+  }
+
   commandAttackAggressive(): void {
     this.aggressive = true;
     this.joinParty = false;

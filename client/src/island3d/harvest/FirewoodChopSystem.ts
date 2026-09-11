@@ -27,7 +27,7 @@ export interface FirewoodChopCallbacks {
   onFell?: (tree: HarvestableTree, fallYaw: number) => void;
   onSegmentSplit?: (tree: HarvestableTree, segment: number) => void;
   onWoodCollected?: (qty: number, tree: HarvestableTree) => void;
-  onNotch?: (tree: HarvestableTree, eval: BaseStrikeEval) => void;
+  onNotch?: (tree: HarvestableTree, evaluation: BaseStrikeEval) => void;
 }
 
 export interface CollectibleWood {

@@ -113,7 +113,6 @@ import {
 } from '../terrain/OceanReflectionRig';
 import { UnderwaterPost } from '../terrain/UnderwaterPost';
 import { BoatWakeSystem } from '../terrain/BoatWakeSystem';
-import type { QualityPreset } from '../render/PostProcessing';
 import { registerMeshPrefabs, sculptSandPrefab } from '../map/MeshPrefabRegistry';
 import { PostProcessing, type QualityPreset } from '../render/PostProcessing';
 import { DayNightCycle, type DayNightConfig } from '../environment/DayNightCycle';
@@ -469,7 +468,7 @@ export class Island3DEngine {
       'inn_trader',
       'stationmaster',
     ]);
-    let best: { d: number; o: THREE.Object3D } | null = null;
+    const nearby: { d: number; o: THREE.Object3D }[] = [];
     const wp = new THREE.Vector3();
     this.scene.traverse((o) => {
       const id = String(o.userData?.npcId ?? '');
@@ -477,8 +476,9 @@ export class Island3DEngine {
       o.getWorldPosition(wp);
       const d = Math.hypot(playerPos.x - wp.x, playerPos.z - wp.z);
       if (d > 3.2) return;
-      if (!best || d < best.d) best = { d, o };
+      nearby.push({ d, o });
     });
+    const best = nearby.sort((a, b) => a.d - b.d)[0];
     if (!best) return null;
     const u = best.o.userData;
     return {
@@ -1580,7 +1580,9 @@ export class Island3DEngine {
     // 8b. Warlords map landmarks (tower / fortress / jungle rocks) — SI prop scale, not hero-fit
     try {
       this.mapLandmarks = await loadWarlordsMapLandmarks(this.scene, {
-        sampleHeight: (x, z) => getTerrainHeightAt(this.terrain!.terrainMesh, x, z),
+        sampleHeight: (x, z) => this.terrain
+          ? getTerrainHeightAt(this.terrain.terrainMesh, x, z)
+          : null,
         enabled: this.config.enableLandmarks !== false,
       });
       // Block nav under landmark footprints
@@ -2281,7 +2283,7 @@ export class Island3DEngine {
         };
         collectMeshes(this.havenFoundation?.root);
         collectMeshes(this.fabledFoundation?.root);
-        for (const m of this.zoneScene.islandMeshes.values()) {
+        for (const m of this.zoneScene?.islandMeshes.values() ?? []) {
           if (m?.isMesh && m.geometry && m.matrixWorld) meshes.push(m);
         }
         if (meshes.length === 0) return fallbackY;
@@ -3858,8 +3860,6 @@ export class Island3DEngine {
       impactPoint: impact,
       impactDir,
       scale: opts.scale ?? 1,
-      nodeId,
-      hitIndex: opts.hitIndex ?? 0,
     });
   }
 
@@ -4170,7 +4170,8 @@ export class Island3DEngine {
     }
     const sampleY = (x: number, z: number) => {
       if (this.terrain?.terrainMesh) {
-        return getTerrainHeightAt(this.terrain.terrainMesh, x, z);
+        const height = getTerrainHeightAt(this.terrain.terrainMesh, x, z);
+        if (height !== null && Number.isFinite(height)) return height;
       }
       const lobby = this.sampleLobbyGroundHeight(x, z);
       return lobby ?? 0;

@@ -1,4 +1,4 @@
-name: CI — Grudge Builder (Web Engine 1)
+name: CI — Grudge Builder
 
 on:
   push:
@@ -13,23 +13,17 @@ concurrency:
 jobs:
   validate:
     runs-on: ubuntu-latest
-    timeout-minutes: 15
+    timeout-minutes: 30
     steps:
       - uses: actions/checkout@v4
       - uses: actions/setup-node@v4
         with:
           node-version: 22
           cache: npm
-
-      - name: Install dependencies
-        run: npm ci --ignore-scripts
-
-      # Production build runs before the legacy unit suite so client Vite +
-      # server esbuild/Colyseus integration errors are always surfaced even
-      # while unrelated historical tests remain red.
-      - name: Production client + server build
+      - name: Install locked dependencies
+        run: npm ci --ignore-scripts --include=dev
+      - name: Production client and server build
         run: npm run build
-
       - name: Client unit tests
         run: npm run test:client
 
@@ -80,3 +74,8 @@ jobs:
                 \"description\": \"${{ github.event.head_commit.message }}\"
               }]
             }" || echo "Discord notification skipped"
+      - name: Check for hardcoded backend URLs
+        run: |
+          ! grep -Rn "https://api\.grudge-studio\.com" client/src/lib/api.ts client/src/lib/grudgeBackend.ts 2>/dev/null | grep -v "^[^:]*:[^:]*:[[:space:]]*//"
+      - name: Verify ObjectStore connection
+        run: curl --fail --silent --show-error --connect-timeout 5 --max-time 20 https://objectstore.grudge-studio.com/api/v1/classes.json >/dev/null

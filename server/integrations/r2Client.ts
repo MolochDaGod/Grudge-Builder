@@ -61,7 +61,7 @@ function getClient(): S3Client {
     forcePathStyle: true,
     requestChecksumCalculation: "WHEN_REQUIRED",
     responseChecksumValidation: "WHEN_REQUIRED",
-  } as ConstructorParameters<typeof S3Client>[0]);
+  });
   return cached;
 }
 

@@ -8,6 +8,7 @@ import {
   SURVIVAL_KIT_NODES,
   MEDIEVAL_TOWER_NODES,
   type BuildPieceDef,
+  type BuildPieceInput,
 } from './buildSystem';
 import type { RaceId } from './lore';
 
@@ -17,7 +18,7 @@ const SPELL = BUILD_PACK_PATHS.spellTable;
 const LUMBER = BUILD_PACK_PATHS.lumbermill;
 
 function kit(
-  partial: Omit<BuildPieceDef, 'sourceGlb'> & { sourceGlb?: string },
+  partial: BuildPieceInput,
 ): BuildPieceDef {
   return {
     placeYOffset: 0,
@@ -579,3 +580,4 @@ export function buildPiecesByLayer(layer: BuildPieceDef['layer']): BuildPieceDef
 export function buildPiecesByProfession(prof: string): BuildPieceDef[] {
   return ALL_SURVIVAL_BUILD_PIECES.filter((p) => p.profession === prof);
 }
+

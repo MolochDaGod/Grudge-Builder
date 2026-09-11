@@ -11,7 +11,8 @@
  * Also tests: error display, modal open/close, view switching.
  */
 import { describe, it, expect, vi, beforeEach } from "vitest";
-import { render, screen, act, waitFor } from "@testing-library/react";
+import { render, screen, act, waitFor, cleanup } from "@testing-library/react";
+import { afterEach } from "vitest";
 import userEvent from "@testing-library/user-event";
 import { AuthProvider, useAuth } from "@/contexts/AuthContext";
 import { LoginModal } from "@/components/LoginModal";

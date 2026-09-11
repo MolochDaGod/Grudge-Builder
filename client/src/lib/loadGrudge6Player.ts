@@ -154,7 +154,7 @@ export async function applyGrudge6PlayerToController(
       equipment,
     );
     character.setEquipment(equipment);
-    const kit = character.loadedModelScene ?? character.model;
+    const kit = character.model;
     if (kit?.userData) {
       kit.userData.warlordsPlayContract = WARLORDS_PLAY_CONTRACT_VERSION;
       kit.userData.grudge6Play = true;

@@ -85,7 +85,8 @@ let cache: {
   playableIds: string[];
 } | null = null;
 
-let inflight: Promise<typeof cache> | null = null;
+type WeaponSkillsCache = NonNullable<typeof cache>;
+let inflight: Promise<WeaponSkillsCache> | null = null;
 
 /** UUID-named files under Models are VFX frames, not UI icons. */
 const UUID_FILE_RE =
@@ -252,9 +253,9 @@ export async function loadMasterWeaponSkillsCatalog(
   force = false,
 ): Promise<NonNullable<typeof cache>> {
   if (cache && !force) return cache;
-  if (inflight && !force) return inflight as Promise<NonNullable<typeof cache>>;
+  if (inflight && !force) return inflight;
 
-  inflight = (async () => {
+  inflight = (async (): Promise<WeaponSkillsCache> => {
     let lastErr: unknown;
     for (const base of API_BASES) {
       try {

@@ -234,7 +234,7 @@ export default function WarerarewardPage() {
                 </button>
                 <button
                   type="button"
-                  onClick={openLogin}
+                  onClick={() => openLogin()}
                   className="px-8 py-3.5 rounded-xl font-semibold tracking-wide border border-amber-500/40 text-amber-300 bg-black/30 hover:bg-black/50 cursor-pointer"
                 >
                   Already have an account?

@@ -31,7 +31,7 @@ function islandBuildingIdFromPath(path: string): string | null {
 
 async function loadIslandBuildingPack(id: string, cacheKey: string): Promise<THREE.Group> {
   const packed = await fetchBuildingGlb(id);
-  const blob = new Blob([packed.bytes], { type: 'model/gltf-binary' });
+  const blob = new Blob([new Uint8Array(packed.bytes)], { type: 'model/gltf-binary' });
   const objectUrl = URL.createObjectURL(blob);
   try {
     const gltf = await loadGltfCached(objectUrl, 'high');

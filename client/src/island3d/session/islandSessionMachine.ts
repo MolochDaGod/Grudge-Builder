@@ -3,7 +3,7 @@
  */
 import { setup, assign, fromPromise } from 'xstate';
 import { characterAPI } from '@/lib/api';
-import type { Character } from '@shared/schema';
+import type { Character } from '@/lib/characterManager';
 
 export interface IslandTimeSettings {
   /** Sim seconds per real second (1 = realtime day cycle) */

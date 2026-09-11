@@ -333,14 +333,14 @@ export class PhysicsWorld {
     scale?: number,
   ): PhysicsBody {
     // Try to find named collider mesh
-    let colliderMesh: THREE.Mesh | null = null;
+    const colliderMeshes: THREE.Mesh[] = [];
     const compoundMeshes: THREE.Mesh[] = [];
 
     scene.traverse((child) => {
       if (!(child as THREE.Mesh).isMesh) return;
       const name = child.name.toLowerCase();
       if (name === 'collider' || name === 'physics') {
-        colliderMesh = child as THREE.Mesh;
+        colliderMeshes.push(child as THREE.Mesh);
       } else if (name.startsWith('collider_')) {
         compoundMeshes.push(child as THREE.Mesh);
       }
@@ -358,6 +358,7 @@ export class PhysicsWorld {
     const rigidBody = this.world.createRigidBody(bodyDesc);
     let collider: RAPIER.Collider;
 
+    const colliderMesh = colliderMeshes.at(-1);
     if (colliderMesh) {
       // Option A: exact trimesh from named collider mesh
       const { vertices, indices } = this.extractMeshGeometry(colliderMesh, scale);

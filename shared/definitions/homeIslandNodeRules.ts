@@ -36,6 +36,10 @@ export const DOCK_MAX_Y_ABOVE_WATER_M = 3.5;
  */
 export const FAUNA_HEIGHT = {
   birdAboveTerrainM: 30,
+  /** Mesh origins are normalized to the feet. */
+  feetOnTerrainM: 0,
+  /** Vertical flight oscillation amplitude in metres. */
+  birdBobM: 0.8,
   fishMinAboveSeabedM: 0.4,
   fishMinUnderSurfaceM: WORLD_SURFACE.minSwimUnderSurfaceM,
   /** Default fish swims 45% of the way down from the water surface. */

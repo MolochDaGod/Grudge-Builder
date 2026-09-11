@@ -225,7 +225,7 @@ export default function WorldMap3D({
 
       const mesh = new THREE.Mesh(geo, mat);
       mesh.position.set(originX + SECTOR_SIZE / 2, 0, originZ + SECTOR_SIZE / 2);
-      mesh.userData = { sectorId: id, ...sectorData };
+      mesh.userData = { ...sectorData, sectorId: id };
       mesh.receiveShadow = true;
       scene.add(mesh);
       sectorMeshes[id] = mesh;
