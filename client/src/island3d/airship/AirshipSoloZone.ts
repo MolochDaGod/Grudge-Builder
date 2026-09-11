@@ -1,8 +1,9 @@
 /**
  * AirshipSoloZone — Warlords pre-game deck.
  * Walk hull Object_163_1 · wheels Object_16 / Object_111.
- * Player + pirate crew = original-30 Toon looks at 1.8 m, deck nav + Foot IK.
- * No cabin. No voxel interior.
+ * Warlords 4 **characters** (player heroes) on the airship — not /heroes, not “crew”.
+ * Player body = loadRaceKit. Named pirates (John/Scourge/Racalvin) = 3pirates on R2.
+ * Crew = RTS units elsewhere (ships/camps) — do not conflate with character slots.
  */
 import * as THREE from 'three';
 import { OrbitControls } from 'three/examples/jsm/controls/OrbitControls.js';
@@ -10,6 +11,7 @@ import { assetUrl } from '@/lib/assetConfig';
 import {
   AIRSHIP_ZONE_PATHS,
   AIRSHIP_NPCS,
+  AIRSHIP_HERO_HEIGHT_M,
   AIRSHIP_CABIN_DOOR_LOCAL,
   AIRSHIP_DECK_SPAWN_LOCAL,
   airshipHasSavedCharacter,
@@ -408,26 +410,21 @@ export class AirshipSoloZone {
     };
   }
 
-  /** Helm = knight · bow = spearman · Racalvin = mage — original 30 looks. */
-  private npcOriginalRole(def: AirshipNpcDef): 'knight' | 'spearman' | 'mage' {
-    if (def.role === 'helm') return 'knight';
-    if (def.role === 'bow_patrol') return 'spearman';
-    return 'mage';
-  }
-
   private async spawnNpcs(): Promise<void> {
+    const { createPirateDeckNpc } = await import('./pirateDeckNpc');
     for (const def of AIRSHIP_NPCS) {
       try {
-        const actor = await createDeckActor({
-          raceId: def.raceId,
-          role: this.npcOriginalRole(def),
+        // 3pirates Meshy bodies + walk/talk — not Toon race stand-ins
+        const actor = await createPirateDeckNpc({
+          npcId: def.id,
           name: `npc_${def.id}`,
+          heightM: def.heightM || AIRSHIP_HERO_HEIGHT_M,
         });
         actor.model.userData.npcId = def.id;
         actor.model.userData.interactable = true;
         actor.model.userData.safeNpc = true;
         actor.model.userData.postRole = def.role;
-        actor.model.userData.factionRace = def.raceId;
+        actor.model.userData.piratePack = '3pirates';
 
         const wp0 = def.waypoints[0]!;
         actor.root.position.set(wp0.x, wp0.y, wp0.z);
@@ -448,7 +445,7 @@ export class AirshipSoloZone {
           pathIdx: 0,
         });
       } catch (e) {
-        console.warn('[AirshipZone] Toon faction NPC failed — skip (no capsule)', def.id, e);
+        console.warn('[AirshipZone] 3pirates NPC failed — skip (no capsule)', def.id, e);
       }
     }
   }

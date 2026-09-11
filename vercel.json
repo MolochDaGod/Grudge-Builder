@@ -695,6 +695,93 @@
   ],
   "redirects": [
     {
+      "source": "/heroes",
+      "has": [{ "type": "host", "value": "grudgewarlords.com" }],
+      "destination": "https://grudgewarlords.com/combat",
+      "permanent": false
+    },
+    {
+      "source": "/heroes/:path*",
+      "has": [{ "type": "host", "value": "grudgewarlords.com" }],
+      "destination": "https://grudgewarlords.com/combat",
+      "permanent": false
+    },
+    {
+      "source": "/characters",
+      "has": [{ "type": "host", "value": "grudgewarlords.com" }],
+      "destination": "https://grudgewarlords.com/combat",
+      "permanent": false
+    },
+    {
+      "source": "/select-character",
+      "has": [{ "type": "host", "value": "grudgewarlords.com" }],
+      "destination": "https://grudgewarlords.com/combat",
+      "permanent": false
+    },
+    {
+      "source": "/crew",
+      "has": [{ "type": "host", "value": "grudgewarlords.com" }],
+      "destination": "https://grudgewarlords.com/combat",
+      "permanent": false
+    },
+    {
+      "source": "/heroes",
+      "has": [{ "type": "host", "value": "www.grudgewarlords.com" }],
+      "destination": "https://grudgewarlords.com/combat",
+      "permanent": false
+    },
+    {
+      "source": "/characters",
+      "has": [{ "type": "host", "value": "www.grudgewarlords.com" }],
+      "destination": "https://grudgewarlords.com/combat",
+      "permanent": false
+    },
+    {
+      "source": "/select-character",
+      "has": [{ "type": "host", "value": "www.grudgewarlords.com" }],
+      "destination": "https://grudgewarlords.com/combat",
+      "permanent": false
+    },
+    {
+      "source": "/crew",
+      "has": [{ "type": "host", "value": "www.grudgewarlords.com" }],
+      "destination": "https://grudgewarlords.com/combat",
+      "permanent": false
+    },
+    {
+      "source": "/((?!heroes(?:/|$)|characters(?:/|$)|select-character(?:/|$)|crew(?:/|$)|api/).*)",
+      "has": [
+        {
+          "type": "host",
+          "value": "client.grudge-studio.com"
+        }
+      ],
+      "destination": "https://grudgewarlords.com/$1",
+      "permanent": true
+    },
+    {
+      "source": "/",
+      "has": [
+        {
+          "type": "host",
+          "value": "client.grudge-studio.com"
+        }
+      ],
+      "destination": "https://grudgewarlords.com/",
+      "permanent": true
+    },
+    {
+      "source": "/:path*",
+      "has": [
+        {
+          "type": "host",
+          "value": "warlord3d.grudge-studio.com"
+        }
+      ],
+      "destination": "https://grudgewarlords.com/:path*",
+      "permanent": true
+    },
+    {
       "source": "/(.*)",
       "has": [
         {

@@ -1,4 +1,4 @@
-> **Fleet SSOT index:** `C:\Users\david\Desktop\SOURCE_OF_TRUTH.md` · Live: https://client.grudge-studio.com/api/fleet/manifest · Code: `shared/fleet/`
+> **Fleet SSOT index:** Live: https://grudgewarlords.com/api/fleet/manifest · Code: `shared/fleet/` · Domains: `docs/WARLORDS_DOMAIN_SSOT.md`
 
 # Grudge Builder — Web Engine 1
 
