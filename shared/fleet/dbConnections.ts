@@ -188,7 +188,7 @@ export const SYSTEM_DB_MAPS: SystemDbMap[] = [
       },
       {
         engine: "json-api",
-        url: "https://objectstore.grudge-studio.com/api/v1",
+        url: "https://objectstore.grudge-studio.com/api/v1/catalog",
         role: "Catalog JSON defs (races, weapons, recipes)",
       },
       {
@@ -221,7 +221,7 @@ export const SYSTEM_DB_MAPS: SystemDbMap[] = [
       },
       {
         engine: "json-api",
-        url: "https://objectstore.grudge-studio.com/api/v1",
+        url: "https://objectstore.grudge-studio.com/api/v1/catalog",
         role: "Static game definitions JSON",
       },
       {
