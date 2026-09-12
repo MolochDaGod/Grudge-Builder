@@ -1,5 +1,8 @@
 /** Read-only HTTP readiness gate. Does not claim gameplay or load-test coverage. */
 const origin = new URL(process.argv[2] || 'https://test.grudge-studio.com');
+if (origin.protocol !== 'https:' || origin.username || origin.password ||
+    !(origin.hostname === 'test.grudge-studio.com' || origin.hostname.endsWith('.vercel.app'))) {
+  throw new Error('Expected the stable test origin or an HTTPS Vercel preview URL.');
 const allowedCanonicalHosts = new Set([
   'test.grudge-studio.com',
   'grudgewarlords.com',
@@ -39,6 +42,7 @@ const results = await Promise.allSettled(checks.map(async ([path, kind]) => {
   }
   if (kind === 'json' || kind === 'release') {
     const data = await response.json();
+    if (kind === 'release' && process.env.GITHUB_SHA && data.commit !== process.env.GITHUB_SHA) {
     if (kind === 'release' && process.env.PROBE_EXPECT_RELEASE !== 'false' && process.env.GITHUB_SHA && data.commit !== process.env.GITHUB_SHA) {
       throw new Error(`${path}: deployment commit does not match this build`);
     }
