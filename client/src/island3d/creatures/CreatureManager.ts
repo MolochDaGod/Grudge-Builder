@@ -42,7 +42,7 @@ import {
   isDryLand,
   isWaterColumn,
 } from '@shared/definitions/worldSurfaceLayers';
-import { FAUNA_HEIGHT, fishSwimY } from '@shared/definitions/homeIslandNodeRules';
+import { FAUNA_HEIGHT, fishSwimY } from './faunaHeight';
 import {
   CORPSE_TO_SKELETON_S,
   SKELETON_LINGER_S,
@@ -127,7 +127,10 @@ const IDLE_DURATION_MAX = 6;
 /** Flesh corpse window before auto-skeleton (also matches skin window). */
 const DEATH_LINGER_TIME = CORPSE_TO_SKELETON_S;
 const FLEE_DURATION = 4;
-const BIRD_ABOVE_M = FAUNA_HEIGHT.birdAboveTerrainM;
+const BIRD_ABOVE_M =
+  typeof FAUNA_HEIGHT === 'object' && FAUNA_HEIGHT && typeof FAUNA_HEIGHT.birdAboveTerrainM === 'number'
+    ? FAUNA_HEIGHT.birdAboveTerrainM
+    : 30;
 /** Melee floor — grudge-ai-brains: no silent instant wildlife hit */
 const WILDLIFE_TELEGRAPH_SEC = 0.35;
 
@@ -339,8 +342,8 @@ export class CreatureManager {
       if (def.swimDepth) {
         const depth =
           def.swimDepth[0] + this.rand() * (def.swimDepth[1] - def.swimDepth[0]);
-        const minY = groundY + FAUNA_HEIGHT.fishMinAboveSeabedM;
-        const maxY = this.waterLevel - FAUNA_HEIGHT.fishMinUnderSurfaceM;
+        const minY = groundY + (FAUNA_HEIGHT.fishMinAboveSeabedM ?? 0.4);
+        const maxY = this.waterLevel - (FAUNA_HEIGHT.fishMinUnderSurfaceM ?? 0.3);
         swimY = Math.min(maxY, Math.max(minY, this.waterLevel - depth));
       }
 
@@ -441,7 +444,7 @@ export class CreatureManager {
             existing.def.category !== 'fish' &&
             existing.def.category !== 'predator'
           ) {
-            existing.group.position.y = gy + FAUNA_HEIGHT.feetOnTerrainM;
+            existing.group.position.y = gy + (FAUNA_HEIGHT.feetOnTerrainM ?? 0);
           }
         }
       } else if (y) {
@@ -1141,7 +1144,7 @@ export class CreatureManager {
         c.def.category !== 'fish' &&
         c.def.category !== 'predator'
       ) {
-        c.group.position.y = y + FAUNA_HEIGHT.feetOnTerrainM;
+        c.group.position.y = y + (FAUNA_HEIGHT.feetOnTerrainM ?? 0);
       }
     }
   }
@@ -1216,7 +1219,7 @@ export class CreatureManager {
         base + Math.sin(performance.now() * 0.0008) * FAUNA_HEIGHT.birdBobM;
     } else if (this.sampleHeight) {
       const y = this.sampleHeight(c.group.position.x, c.group.position.z);
-      if (y !== null) c.group.position.y = y + FAUNA_HEIGHT.feetOnTerrainM;
+      if (y !== null) c.group.position.y = y + (FAUNA_HEIGHT.feetOnTerrainM ?? 0);
     }
 
     return arrived;
