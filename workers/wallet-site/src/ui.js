@@ -9,18 +9,17 @@ export function htmlPage(env) {
   const portal = env.PORTAL_ORIGIN || "https://grudge-studio.com";
   const assets = env.ASSETS_CDN || "https://assets.grudge-studio.com";
   const poker = env.POKER_ORIGIN || "https://poker.grudge-studio.com";
-  const logo = poker + "/media/budb-pkr-logo-mark.jpg";
+  const trader = env.TRADER_ORIGIN || "https://trader.grudge-studio.com";
+  const logo = idGw + "/grudge-id-logo.png";
   const gbux = poker + "/media/gbux-logo-64.png";
-  const hero = poker + "/media/brand/poker-sol-pro.webp";
-  const table = poker + "/media/brand/budb-table-hero.jpg";
 
   return `<!DOCTYPE html>
 <html lang="en">
 <head>
 <meta charset="UTF-8" />
 <meta name="viewport" content="width=device-width, initial-scale=1.0" />
-<title>Grudge Wallet · Fleet & Play</title>
-<meta name="description" content="Grudge Studio wallet — fleet bag GBUX, play fund, Phantom reconnect, fleet games." />
+<title>Grudge Studio Wallet</title>
+<meta name="description" content="Grudge Studio wallet — one Grudge ID, fleet bag GBUX, send to games." />
 <link rel="icon" href="${logo}" />
 <link rel="preconnect" href="https://fonts.googleapis.com" />
 <link href="https://fonts.googleapis.com/css2?family=Cinzel:wght@600;700&family=Jost:wght@400;500;600;700&display=swap" rel="stylesheet" />
@@ -29,8 +28,11 @@ export function htmlPage(env) {
 *{box-sizing:border-box;margin:0;padding:0}
 body{min-height:100vh;font-family:Jost,system-ui,sans-serif;color:var(--text);
 background:#07070c;display:flex;flex-direction:column;align-items:center;padding:20px 14px 48px;position:relative}
-.bg{position:fixed;inset:0;z-index:0;background:url('${hero}') center/cover no-repeat;opacity:.22;pointer-events:none}
-.bg2{position:fixed;inset:0;z-index:0;background:linear-gradient(180deg,rgba(7,7,12,.55),rgba(7,7,12,.92) 55%,#07070c);pointer-events:none}
+.bg{position:fixed;inset:0;z-index:0;background:
+radial-gradient(ellipse 70% 45% at 15% 0%,rgba(168,85,247,.18),transparent 55%),
+radial-gradient(ellipse 60% 40% at 90% 10%,rgba(212,175,55,.12),transparent 50%),
+linear-gradient(180deg,#0b0b14,#07070c);pointer-events:none}
+.bg2{position:fixed;inset:0;z-index:0;background:linear-gradient(180deg,rgba(7,7,12,.15),rgba(7,7,12,.55) 70%,#07070c);pointer-events:none}
 .wrap{position:relative;z-index:1;width:100%;max-width:920px}
 .nav{display:flex;justify-content:space-between;align-items:center;gap:12px;flex-wrap:wrap;margin-bottom:18px}
 .brand{display:flex;align-items:center;gap:10px;text-decoration:none;color:var(--gold);font-family:Cinzel,serif;font-size:1.05rem}
@@ -40,7 +42,7 @@ background:#07070c;display:flex;flex-direction:column;align-items:center;padding
 .links a:hover{color:var(--gold2);border-color:rgba(212,175,55,.35)}
 .hero{border-radius:18px;overflow:hidden;border:1px solid var(--border);margin-bottom:16px;position:relative;min-height:120px}
 .hero img{width:100%;height:140px;object-fit:cover;display:block}
-.hero .cap{position:absolute;inset:0;background:linear-gradient(90deg,rgba(7,7,12,.88),rgba(7,7,12,.35));display:flex;flex-direction:column;justify-content:center;padding:20px 22px}
+.hero .cap{position:relative;min-height:120px;background:linear-gradient(120deg,rgba(18,12,28,.95),rgba(12,14,24,.72));display:flex;flex-direction:column;justify-content:center;padding:20px 22px}
 .hero h1{font-family:Cinzel,serif;color:var(--gold2);font-size:1.55rem;margin-bottom:4px}
 .hero p{color:var(--dim);font-size:.88rem;max-width:420px;line-height:1.45}
 .grid{display:grid;grid-template-columns:1fr 1fr;gap:14px}
@@ -79,21 +81,21 @@ button:disabled{opacity:.45;cursor:not-allowed}
 <div class="bg2" aria-hidden="true"></div>
 <div class="wrap">
   <nav class="nav">
-    <a class="brand" href="${portal}"><img src="${logo}" alt="" width="36" height="36" /> Grudge Wallet</a>
+    <a class="brand" href="${portal}"><img src="${logo}" alt="" width="36" height="36" /> Grudge Studio Wallet</a>
     <div class="links">
-      <a href="${poker}">Poker</a>
+      <a href="${portal}">Studio</a>
+      <a href="${poker}/wallet">Poker</a>
       <a href="${client}">Warlords</a>
       <a href="https://grudox.grudge-studio.com">GRUDOX</a>
-      <a href="${idGw}/login?redirect_uri=${encodeURIComponent("https://wallet.grudge-studio.com/")}">Sign in</a>
+      <a href="${idGw}/login?redirect_uri=${encodeURIComponent("https://wallet.grudge-studio.com/")}&app=wallet&origin=${encodeURIComponent("https://wallet.grudge-studio.com")}">Sign in</a>
     </div>
   </nav>
 
   <div class="hero">
-    <img src="${table}" alt="" width="920" height="140" />
-    <div class="cap">
-      <div class="badge" id="edge-badge">edge · production</div>
-      <h1>Fleet Wallet</h1>
-      <p>One Grudge ID · fleet bag GBUX · server swap · fund play · re-enter every game.</p>
+    <div class="cap" style="position:relative;min-height:120px">
+      <div class="badge" id="edge-badge">fleet · production</div>
+      <h1>Studio Wallet</h1>
+      <p>One Grudge ID · Crossmint game wallet (create only if missing) · bag GBUX · auto-trader at trader.grudge-studio.com.</p>
     </div>
   </div>
 
@@ -106,12 +108,16 @@ button:disabled{opacity:.45;cursor:not-allowed}
       <div class="row"><span class="k">Play GBUX</span><span class="v" id="play">—</span></div>
       <div class="row"><span class="k">Network</span><span class="v" id="net">…</span></div>
       <div class="row"><span class="k">Mint</span><span class="v" id="mint">…</span></div>
+      <div class="row"><span class="k">Gruda / Crossmint</span><span class="v" id="cmint">—</span></div>
       <div class="addr" id="addr"></div>
+      <p style="font-size:.75rem;color:var(--dim);margin-top:8px;line-height:1.4">Auto-trader fee: 0.005 SOL → GBUX on each close; TP +5%. Remainder stays in the trading wallet.</p>
       <div class="btns">
         <button class="primary" type="button" id="btn-refresh">Refresh</button>
         <button class="ghost" type="button" id="btn-login">Sign in</button>
         <button class="ghost" type="button" id="btn-logout" style="display:none">Sign out</button>
-        <a class="btn ghost" id="btn-phantom" href="${poker}/connect">Connect Phantom</a>
+        <button class="cyan" type="button" id="btn-create-wallet" style="display:none">Create Gruda wallet</button>
+        <a class="btn ghost" id="btn-trader" href="${trader}">Auto-trader</a>
+        <a class="btn ghost" id="btn-phantom" href="${poker}/wallet">Poker wallet</a>
       </div>
       <p class="msg" id="msg"></p>
     </section>
@@ -123,10 +129,10 @@ button:disabled{opacity:.45;cursor:not-allowed}
         <button type="button" data-tab="swap">Bag SOL↔GBUX</button>
       </div>
       <div class="panel on" id="tab-play">
-        <p style="font-size:.8rem;color:var(--dim);line-height:1.45;margin-bottom:8px">Server-side: debit fleet bag → credit poker play ledger (no chain fee). Requires Grudge ID + linked Solana address.</p>
+        <p style="font-size:.8rem;color:var(--dim);line-height:1.45;margin-bottom:8px">Send bag GBUX to Poker play ledger (no chain fee). Requires Grudge ID. Poker-branded wallet: poker.grudge-studio.com/wallet</p>
         <label class="k" style="font-size:.75rem">Amount (GBUX)</label>
         <input class="input" id="play-amt" type="number" min="1" step="1" value="100" />
-        <button class="cyan" type="button" id="btn-fund-play" disabled>Fund play wallet</button>
+        <button class="cyan" type="button" id="btn-fund-play" disabled>Send to Poker play</button>
       </div>
       <div class="panel" id="tab-swap">
         <p style="font-size:.8rem;color:var(--dim);line-height:1.45;margin-bottom:8px">Server bag swap on Railway (SOL ↔ GBUX). Not table chips until you Fund play.</p>
@@ -157,19 +163,22 @@ button:disabled{opacity:.45;cursor:not-allowed}
     <div id="hero-list" style="font-size:.82rem;color:var(--dim)">—</div>
   </section>
 
-  <p class="foot">wallet.grudge-studio.com · grudge-wallet-site · Railway bag · poker play D1</p>
+  <p class="foot">wallet.grudge-studio.com · Grudge Studio fleet bag · Railway SSOT</p>
 </div>
 <script>
 const RAILWAY = ${JSON.stringify(railway)};
 const ID_GW = ${JSON.stringify(idGw)};
 const POKER = ${JSON.stringify(poker)};
-const FLEET_KEYS = ['grudge_auth_token','grudge_session_token','grudge.token','sso_token','grudge_token','access_token'];
+const TRADER = ${JSON.stringify(trader)};
+const FLEET_KEYS = ['grudge.open.token','grudge_auth_token','grudge_session_token','grudge.token','sso_token','grudge_token','access_token'];
 const $ = (id) => document.getElementById(id);
 let signedIn = false;
 let walletAddr = '';
 
 const GAMES = [
-  { name: 'BUDB Poker', desc: 'Hold\\'em · slots · BJ · play GBUX', href: POKER + '/lobby', img: '${logo}' },
+  { name: 'Auto-trader', desc: 'SOL desk · GBUX fee · rotating capital', href: TRADER, img: '${gbux}' },
+  { name: 'Poker wallet', desc: 'BUDB play · fund · sit', href: POKER + '/wallet', img: '${gbux}' },
+  { name: 'BUDB Poker', desc: 'Hold\\'em · slots · BJ · play GBUX', href: POKER + '/lobby', img: '${gbux}' },
   { name: 'Nexus Nemesis', desc: 'TCG · Nexus era', href: 'https://nexus.grudge-studio.com', img: '${gbux}' },
   { name: 'Warlords play', desc: 'Client · home island', href: '${client}/home', img: '${logo}' },
   { name: 'Character Foundry', desc: 'Create · 4 slots', href: 'https://character.grudge-studio.com/?era=warlords', img: '${logo}' },
@@ -184,24 +193,22 @@ const GAMES = [
 function storeFleetToken(token, meta) {
   if (!token) return;
   try {
-    localStorage.setItem('grudge_auth_token', token);
-    localStorage.setItem('grudge_session_token', token);
-    localStorage.setItem('grudge.token', token);
-    localStorage.setItem('sso_token', token);
-    localStorage.setItem('access_token', token);
-    if (token.split('.').length === 3) localStorage.setItem('grudge_token', token);
+    FLEET_KEYS.forEach((k) => localStorage.setItem(k, token));
     if (meta && meta.grudgeId) {
       localStorage.setItem('grudge_id', meta.grudgeId);
       localStorage.setItem('grudge_account_id', meta.grudgeId);
     }
     if (meta && meta.username) localStorage.setItem('grudge_username', meta.username);
+    document.cookie = 'sso_token=' + encodeURIComponent(token) + '; Path=/; Secure; SameSite=Lax; Max-Age=604800; Domain=.grudge-studio.com';
   } catch {}
 }
 function getAuthToken() {
   try {
-    for (const k of ['grudge_auth_token','grudge_session_token','grudge.token','sso_token','access_token','grudge_token']) {
+    for (const k of FLEET_KEYS) {
       const v = localStorage.getItem(k); if (v && v.trim()) return v.trim();
     }
+    const m = document.cookie.match(/(?:^|; )sso_token=([^;]+)/);
+    if (m) return decodeURIComponent(m[1]);
   } catch {}
   return '';
 }
@@ -284,7 +291,7 @@ function handoffUrl(base) {
   if (!tok) return base;
   try {
     const u = new URL(base, location.origin);
-    u.searchParams.set('sso_token', tok);
+    u.hash = 'sso_token=' + encodeURIComponent(tok);
     const gid = localStorage.getItem('grudge_id') || '';
     const name = localStorage.getItem('grudge_username') || '';
     if (gid) { u.searchParams.set('grudge_id', gid); u.searchParams.set('grudgeId', gid); }
@@ -345,7 +352,9 @@ async function load() {
       $('gid').textContent = '—';
       $('gbux').textContent = '—';
       $('play').textContent = '—';
+      $('cmint').textContent = '—';
       $('addr').style.display = 'none';
+      $('btn-create-wallet').style.display = 'none';
       if (me.status === 401) $('msg').textContent = 'Sign in with Grudge ID to manage bag & fund play.';
       return;
     }
@@ -357,25 +366,30 @@ async function load() {
     $('gid').textContent = grudgeId;
     storeFleetToken(getAuthToken(), { grudgeId, username: name });
 
-    const ov = await api('/api/wallet/overview');
-    if (ov.ok && ov.data) {
-      $('gbux').textContent = Number(ov.data.gbuxBalance ?? 0).toLocaleString();
-      walletAddr = ov.data.primaryWallet || ov.data.linkedWallets?.[0]?.walletAddress || '';
-      if (walletAddr) {
+    const st = await api('/api/wallet/status');
+    if (st.ok && st.data) {
+      $('gbux').textContent = Number(st.data.gbuxBalance ?? 0).toLocaleString();
+      if (st.data.hasWallet && st.data.walletAddress) {
+        walletAddr = st.data.walletAddress;
+        $('cmint').textContent = (st.data.walletType || 'crossmint') + ' · exists';
         $('addr').style.display = 'block';
         $('addr').textContent = walletAddr;
+        $('btn-create-wallet').style.display = 'none';
+        await loadPlayBalance(walletAddr);
+      } else {
+        $('cmint').textContent = 'none — create only if missing';
+        $('btn-create-wallet').style.display = '';
       }
-      await loadPlayBalance(walletAddr);
-    } else {
-      const st = await api('/api/wallet/status');
-      if (st.ok && st.data) {
-        $('gbux').textContent = String(st.data.gbuxBalance ?? 0);
-        if (st.data.walletAddress) {
-          walletAddr = st.data.walletAddress;
-          $('addr').style.display = 'block';
-          $('addr').textContent = walletAddr;
-          await loadPlayBalance(walletAddr);
-        }
+    }
+    const ov = await api('/api/wallet/overview');
+    if (ov.ok && ov.data) {
+      $('gbux').textContent = Number(ov.data.gbuxBalance ?? $('gbux').textContent.replace(/,/g,'') ?? 0).toLocaleString();
+      const linked = ov.data.primaryWallet || ov.data.linkedWallets?.[0]?.walletAddress || '';
+      if (!walletAddr && linked) {
+        walletAddr = linked;
+        $('addr').style.display = 'block';
+        $('addr').textContent = walletAddr;
+        await loadPlayBalance(walletAddr);
       }
     }
 
@@ -428,7 +442,43 @@ $('btn-logout').onclick = () => {
 };
 $('btn-phantom').onclick = (e) => {
   e.preventDefault();
-  location.href = handoffUrl(POKER + '/connect');
+  location.href = handoffUrl(POKER + '/wallet');
+};
+$('btn-trader').onclick = (e) => {
+  e.preventDefault();
+  location.href = handoffUrl(TRADER);
+};
+$('btn-create-wallet').onclick = async () => {
+  $('msg').className = 'msg';
+  $('msg').textContent = 'Checking Railway wallet…';
+  try {
+    const st = await api('/api/wallet/status');
+    if (st.ok && st.data && st.data.hasWallet && st.data.walletAddress) {
+      $('msg').textContent = 'Wallet already exists.';
+      $('msg').className = 'msg ok';
+      await load();
+      return;
+    }
+    const me = await api('/api/auth/me');
+    const email = me.data?.email || me.data?.user_email || '';
+    if (!email) {
+      $('msg').textContent = 'Grudge ID needs an email before Crossmint mint.';
+      $('msg').className = 'msg err';
+      return;
+    }
+    const r = await api('/api/wallet/create', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ email }),
+    });
+    if (!r.ok) throw new Error(r.data?.error || 'Create failed');
+    $('msg').textContent = r.data?.message || 'Wallet ready';
+    $('msg').className = 'msg ok';
+    await load();
+  } catch (e) {
+    $('msg').textContent = e.message || String(e);
+    $('msg').className = 'msg err';
+  }
 };
 $('btn-fund-play').onclick = async () => {
   const amount = Math.floor(parseFloat($('play-amt').value) || 0);

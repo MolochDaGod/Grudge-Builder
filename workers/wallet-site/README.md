@@ -15,6 +15,8 @@ Production edge for **https://wallet.grudge-studio.com/**
 
 **Do not** point wallet at VPS `74.208.155.229`.
 
+**Brand split (2026-08):** this host is the **Grudge Studio fleet bag**. Poker-branded fund/sit UI lives at `https://poker.grudge-studio.com/wallet`. Same Railway `/api/wallet/*` — do not invent a second bag.
+
 ## Player product (clean wallet tool)
 
 | Feature | How |
@@ -26,7 +28,8 @@ Production edge for **https://wallet.grudge-studio.com/**
 | Play GBUX | Poker `/api/wallet/scopes?wallet=` |
 | **Fund play** | `POST /api/wallet/transfer-to-play` → debit bag → poker D1 credit |
 | Bag SOL↔GBUX | `POST /api/exchange/quote` + `/swap` |
-| Games grid | Poker, Nexus, Warlords, Foundry, Open, GRUDOX, Mine, Forge, Casting |
+| Games grid | Auto-trader, Poker, Nexus, Warlords, Foundry, Open, GRUDOX, Mine, Forge, Casting |
+| Gruda / Crossmint | `GET /api/wallet/status` first · `POST /api/wallet/create` only if missing |
 
 ## Deploy
 
@@ -59,7 +62,7 @@ Optional shared secret (align Railway + poker):
 
 ```bash
 curl -s https://wallet.grudge-studio.com/health
-# features: fleet-bag, transfer-to-play, exchange-swap, game-handoff, phantom-reconnect
+# features: … crossmint-check-first, auto-trader-handoff
 ```
 
 ## Auth SSOT
