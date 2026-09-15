@@ -33,7 +33,7 @@ export function htmlPage(env) {
 :root{--bg:#07070c;--panel:rgba(18,18,26,.92);--border:rgba(212,175,55,.28);--gold:#d4af37;--gold2:#f3d9a4;--text:#f4f4f5;--dim:#a1a1aa;--ok:#22c55e;--err:#ef4444;--purple:#a855f7;--cyan:#22d3ee}
 *{box-sizing:border-box;margin:0;padding:0}
 body{min-height:100vh;font-family:Jost,system-ui,sans-serif;color:var(--text);
-background:#07070c;display:flex;flex-direction:column;align-items:center;padding:20px 14px 48px;position:relative}
+background:#07070c;display:flex;flex-direction:column;align-items:center;padding:0 0 72px;position:relative}
 .bg{position:fixed;inset:0;z-index:0;background:
 radial-gradient(ellipse 70% 45% at 15% 0%,rgba(168,85,247,.18),transparent 55%),
 radial-gradient(ellipse 60% 40% at 90% 10%,rgba(212,175,55,.12),transparent 50%),
@@ -86,144 +86,140 @@ button:disabled{opacity:.45;cursor:not-allowed}
 .legal-card{max-width:560px;max-height:80vh;overflow:auto;background:#12121a;border:1px solid rgba(212,175,55,.35);border-radius:14px;padding:20px 22px}
 .legal-card h3{font-family:Cinzel,serif;color:var(--gold);margin-bottom:10px}
 .legal-card p,.legal-card li{font-size:.82rem;color:var(--dim);line-height:1.5;margin:0 0 8px}
+.shell{max-width:430px;margin:0 auto;padding:12px 14px 24px}
+.w-head{display:flex;align-items:center;gap:10px;padding:8px 0 4px}
+.acct{flex:1;display:flex;align-items:center;gap:8px;background:rgba(255,255,255,.04);border:1px solid var(--border);border-radius:999px;padding:6px 10px 6px 6px;min-width:0}
+.acct img{width:28px;height:28px;border-radius:50%}
+.acct b{font-size:.78rem;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+.acct span{font-size:.65rem;color:var(--dim);display:block}
+.hero-bal{text-align:center;padding:22px 8px 8px}
+.hero-bal .sym{font-size:.72rem;letter-spacing:.14em;text-transform:uppercase;color:var(--gold);margin-bottom:4px}
+.hero-bal .fig{font-size:2.35rem;font-weight:700;letter-spacing:-.03em;line-height:1.1}
+.hero-bal .sub{color:var(--dim);font-size:.82rem;margin-top:6px}
+.act{display:grid;grid-template-columns:repeat(4,1fr);gap:8px;margin:16px 0}
+.act a,.act button{flex-direction:column;justify-content:center;gap:4px;padding:12px 6px;border-radius:14px;background:rgba(255,255,255,.05);border:1px solid rgba(255,255,255,.08);font-size:.68rem;color:var(--gold2);text-align:center}
+.act .ic{font-size:1.15rem}
+.dock{position:fixed;left:0;right:0;bottom:0;z-index:20;display:flex;justify-content:center;gap:0;background:rgba(10,10,16,.94);border-top:1px solid var(--border);padding:8px 12px calc(8px + env(safe-area-inset-bottom))}
+.dock button{flex:1;max-width:120px;background:transparent;border:0;color:var(--dim);font-size:.72rem;padding:8px}
+.dock button.on{color:var(--gold2)}
+.dock-panel{display:none}.dock-panel.on{display:block}
+.tok{display:flex;align-items:center;gap:10px;padding:12px;border-radius:14px;background:rgba(255,255,255,.04);border:1px solid rgba(255,255,255,.07);margin:8px 0}
+.tok img{width:36px;height:36px;border-radius:50%}
+.tok .meta{flex:1;min-width:0}
+.tok .meta b{display:block;font-size:.88rem}
+.tok .meta span{font-size:.7rem;color:var(--dim)}
+.tok .bal{text-align:right;font-weight:700}
+.store{display:grid;grid-template-columns:repeat(2,1fr);gap:10px}
 </style>
 </head>
 <body>
 <div class="bg" aria-hidden="true"></div>
 <div class="bg2" aria-hidden="true"></div>
-<div class="wrap">
-  <nav class="nav">
-    <a class="brand" href="${portal}"><img src="${logo}" alt="" width="36" height="36" /> Grudge Studio Wallet</a>
-    <div class="links">
-      <a href="${portal}">Studio</a>
-      <a href="${poker}/wallet">Poker</a>
-      <a href="${client}">Warlords</a>
-      <a href="https://grudox.grudge-studio.com">GRUDOX</a>
-      <a href="${idGw}/login?redirect_uri=${encodeURIComponent("https://wallet.grudge-studio.com/")}&app=wallet&origin=${encodeURIComponent("https://wallet.grudge-studio.com")}">Sign in</a>
-      <button class="ghost" type="button" id="btn-install" style="display:none">Install app</button>
+<div class="wrap shell">
+  <header class="w-head">
+    <div class="acct">
+      <img src="${logo}" alt="" width="28" height="28" />
+      <div style="min-width:0">
+        <b id="sess">loading…</b>
+        <span id="gid">Grudge ID —</span>
+      </div>
     </div>
-  </nav>
+    <a class="btn ghost" id="btn-login" href="${idGw}/login?redirect_uri=${encodeURIComponent("https://wallet.grudge-studio.com/")}&app=wallet&origin=${encodeURIComponent("https://wallet.grudge-studio.com")}">Sign in</a>
+    <button class="ghost" type="button" id="btn-logout" style="display:none">Out</button>
+    <button class="ghost" type="button" id="btn-install" style="display:none">Install</button>
+  </header>
 
-  <div class="hero">
-    <div class="cap" style="position:relative;min-height:120px">
-      <div class="badge" id="edge-badge">fleet · production</div>
-      <h1>Studio Wallet</h1>
-      <p>One Grudge ID · Crossmint game wallet (create only if missing) · bag GBUX · auto-trader at trader.grudge-studio.com.</p>
-    </div>
+  <div class="hero-bal">
+    <div class="sym">Gruda Wallet · mainnet</div>
+    <div class="fig"><span id="gbux">—</span></div>
+    <div class="sub">GBUX bag · play <span id="play">—</span></div>
+    <div class="sub">Trader vault <span id="tr-sol">—</span> · spendable <span id="tr-spend">—</span></div>
+    <div class="badge" id="edge-badge">Solana</div>
   </div>
 
-  <div class="grid">
-    <section class="card">
-      <h2><img src="${gbux}" alt="" /> Balances</h2>
-      <div class="row"><span class="k">Session</span><span class="v" id="sess">loading…</span></div>
-      <div class="row"><span class="k">Grudge ID</span><span class="v" id="gid">—</span></div>
-      <div class="row"><span class="k">Fleet bag GBUX</span><span class="v" id="gbux">—</span></div>
-      <div class="row"><span class="k">Play GBUX</span><span class="v" id="play">—</span></div>
-      <div class="row"><span class="k">Network</span><span class="v" id="net">…</span></div>
-      <div class="row"><span class="k">Mint</span><span class="v" id="mint">…</span></div>
-      <div class="row"><span class="k">Gruda / Crossmint</span><span class="v" id="cmint">—</span></div>
-      <div class="addr" id="addr"></div>
-      <p style="font-size:.75rem;color:var(--dim);margin-top:8px;line-height:1.4">Auto-trader fee: 0.005 SOL → GBUX on each close; TP +5%. Remainder stays in the trading wallet.</p>
-      <div class="btns">
-        <button class="primary" type="button" id="btn-refresh">Refresh</button>
-        <a class="btn ghost" id="btn-login" href="${idGw}/login?redirect_uri=${encodeURIComponent("https://wallet.grudge-studio.com/")}&app=wallet&origin=${encodeURIComponent("https://wallet.grudge-studio.com")}">Sign in</a>
-        <button class="ghost" type="button" id="btn-logout" style="display:none">Sign out</button>
-        <button class="cyan" type="button" id="btn-create-wallet" style="display:none">Create Gruda wallet</button>
-        <a class="btn ghost" id="btn-trader" href="${trader}">Auto-trader</a>
-        <a class="btn ghost" id="btn-phantom" href="${poker}/wallet">Poker wallet</a>
-      </div>
-      <p class="msg" id="msg"></p>
-    </section>
-
-    <section class="card">
-      <h2>Auto-trader SOL</h2>
-      <p style="font-size:.8rem;color:var(--dim);line-height:1.5;margin-bottom:10px">
-        Send SOL to the <b>trade vault</b>, then Record deposit so your Grudge ID NAV can size clips.
-        Keep <b>at least 0.02 SOL</b> in the vault at all times (fees, Jupiter, ATA rent). Withdraw only to a wallet that deposited or is linked on Grudge ID.
-        Close fee: 0.005 SOL → GBUX; TP +5%. Remainder stays as your spendable NAV.
-      </p>
-      <div class="row"><span class="k">Vault</span><span class="v" id="tr-vault">—</span></div>
-      <div class="row"><span class="k">Vault SOL</span><span class="v" id="tr-sol">—</span></div>
-      <div class="row"><span class="k">Enrolled</span><span class="v" id="tr-enroll">—</span></div>
-      <div class="row"><span class="k">Your spendable</span><span class="v" id="tr-spend">—</span></div>
-      <div class="addr" id="tr-vault-full"></div>
-      <label class="k" style="font-size:.75rem">Deposit from (your Solana)</label>
-      <input class="input" id="tr-from" placeholder="Funding wallet that sent SOL" />
-      <label class="k" style="font-size:.75rem">Amount (SOL)</label>
-      <input class="input" id="tr-amt" type="number" min="0" step="0.01" value="0.05" />
-      <div class="btns">
-        <button class="primary" type="button" id="btn-tr-copy">Copy vault address</button>
-        <button class="cyan" type="button" id="btn-tr-dep" disabled>Record deposit</button>
-        <button class="ghost" type="button" id="btn-tr-wd" disabled>Withdraw</button>
-        <button class="ghost" type="button" id="btn-tr-enroll" disabled>Enable trader</button>
-      </div>
-      <p class="msg" id="tr-msg"></p>
-    </section>
-
-    <section class="card">
-      <h2>Move GBUX</h2>
-      <div class="tabs">
-        <button type="button" class="on" data-tab="play">→ Play ledger</button>
-        <button type="button" data-tab="swap">Bag SOL↔GBUX</button>
-      </div>
-      <div class="panel on" id="tab-play">
-        <p style="font-size:.8rem;color:var(--dim);line-height:1.45;margin-bottom:8px">Send bag GBUX to Poker play ledger (no chain fee). Requires Grudge ID. Poker-branded wallet: poker.grudge-studio.com/wallet</p>
-        <label class="k" style="font-size:.75rem">Amount (GBUX)</label>
-        <input class="input" id="play-amt" type="number" min="1" step="1" value="100" />
-        <button class="cyan" type="button" id="btn-fund-play" disabled>Send to Poker play</button>
-      </div>
-      <div class="panel" id="tab-swap">
-        <p style="font-size:.8rem;color:var(--dim);line-height:1.45;margin-bottom:8px">Server bag swap on Railway using the <b>Crossmint Gruda</b> wallet (SOL ↔ GBUX). Linked Phantom is for funding the trader vault, not this bag swap.</p>
-        <label class="k" style="font-size:.75rem">Direction</label>
-        <select class="input" id="swap-dir">
-          <option value="sol-to-gbux">SOL → GBUX</option>
-          <option value="gbux-to-sol">GBUX → SOL</option>
-        </select>
-        <label class="k" style="font-size:.75rem">Amount</label>
-        <input class="input" id="swap-amt" type="number" min="0" step="any" value="0.1" />
-        <div class="btns">
-          <button class="ghost" type="button" id="btn-quote" disabled>Quote</button>
-          <button class="primary" type="button" id="btn-swap" disabled>Swap</button>
-        </div>
-        <pre id="swap-out" style="font-size:.7rem;color:var(--dim);margin-top:8px;white-space:pre-wrap;max-height:100px;overflow:auto"></pre>
-      </div>
-      <p class="msg" id="tx-msg"></p>
-    </section>
+  <div class="act">
+    <button type="button" id="btn-tr-copy"><span class="ic">↓</span>Receive</button>
+    <button type="button" id="btn-go-send"><span class="ic">↑</span>Send</button>
+    <button type="button" id="btn-go-swap"><span class="ic">⇄</span>Swap</button>
+    <button type="button" id="btn-go-connect"><span class="ic">◎</span>Connect</button>
   </div>
+  <p class="msg" id="msg"></p>
 
-  <section class="card" style="margin-top:14px">
-    <h2>Wallets · Crossmint · linked · trader</h2>
-    <p style="font-size:.8rem;color:var(--dim);line-height:1.5;margin-bottom:10px">
-      <b>Gruda</b> = Crossmint server-side (Railway). <b>Linked</b> = Phantom/Solflare on the same account (does not replace Crossmint).
-      <b>Trader</b> = house vault; record deposits from your linked wallet. Bag swap is Crossmint SOL↔GBUX.
-    </p>
-    <div class="row"><span class="k">Crossmint (Gruda)</span><span class="v" id="w-cm">—</span></div>
-    <div id="w-linked" style="font-size:.8rem;color:var(--dim);margin:8px 0">Sign in to list linked wallets.</div>
+  <div class="dock-panel on" id="dock-assets">
+    <div class="tok"><img src="${gbux}" alt="" /><div class="meta"><b>GBUX</b><span>bag · Crossmint Gruda</span></div><div class="bal" id="tok-gbux">—</div></div>
+    <div class="tok"><img src="${logo}" alt="" /><div class="meta"><b>SOL vault</b><span id="tr-vault">trader house</span></div><div class="bal" id="tok-sol">—</div></div>
+    <span id="cmint" hidden></span><span id="net" hidden></span><span id="mint" hidden></span>
+    <div class="addr" id="addr"></div>
+    <div class="addr" id="tr-vault-full"></div>
+    <p style="font-size:.72rem;color:var(--dim);margin:8px 0">Keep 0.02 SOL in the trader vault. Close fee 0.005 SOL → GBUX; TP +5%.</p>
+    <div class="row"><span class="k">Enrolled</span><span class="v" id="tr-enroll">—</span></div>
+    <div id="w-linked">Sign in to list linked Phantom accounts.</div>
+    <div class="row"><span class="k">Crossmint</span><span class="v" id="w-cm">—</span></div>
+    <div id="w-detect" class="btns"></div>
     <div class="btns">
-      <div id="w-detect" class="btns"></div>
-      <button class="cyan" type="button" id="btn-link-ph" disabled>Connect Phantom</button>
-      <button class="ghost" type="button" id="btn-link-sf" disabled>Connect Solflare</button>
-      <button class="ghost" type="button" id="btn-link-bp" disabled>Connect Backpack</button>
+      <button class="cyan" type="button" id="btn-link-ph" disabled>Phantom</button>
+      <button class="ghost" type="button" id="btn-link-sf" disabled>Solflare</button>
+      <button class="ghost" type="button" id="btn-link-bp" disabled>Backpack</button>
       <a class="btn ghost" id="btn-open-phantom" href="#" style="display:none">Open in Phantom</a>
+      <button class="ghost" type="button" id="btn-create-wallet" style="display:none">Create Gruda</button>
+      <button class="primary" type="button" id="btn-refresh">Refresh</button>
     </div>
     <p class="msg" id="w-msg"></p>
-  </section>
+  </div>
 
-  <section class="card" style="margin-top:14px">
-    <h2>Games · re-enter with session</h2>
-    <div class="gamess" id="games"></div>
-  </section>
+  <div class="dock-panel" id="dock-dapps">
+    <p style="font-size:.8rem;color:var(--dim);margin:0 0 10px">Dapp store · opens with your Grudge ID session</p>
+    <div class="store gamess" id="games"></div>
+    <div id="hero-list" style="font-size:.75rem;color:var(--dim);margin-top:12px"></div>
+    <div class="btns">
+      <a class="btn primary" id="btn-trader" href="${trader}">Trader</a>
+      <a class="btn ghost" id="btn-phantom" href="${poker}/wallet">Poker wallet</a>
+    </div>
+  </div>
 
-  <section class="card" style="margin-top:14px">
-    <h2>Heroes (Railway)</h2>
-    <div id="hero-list" style="font-size:.82rem;color:var(--dim)">—</div>
-  </section>
+  <div class="dock-panel" id="dock-activity">
+    <p style="font-size:.8rem;color:var(--dim);line-height:1.45">Receive: copy vault, send SOL from Phantom, Record deposit. Send: withdraw to a linked wallet. Vault keeps 0.02 SOL.</p>
+    <label class="k" style="font-size:.75rem">From / to (linked Solana)</label>
+    <input class="input" id="tr-from" placeholder="Linked wallet address" />
+    <label class="k" style="font-size:.75rem">Amount SOL</label>
+    <input class="input" id="tr-amt" type="number" min="0" step="0.01" value="0.05" />
+    <div class="btns">
+      <button class="cyan" type="button" id="btn-tr-dep" disabled>Record deposit</button>
+      <button class="ghost" type="button" id="btn-tr-wd" disabled>Withdraw</button>
+      <button class="ghost" type="button" id="btn-tr-enroll" disabled>Enable trader</button>
+    </div>
+    <p class="msg" id="tr-msg"></p>
+    <div class="tabs">
+      <button type="button" class="on" data-tab="play">Play ledger</button>
+      <button type="button" data-tab="swap">Swap bag</button>
+    </div>
+    <div class="panel on" id="tab-play">
+      <input class="input" id="play-amt" type="number" min="1" step="1" value="100" />
+      <button class="cyan" type="button" id="btn-fund-play" disabled>Send GBUX to Poker play</button>
+    </div>
+    <div class="panel" id="tab-swap">
+      <select class="input" id="swap-dir">
+        <option value="sol-to-gbux">SOL → GBUX</option>
+        <option value="gbux-to-sol">GBUX → SOL</option>
+      </select>
+      <input class="input" id="swap-amt" type="number" min="0" step="any" value="0.1" />
+      <div class="btns">
+        <button class="ghost" type="button" id="btn-quote" disabled>Quote</button>
+        <button class="primary" type="button" id="btn-swap" disabled>Swap</button>
+      </div>
+      <pre id="swap-out" style="font-size:.7rem;color:var(--dim);margin-top:8px;white-space:pre-wrap;max-height:100px;overflow:auto"></pre>
+    </div>
+    <p class="msg" id="tx-msg"></p>
+  </div>
 
+  <nav class="dock" aria-label="Wallet sections">
+    <button type="button" class="on" data-dock="assets">Assets</button>
+    <button type="button" data-dock="dapps">Dapps</button>
+    <button type="button" data-dock="activity">Activity</button>
+  </nav>
   <p class="foot">
-    wallet.grudge-studio.com ·
-    <button type="button" id="btn-privacy" class="ghost" style="border:0;background:none;color:#888;text-transform:uppercase;letter-spacing:.08em;font-size:.65rem;cursor:pointer">Privacy</button>
-    ·
-    <button type="button" id="btn-tos" class="ghost" style="border:0;background:none;color:#888;text-transform:uppercase;letter-spacing:.08em;font-size:.65rem;cursor:pointer">Terms</button>
+    <button type="button" id="btn-privacy">Privacy</button> ·
+    <button type="button" id="btn-tos">Terms</button>
   </p>
 </div>
 <div class="legal-back" id="legal-back" hidden>
@@ -567,7 +563,9 @@ async function load() {
 
     const st = await api('/api/wallet/status');
     if (st.ok && st.data) {
-      $('gbux').textContent = Number(st.data.gbuxBalance ?? 0).toLocaleString();
+      const bag = Number(st.data.gbuxBalance ?? 0).toLocaleString();
+    $('gbux').textContent = bag;
+    if ($('tok-gbux')) $('tok-gbux').textContent = bag;
       if (st.data.hasWallet && st.data.walletAddress) {
         walletAddr = st.data.walletAddress;
         $('cmint').textContent = (st.data.walletType || 'crossmint') + ' · exists';
@@ -582,7 +580,9 @@ async function load() {
     }
     const ov = await api('/api/wallet/overview');
     if (ov.ok && ov.data) {
-      $('gbux').textContent = Number(ov.data.gbuxBalance ?? $('gbux').textContent.replace(/,/g,'') ?? 0).toLocaleString();
+      const bag2 = Number(ov.data.gbuxBalance ?? $('gbux').textContent.replace(/,/g,'') ?? 0).toLocaleString();
+      $('gbux').textContent = bag2;
+      if ($('tok-gbux')) $('tok-gbux').textContent = bag2;
       const linked = ov.data.primaryWallet || ov.data.linkedWallets?.[0]?.walletAddress || '';
       if (!walletAddr && linked) {
         walletAddr = linked;
@@ -619,6 +619,23 @@ async function load() {
     $('msg').className = 'msg err';
   }
 }
+
+document.querySelectorAll('[data-dock]').forEach((b) => {
+  b.onclick = () => {
+    document.querySelectorAll('[data-dock]').forEach((x) => x.classList.remove('on'));
+    document.querySelectorAll('.dock-panel').forEach((p) => p.classList.remove('on'));
+    b.classList.add('on');
+    const pan = $('dock-' + b.dataset.dock);
+    if (pan) pan.classList.add('on');
+  };
+});
+function showDock(name) {
+  const b = document.querySelector('[data-dock="' + name + '"]');
+  if (b) b.click();
+}
+if ($('btn-go-send')) $('btn-go-send').onclick = () => showDock('activity');
+if ($('btn-go-swap')) $('btn-go-swap').onclick = () => { showDock('activity'); const t = document.querySelector('[data-tab="swap"]'); if (t) t.click(); };
+if ($('btn-go-connect')) $('btn-go-connect').onclick = () => showDock('assets');
 
 document.querySelectorAll('.tabs button').forEach((b) => {
   b.onclick = () => {
@@ -769,6 +786,7 @@ async function loadTraderCash() {
     const pk = ready.publicKey || '';
     $('tr-vault').textContent = pk ? pk.slice(0, 8) + '…' + pk.slice(-4) : '—';
     $('tr-sol').textContent = ready.sol != null ? Number(ready.sol).toFixed(4) + ' SOL' : '—';
+    if ($('tok-sol')) $('tok-sol').textContent = $('tr-sol').textContent;
     if (pk) {
       $('tr-vault-full').style.display = 'block';
       $('tr-vault-full').textContent = pk;
