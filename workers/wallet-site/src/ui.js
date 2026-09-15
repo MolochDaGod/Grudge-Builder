@@ -80,6 +80,11 @@ button:disabled{opacity:.45;cursor:not-allowed}
 .tabs button{background:rgba(0,0,0,.35);border:1px solid rgba(255,255,255,.08);color:var(--dim);padding:7px 12px;border-radius:999px;font-size:.75rem}
 .tabs button.on{border-color:var(--gold);color:var(--gold2)}
 .panel{display:none}.panel.on{display:block}
+.legal-back{position:fixed;inset:0;background:rgba(0,0,0,.72);z-index:40;display:none;align-items:center;justify-content:center;padding:16px}
+.legal-back.on{display:flex}
+.legal-card{max-width:560px;max-height:80vh;overflow:auto;background:#12121a;border:1px solid rgba(212,175,55,.35);border-radius:14px;padding:20px 22px}
+.legal-card h3{font-family:Cinzel,serif;color:var(--gold);margin-bottom:10px}
+.legal-card p,.legal-card li{font-size:.82rem;color:var(--dim);line-height:1.5;margin:0 0 8px}
 </style>
 </head>
 <body>
@@ -130,6 +135,31 @@ button:disabled{opacity:.45;cursor:not-allowed}
     </section>
 
     <section class="card">
+      <h2>Auto-trader SOL</h2>
+      <p style="font-size:.8rem;color:var(--dim);line-height:1.5;margin-bottom:10px">
+        Send SOL to the <b>trade vault</b>, then Record deposit so your Grudge ID NAV can size clips.
+        Keep <b>at least 0.02 SOL</b> in the vault at all times (fees, Jupiter, ATA rent). Withdraw only to a wallet that deposited or is linked on Grudge ID.
+        Close fee: 0.005 SOL → GBUX; TP +5%. Remainder stays as your spendable NAV.
+      </p>
+      <div class="row"><span class="k">Vault</span><span class="v" id="tr-vault">—</span></div>
+      <div class="row"><span class="k">Vault SOL</span><span class="v" id="tr-sol">—</span></div>
+      <div class="row"><span class="k">Enrolled</span><span class="v" id="tr-enroll">—</span></div>
+      <div class="row"><span class="k">Your spendable</span><span class="v" id="tr-spend">—</span></div>
+      <div class="addr" id="tr-vault-full"></div>
+      <label class="k" style="font-size:.75rem">Deposit from (your Solana)</label>
+      <input class="input" id="tr-from" placeholder="Funding wallet that sent SOL" />
+      <label class="k" style="font-size:.75rem">Amount (SOL)</label>
+      <input class="input" id="tr-amt" type="number" min="0" step="0.01" value="0.05" />
+      <div class="btns">
+        <button class="primary" type="button" id="btn-tr-copy">Copy vault address</button>
+        <button class="cyan" type="button" id="btn-tr-dep" disabled>Record deposit</button>
+        <button class="ghost" type="button" id="btn-tr-wd" disabled>Withdraw</button>
+        <button class="ghost" type="button" id="btn-tr-enroll" disabled>Enable trader</button>
+      </div>
+      <p class="msg" id="tr-msg"></p>
+    </section>
+
+    <section class="card">
       <h2>Move GBUX</h2>
       <div class="tabs">
         <button type="button" class="on" data-tab="play">→ Play ledger</button>
@@ -170,7 +200,19 @@ button:disabled{opacity:.45;cursor:not-allowed}
     <div id="hero-list" style="font-size:.82rem;color:var(--dim)">—</div>
   </section>
 
-  <p class="foot">wallet.grudge-studio.com · Grudge Studio fleet bag · Railway SSOT</p>
+  <p class="foot">
+    wallet.grudge-studio.com ·
+    <button type="button" id="btn-privacy" class="ghost" style="border:0;background:none;color:#888;text-transform:uppercase;letter-spacing:.08em;font-size:.65rem;cursor:pointer">Privacy</button>
+    ·
+    <button type="button" id="btn-tos" class="ghost" style="border:0;background:none;color:#888;text-transform:uppercase;letter-spacing:.08em;font-size:.65rem;cursor:pointer">Terms</button>
+  </p>
+</div>
+<div class="legal-back" id="legal-back" hidden>
+  <div class="legal-card">
+    <h3 id="legal-title">Privacy</h3>
+    <div id="legal-body"></div>
+    <button class="primary" type="button" id="legal-close">Close</button>
+  </div>
 </div>
 <script>
 const RAILWAY = ${JSON.stringify(railway)};
@@ -420,6 +462,7 @@ async function load() {
         document.cookie = 'sso_token=' + encodeURIComponent(tok) + '; path=/; max-age=' + maxAge + '; Domain=.grudge-studio.com; SameSite=Lax; Secure';
       }
     } catch {}
+    loadTraderCash();
   } catch (e) {
     $('msg').textContent = 'Error: ' + (e && e.message ? e.message : e);
     $('msg').className = 'msg err';
@@ -434,7 +477,7 @@ document.querySelectorAll('.tabs button').forEach((b) => {
     $('tab-' + b.dataset.tab).classList.add('on');
   };
 });
-$('btn-refresh').onclick = () => load();
+$('btn-refresh').onclick = () => { load(); loadTraderCash(); };
 $('btn-login').onclick = () => {
   const redir = encodeURIComponent(location.origin + '/');
   location.href = ID_GW + '/login?redirect_uri=' + redir + '&return=' + redir + '&origin=' + encodeURIComponent(location.origin) + '&app=grudge-wallet';
@@ -538,8 +581,95 @@ $('btn-swap').onclick = async () => {
   $('swap-out').textContent = JSON.stringify(r.data, null, 2);
 };
 
+const PRIVACY_HTML = '<p>Grudge Studio Wallet (wallet.grudge-studio.com) is the fleet bag for your Grudge ID. We store session tokens in the browser, account identity on Railway (grudge_id), Crossmint game-wallet addresses, and the auto-trader cash ledger (deposits/withdrawals/NAV) keyed by grudge_id. We do not sell personal data. On-chain SOL and token balances are public. Admin identities (grudachain / molochdadev) can halt the desk and flatten the house vault. Do not send funds you cannot lose. Contact: existing Grudge ID support paths.</p><p>Cookies: sso_token / Grudge ID session on .grudge-studio.com. No third-party ads. Analytics: none beyond host logs.</p>';
+const TOS_HTML = '<p>The auto-trader is experimental. You send SOL to the house trade vault. Buys, sells, and fees spend that vault. You must keep at least 0.02 SOL in the vault for network fees or new clips halt. Close fee: 0.005 SOL of proceeds swapped to GBUX; take-profit also takes 5%. Remaining SOL stays as your spendable NAV on the same ledger. Withdrawals only to a wallet that deposited or is linked on Grudge ID. Not financial advice. Markets can go to zero. Grudge Studio may halt, refuse, or change fee rates. Enabling the trader opts you into this ledger. Privacy and these terms apply to the installed PWA the same as the site.</p>';
+
+function openLegal(title, html) {
+  $('legal-title').textContent = title;
+  $('legal-body').innerHTML = html;
+  const back = $('legal-back');
+  back.hidden = false;
+  back.classList.add('on');
+}
+$('btn-privacy').onclick = () => openLegal('Privacy', PRIVACY_HTML);
+$('btn-tos').onclick = () => openLegal('Terms of service', TOS_HTML);
+$('legal-close').onclick = () => { $('legal-back').hidden = true; $('legal-back').classList.remove('on'); };
+$('legal-back').onclick = (e) => { if (e.target === $('legal-back')) { $('legal-back').hidden = true; $('legal-back').classList.remove('on'); } };
+
+async function traderApi(path, opt) {
+  const tok = getAuthToken();
+  const headers = { Accept: 'application/json', ...(opt && opt.headers || {}) };
+  if (tok) headers.Authorization = 'Bearer ' + tok;
+  if (opt && opt.body && !headers['Content-Type']) headers['Content-Type'] = 'application/json';
+  const r = await fetch(TRADER + path, { ...opt, headers });
+  const data = await r.json().catch(() => ({}));
+  return { ok: r.ok, status: r.status, data };
+}
+
+async function loadTraderCash() {
+  const msg = $('tr-msg');
+  try {
+    const ready = await fetch(TRADER + '/live-ready', { cache: 'no-store' }).then((r) => r.json());
+    const pk = ready.publicKey || '';
+    $('tr-vault').textContent = pk ? pk.slice(0, 8) + '…' + pk.slice(-4) : '—';
+    $('tr-sol').textContent = ready.sol != null ? Number(ready.sol).toFixed(4) + ' SOL' : '—';
+    if (pk) {
+      $('tr-vault-full').style.display = 'block';
+      $('tr-vault-full').textContent = pk;
+    }
+    $('btn-tr-copy').onclick = () => { if (pk) navigator.clipboard.writeText(pk); };
+    const gw = await traderApi('/api/gruda/wallet');
+    const port = await traderApi('/api/portfolio');
+    $('tr-enroll').textContent = gw.data && gw.data.enrolled ? 'yes' : 'no';
+    const spend = gw.data && gw.data.spendableSol != null ? gw.data.spendableSol : port.data && port.data.availableSol;
+    $('tr-spend').textContent = spend != null ? Number(spend).toFixed(4) + ' SOL' : '—';
+    const on = Boolean(getAuthToken());
+    $('btn-tr-dep').disabled = !on;
+    $('btn-tr-wd').disabled = !on;
+    $('btn-tr-enroll').disabled = !on;
+    if (gw.data && gw.data.walletAddress && !$('tr-from').value) $('tr-from').value = gw.data.walletAddress;
+    else if (port.data && port.data.sourceWallets && port.data.sourceWallets[0] && !$('tr-from').value) $('tr-from').value = port.data.sourceWallets[0];
+  } catch (e) {
+    if (msg) { msg.textContent = e.message || String(e); msg.className = 'msg err'; }
+  }
+}
+
+$('btn-tr-enroll').onclick = async () => {
+  $('tr-msg').className = 'msg';
+  $('tr-msg').textContent = 'Enabling…';
+  const r = await traderApi('/api/gruda/enable', { method: 'POST', body: '{}' });
+  $('tr-msg').textContent = r.ok ? 'Enrolled. Deposit SOL to the vault, then Record deposit.' : (r.data.error || 'Enable failed');
+  $('tr-msg').className = r.ok ? 'msg ok' : 'msg err';
+  await loadTraderCash();
+};
+$('btn-tr-dep').onclick = async () => {
+  const sourceWallet = $('tr-from').value.trim();
+  const amountSol = parseFloat($('tr-amt').value);
+  $('tr-msg').textContent = 'Recording deposit…';
+  const r = await traderApi('/api/ledger/deposit', {
+    method: 'POST',
+    body: JSON.stringify({ sourceWallet, amountSol }),
+  });
+  $('tr-msg').textContent = r.ok ? 'Deposit recorded. Keep 0.02 SOL in the vault for fees.' : (r.data.error || 'Deposit failed');
+  $('tr-msg').className = r.ok ? 'msg ok' : 'msg err';
+  await loadTraderCash();
+};
+$('btn-tr-wd').onclick = async () => {
+  const sourceWallet = $('tr-from').value.trim();
+  const amountSol = parseFloat($('tr-amt').value);
+  $('tr-msg').textContent = 'Withdrawing…';
+  const r = await traderApi('/api/ledger/withdraw', {
+    method: 'POST',
+    body: JSON.stringify({ sourceWallet, amountSol }),
+  });
+  $('tr-msg').textContent = r.ok ? ('Sent ' + (r.data.paid || amountSol) + ' SOL') : (r.data.error || 'Withdraw failed');
+  $('tr-msg').className = r.ok ? 'msg ok' : 'msg err';
+  await loadTraderCash();
+};
+
 renderGames();
 load();
+loadTraderCash();
 if ('serviceWorker' in navigator) {
   navigator.serviceWorker.register('/sw.js').catch(() => {});
 }
