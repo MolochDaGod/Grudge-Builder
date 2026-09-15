@@ -37,8 +37,12 @@
       "destination": "/api/cdn-proxy?key=icons/$1"
     },
     {
+      "source": "/videos/intro.mp4",
+      "destination": "/api/cdn-proxy?key=gruda-armada/grudge-warlords/videos/intro.mp4"
+    },
+    {
       "source": "/videos/(.*)",
-      "destination": "https://assets.grudge-studio.com/videos/$1"
+      "destination": "/api/cdn-proxy?key=videos/$1"
     },
     {
       "source": "/fonts/(.*)",
