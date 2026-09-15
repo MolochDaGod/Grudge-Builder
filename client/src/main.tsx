@@ -1,14 +1,12 @@
-// Expose THREE as a browser global BEFORE any Phaser/enable3d imports run.
-// @enable3d/phaser-extension and stage-js expect window.THREE to exist.
-// ES module namespace objects are non-extensible — three-stdlib / legacy code that
-// does `THREE.ColladaLoader = …` throws "object is not extensible". Clone onto a
-// plain mutable object for the global only (app imports stay on the real module).
-import * as THREE_NS from "three";
-const THREE_GLOBAL: Record<string, unknown> = Object.create(null);
-for (const key of Object.keys(THREE_NS)) {
-  THREE_GLOBAL[key] = (THREE_NS as Record<string, unknown>)[key];
-}
-(window as any).THREE = THREE_GLOBAL;
+// Phaser/enable3d expect window.THREE. Do not static-import three on first
+// paint — that vendor chunk blocked grudgewarlords.com landing mount.
+void import("three").then((THREE_NS) => {
+  const THREE_GLOBAL: Record<string, unknown> = Object.create(null);
+  for (const key of Object.keys(THREE_NS)) {
+    THREE_GLOBAL[key] = (THREE_NS as Record<string, unknown>)[key];
+  }
+  (window as any).THREE = THREE_GLOBAL;
+});
 
 import * as Sentry from "@sentry/react";
 import { createRoot } from "react-dom/client";
