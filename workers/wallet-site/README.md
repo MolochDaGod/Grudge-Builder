@@ -62,7 +62,8 @@ Optional shared secret (align Railway + poker):
 
 ```bash
 curl -s https://wallet.grudge-studio.com/health
-# features: … crossmint-check-first, auto-trader-handoff
+# features: … crossmint-check-first, auto-trader-handoff, pwa-install
+# PWA: /manifest.webmanifest · /sw.js · Install app (Chrome/Edge/Android)
 ```
 
 ## Auth SSOT

@@ -20,7 +20,13 @@ export function htmlPage(env) {
 <meta name="viewport" content="width=device-width, initial-scale=1.0" />
 <title>Grudge Studio Wallet</title>
 <meta name="description" content="Grudge Studio wallet — one Grudge ID, fleet bag GBUX, send to games." />
+<meta name="theme-color" content="#d4af37" />
+<meta name="mobile-web-app-capable" content="yes" />
+<meta name="apple-mobile-web-app-capable" content="yes" />
+<meta name="apple-mobile-web-app-title" content="Gruda Wallet" />
+<link rel="manifest" href="/manifest.webmanifest" />
 <link rel="icon" href="${logo}" />
+<link rel="apple-touch-icon" href="${logo}" />
 <link rel="preconnect" href="https://fonts.googleapis.com" />
 <link href="https://fonts.googleapis.com/css2?family=Cinzel:wght@600;700&family=Jost:wght@400;500;600;700&display=swap" rel="stylesheet" />
 <style>
@@ -88,6 +94,7 @@ button:disabled{opacity:.45;cursor:not-allowed}
       <a href="${client}">Warlords</a>
       <a href="https://grudox.grudge-studio.com">GRUDOX</a>
       <a href="${idGw}/login?redirect_uri=${encodeURIComponent("https://wallet.grudge-studio.com/")}&app=wallet&origin=${encodeURIComponent("https://wallet.grudge-studio.com")}">Sign in</a>
+      <button class="ghost" type="button" id="btn-install" style="display:none">Install app</button>
     </div>
   </nav>
 
@@ -533,6 +540,26 @@ $('btn-swap').onclick = async () => {
 
 renderGames();
 load();
+if ('serviceWorker' in navigator) {
+  navigator.serviceWorker.register('/sw.js').catch(() => {});
+}
+let deferredInstall = null;
+window.addEventListener('beforeinstallprompt', (e) => {
+  e.preventDefault();
+  deferredInstall = e;
+  const b = $('btn-install');
+  if (b) b.style.display = '';
+});
+const installBtn = $('btn-install');
+if (installBtn) {
+  installBtn.onclick = async () => {
+    if (!deferredInstall) return;
+    deferredInstall.prompt();
+    await deferredInstall.userChoice.catch(() => {});
+    deferredInstall = null;
+    installBtn.style.display = 'none';
+  };
+}
 </script>
 </body>
 </html>`;
