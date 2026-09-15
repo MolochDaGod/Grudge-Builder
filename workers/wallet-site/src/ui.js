@@ -856,16 +856,17 @@ async function loadTraderCash() {
   const msg = $('tr-msg');
   try {
     const ready = await fetch(TRADER + '/live-ready', { cache: 'no-store' }).then((r) => r.json());
-    const pk = ready.publicKey || '';
-    $('tr-vault').textContent = pk ? pk.slice(0, 8) + '…' + pk.slice(-4) : '—';
-    $('tr-sol').textContent = ready.sol != null ? Number(ready.sol).toFixed(4) + ' SOL' : '—';
+    const gw = await traderApi('/api/gruda/wallet');
+    const pk = (gw.data && gw.data.tradingPubkey) || '';
+    $('tr-vault').textContent = pk ? pk.slice(0, 8) + '…' + pk.slice(-4) : 'Enable trader first';
+    const tsol = gw.data && gw.data.tradingSol != null ? gw.data.tradingSol : ready.sol;
+    $('tr-sol').textContent = tsol != null ? Number(tsol).toFixed(4) + ' SOL' : '—';
     if ($('tok-sol')) $('tok-sol').textContent = $('tr-sol').textContent;
     if (pk) {
       $('tr-vault-full').style.display = 'block';
       $('tr-vault-full').textContent = pk;
     }
     $('btn-tr-copy').onclick = () => { if (pk) navigator.clipboard.writeText(pk); };
-    const gw = await traderApi('/api/gruda/wallet');
     const port = await traderApi('/api/portfolio');
     $('tr-enroll').textContent = gw.data && gw.data.enrolled ? 'yes' : 'no';
     const spend = gw.data && gw.data.spendableSol != null ? gw.data.spendableSol : port.data && port.data.availableSol;
