@@ -151,13 +151,14 @@ function resolveCinemaQuality(): CinemaQuality {
   } catch {
     /* ignore */
   }
-  const cores = navigator.hardwareConcurrency || 4;
-  const mem = (navigator as Navigator & { deviceMemory?: number }).deviceMemory ?? 4;
-  const dpr = window.devicePixelRatio || 1;
+  const cores = navigator.hardwareConcurrency || 8;
+  const mem = (navigator as Navigator & { deviceMemory?: number }).deviceMemory ?? 8;
   const mobile = /Mobi|Android|iPhone|iPad/i.test(navigator.userAgent);
-  if (mobile || cores <= 4 || mem <= 4 || dpr >= 2.5) return 'low';
-  if (cores <= 6 || mem <= 6) return 'medium';
-  return 'high';
+  // 4-core laptops used to force `low` and strip bloom/rain/shafts — film default is medium
+  if (mobile && (cores <= 4 || mem <= 4)) return 'low';
+  if (mobile || cores <= 4 || mem <= 4) return 'medium';
+  if (cores >= 8 && mem >= 8) return 'high';
+  return 'medium';
 }
 
 // â”€â”€ helpers â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
@@ -677,7 +678,7 @@ export class LeviathanOceanCinema {
     this.stage = new CinemaStageGraph(false);
     this.cinemaQuality = resolveCinemaQuality();
     this.fpsBudget = new CinemaFpsBudget(this.cinemaQuality);
-    // Budget table — aim ~100 FPS; runtime EMA may step down post/DPR/rain
+    // Film budget — 48 FPS comfort; do not strip bloom/rain for a healthy 60 FPS machine
     const q = this.cinemaQuality;
     const dprCap = q === 'high' ? 1.35 : q === 'medium' ? 1.15 : 1.0;
     const shadowMap = q === 'high' ? 1024 : q === 'medium' ? 768 : 512;
@@ -756,9 +757,7 @@ export class LeviathanOceanCinema {
       this.rain = createCinemaRain(this.rainCount);
       this.scene.add(this.rain);
       if (q !== 'low') {
-        this.horizonMist = new CinemaHorizonMist(this.scene, q === 'high' ? 5 : 3);
-      }
-      if (q === 'high') {
+        this.horizonMist = new CinemaHorizonMist(this.scene, q === 'high' ? 4 : 3);
         this.moonShafts = new CinemaMoonShafts(this.scene);
       }
     } catch (e) {
@@ -1270,7 +1269,11 @@ export class LeviathanOceanCinema {
     );
 
     // GPU warm: compile materials + 2 dummy frames so first play frame isn't a hitch
-    this.reportLoad(0.88, 'Compiling materials…');
+    this.reportLoad(0.82, 'VFX · tornado · floor · plumes…');
+    await this.loadVfxBackground();
+    if (this.disposed) return;
+
+    this.reportLoad(0.9, 'Compiling materials…');
     await this.warmGpu();
     if (this.disposed) return;
 
@@ -1299,8 +1302,6 @@ export class LeviathanOceanCinema {
     // Reset clock so timeline starts clean after load (no hitch in first second)
     this.clock.getDelta();
     this.tick();
-
-    void this.loadVfxBackground();
   }
 
   /**
@@ -1711,7 +1712,7 @@ export class LeviathanOceanCinema {
     this.sceneAudio.onBeat(beat, prev !== idx || force);
 
     // Camera — ship-linked offsets + film blend
-    this.bindBeatCamera(beat);
+    this.bindBeatCamera(beat, prev < 0 || force);
 
     // Movie film look targets (smoothed in tick)
     this.bloomCur = beat.bloom ?? 0.35;
@@ -2219,7 +2220,7 @@ export class LeviathanOceanCinema {
     return /cam_(sail|deck|cast|breach|roar|rise|surface|dive|finisher)/i.test(key);
   }
 
-  private bindBeatCamera(beat: CinBattleBeat): void {
+  private bindBeatCamera(beat: CinBattleBeat, snap = false): void {
     const eyeKey = beat.camEye;
     const lookKey = beat.camLook;
     const [ex, ey, ez] = cinPos(eyeKey as Parameters<typeof cinPos>[0]);
@@ -2274,8 +2275,15 @@ export class LeviathanOceanCinema {
     const toLevi = new THREE.Vector3(leviAt.x - shipDeck.x, 0, leviAt.z - shipDeck.z);
     if (toLevi.lengthSq() < 1e-4) toLevi.set(0.25, 0, -1);
     else toLevi.normalize();
-    this.camMasterBack.copy(toLevi);
-    this.camMasterSide.set(-toLevi.z, 0, toLevi.x);
+    if (snap) {
+      this.camMasterBack.copy(toLevi);
+      this.camMasterSide.set(-toLevi.z, 0, toLevi.x);
+    } else {
+      this.camMasterBack.lerp(toLevi, 0.18);
+      this.camMasterBack.y = 0;
+      if (this.camMasterBack.lengthSq() > 1e-6) this.camMasterBack.normalize();
+      this.camMasterSide.set(-this.camMasterBack.z, 0, this.camMasterBack.x);
+    }
 
     // Side-quarter: pull back further for 36 m LOA so hull + beast fit
     const sep = Math.hypot(leviAt.x - shipDeck.x, leviAt.z - shipDeck.z);
@@ -2285,15 +2293,20 @@ export class LeviathanOceanCinema {
 
     const hardCut = beat.camMode === 'cut' && /sail_alone|establish/i.test(beat.id);
     this.multiCam.setBlendSpeed(
-      hardCut ? 2.0 : beat.shipPinata || beat.id === 'breach' ? 0.55 : 0.38,
+      hardCut ? 1.4 : beat.shipPinata || beat.id === 'breach' ? 0.42 : 0.28,
     );
     const { eye, look } = this.computeCamEyeLook();
-    this.multiCam.setTarget(
-      [eye.x, eye.y, eye.z],
-      [look.x, look.y, look.z],
-      this.camFovCur,
-      hardCut ? 'cut' : 'blend',
-    );
+    // Restarting setTarget every beat made the lens jump. Follow after beat 0.
+    if (hardCut || snap) {
+      this.multiCam.setTarget(
+        [eye.x, eye.y, eye.z],
+        [look.x, look.y, look.z],
+        this.camFovCur,
+        hardCut ? 'cut' : 'blend',
+      );
+    } else {
+      this.multiCam.followTo([eye.x, eye.y, eye.z], [look.x, look.y, look.z], this.camFovCur);
+    }
   }
 
   /**
@@ -5005,9 +5018,8 @@ export class LeviathanOceanCinema {
   };
 
   private tickInner(): void {
-    const dt = Math.min(0.05, this.clock.getDelta());
-    // ~100 FPS adaptive budget (DPR / post / rain / lightning)
-    if (this.fpsBudget && this.ready) {
+    const dt = Math.min(1 / 30, this.clock.getDelta());
+    if (this.fpsBudget && this.ready && this.elapsed > 1.25) {
       this.fpsState = this.fpsBudget.sample(dt);
       this.applyFpsBudget(this.fpsState);
     }
@@ -5335,13 +5347,9 @@ export class LeviathanOceanCinema {
       (beat.rogueWave ?? 0) > 0.45 ||
       beat.id === 'breach';
     const handheld = THREE.MathUtils.clamp(
-      actionCam
-        ? 0.048 + this.stormCur * 0.022 + this.flash * 0.03
-        : beat.shieldShatter
-          ? 0.028
-          : 0.01 + this.stormCur * 0.02 + this.flash * 0.035,
+      actionCam ? 0.016 + this.flash * 0.012 : 0.006 + this.stormCur * 0.006,
       0,
-      0.09,
+      0.028,
     );
     const cam = this.multiCam.evaluate(handheld, this.elapsed);
     this.camera.position.copy(cam.pos);
@@ -5349,9 +5357,8 @@ export class LeviathanOceanCinema {
     this.camera.fov = cam.fov;
     this.camera.updateProjectionMatrix();
     const dutchT =
-      ((beat.rogueWave ?? 0) > 0.4 ? 0.05 : 0.012 + this.stormCur * 0.02) *
-      Math.sin(this.elapsed * 0.62);
-    this.dutchCur = THREE.MathUtils.lerp(this.dutchCur, dutchT, Math.min(1, dt * 2.4));
+      ((beat.rogueWave ?? 0) > 0.55 ? 0.018 : 0.006) * Math.sin(this.elapsed * 0.45);
+    this.dutchCur = THREE.MathUtils.lerp(this.dutchCur, dutchT, Math.min(1, dt * 1.6));
     this.camera.rotateZ(this.dutchCur);
     this.updateStormSky(dt, beat);
     this.updateUnderwaterSet(dt, beat);
@@ -5426,7 +5433,12 @@ export class LeviathanOceanCinema {
         chroma: chromaT,
         flash: this.flash,
         underwater: beat.underwater ?? 0,
-        anamorphic: actionHot ? 0.9 : 0.22 + this.flash * 0.55 + this.stormCur * 0.12,
+        anamorphic:
+          (this.fpsState?.pressure ?? 0) >= 2
+            ? 0
+            : actionHot
+              ? 0.55
+              : 0.12 + this.flash * 0.35,
       });
     }
 
@@ -5549,20 +5561,12 @@ export class LeviathanOceanCinema {
    * Never raises above boot quality; only steps down under pressure.
    */
   private applyFpsBudget(s: FpsBudgetState): void {
-    if (Math.abs(s.dprCap - this.lastAppliedDpr) > 0.04) {
-      this.lastAppliedDpr = s.dprCap;
-      const w = Math.max(2, this.host.clientWidth);
-      const h = Math.max(2, this.host.clientHeight);
-      this.renderer.setPixelRatio(Math.min(window.devicePixelRatio || 1, s.dprCap));
-      this.renderer.setSize(w, h, false);
-      this.post?.resize(w, h);
-    }
+    // Do not resize DPR mid-cut — that hitch is the “jump” and drops rain/bloom.
     if (this.post && this.post.getQuality() !== s.postQuality) {
       this.post.setQuality(s.postQuality);
     }
     if (this.rain) {
       const mat = this.rain.material as THREE.PointsMaterial;
-      // Base opacity still set in tickCinemaRain; scale under pressure
       mat.opacity = Math.min(mat.opacity, 0.18 + this.stormCur * 0.62) * s.rainScale;
     }
   }

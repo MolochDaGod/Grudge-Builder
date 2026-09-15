@@ -8,7 +8,7 @@
 **Spine IK:** `client/src/island3d/intro/CinemaSpineIk.ts`  
 **Film post:** `island3d/render/PostProcessing.ts` (bloom · SMAA · grade · vignette)  
 **Box3 SI:** `intro/CinemaBoxSystems.ts` (`?box3=1` helpers)  
-**Session key:** `grudge_shipwreck_intro_seen_v27`
+**Session key:** `grudge_shipwreck_intro_seen_v28`
 
 ## Architecture (scripted battle)
 
