@@ -200,8 +200,11 @@ button:disabled{opacity:.45;cursor:not-allowed}
     <div class="row"><span class="k">Crossmint (Gruda)</span><span class="v" id="w-cm">—</span></div>
     <div id="w-linked" style="font-size:.8rem;color:var(--dim);margin:8px 0">Sign in to list linked wallets.</div>
     <div class="btns">
+      <div id="w-detect" class="btns"></div>
       <button class="cyan" type="button" id="btn-link-ph" disabled>Connect Phantom</button>
       <button class="ghost" type="button" id="btn-link-sf" disabled>Connect Solflare</button>
+      <button class="ghost" type="button" id="btn-link-bp" disabled>Connect Backpack</button>
+      <a class="btn ghost" id="btn-open-phantom" href="#" style="display:none">Open in Phantom</a>
     </div>
     <p class="msg" id="w-msg"></p>
   </section>
@@ -380,6 +383,9 @@ function setAuthedUi(on) {
   const ls = $('btn-link-sf');
   if (lp) lp.disabled = !on;
   if (ls) ls.disabled = !on;
+  const lb = $('btn-link-bp');
+  if (lb) lb.disabled = !on;
+  paintDetectedWallets();
 }
 function b58encode(bytes) {
   const A = '123456789ABCDEFGHJKLMNPQRSTUVWXYZabcdefghijkmnopqrstuvwxyz';
@@ -406,24 +412,53 @@ function b58encode(bytes) {
   return s;
 }
 
-function solanaProvider(kind) {
-  if (kind === 'solflare') return window.solflare || null;
-  return (window.phantom && window.phantom.solana) || window.solana || null;
+/** Poker SSOT: docs/PHANTOM_EMBEDDED_SSOT.md · client/src/lib/solana-wallets.ts
+ * Prefer window.phantom.solana (not hijackable window.solana). No auto-connect. */
+function getInjectedProvider(id) {
+  if (id === 'phantom') return (window.phantom && window.phantom.solana) || (window.solana && window.solana.isPhantom ? window.solana : null);
+  if (id === 'solflare') return window.solflare || (window.solana && window.solana.isSolflare ? window.solana : null);
+  if (id === 'backpack') return window.backpack || null;
+  if (window.solana && !window.solana.isPhantom && !window.solana.isSolflare) return window.solana;
+  return null;
+}
+function detectInjected() {
+  return [
+    { id: 'phantom', name: 'Phantom', install: 'https://phantom.app' },
+    { id: 'solflare', name: 'Solflare', install: 'https://solflare.com' },
+    { id: 'backpack', name: 'Backpack', install: 'https://backpack.app' },
+  ].map((w) => Object.assign(w, { available: Boolean(getInjectedProvider(w.id)) }));
+}
+function paintDetectedWallets() {
+  const box = $('w-detect');
+  if (!box) return;
+  const list = detectInjected();
+  const mobile = /Android|iPhone|iPad|iPod|Mobile/i.test(navigator.userAgent);
+  const inPhantom = /Phantom/i.test(navigator.userAgent) || Boolean(window.phantom && window.phantom.solana);
+  box.innerHTML = list.map((w) => {
+    if (w.available) return '<span class="v" style="font-size:.75rem">' + w.name + ' ready</span>';
+    return '<a class="btn ghost" href="' + w.install + '" target="_blank" rel="noopener">' + w.name + ' install</a>';
+  }).join('');
+  const openPh = $('btn-open-phantom');
+  if (openPh && mobile && !inPhantom) {
+    openPh.style.display = '';
+    openPh.href = 'https://phantom.app/ul/browse/' + encodeURIComponent(location.href);
+  }
 }
 
 async function connectAndLink(kind) {
   const msg = $('w-msg');
   msg.className = 'msg';
   msg.textContent = 'Connecting ' + kind + '…';
-  const p = solanaProvider(kind);
+  const p = getInjectedProvider(kind);
   if (!p) {
     msg.className = 'msg err';
-    msg.textContent = kind === 'solflare' ? 'Install Solflare.' : 'Install Phantom.';
+    const install = kind === 'solflare' ? 'https://solflare.com' : kind === 'backpack' ? 'https://backpack.app' : 'https://phantom.app';
+    msg.innerHTML = kind + ' not injected. <a href="' + install + '" target="_blank" rel="noopener">Install</a> or Open in Phantom on mobile.';
     return;
   }
-  await p.connect();
-  const walletAddress = (p.publicKey && p.publicKey.toString()) || '';
-  if (!walletAddress) throw new Error('no public key');
+  const resp = await p.connect({ onlyIfTrusted: false });
+  const walletAddress = (resp && resp.publicKey && resp.publicKey.toString()) || (p.publicKey && p.publicKey.toString()) || '';
+  if (!walletAddress) throw new Error('Wallet did not return a public key');
   const ch = await api('/api/wallet/link/challenge', {
     method: 'POST',
     headers: { 'Content-Type': 'application/json' },
@@ -596,6 +631,7 @@ document.querySelectorAll('.tabs button').forEach((b) => {
 $('btn-refresh').onclick = () => { load(); loadTraderCash(); loadLinkedWallets(); };
 $('btn-link-ph').onclick = () => connectAndLink('phantom').catch((e) => { $('w-msg').className = 'msg err'; $('w-msg').textContent = e.message || String(e); });
 $('btn-link-sf').onclick = () => connectAndLink('solflare').catch((e) => { $('w-msg').className = 'msg err'; $('w-msg').textContent = e.message || String(e); });
+if ($('btn-link-bp')) $('btn-link-bp').onclick = () => connectAndLink('backpack').catch((e) => { $('w-msg').className = 'msg err'; $('w-msg').textContent = e.message || String(e); });
 if ($('btn-login') && $('btn-login').tagName === 'BUTTON') {
   $('btn-login').onclick = () => {
     const redir = encodeURIComponent(location.origin + '/');
@@ -788,6 +824,7 @@ $('btn-tr-wd').onclick = async () => {
 };
 
 renderGames();
+paintDetectedWallets();
 load();
 loadTraderCash();
 if ('serviceWorker' in navigator) {

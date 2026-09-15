@@ -121,6 +121,7 @@ export default {
             "auto-trader-handoff",
             "pwa-install",
             "linked-wallets",
+            "poker-solana-inject",
           ],
         },
         200,
