@@ -120,6 +120,7 @@ export default {
             "crossmint-check-first",
             "auto-trader-handoff",
             "pwa-install",
+            "linked-wallets",
           ],
         },
         200,

@@ -72,6 +72,7 @@ button:disabled{opacity:.45;cursor:not-allowed}
 .gamess{display:grid;grid-template-columns:repeat(auto-fill,minmax(140px,1fr));gap:10px}
 .game{display:flex;flex-direction:column;gap:6px;padding:12px;border-radius:12px;border:1px solid rgba(255,255,255,.08);background:rgba(0,0,0,.35);text-decoration:none;color:var(--text);transition:border .15s,transform .15s}
 .game:hover{border-color:rgba(212,175,55,.45);transform:translateY(-2px)}
+.game img{width:100%;height:72px;object-fit:contain;background:#0a0a12;border-radius:8px;border:1px solid rgba(212,175,55,.15)}
 .game strong{font-size:.88rem;color:var(--gold2)}
 .game span{font-size:.72rem;color:var(--dim);line-height:1.35}
 .badge{display:inline-flex;font-size:.65rem;letter-spacing:.08em;text-transform:uppercase;padding:3px 8px;border-radius:999px;border:1px solid rgba(34,197,94,.35);color:#86efac;background:rgba(34,197,94,.08);margin-bottom:8px}
@@ -172,7 +173,7 @@ button:disabled{opacity:.45;cursor:not-allowed}
         <button class="cyan" type="button" id="btn-fund-play" disabled>Send to Poker play</button>
       </div>
       <div class="panel" id="tab-swap">
-        <p style="font-size:.8rem;color:var(--dim);line-height:1.45;margin-bottom:8px">Server bag swap on Railway (SOL ↔ GBUX). Not table chips until you Fund play.</p>
+        <p style="font-size:.8rem;color:var(--dim);line-height:1.45;margin-bottom:8px">Server bag swap on Railway using the <b>Crossmint Gruda</b> wallet (SOL ↔ GBUX). Linked Phantom is for funding the trader vault, not this bag swap.</p>
         <label class="k" style="font-size:.75rem">Direction</label>
         <select class="input" id="swap-dir">
           <option value="sol-to-gbux">SOL → GBUX</option>
@@ -189,6 +190,21 @@ button:disabled{opacity:.45;cursor:not-allowed}
       <p class="msg" id="tx-msg"></p>
     </section>
   </div>
+
+  <section class="card" style="margin-top:14px">
+    <h2>Wallets · Crossmint · linked · trader</h2>
+    <p style="font-size:.8rem;color:var(--dim);line-height:1.5;margin-bottom:10px">
+      <b>Gruda</b> = Crossmint server-side (Railway). <b>Linked</b> = Phantom/Solflare on the same account (does not replace Crossmint).
+      <b>Trader</b> = house vault; record deposits from your linked wallet. Bag swap is Crossmint SOL↔GBUX.
+    </p>
+    <div class="row"><span class="k">Crossmint (Gruda)</span><span class="v" id="w-cm">—</span></div>
+    <div id="w-linked" style="font-size:.8rem;color:var(--dim);margin:8px 0">Sign in to list linked wallets.</div>
+    <div class="btns">
+      <button class="cyan" type="button" id="btn-link-ph" disabled>Connect Phantom</button>
+      <button class="ghost" type="button" id="btn-link-sf" disabled>Connect Solflare</button>
+    </div>
+    <p class="msg" id="w-msg"></p>
+  </section>
 
   <section class="card" style="margin-top:14px">
     <h2>Games · re-enter with session</h2>
@@ -358,10 +374,106 @@ function setAuthedUi(on) {
   $('btn-fund-play').disabled = !on;
   $('btn-quote').disabled = !on;
   $('btn-swap').disabled = !on;
+  const lp = $('btn-link-ph');
+  const ls = $('btn-link-sf');
+  if (lp) lp.disabled = !on;
+  if (ls) ls.disabled = !on;
 }
+function b58encode(bytes) {
+  const A = '123456789ABCDEFGHJKLMNPQRSTUVWXYZabcdefghijkmnopqrstuvwxyz';
+  const u8 = bytes instanceof Uint8Array ? bytes : new Uint8Array(bytes);
+  let zeros = 0;
+  while (zeros < u8.length && u8[zeros] === 0) zeros++;
+  const size = ((u8.length - zeros) * 138 / 100 + 1) | 0;
+  const b = new Uint8Array(size);
+  let length = 0;
+  for (let i = zeros; i < u8.length; i++) {
+    let carry = u8[i];
+    let j = size - 1;
+    for (; j >= 0 && (carry || (size - 1 - j) < length); j--) {
+      carry += 256 * b[j];
+      b[j] = carry % 58;
+      carry = (carry / 58) | 0;
+    }
+    length = size - 1 - j;
+  }
+  let it = size - length;
+  while (it < size && b[it] === 0) it++;
+  let s = '1'.repeat(zeros);
+  for (; it < size; it++) s += A[b[it]];
+  return s;
+}
+
+function solanaProvider(kind) {
+  if (kind === 'solflare') return window.solflare || null;
+  return (window.phantom && window.phantom.solana) || window.solana || null;
+}
+
+async function connectAndLink(kind) {
+  const msg = $('w-msg');
+  msg.className = 'msg';
+  msg.textContent = 'Connecting ' + kind + '…';
+  const p = solanaProvider(kind);
+  if (!p) {
+    msg.className = 'msg err';
+    msg.textContent = kind === 'solflare' ? 'Install Solflare.' : 'Install Phantom.';
+    return;
+  }
+  await p.connect();
+  const walletAddress = (p.publicKey && p.publicKey.toString()) || '';
+  if (!walletAddress) throw new Error('no public key');
+  const ch = await api('/api/wallet/link/challenge', {
+    method: 'POST',
+    headers: { 'Content-Type': 'application/json' },
+    body: JSON.stringify({ walletAddress }),
+  });
+  if (!ch.ok) throw new Error(ch.data && ch.data.error || 'challenge failed');
+  const encoded = new TextEncoder().encode(ch.data.message);
+  const signed = await p.signMessage(encoded, 'utf8');
+  const sigBytes = signed.signature || signed;
+  const signature = b58encode(sigBytes);
+  const conf = await api('/api/wallet/link/confirm', {
+    method: 'POST',
+    headers: { 'Content-Type': 'application/json' },
+    body: JSON.stringify({ walletAddress, message: ch.data.message, signature, provider: kind }),
+  });
+  if (!conf.ok) throw new Error(conf.data && conf.data.error || 'confirm failed');
+  msg.className = 'msg ok';
+  msg.textContent = 'Linked ' + walletAddress.slice(0, 8) + '… (does not replace Crossmint)';
+  if ($('tr-from') && !$('tr-from').value) $('tr-from').value = walletAddress;
+  await loadLinkedWallets();
+}
+
+async function loadLinkedWallets() {
+  const box = $('w-linked');
+  const cm = $('w-cm');
+  if (cm) cm.textContent = walletAddr ? walletAddr.slice(0, 8) + '…' : 'none';
+  if (!getAuthToken()) {
+    box.textContent = 'Sign in to list linked wallets.';
+    return;
+  }
+  const r = await api('/api/wallet/linked');
+  const list = (r.data && (r.data.linkedWallets || r.data.wallets)) || [];
+  if (!r.ok) {
+    box.textContent = (r.data && r.data.error) || 'Could not load linked wallets.';
+    return;
+  }
+  if (!list.length) {
+    box.textContent = 'No Phantom/Solflare linked yet. Connect below — Crossmint stays the Gruda game wallet.';
+    return;
+  }
+  box.innerHTML = list.map((w) => {
+    const a = w.walletAddress || w.address || '';
+    const prov = w.provider || w.walletType || 'linked';
+    return '<div class="row"><span class="k">' + prov + '</span><span class="v" title="' + a + '">' + (a ? a.slice(0, 6) + '…' + a.slice(-4) : '—') + '</span></div>';
+  }).join('');
+  const first = list[0] && (list[0].walletAddress || list[0].address);
+  if (first && $('tr-from') && !$('tr-from').value) $('tr-from').value = first;
+}
+
 function renderGames() {
   $('games').innerHTML = GAMES.map((g) =>
-    '<a class="game" href="' + g.href + '" data-handoff="1"><strong>' + g.name + '</strong><span>' + g.desc + '</span></a>'
+    '<a class="game" href="' + g.href + '" data-handoff="1"><img src="' + g.img + '" alt="" onerror="this.onerror=null;this.src=\'/icon.svg\'"><strong>' + g.name + '</strong><span>' + g.desc + '</span></a>'
   ).join('');
   $('games').querySelectorAll('a[data-handoff]').forEach((a) => {
     a.addEventListener('click', (e) => {
@@ -463,6 +575,7 @@ async function load() {
       }
     } catch {}
     loadTraderCash();
+    loadLinkedWallets();
   } catch (e) {
     $('msg').textContent = 'Error: ' + (e && e.message ? e.message : e);
     $('msg').className = 'msg err';
@@ -477,7 +590,9 @@ document.querySelectorAll('.tabs button').forEach((b) => {
     $('tab-' + b.dataset.tab).classList.add('on');
   };
 });
-$('btn-refresh').onclick = () => { load(); loadTraderCash(); };
+$('btn-refresh').onclick = () => { load(); loadTraderCash(); loadLinkedWallets(); };
+$('btn-link-ph').onclick = () => connectAndLink('phantom').catch((e) => { $('w-msg').className = 'msg err'; $('w-msg').textContent = e.message || String(e); });
+$('btn-link-sf').onclick = () => connectAndLink('solflare').catch((e) => { $('w-msg').className = 'msg err'; $('w-msg').textContent = e.message || String(e); });
 $('btn-login').onclick = () => {
   const redir = encodeURIComponent(location.origin + '/');
   location.href = ID_GW + '/login?redirect_uri=' + redir + '&return=' + redir + '&origin=' + encodeURIComponent(location.origin) + '&app=grudge-wallet';
