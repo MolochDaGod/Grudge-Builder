@@ -124,7 +124,8 @@ button:disabled{opacity:.45;cursor:not-allowed}
         <span id="gid">Grudge ID —</span>
       </div>
     </div>
-    <a class="btn ghost" id="btn-login" href="${idGw}/login?redirect_uri=${encodeURIComponent("https://wallet.grudge-studio.com/")}&app=wallet&origin=${encodeURIComponent("https://wallet.grudge-studio.com")}">Sign in</a>
+    <button class="cyan" type="button" id="btn-siws">Connect Phantom</button>
+    <a class="btn ghost" id="btn-login" href="${idGw}/login?redirect_uri=${encodeURIComponent("https://wallet.grudge-studio.com/")}&app=wallet&origin=${encodeURIComponent("https://wallet.grudge-studio.com")}">Grudge ID</a>
     <button class="ghost" type="button" id="btn-logout" style="display:none">Out</button>
     <button class="ghost" type="button" id="btn-install" style="display:none">Install</button>
   </header>
@@ -372,6 +373,8 @@ function setAuthedUi(on) {
   const logout = $('btn-logout');
   if (login) login.style.display = on ? 'none' : '';
   if (logout) logout.style.display = on ? '' : 'none';
+  const siwsBtn = $('btn-siws');
+  if (siwsBtn) siwsBtn.textContent = on ? 'Link Phantom' : 'Connect Phantom';
   $('btn-fund-play').disabled = !on;
   $('btn-quote').disabled = !on;
   $('btn-swap').disabled = !on;
@@ -439,6 +442,59 @@ function paintDetectedWallets() {
     openPh.style.display = '';
     openPh.href = 'https://phantom.app/ul/browse/' + encodeURIComponent(location.href);
   }
+}
+
+async function siwsLogin() {
+  const msg = $('msg') || $('w-msg');
+  const w = getInjectedProvider('phantom') || getInjectedProvider('solflare') || getInjectedProvider('backpack');
+  const name = getInjectedProvider('phantom') ? 'phantom' : getInjectedProvider('solflare') ? 'solflare' : 'backpack';
+  if (!w) {
+    if (msg) { msg.className = 'msg err'; msg.textContent = 'Install Phantom, Solflare, or Backpack.'; }
+    window.open('https://phantom.app/', '_blank');
+    return;
+  }
+  if (msg) { msg.className = 'msg'; msg.textContent = 'Approve SIWS in ' + name + '...'; }
+  const resp = await w.connect({ onlyIfTrusted: false });
+  const address = String((resp && resp.publicKey && resp.publicKey.toString()) || (w.publicKey && w.publicKey.toString()) || '');
+  if (!address) throw new Error('no public key');
+  const ch = await api('/api/auth/phantom/nonce', {
+    method: 'POST',
+    headers: { 'Content-Type': 'application/json' },
+    body: JSON.stringify({ address }),
+  });
+  if (!ch.ok || !(ch.data && (ch.data.message || ch.data.siws))) {
+    throw new Error((ch.data && ch.data.error) || 'SIWS challenge failed');
+  }
+  const challenge = ch.data;
+  let message = challenge.message;
+  let signature;
+  let addr = address;
+  if (typeof w.signIn === 'function' && challenge.siws && challenge.siws.nonce) {
+    const out = await w.signIn(challenge.siws);
+    const signed = out.signedMessage || out.signed_message || message;
+    message = typeof signed === 'string' ? signed : new TextDecoder().decode(signed);
+    signature = typeof out.signature === 'string' ? out.signature : b58encode(out.signature);
+    addr = String((out.address && out.address.toString && out.address.toString()) || (out.account && out.account.address) || address);
+  } else {
+    const encoded = new TextEncoder().encode(message);
+    const signed = await w.signMessage(encoded, 'utf8');
+    signature = typeof signed === 'string' ? signed : b58encode(signed.signature || signed);
+  }
+  const verified = await api('/api/auth/phantom/verify', {
+    method: 'POST',
+    headers: { 'Content-Type': 'application/json' },
+    body: JSON.stringify({ address: addr, nonce: challenge.nonce, message, signature, provider: name }),
+  });
+  const body = verified.data || {};
+  const tok = body.token || body.sessionToken || body.sso_token;
+  if (!verified.ok && !body.success && !tok) throw new Error(body.error || 'SIWS verify failed');
+  if (tok) {
+    storeFleetToken(tok, { grudgeId: body.grudgeId || body.grudge_id || '', username: body.username || '' });
+  }
+  if (msg) { msg.className = 'msg ok'; msg.textContent = body.linked ? 'Wallet linked to Grudge ID' : 'Signed in with ' + name; }
+  await load();
+  await loadTraderCash();
+  await loadLinkedWallets();
 }
 
 async function connectAndLink(kind) {
@@ -649,6 +705,12 @@ $('btn-refresh').onclick = () => { load(); loadTraderCash(); loadLinkedWallets()
 $('btn-link-ph').onclick = () => connectAndLink('phantom').catch((e) => { $('w-msg').className = 'msg err'; $('w-msg').textContent = e.message || String(e); });
 $('btn-link-sf').onclick = () => connectAndLink('solflare').catch((e) => { $('w-msg').className = 'msg err'; $('w-msg').textContent = e.message || String(e); });
 if ($('btn-link-bp')) $('btn-link-bp').onclick = () => connectAndLink('backpack').catch((e) => { $('w-msg').className = 'msg err'; $('w-msg').textContent = e.message || String(e); });
+if ($('btn-siws')) {
+  $('btn-siws').onclick = () => siwsLogin().catch((e) => {
+    const m = $('msg') || $('w-msg');
+    if (m) { m.className = 'msg err'; m.textContent = e.message || String(e); }
+  });
+}
 if ($('btn-login') && $('btn-login').tagName === 'BUTTON') {
   $('btn-login').onclick = () => {
     const redir = encodeURIComponent(location.origin + '/');
