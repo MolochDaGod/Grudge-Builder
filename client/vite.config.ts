@@ -221,7 +221,8 @@ export default defineConfig({
           // Heavy game surfaces — load with their routes
           if (norm.includes("/island3d/intro/")) return "cinema-intro";
           if (norm.includes("/island3d/airship/")) return "airship-zone";
-          if (norm.includes("/island3d/")) return "island3d";
+          // Do not force all of /island3d/ into one chunk — that created a
+          // TDZ (`Cannot access 'nt' before initialization`) on App boot.
           // Shared ship deck/climb/sails used by lobby dock + open water.
           // Keep OUT of both island3d and full sailing to break init cycles.
           if (
