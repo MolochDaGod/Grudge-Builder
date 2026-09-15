@@ -107,6 +107,9 @@ export default defineConfig({
     emptyOutDir: true,
     copyPublicDir: false,
     chunkSizeWarningLimit: 2500,
+    // Vercel uses this file (`cd client && vite build`). Preloading every
+    // lazy() dep (Rapier/island3d) blocked #root on grudgewarlords.com.
+    modulePreload: false,
     commonjsOptions: {
       transformMixedEsModules: true,
     },
