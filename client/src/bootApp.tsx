@@ -29,14 +29,29 @@ if (import.meta.env.VITE_SENTRY_DSN) {
 
 const root = document.getElementById("root")!;
 
+function BootCrash({ error }: { error: unknown }) {
+  const msg = error instanceof Error ? `${error.name}: ${error.message}` : String(error);
+  const stack = error instanceof Error ? error.stack : "";
+  return (
+    <div
+      style={{
+        padding: 24,
+        fontFamily: "ui-monospace, system-ui",
+        color: "#f5d0c8",
+        background: "#0b0d12",
+        minHeight: "100vh",
+        whiteSpace: "pre-wrap",
+      }}
+    >
+      {msg}
+      {"\n\n"}
+      {stack}
+    </div>
+  );
+}
+
 createRoot(root).render(
-  <Sentry.ErrorBoundary
-    fallback={
-      <div style={{ padding: 24, fontFamily: "system-ui" }}>
-        Something went wrong — the error was reported.
-      </div>
-    }
-  >
+  <Sentry.ErrorBoundary fallback={BootCrash}>
     <Suspense
       fallback={<div style={{ minHeight: "100vh", background: "#0b0d12" }} />}
     >
