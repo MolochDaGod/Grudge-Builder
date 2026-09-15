@@ -11,7 +11,19 @@ export function htmlPage(env) {
   const poker = env.POKER_ORIGIN || "https://poker.grudge-studio.com";
   const trader = env.TRADER_ORIGIN || "https://trader.grudge-studio.com";
   const logo = idGw + "/grudge-id-logo.png";
-  const gbux = poker + "/media/gbux-logo-64.png";
+  const gbuxCoin = poker + "/media/gbux-coin.png";
+  const art = {
+    trader: trader + "/art/fabledgrudge.jpeg",
+    pokerFelt: poker + "/media/felt-budb-green.jpg",
+    pokerOg: poker + "/media/og-image.jpg",
+    warlords: client + "/opengraph.jpg",
+    foundry: "https://character.grudge-studio.com/opengraph.jpg",
+    open: "https://open.grudge-studio.com/opengraph.jpg",
+    grudox: "https://grudox.grudge-studio.com/opengraph.jpg",
+    mine: "https://mineloader.grudge-studio.com/opengraph.jpg",
+    forge: "https://forge.grudge-studio.com/opengraph.jpg",
+    portal: portal + "/opengraph.jpg",
+  };
 
   return `<!DOCTYPE html>
 <html lang="en">
@@ -72,7 +84,8 @@ button:disabled{opacity:.45;cursor:not-allowed}
 .gamess{display:grid;grid-template-columns:repeat(auto-fill,minmax(140px,1fr));gap:10px}
 .game{display:flex;flex-direction:column;gap:6px;padding:12px;border-radius:12px;border:1px solid rgba(255,255,255,.08);background:rgba(0,0,0,.35);text-decoration:none;color:var(--text);transition:border .15s,transform .15s}
 .game:hover{border-color:rgba(212,175,55,.45);transform:translateY(-2px)}
-.game img{width:100%;height:72px;object-fit:contain;background:#0a0a12;border-radius:8px;border:1px solid rgba(212,175,55,.15)}
+.game img{width:100%;height:88px;object-fit:cover;object-position:center;background:#0a0a12;border-radius:8px;border:1px solid rgba(212,175,55,.15)}
+.tok img.coin{border-radius:50%;object-fit:contain;background:transparent;mix-blend-mode:multiply;filter:contrast(1.15)}
 .game strong{font-size:.88rem;color:var(--gold2)}
 .game span{font-size:.72rem;color:var(--dim);line-height:1.35}
 .badge{display:inline-flex;font-size:.65rem;letter-spacing:.08em;text-transform:uppercase;padding:3px 8px;border-radius:999px;border:1px solid rgba(34,197,94,.35);color:#86efac;background:rgba(34,197,94,.08);margin-bottom:8px}
@@ -147,7 +160,7 @@ button:disabled{opacity:.45;cursor:not-allowed}
   <p class="msg" id="msg"></p>
 
   <div class="dock-panel on" id="dock-assets">
-    <div class="tok"><img src="${gbux}" alt="" /><div class="meta"><b>GBUX</b><span>bag · Crossmint Gruda</span></div><div class="bal" id="tok-gbux">—</div></div>
+    <div class="tok"><img class="coin" src="${gbuxCoin}" alt="GBUX coin" /><div class="meta"><b>GBUX</b><span>coin · bag · Crossmint</span></div><div class="bal" id="tok-gbux">—</div></div>
     <div class="tok"><img src="${logo}" alt="" /><div class="meta"><b>SOL vault</b><span id="tr-vault">trader house</span></div><div class="bal" id="tok-sol">—</div></div>
     <span id="cmint" hidden></span><span id="net" hidden></span><span id="mint" hidden></span>
     <div class="addr" id="addr"></div>
@@ -241,18 +254,16 @@ let signedIn = false;
 let walletAddr = '';
 
 const GAMES = [
-  { name: 'Auto-trader', desc: 'SOL desk · GBUX fee · rotating capital', href: TRADER, img: '${gbux}' },
-  { name: 'Poker wallet', desc: 'BUDB play · fund · sit', href: POKER + '/wallet', img: '${gbux}' },
-  { name: 'BUDB Poker', desc: 'Holdem · slots · BJ · play GBUX', href: POKER + '/lobby', img: '${gbux}' },
-  { name: 'Nexus Nemesis', desc: 'TCG · Nexus era', href: 'https://nexus.grudge-studio.com', img: '${gbux}' },
-  { name: 'Warlords play', desc: 'Client · home island', href: '${client}/home', img: '${logo}' },
-  { name: 'Character Foundry', desc: 'Create · 4 slots', href: 'https://character.grudge-studio.com/?era=warlords', img: '${logo}' },
-  { name: 'Grudge Open', desc: 'Danger · library', href: 'https://open.grudge-studio.com', img: '${gbux}' },
-  { name: 'GRUDOX', desc: 'Arcade cabinets', href: 'https://grudox.grudge-studio.com', img: '${logo}' },
-  { name: 'Mine-Loader', desc: 'Voxel realms', href: 'https://mine.grudge-studio.com', img: '${gbux}' },
-  { name: 'Forge', desc: 'Map / scene editor', href: 'https://forge.grudge-studio.com', img: '${logo}' },
-  { name: 'Casting lab', desc: 'Warlords skills VFX', href: 'https://casting.grudge-studio.com', img: '${gbux}' },
-  { name: 'Portal', desc: 'grudge-studio.com', href: '${portal}', img: '${logo}' },
+  { name: 'Auto-trader', desc: 'SOL desk · rotating capital', href: TRADER, img: '${art.trader}' },
+  { name: 'Poker wallet', desc: 'BUDB play · fund · sit', href: POKER + '/wallet', img: '${art.pokerFelt}' },
+  { name: 'BUDB Poker', desc: 'Holdem · slots · BJ', href: POKER + '/lobby', img: '${art.pokerOg}' },
+  { name: 'Warlords play', desc: 'Client · home island', href: '${client}/home', img: '${art.warlords}' },
+  { name: 'Character Foundry', desc: 'Create · 4 slots', href: 'https://character.grudge-studio.com/?era=warlords', img: '${art.foundry}' },
+  { name: 'Grudge Open', desc: 'Danger · library', href: 'https://open.grudge-studio.com', img: '${art.open}' },
+  { name: 'GRUDOX', desc: 'Arcade cabinets', href: 'https://grudox.grudge-studio.com', img: '${art.grudox}' },
+  { name: 'Mine-Loader', desc: 'Voxel realms', href: 'https://mineloader.grudge-studio.com', img: '${art.mine}' },
+  { name: 'Forge', desc: 'Map / scene editor', href: 'https://forge.grudge-studio.com', img: '${art.forge}' },
+  { name: 'Studio portal', desc: 'grudge-studio.com', href: '${portal}', img: '${art.portal}' },
 ];
 
 function storeFleetToken(token, meta) {
