@@ -218,26 +218,8 @@ export default defineConfig({
           ) {
             return "ui-vendor";
           }
-          // Heavy game surfaces — load with their routes
-          if (norm.includes("/island3d/intro/")) return "cinema-intro";
-          if (norm.includes("/island3d/airship/")) return "airship-zone";
-          // Do not force all of /island3d/ into one chunk — that created a
-          // TDZ (`Cannot access 'nt' before initialization`) on App boot.
-          // Shared ship deck/climb/sails used by lobby dock + open water.
-          // Keep OUT of both island3d and full sailing to break init cycles.
-          if (
-            norm.includes("/game/dock/") ||
-            norm.includes("/game/sailing/ShipDeckPhysics") ||
-            norm.includes("/game/sailing/OceanBoatClimbRig") ||
-            norm.includes("/game/sailing/SailMaterialSystem") ||
-            norm.includes("/game/sailing/clothPhysics")
-          ) {
-            return "ship-boarding";
-          }
-          // Tactical ocean page UI (own chunk — not mixed into pure sailing sim)
-          if (norm.includes("/tactical-ocean/")) return "tactical-ocean";
-          if (norm.includes("/pages/ocean")) return "tactical-ocean";
-          if (norm.includes("/game/sailing/") || norm.includes("/game/ocean/")) return "sailing";
+          // Do not force island3d / sailing / ocean / airship into fused chunks.
+          // Those catch-alls caused TDZ on boot (`nt` / `oe` before initialization).
           return undefined;
         },
       },
