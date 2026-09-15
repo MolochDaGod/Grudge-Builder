@@ -167,6 +167,18 @@ export default defineConfig({
     // Pre-cleaned in script/build.ts; public copied via script/copy-public-to-dist.mjs.
     emptyOutDir: false,
     copyPublicDir: false,
+    // Do not modulepreload Rapier/island3d/sailing on the landing HTML.
+    // Those chunks blocked first paint on grudgewarlords.com (empty #root).
+    modulePreload: {
+      resolveDependencies(_filename, deps) {
+        return deps.filter(
+          (d) =>
+            !/rapier|island3d|sailing|ship-boarding|cinema-intro|tactical-ocean|r3f-vendor|three-app/.test(
+              d,
+            ),
+        );
+      },
+    },
     commonjsOptions: {
       // Allow packages that use THREE as a global to resolve it
       transformMixedEsModules: true,
