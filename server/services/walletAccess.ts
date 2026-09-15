@@ -26,7 +26,89 @@ const PURCHASE_INTENT_TTL_MS = 15 * 60 * 1000;
 const USDT_MINT = process.env.USDT_MINT_ADDRESS || "Es9vMFrzaCERmJfrF4H2FYD4KCoNkY11McCe8BenwNYB";
 const USDT_DECIMALS = Number(process.env.USDT_DECIMALS || 6);
 
-const linkChallenges = new Map<string, { accountId: string; walletAddress: string; expiresAt: number }>();
+const SIWS_DOMAIN = "id.grudge-studio.com";
+const SIWS_URI = "https://id.grudge-studio.com/account";
+
+/** Phantom SIWS: domain must match the page origin that requested the signature. */
+export function originFromRequest(req: { get?: (h: string) => string | undefined; body?: any; headers?: any }): string {
+  const body = req.body?.origin || req.body?.domain;
+  const get = typeof req.get === "function" ? req.get.bind(req) : (h: string) => req.headers?.[h] || req.headers?.[h.toLowerCase()];
+  const hdr = get("origin") || get("referer");
+  const xf = get("x-forwarded-host");
+  return String(body || hdr || (xf ? `https://${String(xf).split(",")[0].trim()}` : "") || "");
+}
+
+export function resolveSiwsOrigin(input?: string | null): { domain: string; uri: string } {
+  const raw = String(input || "").trim();
+  try {
+    const u = new URL(raw.includes("://") ? raw : `https://${raw}`);
+    const host = u.hostname.toLowerCase();
+    const ok =
+      host === "id.grudge-studio.com" ||
+      host === "wallet.grudge-studio.com" ||
+      host === "poker.grudge-studio.com" ||
+      host === "trader.grudge-studio.com" ||
+      host === "grudge-studio.com" ||
+      host === "www.grudge-studio.com" ||
+      host === "character.grudge-studio.com" ||
+      host.endsWith(".grudge-studio.com");
+    if (!ok) return { domain: SIWS_DOMAIN, uri: SIWS_URI };
+    return { domain: host, uri: `${u.protocol}//${u.host}/` };
+  } catch {
+    return { domain: SIWS_DOMAIN, uri: SIWS_URI };
+  }
+}
+const SIWS_VERSION = "1";
+const SIWS_CHAIN = "mainnet";
+const SIWS_TTL_MS = 5 * 60 * 1000;
+const SIWS_STATEMENT_LINK =
+  "Link this Solana wallet to your Grudge Studio account. This proves you own the wallet. Grudge never asks for your seed phrase or private key.";
+const SIWS_STATEMENT_LOGIN =
+  "Sign in to Grudge Studio. This proves you own the wallet. Grudge never asks for your seed phrase or private key.";
+
+type SiwsPurpose = "link" | "login";
+
+type StoredChallenge = {
+  purpose: SiwsPurpose;
+  accountId: string | null;
+  walletAddress: string;
+  expiresAt: number;
+};
+
+export type SiwsFields = {
+  domain: string;
+  address: string;
+  statement: string;
+  uri: string;
+  version: string;
+  chainId: string;
+  nonce: string;
+  issuedAt: string;
+  expirationTime: string;
+  requestId?: string;
+};
+
+export type SiwsChallenge = {
+  message: string;
+  nonce: string;
+  walletAddress: string;
+  siws: SiwsFields;
+};
+
+const siwsChallenges = new Map<string, StoredChallenge>();
+
+function decodeSignatureBytes(signature: string): Uint8Array {
+  const raw = String(signature || "").trim();
+  try {
+    return bs58.decode(raw);
+  } catch {
+    /* continue */
+  }
+  if (/^[0-9a-fA-F]+$/.test(raw) && raw.length % 2 === 0) {
+    return Uint8Array.from(Buffer.from(raw, "hex"));
+  }
+  return Uint8Array.from(Buffer.from(raw, "base64"));
+}
 
 export function verifyWalletSignature(
   walletAddress: string,
@@ -35,7 +117,7 @@ export function verifyWalletSignature(
 ): boolean {
   try {
     const pubkey = new PublicKey(walletAddress);
-    const sig = bs58.decode(signature);
+    const sig = decodeSignatureBytes(signature);
     const msg = new TextEncoder().encode(message);
     return nacl.sign.detached.verify(msg, sig, pubkey.toBytes());
   } catch {
@@ -43,48 +125,179 @@ export function verifyWalletSignature(
   }
 }
 
-export function createLinkChallenge(accountId: string, walletAddress: string): string {
-  if (!isValidSolanaAddress(walletAddress)) {
-    throw new Error("Invalid Solana wallet address");
-  }
-
-  const nonce = crypto.randomBytes(16).toString("hex");
-  const expiresAt = Date.now() + 5 * 60 * 1000;
-  linkChallenges.set(nonce, { accountId, walletAddress, expiresAt });
-
-  return [
-    "Link wallet to Grudge Studio account",
-    `Account: ${accountId}`,
-    `Wallet: ${walletAddress}`,
-    `Nonce: ${nonce}`,
-    `Expires: ${new Date(expiresAt).toISOString()}`,
-  ].join("\n");
+export function parseSiwsNonce(message: string): string | null {
+  const line = String(message || "")
+    .split("\n")
+    .find((l) => /^Nonce:\s*/i.test(l));
+  const nonce = line?.replace(/^Nonce:\s*/i, "").trim();
+  return nonce || null;
 }
 
-export async function confirmLinkedWallet(
+export function parseSiwsAddress(message: string): string | null {
+  const text = String(message || "");
+  const walletLine = text.split("\n").find((l) => /^Wallet:\s*/i.test(l));
+  if (walletLine) {
+    return walletLine.replace(/^Wallet:\s*/i, "").trim() || null;
+  }
+  const lines = text.split("\n");
+  if (/wants you to sign in with your Solana account/i.test(lines[0] || "")) {
+    const addr = (lines[1] || "").trim().replace(/^solana:(?:mainnet:)?/i, "");
+    return addr || null;
+  }
+  return null;
+}
+
+function buildSiwsMessage(fields: SiwsFields): string {
+  const lines = [
+    `${fields.domain} wants you to sign in with your Solana account:`,
+    fields.address,
+    "",
+    fields.statement,
+    "",
+    `URI: ${fields.uri}`,
+    `Version: ${fields.version}`,
+    `Chain ID: ${fields.chainId}`,
+    `Nonce: ${fields.nonce}`,
+    `Issued At: ${fields.issuedAt}`,
+    `Expiration Time: ${fields.expirationTime}`,
+  ];
+  if (fields.requestId) lines.push(`Request ID: ${fields.requestId}`);
+  return lines.join("\n");
+}
+
+function createSiwsChallenge(opts: {
+  purpose: SiwsPurpose;
+  walletAddress: string;
+  accountId?: string | null;
+  origin?: string | null;
+}): SiwsChallenge {
+  if (!isValidSolanaAddress(opts.walletAddress)) {
+    throw new Error("Invalid Solana wallet address");
+  }
+  const nonce = crypto.randomBytes(16).toString("hex");
+  const issuedAtMs = Date.now();
+  const expiresAt = issuedAtMs + SIWS_TTL_MS;
+  const issuedAt = new Date(issuedAtMs).toISOString();
+  const expirationTime = new Date(expiresAt).toISOString();
+  const { domain, uri } = resolveSiwsOrigin(opts.origin);
+  const siws: SiwsFields = {
+    domain,
+    address: opts.walletAddress,
+    statement: opts.purpose === "link" ? SIWS_STATEMENT_LINK : SIWS_STATEMENT_LOGIN,
+    uri,
+    version: SIWS_VERSION,
+    chainId: SIWS_CHAIN,
+    nonce,
+    issuedAt,
+    expirationTime,
+    requestId: opts.accountId || undefined,
+  };
+  siwsChallenges.set(nonce, {
+    purpose: opts.purpose,
+    accountId: opts.accountId || null,
+    walletAddress: opts.walletAddress,
+    expiresAt,
+  });
+  return {
+    message: buildSiwsMessage(siws),
+    nonce,
+    walletAddress: opts.walletAddress,
+    siws,
+  };
+}
+
+/** Logged-in account → SIWS challenge (Wallet Standard signIn or signMessage). */
+export function createLinkChallenge(
   accountId: string,
   walletAddress: string,
-  message: string,
-  signature: string,
-  provider: LinkedWalletProvider = "other",
-  label?: string,
-): Promise<{ linked: typeof linkedWallets.$inferSelect; setPrimary: boolean }> {
-  const nonceLine = message.split("\n").find((l) => l.startsWith("Nonce: "));
-  const nonce = nonceLine?.slice("Nonce: ".length).trim();
-  if (!nonce) throw new Error("Invalid link message");
+  origin?: string | null,
+): SiwsChallenge {
+  return createSiwsChallenge({ purpose: "link", walletAddress, accountId, origin });
+}
 
-  const challenge = linkChallenges.get(nonce);
+/** Sign-in (not yet linked) → SIWS challenge. */
+export function createLoginChallenge(walletAddress: string, origin?: string | null): SiwsChallenge {
+  return createSiwsChallenge({ purpose: "login", walletAddress, origin });
+}
+
+export function consumeSiwsChallenge(opts: {
+  purpose: SiwsPurpose;
+  walletAddress: string;
+  message: string;
+  signature: string;
+  accountId?: string | null;
+}): StoredChallenge {
+  const nonce = parseSiwsNonce(opts.message);
+  if (!nonce) throw new Error("Invalid SIWS message — missing nonce");
+
+  const challenge = siwsChallenges.get(nonce);
   if (!challenge || challenge.expiresAt < Date.now()) {
     throw new Error("Link challenge expired — request a new one");
   }
-  if (challenge.accountId !== accountId || challenge.walletAddress !== walletAddress) {
+  if (challenge.purpose !== opts.purpose) {
+    throw new Error("Challenge type mismatch");
+  }
+  if (challenge.walletAddress !== opts.walletAddress) {
     throw new Error("Link challenge mismatch");
   }
-  if (!verifyWalletSignature(walletAddress, message, signature)) {
+  if (opts.purpose === "link") {
+    if (!opts.accountId || challenge.accountId !== opts.accountId) {
+      throw new Error("Link challenge mismatch");
+    }
+  }
+  const msgAddr = parseSiwsAddress(opts.message);
+  if (msgAddr && msgAddr !== opts.walletAddress) {
+    throw new Error("Signed address does not match wallet");
+  }
+  if (!verifyWalletSignature(opts.walletAddress, opts.message, opts.signature)) {
     throw new Error("Invalid wallet signature");
   }
+  siwsChallenges.delete(nonce);
+  return challenge;
+}
 
-  linkChallenges.delete(nonce);
+export async function findAccountIdByWalletAddress(walletAddress: string): Promise<string | null> {
+  const [linked] = await db
+    .select()
+    .from(linkedWallets)
+    .where(eq(linkedWallets.walletAddress, walletAddress))
+    .limit(1);
+  if (linked?.accountId) return linked.accountId;
+
+  const [account] = await db
+    .select()
+    .from(accounts)
+    .where(eq(accounts.walletAddress, walletAddress))
+    .limit(1);
+  return account?.id || null;
+}
+
+async function assertWalletAvailable(accountId: string, walletAddress: string): Promise<void> {
+  const [linkedOther] = await db
+    .select()
+    .from(linkedWallets)
+    .where(eq(linkedWallets.walletAddress, walletAddress))
+    .limit(1);
+  if (linkedOther && linkedOther.accountId !== accountId) {
+    throw new Error("This Solana wallet is already linked to another Grudge ID");
+  }
+  const [acctOther] = await db
+    .select()
+    .from(accounts)
+    .where(eq(accounts.walletAddress, walletAddress))
+    .limit(1);
+  if (acctOther && acctOther.id !== accountId) {
+    throw new Error("This Solana wallet is already linked to another Grudge ID");
+  }
+}
+
+export async function persistLinkedWallet(
+  accountId: string,
+  walletAddress: string,
+  provider: LinkedWalletProvider = "other",
+  label?: string,
+): Promise<{ linked: typeof linkedWallets.$inferSelect; setPrimary: boolean }> {
+  await assertWalletAvailable(accountId, walletAddress);
 
   const [existing] = await db
     .select()
@@ -128,7 +341,10 @@ export async function confirmLinkedWallet(
 
   const [account] = await db.select().from(accounts).where(eq(accounts.id, accountId)).limit(1);
   let setPrimary = false;
-  if (account && (!account.walletAddress || row.isPrimary)) {
+  const custodial =
+    account?.walletType === "crossmint" && Boolean(account.walletAddress);
+  // Never replace a Crossmint play wallet with a linked Phantom. Linked row is the user's Solana.
+  if (account && !custodial && (!account.walletAddress || row.isPrimary)) {
     await storage.updateAccount(accountId, {
       walletAddress,
       walletType: "external",
@@ -137,6 +353,24 @@ export async function confirmLinkedWallet(
   }
 
   return { linked: row!, setPrimary };
+}
+
+export async function confirmLinkedWallet(
+  accountId: string,
+  walletAddress: string,
+  message: string,
+  signature: string,
+  provider: LinkedWalletProvider = "other",
+  label?: string,
+): Promise<{ linked: typeof linkedWallets.$inferSelect; setPrimary: boolean }> {
+  consumeSiwsChallenge({
+    purpose: "link",
+    walletAddress,
+    message,
+    signature,
+    accountId,
+  });
+  return persistLinkedWallet(accountId, walletAddress, provider, label);
 }
 
 export async function listLinkedWallets(accountId: string) {

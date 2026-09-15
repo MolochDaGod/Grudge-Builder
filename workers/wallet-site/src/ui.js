@@ -460,7 +460,7 @@ async function siwsLogin() {
   const ch = await api('/api/auth/phantom/nonce', {
     method: 'POST',
     headers: { 'Content-Type': 'application/json' },
-    body: JSON.stringify({ address }),
+    body: JSON.stringify({ address, origin: location.origin }),
   });
   if (!ch.ok || !(ch.data && (ch.data.message || ch.data.siws))) {
     throw new Error((ch.data && ch.data.error) || 'SIWS challenge failed');
@@ -514,7 +514,7 @@ async function connectAndLink(kind) {
   const ch = await api('/api/wallet/link/challenge', {
     method: 'POST',
     headers: { 'Content-Type': 'application/json' },
-    body: JSON.stringify({ walletAddress }),
+    body: JSON.stringify({ walletAddress, origin: location.origin }),
   });
   if (!ch.ok) throw new Error(ch.data && ch.data.error || 'challenge failed');
   const encoded = new TextEncoder().encode(ch.data.message);
