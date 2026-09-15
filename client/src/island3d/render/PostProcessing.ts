@@ -50,6 +50,9 @@ const FilmGradeShader = {
     uChroma: { value: 0.0008 },
     uTime: { value: 0.0 },
     uLift: { value: 0.02 },
+    uFlash: { value: 0.0 },
+    uUnderwater: { value: 0.0 },
+    uAnamorphic: { value: 0.0 },
   },
   vertexShader: /* glsl */ `
     varying vec2 vUv;
@@ -68,6 +71,9 @@ const FilmGradeShader = {
     uniform float uChroma;
     uniform float uTime;
     uniform float uLift;
+    uniform float uFlash;
+    uniform float uUnderwater;
+    uniform float uAnamorphic;
     varying vec2 vUv;
 
     float hash(vec2 p) {
@@ -112,6 +118,27 @@ const FilmGradeShader = {
       // Temporal film grain (subtle)
       float n = hash(uv * vec2(1920.0, 1080.0) + fract(uTime) * 120.0) - 0.5;
       c += n * uGrain;
+
+      // Underwater: cyan absorption + slight caustic lift
+      float uw = clamp(uUnderwater, 0.0, 1.0);
+      vec3 under = c * vec3(0.48, 0.78, 1.05) + vec3(0.01, 0.04, 0.07);
+      float cau = sin((uv.x + uv.y) * 28.0 + uTime * 2.4) * 0.5 + 0.5;
+      under += vec3(0.02, 0.07, 0.09) * cau * uw;
+      c = mix(c, under, uw);
+
+      // Lightning / muzzle white punch (center-weighted)
+      c += vec3(0.62, 0.70, 0.88) * uFlash * (0.28 + 0.72 * (1.0 - r));
+
+      // Cheap anamorphic streak on hot pixels (moon / fire / lightning)
+      float lum = dot(c, vec3(0.2126, 0.7152, 0.0722));
+      float streak = 0.0;
+      float am = clamp(uAnamorphic, 0.0, 1.5);
+      for (int i = 1; i <= 4; i++) {
+        float o = float(i) * 0.0024 * am;
+        streak += texture2D(tDiffuse, uv + vec2(o, 0.0)).g;
+        streak += texture2D(tDiffuse, uv - vec2(o, 0.0)).g;
+      }
+      c += vec3(0.32, 0.40, 0.58) * (streak / 8.0) * am * smoothstep(0.52, 0.92, lum);
 
       gl_FragColor = vec4(clamp(c, 0.0, 1.0), 1.0);
     }
@@ -184,6 +211,9 @@ export class PostProcessing {
     this.filmPass.uniforms.uChroma.value =
       config.chroma ?? (this.quality === 'high' ? 0.0009 : 0.0004);
     this.filmPass.uniforms.uLift.value = 0.018;
+    this.filmPass.uniforms.uFlash.value = 0;
+    this.filmPass.uniforms.uUnderwater.value = 0;
+    this.filmPass.uniforms.uAnamorphic.value = 0;
     this.composer.addPass(this.filmPass);
   }
 
@@ -266,6 +296,9 @@ export class PostProcessing {
     saturation?: number;
     grain?: number;
     chroma?: number;
+    flash?: number;
+    underwater?: number;
+    anamorphic?: number;
   }): void {
     if (opts.bloom != null) this.setBloomStrength(opts.bloom);
     if (opts.bloomRadius != null) this.setBloomRadius(opts.bloomRadius);
@@ -276,6 +309,9 @@ export class PostProcessing {
     if (opts.saturation != null) this.setSaturation(opts.saturation);
     if (opts.grain != null) this.setGrain(opts.grain);
     if (opts.chroma != null) this.setChroma(opts.chroma);
+    if (opts.flash != null) this.filmPass.uniforms.uFlash.value = opts.flash;
+    if (opts.underwater != null) this.filmPass.uniforms.uUnderwater.value = opts.underwater;
+    if (opts.anamorphic != null) this.filmPass.uniforms.uAnamorphic.value = opts.anamorphic;
   }
 
   dispose(): void {
