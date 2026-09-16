@@ -3,7 +3,7 @@
  */
 import { htmlPage } from "./ui.js";
 
-export const WALLET_BUILD = "2026-09-16-connect-v3";
+export const WALLET_BUILD = "2026-09-16-tabs-v1";
 
 const CORS_ALLOW = [
   "https://wallet.grudge-studio.com",
@@ -20,6 +20,32 @@ const CORS_ALLOW = [
   "https://dash.grudge-studio.com",
   "http://localhost:5173",
   "http://localhost:3000",
+];
+
+const RPC_ALLOW = new Set([
+  "getAsset",
+  "getAssets",
+  "getAssetBatch",
+  "getAssetsByOwner",
+  "searchAssets",
+  "getBalance",
+  "getTokenAccountsByOwner",
+  "getTokenAccountBalance",
+  "getAccountInfo",
+  "getMultipleAccounts",
+]);
+
+const DAPPS = [
+  { id: "trader", name: "Auto-trader", tagline: "SOL desk · rotating capital", category: "Desk", featured: true, href: "https://trader.grudge-studio.com", img: "https://trader.grudge-studio.com/art/fabledgrudge.jpeg" },
+  { id: "poker-wallet", name: "Poker wallet", tagline: "BUDB play · fund · sit", category: "Play", href: "https://poker.grudge-studio.com/wallet", img: "https://poker.grudge-studio.com/media/felt-budb-green.jpg" },
+  { id: "poker", name: "BUDB Poker", tagline: "Holdem · slots · BJ", category: "Play", href: "https://poker.grudge-studio.com/lobby", img: "https://poker.grudge-studio.com/media/og-image.jpg" },
+  { id: "warlords", name: "Warlords", tagline: "Home island · play", category: "Play", href: "https://client.grudge-studio.com/home", img: "https://client.grudge-studio.com/opengraph.jpg" },
+  { id: "foundry", name: "Character Foundry", tagline: "Create · 4 slots", category: "Studio", href: "https://character.grudge-studio.com/?era=warlords", img: "https://character.grudge-studio.com/opengraph.jpg" },
+  { id: "open", name: "Grudge Open", tagline: "Danger · library", category: "Studio", href: "https://open.grudge-studio.com", img: "https://open.grudge-studio.com/opengraph.jpg" },
+  { id: "grudox", name: "GRUDOX", tagline: "Arcade cabinets", category: "Play", href: "https://grudox.grudge-studio.com", img: "https://grudox.grudge-studio.com/opengraph.jpg" },
+  { id: "mine", name: "Mine-Loader", tagline: "Voxel realms", category: "Play", href: "https://mineloader.grudge-studio.com", img: "https://mineloader.grudge-studio.com/opengraph.jpg" },
+  { id: "forge", name: "Forge", tagline: "Map / scene editor", category: "Studio", href: "https://forge.grudge-studio.com", img: "https://forge.grudge-studio.com/opengraph.jpg" },
+  { id: "studio", name: "Studio portal", tagline: "grudge-studio.com", category: "Studio", href: "https://grudge-studio.com", img: "https://grudge-studio.com/opengraph.jpg" },
 ];
 
 function corsHeaders(request) {
@@ -61,6 +87,12 @@ function json(data, status = 200, extra = {}) {
   });
 }
 
+function rpcUrl(env) {
+  if (env.SOLANA_RPC_URL) return env.SOLANA_RPC_URL;
+  if (env.HELIUS_API_KEY) return "https://mainnet.helius-rpc.com/?api-key=" + env.HELIUS_API_KEY;
+  return "";
+}
+
 async function proxyTo(origin, request, pathWithSearch) {
   const url = new URL(pathWithSearch, origin);
   const headers = new Headers(request.headers);
@@ -82,6 +114,59 @@ async function proxyTo(origin, request, pathWithSearch) {
     statusText: upstream.statusText,
     headers: outHeaders,
   });
+}
+
+async function handleRpc(request, env, cors) {
+  if (request.method !== "POST") return json({ error: "POST JSON-RPC" }, 405, cors);
+  const url = rpcUrl(env) || "https://api.mainnet-beta.solana.com";
+  let body;
+  try {
+    body = await request.json();
+  } catch {
+    return json({ error: "invalid json" }, 400, cors);
+  }
+  const method = String(body.method || "");
+  if (!RPC_ALLOW.has(method)) return json({ error: "method not allowed" }, 403, cors);
+  const upstream = await fetch(url, {
+    method: "POST",
+    headers: { "content-type": "application/json" },
+    body: JSON.stringify({ jsonrpc: "2.0", id: body.id || "gruda", method, params: body.params }),
+  });
+  const text = await upstream.text();
+  try {
+    return json(JSON.parse(text), 200, cors);
+  } catch {
+    const pub = "https://api.mainnet-beta.solana.com";
+    const das = method.startsWith("getAsset") || method === "searchAssets";
+    if (das) return json({ error: text.slice(0, 180) || "DAS unavailable" }, 502, cors);
+    const fallback = await fetch(pub, {
+      method: "POST",
+      headers: { "content-type": "application/json" },
+      body: JSON.stringify({ jsonrpc: "2.0", id: body.id || "gruda", method, params: body.params }),
+    });
+    return json(await fallback.json(), 200, cors);
+  }
+
+async function handleTokenMeta(request, cors) {
+  const q = new URL(request.url).searchParams.get("q") || new URL(request.url).searchParams.get("mint") || "";
+  if (!q.trim()) return json({ error: "q or mint required" }, 400, cors);
+  try {
+    const jr = await fetch("https://lite-api.jup.ag/tokens/v2/search?query=" + encodeURIComponent(q.trim()));
+    const rows = await jr.json();
+    const first = Array.isArray(rows) ? rows[0] : null;
+    if (first && first.id) {
+      return json({
+        mint: first.id,
+        symbol: first.symbol || "",
+        name: first.name || first.symbol || "Token",
+        logo: first.icon || first.logoURI || "",
+        decimals: Number(first.decimals || 0),
+      }, 200, cors);
+    }
+  } catch {
+    /* fall through */
+  }
+  return json({ error: "Token not found" }, 404, cors);
 }
 
 const HTML_PATHS = new Set([
@@ -112,6 +197,7 @@ export default {
           railway: env.RAILWAY_API_ORIGIN,
           poker: env.POKER_ORIGIN || "https://poker.grudge-studio.com",
           trader: env.TRADER_ORIGIN || "https://trader.grudge-studio.com",
+          rpc: Boolean(rpcUrl(env)),
           time: new Date().toISOString(),
           vps_origin: false,
           features: [
@@ -123,6 +209,9 @@ export default {
             "trader-vault-enable",
             "auth-callback",
             "pwa-install",
+            "coins-rpc-add-token",
+            "cnfts-crossmint",
+            "dapps-app-store",
           ],
         },
         200,
@@ -213,13 +302,31 @@ export default {
       });
     }
 
+    if (url.pathname === "/api/solana/rpc") {
+      return handleRpc(request, env, cors);
+    }
+    if (url.pathname === "/api/wallet/dapps" && request.method === "GET") {
+      return json({ store: "Grudge Apps", copy: "Opens with your Grudge ID session.", items: DAPPS }, 200, cors);
+    }
+    if (url.pathname === "/api/wallet/token-meta" && request.method === "GET") {
+      const edge = await handleTokenMeta(request, cors);
+      if (edge.status !== 404) return edge;
+    }
+
     if (url.pathname.startsWith("/api/")) {
       try {
         const res = await proxyTo(railway, request, url.pathname + url.search);
         const h = new Headers(res.headers);
         Object.entries(cors).forEach(([k, v]) => h.set(k, v));
+        if (url.pathname === "/api/wallet/token-meta" && (res.status === 404 || res.status === 502)) {
+          return handleTokenMeta(request, cors);
+        }
         return new Response(res.body, { status: res.status, headers: h });
       } catch (err) {
+        if (url.pathname === "/api/wallet/token-meta") return handleTokenMeta(request, cors);
+        if (url.pathname === "/api/wallet/dapps") {
+          return json({ store: "Grudge Apps", items: DAPPS }, 200, cors);
+        }
         return json({ ok: false, error: "railway upstream unavailable", service: "grudge-wallet-site" }, 502, cors);
       }
     }

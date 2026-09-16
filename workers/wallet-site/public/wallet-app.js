@@ -12,6 +12,20 @@
   const POKER = G.poker || "https://poker.grudge-studio.com";
   const TRADER = G.trader || "https://trader.grudge-studio.com";
   const HOUSE = "aUp3XZqAt27phQNEM7k5KiP6cL3ihyG7uEJuEADbEks";
+  const GBUX_MINT = "55TpSoMNxbfsNJ9U1dQoo9H3dRtDmjBZVMcKqvU2nray";
+  const WATCH_KEY = "gruda.watch.mints";
+  const DAPPS_FALLBACK = [
+    { id: "trader", name: "Auto-trader", tagline: "SOL desk · rotating capital", category: "Desk", featured: true, href: "https://trader.grudge-studio.com", img: "https://trader.grudge-studio.com/art/fabledgrudge.jpeg" },
+    { id: "poker-wallet", name: "Poker wallet", tagline: "BUDB play · fund · sit", category: "Play", href: "https://poker.grudge-studio.com/wallet", img: "https://poker.grudge-studio.com/media/felt-budb-green.jpg" },
+    { id: "poker", name: "BUDB Poker", tagline: "Holdem · slots · BJ", category: "Play", href: "https://poker.grudge-studio.com/lobby", img: "https://poker.grudge-studio.com/media/og-image.jpg" },
+    { id: "warlords", name: "Warlords", tagline: "Home island · play", category: "Play", href: "https://client.grudge-studio.com/home", img: "https://client.grudge-studio.com/opengraph.jpg" },
+    { id: "foundry", name: "Character Foundry", tagline: "Create · 4 slots", category: "Studio", href: "https://character.grudge-studio.com/?era=warlords", img: "https://character.grudge-studio.com/opengraph.jpg" },
+    { id: "open", name: "Grudge Open", tagline: "Danger · library", category: "Studio", href: "https://open.grudge-studio.com", img: "https://open.grudge-studio.com/opengraph.jpg" },
+    { id: "grudox", name: "GRUDOX", tagline: "Arcade cabinets", category: "Play", href: "https://grudox.grudge-studio.com", img: "https://grudox.grudge-studio.com/opengraph.jpg" },
+    { id: "mine", name: "Mine-Loader", tagline: "Voxel realms", category: "Play", href: "https://mineloader.grudge-studio.com", img: "https://mineloader.grudge-studio.com/opengraph.jpg" },
+    { id: "forge", name: "Forge", tagline: "Map / scene editor", category: "Studio", href: "https://forge.grudge-studio.com", img: "https://forge.grudge-studio.com/opengraph.jpg" },
+    { id: "studio", name: "Studio portal", tagline: "grudge-studio.com", category: "Studio", href: "https://grudge-studio.com", img: "https://grudge-studio.com/opengraph.jpg" },
+  ];
   const LINK_CAP = 8;
   const FALLBACKS = [
     { id: "phantom", name: "Phantom", install: "https://phantom.app" },
@@ -34,6 +48,12 @@
   let linkedCache = [];
   let vaultPubkey = "";
   let walletType = "";
+  let playWallet = "";
+  let coinOwner = "crossmint";
+  let dappCat = "all";
+  let dappQuery = "";
+  let dappCatalog = DAPPS_FALLBACK.slice();
+  let pendingToken = null;
   const standardWallets = [];
 
   function getTok() {
@@ -143,6 +163,9 @@
   function showPanel(name) {
     document.querySelectorAll("[data-dock]").forEach((b) => b.classList.toggle("on", b.dataset.dock === name));
     document.querySelectorAll(".panel").forEach((p) => p.classList.toggle("on", p.id === "panel-" + name));
+    if (name === "coins") loadCoins();
+    if (name === "nfts") loadNfts();
+    if (name === "dapps") renderDapps();
   }
   function providerId(name) {
     const n = String(name || "").toLowerCase();
@@ -312,7 +335,7 @@
       });
     }
     if (walletType === "crossmint" && playAddr && !rows.some((w) => (w.walletAddress || w.address) === playAddr)) {
-      html += '<div class="row"><div class="av">P</div><div class="meta"><b>Play wallet</b><span class="mono">' + short(playAddr) + " · Crossmint</span></div><div class="bal"><span>custodial</span></div></div>";
+      html += '<div class="row"><div class="av">P</div><div class="meta"><b>Play wallet</b><span class="mono">' + short(playAddr) + " · Crossmint</span></div><div class=\"bal\"><span>custodial</span></div></div>";
     }
     box.innerHTML = html;
     box.querySelectorAll("[data-primary]").forEach((b) => {
@@ -359,7 +382,8 @@
       const o = ov.data || {};
       linkedCache = o.linkedWallets || [];
       walletType = o.walletType || "";
-      const play = o.primaryWallet || "";
+      const play = o.primaryWallet || o.custodialWallet || "";
+      playWallet = play;
       renderLinked(linkedCache, play);
       const primary = linkedCache.find((w) => w.isPrimary) || linkedCache[0];
       const addr = (primary && (primary.walletAddress || primary.address)) || "";
@@ -378,6 +402,302 @@
         if ($("btn-solscan")) $("btn-solscan").href = "https://solscan.io/account/" + pk;
       }
     } catch (e) {}
+  }
+  function readWatch() {
+    try {
+      const raw = JSON.parse(localStorage.getItem(WATCH_KEY) || "[]");
+      return Array.isArray(raw) ? raw.filter(Boolean) : [];
+    } catch (e) { return []; }
+  }
+  function writeWatch(list) {
+    try { localStorage.setItem(WATCH_KEY, JSON.stringify(list.slice(0, 40))); } catch (e) {}
+  }
+  function esc(s) {
+    return String(s || "").replace(/[&<>"']/g, (c) => {
+      if (c === "&") return "&" + "amp;";
+      if (c === "<") return "&" + "lt;";
+      if (c === ">") return "&" + "gt;";
+      if (c === '"') return "&" + "quot;";
+      return "&#39;";
+    });
+  }
+  function fmtAmt(n) {
+    const x = Number(n);
+    if (!Number.isFinite(x)) return "0";
+    if (Math.abs(x) >= 1000) return x.toLocaleString(undefined, { maximumFractionDigits: 2 });
+    if (Math.abs(x) >= 1) return x.toFixed(4).replace(/0+$/, "").replace(/\.$/, "");
+    return x.toFixed(6).replace(/0+$/, "").replace(/\.$/, "") || "0";
+  }
+  function handoffUrl(base) {
+    const tok = getTok();
+    if (!tok) return base;
+    try {
+      const u = new URL(base, location.origin);
+      u.hash = "sso_token=" + encodeURIComponent(tok);
+      const gid = localStorage.getItem("grudge_id") || "";
+      const name = localStorage.getItem("grudge_username") || "";
+      if (gid) { u.searchParams.set("grudge_id", gid); u.searchParams.set("grudgeId", gid); }
+      if (name) u.searchParams.set("username", name);
+      return u.toString();
+    } catch (e) { return base; }
+  }
+  async function rpc(method, params) {
+    const body = JSON.stringify({ jsonrpc: "2.0", id: "gruda", method: method, params: params });
+    const urls = ["/api/solana/rpc", RAILWAY + "/api/solana/rpc"];
+    let last = null;
+    for (const url of urls) {
+      try {
+        const r = await fetch(url, { method: "POST", headers: { "content-type": "application/json" }, body: body, credentials: "include" });
+        const text = await r.text();
+        let j = {};
+        try { j = JSON.parse(text); } catch (e) { last = text.slice(0, 120); continue; }
+        if (j && j.result) return j.result;
+        last = (j && j.error && (j.error.message || j.error)) || ("rpc " + r.status);
+      } catch (e) { last = e; }
+    }
+    if (method !== "searchAssets" && method.indexOf("getAsset") !== 0) {
+      const r = await fetch("https://api.mainnet-beta.solana.com", { method: "POST", headers: { "content-type": "application/json" }, body: body });
+      const j = await r.json();
+      if (j && j.result) return j.result;
+      last = (j && j.error && j.error.message) || last;
+    }
+    throw last || new Error("rpc failed");
+  }
+  async function lookupToken(q) {
+    const query = String(q || "").trim();
+    if (!query) throw new Error("Paste a mint or ticker");
+    const r = await api("/api/wallet/token-meta?q=" + encodeURIComponent(query));
+    if (r.ok && r.data && r.data.mint) return r.data;
+    try {
+      const jr = await fetch("https://lite-api.jup.ag/tokens/v2/search?query=" + encodeURIComponent(query));
+      const rows = await jr.json();
+      const first = Array.isArray(rows) ? rows[0] : null;
+      if (first && first.id) {
+        return { mint: first.id, symbol: first.symbol || "", name: first.name || first.symbol || "Token", logo: first.icon || first.logoURI || "", decimals: Number(first.decimals || 0) };
+      }
+    } catch (e) {}
+    throw new Error((r.data && r.data.error) || "Token not found on Solana");
+  }
+  function tokenRow(t) {
+    const mint = t.mint || "";
+    const logo = t.logo || t.logoUrl || "";
+    const av = logo
+      ? '<div class="av"><img src="' + esc(logo) + '" alt="" onerror="this.parentNode.textContent=\'' + esc((t.symbol || "?").slice(0, 2)) + '\'"></div>'
+      : '<div class="av">' + esc((t.symbol || "?").slice(0, 2)) + "</div>";
+    const note = t.feeOnly ? "fee / play · not traded" : (t.watched ? "watched · " + short(mint) : short(mint === "SOL" ? "native" : mint));
+    const extra = t.bag != null ? '<span>bag ' + fmtAmt(t.bag) + "</span>" : "";
+    const remove = t.watched ? '<button type="button" class="tiny" data-unwatch="' + esc(mint) + '">Remove</button>' : "";
+    return '<div class="row" data-mint="' + esc(mint) + '">' + av +
+      '<div class="meta"><b>' + esc(t.symbol || t.name || "Token") + (t.feeOnly ? ' <span class="pill">fee</span>' : "") + "</b><span>" + esc(note) + "</span></div>" +
+      '<div class="bal"><b>' + fmtAmt(t.uiAmount) + "</b>" + extra + remove + "</div></div>";
+  }
+  function bindCoinList() {
+    const box = $("coin-list");
+    if (!box) return;
+    box.querySelectorAll("[data-unwatch]").forEach((b) => {
+      b.addEventListener("click", async () => {
+        const mint = b.dataset.unwatch;
+        writeWatch(readWatch().filter((m) => m !== mint));
+        try { await api("/api/wallet/tokens/" + encodeURIComponent(mint), { method: "DELETE" }); } catch (e) {}
+        loadCoins();
+      });
+    });
+  }
+  async function loadCoins() {
+    const box = $("coin-list");
+    if (!box) return;
+    const watch = readWatch();
+    if (!getTok()) {
+      box.innerHTML = '<p class="empty">Sign in with Grudge ID to load balances, then add any Solana mint.</p>';
+      return;
+    }
+    box.innerHTML = '<p class="empty">Reading Helius RPC…</p>';
+    try {
+      const qs = "?owner=" + encodeURIComponent(coinOwner) +
+        (watch.length ? "&watch=" + encodeURIComponent(watch.join(",")) : "") +
+        (vaultPubkey ? "&vault=" + encodeURIComponent(vaultPubkey) : "");
+      const r = await api("/api/wallet/tokens" + qs);
+      if (r.ok && r.data && Array.isArray(r.data.items) && r.data.items.length) {
+        if (r.data.rpc && $("set-rpc")) $("set-rpc").textContent = "Helius DAS · " + (r.data.label || coinOwner);
+        box.innerHTML = r.data.items.map(tokenRow).join("");
+        bindCoinList();
+        return;
+      }
+    } catch (e) {}
+    if (coinOwner === "vault") {
+      try {
+        const h = await traderApi("/api/gruda/holdings");
+        const d = h.data || {};
+        const rows = [];
+        rows.push({ mint: "SOL", symbol: "SOL", name: "Solana", uiAmount: d.sol || 0, native: true });
+        (d.tokens || []).forEach((t) => {
+          const gbux = t.mint === GBUX_MINT;
+          rows.push({ mint: t.mint, symbol: gbux ? "GBUX" : (t.symbol || short(t.mint)), name: t.name || t.mint, uiAmount: t.uiAmount, feeOnly: gbux });
+        });
+        watch.forEach((m) => { if (!rows.some((x) => x.mint === m)) rows.push({ mint: m, symbol: short(m), uiAmount: 0, watched: true }); });
+        box.innerHTML = rows.map(tokenRow).join("");
+        bindCoinList();
+        return;
+      } catch (e) {}
+    }
+    const ownerAddr = coinOwner === "linked"
+      ? ((linkedCache.find((w) => w.isPrimary) || linkedCache[0] || {}).walletAddress || "")
+      : coinOwner === "vault" ? vaultPubkey : playWallet;
+    if (ownerAddr && ownerAddr !== HOUSE) {
+      try {
+        const page = await rpc("searchAssets", { ownerAddress: ownerAddr, tokenType: "fungible", page: 1, limit: 50 });
+        const assets = (page && page.items) || [];
+        const rows = [{ mint: "SOL", symbol: "SOL", name: "Solana", uiAmount: 0, native: true }];
+        assets.forEach((a) => {
+          const mint = a.id || "";
+          const info = a.token_info || {};
+          const meta = (a.content && a.content.metadata) || {};
+          const logo = (a.content && a.content.links && a.content.links.image) || "";
+          rows.push({
+            mint: mint,
+            symbol: info.symbol || meta.symbol || short(mint),
+            name: meta.name || info.symbol || "Token",
+            logo: logo,
+            uiAmount: info.ui_amount || 0,
+            feeOnly: mint === GBUX_MINT,
+            watched: watch.includes(mint),
+          });
+        });
+        watch.forEach((m) => { if (!rows.some((x) => x.mint === m)) rows.push({ mint: m, symbol: short(m), uiAmount: 0, watched: true }); });
+        box.innerHTML = rows.map(tokenRow).join("");
+        bindCoinList();
+        return;
+      } catch (e) {}
+      try {
+        const solLamports = await rpc("getBalance", [ownerAddr]);
+        const sol = (solLamports && solLamports.value != null ? solLamports.value : Number(solLamports || 0)) / 1e9;
+        const parsed = await rpc("getTokenAccountsByOwner", [
+          ownerAddr,
+          { programId: "TokenkegQfeZyiNwAJbNbGKPFXCWuBvf9Ss623VQ5DA" },
+          { encoding: "jsonParsed" },
+        ]);
+        const accs = (parsed && parsed.value) || [];
+        const rows = [{ mint: "SOL", symbol: "SOL", name: "Solana", uiAmount: sol || 0, native: true }];
+        for (const a of accs) {
+          const info = a.account && a.account.data && a.account.data.parsed && a.account.data.parsed.info;
+          if (!info || !info.mint) continue;
+          const tok = info.tokenAmount || {};
+          rows.push({
+            mint: info.mint,
+            symbol: info.mint === GBUX_MINT ? "GBUX" : short(info.mint),
+            name: info.mint === GBUX_MINT ? "GBUX" : "Token",
+            uiAmount: Number(tok.uiAmount || 0),
+            feeOnly: info.mint === GBUX_MINT,
+            watched: watch.includes(info.mint),
+          });
+        }
+        watch.forEach((m) => { if (!rows.some((x) => x.mint === m)) rows.push({ mint: m, symbol: short(m), uiAmount: 0, watched: true }); });
+        box.innerHTML = rows.map(tokenRow).join("");
+        bindCoinList();
+        return;
+      } catch (e) {}
+    }
+    box.innerHTML = '<p class="empty">Could not reach token RPC. Add a mint anyway — it is stored on this device until the API is up.</p>';
+  }
+  function renderTokenPreview(meta) {
+    pendingToken = meta;
+    const box = $("token-preview");
+    if (!box || !meta) return;
+    box.innerHTML = '<div class="preview">' +
+      (meta.logo ? '<img src="' + esc(meta.logo) + '" alt="" width="40" height="40" style="border-radius:50%">' : '<div class="av">' + esc((meta.symbol || "?").slice(0, 2)) + "</div>") +
+      '<div class="meta"><b>' + esc(meta.symbol || "Token") + "</b><span class=\"mono\">" + esc(meta.name || "") + " · " + esc(short(meta.mint)) + "</span></div></div>" +
+      '<button class="primary" type="button" id="btn-token-add">Add to Coins</button>';
+    if ($("btn-token-add")) $("btn-token-add").onclick = confirmAddToken;
+  }
+  async function runLookup(fromSheet) {
+    const id = fromSheet ? "token-q" : "coin-q";
+    const msg = fromSheet ? "token-msg" : "coin-msg";
+    const q = (($(id) && $(id).value) || "").trim();
+    note(msg, "Looking up on Jupiter + Helius…");
+    try {
+      const meta = await lookupToken(q);
+      if (meta.mint === GBUX_MINT) { note(msg, "GBUX is already on your bag — fee / play, not a watch token.", false); return; }
+      if (fromSheet) { renderTokenPreview(meta); note(msg, "Found " + (meta.symbol || meta.name), true); }
+      else { pendingToken = meta; await confirmAddToken(); }
+    } catch (e) { note(msg, e.message || String(e), false); }
+  }
+  async function confirmAddToken() {
+    if (!pendingToken || !pendingToken.mint) { note("token-msg", "Look up a mint first.", false); return; }
+    const mint = pendingToken.mint;
+    const list = readWatch();
+    if (!list.includes(mint)) { list.push(mint); writeWatch(list); }
+    try {
+      await api("/api/wallet/tokens", { method: "POST", body: JSON.stringify({ mint: mint }) });
+    } catch (e) {}
+    note("coin-msg", "Added " + (pendingToken.symbol || short(mint)), true);
+    note("token-msg", "Added to Coins.", true);
+    showSheet(null);
+    showPanel("coins");
+    loadCoins();
+  }
+  async function loadNfts() {
+    const grid = $("nft-grid");
+    if (!grid) return;
+    if (!getTok()) {
+      grid.innerHTML = "";
+      if ($("nft-empty")) $("nft-empty").textContent = "Sign in to sync cNFTs from your Crossmint play wallet.";
+      return;
+    }
+    grid.innerHTML = '<p class="empty" style="grid-column:1/-1">Reading Crossmint + Helius DAS…</p>';
+    try {
+      const r = await api("/api/wallet/nfts");
+      const items = (r.data && r.data.items) || [];
+      if (r.data && r.data.crossmint && $("nft-empty")) {
+        $("nft-empty").textContent = "Play wallet " + short(r.data.crossmint) + " · Crossmint custodial. Not Wallet 1, not the trader vault.";
+      }
+      if (!items.length) {
+        grid.innerHTML = '<p class="empty" style="grid-column:1/-1">No cNFTs on this play wallet yet. Mint a hero in Character Foundry — it lands here.</p>';
+        return;
+      }
+      grid.innerHTML = items.map((n) => {
+        const href = n.mint ? "https://solscan.io/token/" + encodeURIComponent(n.mint) : "#";
+        const img = n.imageUrl || n.image || "";
+        return '<a class="nftc" href="' + esc(href) + '" target="_blank" rel="noopener">' +
+          (img ? '<img src="' + esc(img) + '" alt="" onerror="this.style.opacity=.2">' : '<img alt="">') +
+          "<span>" + (n.compressed || n.kind === "cnft" ? "cNFT · " : "") + esc(n.name || "cNFT") + "</span></a>";
+      }).join("");
+    } catch (e) {
+      grid.innerHTML = '<p class="empty" style="grid-column:1/-1">' + esc(e.message || "Could not load cNFTs") + "</p>";
+    }
+  }
+  function renderDapps() {
+    const feat = $("dapp-feat");
+    const list = $("dapp-list");
+    if (!list) return;
+    const q = dappQuery.toLowerCase();
+    const items = dappCatalog.filter((g) => {
+      if (dappCat !== "all" && g.category !== dappCat) return false;
+      if (!q) return true;
+      return (g.name + " " + (g.tagline || "") + " " + (g.category || "")).toLowerCase().indexOf(q) >= 0;
+    });
+    const featured = items.find((g) => g.featured) || items[0];
+    if (feat) {
+      feat.innerHTML = featured
+        ? '<a class="feat" href="' + esc(featured.href) + '" data-handoff="1"><img src="' + esc(featured.img) + '" alt=""><span class="get">GET</span><div class="cap"><strong>' + esc(featured.name) + "</strong><em>" + esc(featured.tagline || "") + "</em></div></a>"
+        : "";
+    }
+    const rest = items.filter((g) => !featured || g.id !== featured.id);
+    list.innerHTML = rest.map((g) =>
+      '<a class="appc" href="' + esc(g.href) + '" data-handoff="1"><img src="' + esc(g.img) + '" alt=""><div class="meta"><b>' + esc(g.name) + "</b><span>" + esc(g.tagline || g.category || "") + '</span></div><span class="get">GET</span></a>'
+    ).join("") || '<p class="empty">No apps in this category.</p>';
+    document.querySelectorAll("[data-handoff]").forEach((a) => {
+      a.addEventListener("click", (e) => {
+        e.preventDefault();
+        location.href = handoffUrl(a.getAttribute("href"));
+      });
+    });
+  }
+  async function loadDapps() {
+    try {
+      const r = await api("/api/wallet/dapps");
+      if (r.ok && r.data && Array.isArray(r.data.items) && r.data.items.length) dappCatalog = r.data.items;
+    } catch (e) {}
+    renderDapps();
   }
   function bind() {
     bootStandard();
@@ -424,7 +744,41 @@
         await refresh();
       } catch (e) { note("send-msg", e.message || String(e), false); }
     };
+    document.querySelectorAll("[data-owner]").forEach((b) => {
+      b.onclick = () => {
+        coinOwner = b.dataset.owner || "crossmint";
+        document.querySelectorAll("[data-owner]").forEach((x) => x.classList.toggle("on", x === b));
+        loadCoins();
+      };
+    });
+    document.querySelectorAll("[data-cat]").forEach((b) => {
+      b.onclick = () => {
+        dappCat = b.dataset.cat || "all";
+        document.querySelectorAll("[data-cat]").forEach((x) => x.classList.toggle("on", x === b));
+        renderDapps();
+      };
+    });
+    if ($("dapp-q")) $("dapp-q").addEventListener("input", () => { dappQuery = $("dapp-q").value || ""; renderDapps(); });
+    if ($("btn-add-token")) $("btn-add-token").onclick = () => showSheet("sheet-token");
+    if ($("btn-lookup")) $("btn-lookup").onclick = () => runLookup(false);
+    if ($("coin-q")) $("coin-q").addEventListener("keydown", (e) => { if (e.key === "Enter") runLookup(false); });
+    if ($("btn-token-lookup")) $("btn-token-lookup").onclick = () => runLookup(true);
+    if ($("token-q")) $("token-q").addEventListener("keydown", (e) => { if (e.key === "Enter") runLookup(true); });
+    if ($("btn-nft-sync")) $("btn-nft-sync").onclick = async () => {
+      note("nft-msg", "Syncing Crossmint…");
+      try {
+        const r = await api("/api/wallet/nfts/sync", { method: "POST", body: "{}" });
+        note("nft-msg", r.ok ? "Synced " + (((r.data && r.data.items) || []).length) + " cNFTs" : (r.data && r.data.error) || "Sync failed", r.ok);
+        await loadNfts();
+      } catch (e) { note("nft-msg", e.message || String(e), false); }
+    };
+    if ($("set-refresh")) {
+      const prev = $("set-refresh").onclick;
+      $("set-refresh").onclick = async () => { await refresh(); loadCoins(); loadNfts(); };
+      void prev;
+    }
     renderPicker();
+    loadDapps();
     refresh();
   }
   captureAuthFromUrl();

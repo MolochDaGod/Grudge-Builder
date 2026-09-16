@@ -1,4 +1,4 @@
-/** Production wallet.grudge-studio.com UI — one Wallet Standard sheet, unique IDs. */
+/** Production wallet.grudge-studio.com UI — coins RPC, Crossmint cNFTs, app store. */
 export function htmlPage(env) {
   const railway = env.RAILWAY_API_ORIGIN || "https://grudge-api-production-0d46.up.railway.app";
   const idGw = env.ID_GATEWAY_ORIGIN || "https://id.grudge-studio.com";
@@ -19,7 +19,7 @@ export function htmlPage(env) {
 <head>
 <meta charset="UTF-8" />
 <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover" />
-<meta name="gruda-build" content="2026-09-16-connect-v3" />
+<meta name="gruda-build" content="2026-09-16-tabs-v1" />
 <title>Gruda Wallet</title>
 <link rel="icon" href="${logo}" />
 <link rel="preconnect" href="https://fonts.googleapis.com" />
@@ -54,7 +54,8 @@ section{padding:8px 16px 0}
 .hrow h2{font-size:13px;font-weight:600;letter-spacing:.04em;text-transform:uppercase;color:var(--muted)}
 .hrow button{background:none;border:0;color:var(--gold);font-size:12px;font-weight:600}
 .row{display:flex;align-items:center;gap:12px;padding:12px;background:var(--card);border:1px solid var(--line);border-radius:16px;margin-bottom:8px}
-.av{width:36px;height:36px;border-radius:50%;display:grid;place-items:center;flex-shrink:0;background:#1b1528;color:var(--gold);font-size:13px;font-weight:700}
+.av{width:36px;height:36px;border-radius:50%;display:grid;place-items:center;flex-shrink:0;background:#1b1528;color:var(--gold);font-size:13px;font-weight:700;overflow:hidden}
+.av img{width:100%;height:100%;object-fit:cover}
 .meta{flex:1;min-width:0}
 .meta b,.meta span{display:block;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
 .meta b{font-size:14px}.meta span{font-size:11px;color:var(--muted)}
@@ -68,7 +69,7 @@ section{padding:8px 16px 0}
 .panel{display:none}.panel.on{display:block}
 .sheet{display:none;position:absolute;inset:0;z-index:8;background:rgba(0,0,0,.55);align-items:flex-end}
 .sheet.on{display:flex}
-.sheet .pad{width:100%;background:#14141c;border-top:1px solid rgba(224,195,106,.25);border-radius:22px 22px 0 0;padding:16px 16px calc(20px + var(--safe))}
+.sheet .pad{width:100%;background:#14141c;border-top:1px solid rgba(224,195,106,.25);border-radius:22px 22px 0 0;padding:16px 16px calc(20px + var(--safe));max-height:92%;overflow:auto}
 .grab{width:36px;height:4px;border-radius:99px;background:#333;margin:0 auto 14px}
 .sheet h3{font-size:16px;margin-bottom:6px}
 .sheet p,.msg{font-size:12px;color:var(--muted);line-height:1.45;margin-bottom:10px}
@@ -78,7 +79,31 @@ section{padding:8px 16px 0}
 .primary{width:100%;border:0;border-radius:14px;padding:12px;background:linear-gradient(180deg,#e8d07a,#b8922a);color:#1a1405;font-weight:700}
 .ghost{width:100%;margin-top:8px;border-radius:14px;padding:12px;background:transparent;color:var(--gold2);border:1px solid var(--line);font-weight:600}
 .input{width:100%;background:#0a0a12;border:1px solid rgba(255,255,255,.1);border-radius:10px;padding:10px 12px;color:var(--text);font:inherit;margin:6px 0}
-.dapp{display:block;padding:12px;border-radius:14px;background:var(--card);border:1px solid var(--line);color:var(--gold2);text-decoration:none;margin-bottom:8px;font-size:14px;font-weight:600}
+.chips{display:flex;gap:6px;flex-wrap:wrap;margin:0 0 10px}
+.chip{border:1px solid var(--line);background:var(--card);color:var(--muted);border-radius:999px;padding:6px 10px;font-size:11px;font-weight:600}
+.chip.on{color:#1a1405;background:linear-gradient(180deg,#e8d07a,#b8922a);border-color:transparent}
+.addbar{display:flex;gap:8px;margin:4px 0 10px}
+.addbar .input{margin:0;flex:1}
+.addbar button{flex-shrink:0;border:0;border-radius:10px;padding:0 14px;background:linear-gradient(180deg,#e8d07a,#b8922a);color:#1a1405;font-weight:700;font-size:12px}
+.hint{font-size:11px;color:var(--muted);line-height:1.4;margin-bottom:10px}
+.nftg{display:grid;grid-template-columns:repeat(3,1fr);gap:8px;padding-bottom:12px}
+.nftc{display:block;background:#0a0a12;border-radius:12px;overflow:hidden;border:1px solid var(--line);text-decoration:none;color:var(--text)}
+.nftc img{width:100%;aspect-ratio:1;object-fit:cover;display:block;background:#16161f}
+.nftc span{display:block;font-size:10px;padding:6px 7px 8px;color:var(--muted);white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+.feat{display:block;position:relative;border-radius:18px;overflow:hidden;margin-bottom:12px;text-decoration:none;color:#fff;min-height:148px;background:#16161f}
+.feat img{width:100%;height:148px;object-fit:cover;display:block}
+.feat .cap{position:absolute;left:0;right:0;bottom:0;padding:14px;background:linear-gradient(transparent,rgba(0,0,0,.85))}
+.feat strong{display:block;font-size:16px}
+.feat em{display:block;font-style:normal;font-size:11px;color:rgba(255,255,255,.75);margin-top:2px}
+.feat .get{position:absolute;top:12px;right:12px}
+.appc{display:flex;align-items:center;gap:12px;padding:10px;border-radius:16px;background:var(--card);border:1px solid var(--line);text-decoration:none;color:var(--text);margin-bottom:8px}
+.appc img{width:56px;height:56px;border-radius:14px;object-fit:cover;background:#16161f;flex-shrink:0}
+.appc .meta{flex:1;min-width:0}
+.appc .get{margin-left:auto;flex-shrink:0}
+.get{border:0;border-radius:999px;padding:6px 12px;background:rgba(224,195,106,.16);color:var(--gold2);font-size:11px;font-weight:700;text-decoration:none}
+.search{width:100%;background:rgba(255,255,255,.05);border:1px solid var(--line);border-radius:12px;padding:10px 12px;color:var(--text);font:inherit;margin-bottom:10px}
+.preview{display:flex;align-items:center;gap:12px;padding:12px;background:#0a0a12;border-radius:14px;margin:8px 0}
+.empty{font-size:12px;color:var(--muted);line-height:1.45;padding:8px 0 16px}
 </style>
 </head>
 <body>
@@ -120,22 +145,56 @@ section{padding:8px 16px 0}
       <div class="row"><div class="av">G</div><div class="meta"><b>GBUX</b><span>Fleet bag · fee / play, not traded</span></div><div class="bal"><b id="tok-gbux">0</b></div></div>
     </section>
   </div>
-  <div class="panel" id="panel-coins"><section><div class="hrow"><h2>Coins</h2></div><div id="coin-list"></div></section></div>
-  <div class="panel" id="panel-nfts"><section><div class="hrow"><h2>cNFTs</h2></div><p class="msg" id="nft-empty">Sign in to sync cNFTs from your Crossmint wallet.</p><div id="nft-grid"></div></section></div>
-  <div class="panel" id="panel-dapps"><section><div class="hrow"><h2>Apps</h2></div>
-    <a class="dapp" href="${trader}">Auto-trader</a>
-    <a class="dapp" href="${poker}/wallet">Poker wallet</a>
-    <a class="dapp" href="https://grudgewarlords.com">Warlords</a>
-  </section></div>
+  <div class="panel" id="panel-coins">
+    <section>
+      <div class="hrow"><h2>Coins</h2><button type="button" id="btn-add-token">+ Token</button></div>
+      <p class="hint">Helius RPC · pick the owner. Play is Crossmint. Wallet 1 is your linked funding key. Vault is the trader engine (SOL clips, not a collector wallet).</p>
+      <div class="chips" id="coin-owners">
+        <button type="button" class="chip on" data-owner="crossmint">Play</button>
+        <button type="button" class="chip" data-owner="linked">Wallet 1</button>
+        <button type="button" class="chip" data-owner="vault">Vault</button>
+      </div>
+      <div class="addbar">
+        <input class="input" id="coin-q" placeholder="Mint address or ticker" autocomplete="off" />
+        <button type="button" id="btn-lookup">Add</button>
+      </div>
+      <p class="msg" id="coin-msg"></p>
+      <div id="coin-list"><p class="empty">Sign in to load SOL + GBUX, then paste any mint to watch it.</p></div>
+    </section>
+  </div>
+  <div class="panel" id="panel-nfts">
+    <section>
+      <div class="hrow"><h2>cNFTs</h2><button type="button" id="btn-nft-sync">Sync</button></div>
+      <p class="hint" id="nft-empty">Hero and island cNFTs live on your Crossmint play wallet — not Phantom, not the trader vault.</p>
+      <p class="msg" id="nft-msg"></p>
+      <div class="nftg" id="nft-grid"></div>
+    </section>
+  </div>
+  <div class="panel" id="panel-dapps">
+    <section>
+      <div class="hrow"><h2>App Store</h2></div>
+      <input class="search" id="dapp-q" placeholder="Search Grudge apps" />
+      <div class="chips" id="dapp-cats">
+        <button type="button" class="chip on" data-cat="all">All</button>
+        <button type="button" class="chip" data-cat="Play">Play</button>
+        <button type="button" class="chip" data-cat="Desk">Desk</button>
+        <button type="button" class="chip" data-cat="Studio">Studio</button>
+      </div>
+      <div id="dapp-feat"></div>
+      <div id="dapp-list"></div>
+    </section>
+  </div>
   <div class="panel" id="panel-set"><section><div class="hrow"><h2>Settings</h2></div>
-    <p class="msg">Grudge ID is login. One Connect sheet links Phantom / Solflare / Backpack / any Wallet Standard SOL wallet into linked_wallets. The trader vault is never SIWS.</p>
+    <p class="msg">Grudge ID is login. One Connect sheet links Phantom / Solflare / Backpack / any Wallet Standard SOL wallet into linked_wallets. The trader vault is never SIWS. Coins use Helius RPC. cNFTs sync from Crossmint.</p>
+    <div class="row"><div class="meta"><b>Network</b><span id="set-net">Solana mainnet-beta</span></div></div>
+    <div class="row"><div class="meta"><b>RPC</b><span id="set-rpc">Helius DAS + Jupiter meta</span></div></div>
     <button class="ghost" type="button" id="set-refresh">Refresh balances</button>
   </section></div>
   <nav class="dock">
     <button class="on" type="button" data-dock="home">Home</button>
     <button type="button" data-dock="coins">Coins</button>
     <button type="button" data-dock="nfts">cNFTs</button>
-    <button type="button" data-dock="dapps">Apps</button>
+    <button type="button" data-dock="dapps">Dapps</button>
     <button type="button" data-dock="set">Set</button>
   </nav>
   <div class="sheet" id="sheet-connect"><div class="pad"><div class="grab"></div>
@@ -165,6 +224,15 @@ section{padding:8px 16px 0}
     <p class="msg" id="send-msg"></p>
     <button class="ghost" type="button" data-close>Close</button>
   </div></div>
+  <div class="sheet" id="sheet-token"><div class="pad"><div class="grab"></div>
+    <h3>Add a Solana token</h3>
+    <p>Paste a mint or search a ticker. Metadata from Jupiter + Helius DAS. Balance is read on the owner you picked (Play / Wallet 1 / Vault).</p>
+    <input class="input" id="token-q" placeholder="Mint or ticker — e.g. JUP" autocomplete="off" />
+    <button class="primary" type="button" id="btn-token-lookup">Look up</button>
+    <div id="token-preview"></div>
+    <p class="msg" id="token-msg"></p>
+    <button class="ghost" type="button" data-close>Cancel</button>
+  </div></div>
 </div></div>
 <script>
 window.GRUDA = {
@@ -172,7 +240,7 @@ window.GRUDA = {
   idGw: ${JSON.stringify(idGw)},
   poker: ${JSON.stringify(poker)},
   trader: ${JSON.stringify(trader)},
-  build: "2026-09-16-connect-v3"
+  build: "2026-09-16-tabs-v1"
 };
 </script>
 <script src="/wallet-app.js" defer></script>

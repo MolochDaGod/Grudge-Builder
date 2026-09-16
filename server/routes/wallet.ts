@@ -18,6 +18,7 @@ import {
 } from "../services/walletAccess";
 import type { LinkedWalletProvider, WalletPurchaseCurrency } from "@shared/schema";
 import { WALLET_PURCHASE_CURRENCIES } from "@shared/schema";
+import { registerWalletInventoryRoutes } from "./walletInventoryRoutes";
 
 /** Prefer SESSION_SECRET (auth.ts) then JWT_SECRET / GRUDGE_JWT_SECRET — use first non-empty candidate only. */
 const JWT_SECRET_CANDIDATES = [
@@ -488,6 +489,8 @@ export function registerWalletRoutes(app: Express): void {
       res.status(400).json({ error: e.message || "Could not unlink" });
     }
   });
+
+  registerWalletInventoryRoutes(app, requireAuth, requireAccount);
 
   console.log(
     "[Wallet] Routes: GET /api/wallet/overview, /linked; POST /link/*, /primary, /purchase/*, /transfer-to-play, /send-gbux; DELETE /linked/:address",
