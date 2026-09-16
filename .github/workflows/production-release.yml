@@ -118,6 +118,11 @@ jobs:
                 body: JSON.stringify({ name: domain }),
                 signal: AbortSignal.timeout(15000),
               });
+            } else if (!response.ok) {
+              const detail = await response.text().catch(() => '');
+              throw new Error(
+                `Domain ${domain} is not attached to grudge-builder. Reassign it to project ${project} on team ${team} before running production release again (HTTP ${response.status}${detail ? `: ${detail}` : ''}).`,
+              );
             }
             if (!response.ok) {
               throw new Error(`Cannot ensure project domain ${domain} (HTTP ${response.status}).`);
