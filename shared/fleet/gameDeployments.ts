@@ -560,16 +560,40 @@ export const WARLORDS_2D_PLAY_PATH = "/island" as const;
 export const WARLORDS_OCEAN_PATH = "/ocean?worldSeed=grudge-world-1" as const;
 
 /**
- * Production home destinations — nothing else on /home for Warlords era.
- * Order matches player funnel: roster → tutorial → 2D → home → ocean → map → lobby.
+ * Production home destinations on /home (WCS hub + play).
+ * Craft / arsenal first; play tiles after.
  */
 export const WARLORDS_HOME_ACTIONS = [
+  {
+    id: "craft",
+    title: "Crafting",
+    subtitle: "Stations · T0–T8 · account bag",
+    description: "WCS crafting — ObjectStore recipes, shared bag, XP on the active hero.",
+    url: "/crafting",
+    icon: "hammer" as const,
+  },
+  {
+    id: "arsenal",
+    title: "Arsenal",
+    subtitle: "Weapons · armor · skills",
+    description: "Production arsenal catalog with pack icons and T0–T8 types.",
+    url: "/arsenal",
+    icon: "swords" as const,
+  },
+  {
+    id: "craft-suite",
+    title: "WCS suite",
+    subtitle: "grudgewarlords.com/craft/",
+    description: "Full production craft HTML — camps, benches, item DB, inventory.",
+    url: "/craft/",
+    icon: "box" as const,
+  },
   {
     id: "characters",
     title: "Characters",
     subtitle: "Roster · create · equip",
     description: "View and select your Warlords heroes. Create at Foundry when empty.",
-    url: "/character",
+    url: "/heroes",
     icon: "user" as const,
   },
   {

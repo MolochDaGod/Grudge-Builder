@@ -1,5 +1,5 @@
 /**
- * LeviathanOceanCinema — production /island-3d movie intro (v22 · film post + Box3).
+ * LeviathanOceanCinema — production /island-3d movie intro (v26 · rogue wave + film post).
  *
  * HARD RULES:
  *  - 1 unit = 1 m · orc mages ~2.2 m · human 1.8 m · Box3 SI audit on every actor
@@ -80,6 +80,7 @@ import {
   applyWaterCycloneLook,
   tickWaterCyclone,
   surfaceBiasFromLeviAt,
+  CinemaRogueWave,
 } from './LeviathanLookAndWater';
 import { CinemaBoxSystems } from './CinemaBoxSystems';
 import { CinemaSceneAudio } from './CinemaSceneAudio';
@@ -448,6 +449,8 @@ export class LeviathanOceanCinema {
   private fluidSplash: THREE.Object3D | null = null;
   private fluidMixer: THREE.AnimationMixer | null = null;
   private waterSplash: LeviathanWaterSplash | null = null;
+  /** Rogue-wave wall — crash + hero ride + debris shove */
+  private rogueWave: CinemaRogueWave | null = null;
   private lastLeviSurfaceBias = -99;
   private lastLeviPos = new THREE.Vector3();
   private leviSpeedMps = 0;
@@ -1157,6 +1160,7 @@ export class LeviathanOceanCinema {
     applyLeviathanWaterlineSplit(this.leviathan);
     this.leviathanRoot.add(this.leviathan);
     this.waterSplash = new LeviathanWaterSplash(this.scene, this.splashBudget);
+    this.rogueWave = new CinemaRogueWave(this.scene);
     this.lastLeviPos.copy(this.leviathanRoot.position);
     this.stage.place(this.leviathanRoot, 'levi_hidden');
     // Deep + flat; Sladania swim clip at 0.5× while rising
@@ -3632,16 +3636,51 @@ export class LeviathanOceanCinema {
     console.info('[cinema] HERO THROW → limp face-up water ragdoll (no bone spin)');
   }
 
+  private updateRogueWave(dt: number, beat: CinBattleBeat): void {
+    const wave = this.rogueWave;
+    if (!wave) return;
+    const want = beat.rogueWave ?? 0;
+    wave.setIntensity(want);
+    if (want <= 0.02 && wave.intensity <= 0.02) return;
+    const from = this.leviathanRoot.visible
+      ? this.leviathanRoot.position
+      : this.shipGroup.position.clone().add(new THREE.Vector3(-28, 0, -18));
+    wave.setTarget(this.shipGroup.position, from);
+    const wy = sampleCinemaWaterY(
+      this.shipGroup.position.x,
+      this.shipGroup.position.z,
+      this.elapsed,
+      this.stormCur ?? 0.8,
+    );
+    const wasCrashed = wave.crashed;
+    wave.tick(dt, this.shipGroup.position, wy);
+    if (wave.crashed && !wasCrashed) {
+      this.multiCam.impact(1.4, 0.1);
+      const at = wave.sampleCrest().clone();
+      this.waterSplash?.burstRise(at, 2.1);
+      this.blowbackT = Math.max(this.blowbackT, 1.6);
+    }
+  }
+
   private updateHeroThrow(dt: number): void {
     if (!this.throwActive || !this.throwHero) return;
     this.throwT += dt;
     const u = Math.min(1, this.throwT / this.throwDur);
     const e = u * u * (3 - 2 * u);
-    const x = THREE.MathUtils.lerp(this.throwFrom.x, this.throwTo.x, e);
-    const z = THREE.MathUtils.lerp(this.throwFrom.z, this.throwTo.z, e);
+    let x = THREE.MathUtils.lerp(this.throwFrom.x, this.throwTo.x, e);
+    let z = THREE.MathUtils.lerp(this.throwFrom.z, this.throwTo.z, e);
     const baseY = THREE.MathUtils.lerp(this.throwFrom.y, this.throwTo.y, e);
     const peak = 7 + CIN_HERO_THROW_M * 0.12;
-    const y = baseY + Math.sin(u * Math.PI) * peak;
+    let y = baseY + Math.sin(u * Math.PI) * peak;
+    // Ride the rogue-wave face through the water instead of a dry ballistic arc
+    const wave = this.rogueWave;
+    if (wave && wave.intensity > 0.25) {
+      const crest = wave.sampleCrest();
+      const ride = THREE.MathUtils.smoothstep(u, 0.05, 0.85);
+      x = THREE.MathUtils.lerp(x, crest.x, ride * 0.85);
+      z = THREE.MathUtils.lerp(z, crest.z, ride * 0.85);
+      y = THREE.MathUtils.lerp(y, crest.y + 0.4, ride);
+    }
     this.throwHero.position.set(x, y, z);
     // Smooth arc into face-up — damped tumble, not continuous spin
     this.throwHero.rotation.x = THREE.MathUtils.lerp(0.15, -Math.PI / 2, e);
@@ -3737,11 +3776,13 @@ export class LeviathanOceanCinema {
 
       // Staggered exit speeds so they don't stack
       const speed = 14 + fleeIdx * 3.5 + Math.random() * 4;
+      const wavePush = this.rogueWave?.impulse() ?? new THREE.Vector3();
       const vel = camRight
         .clone()
-        .multiplyScalar(speed)
-        .addScaledVector(camFwd, 2 + fleeIdx)
-        .add(new THREE.Vector3(0, 1.2 + Math.random() * 1.5, 0));
+        .multiplyScalar(speed * 0.45)
+        .addScaledVector(camFwd, 1 + fleeIdx)
+        .add(wavePush.multiplyScalar(0.55))
+        .add(new THREE.Vector3(0, 2.4 + Math.random() * 2.2, 0));
 
       this.fleeingMages.push({
         root: m,
@@ -3769,10 +3810,20 @@ export class LeviathanOceanCinema {
       if (vx * vx + vz * vz > 0.04) {
         f.root.rotation.y = Math.atan2(vx, vz);
       }
-      // Bob slightly while "running"
+      // Swept into the swell — allow under-surface then bob on Gerstner
+      const wy = sampleCinemaWaterY(
+        f.root.position.x,
+        f.root.position.z,
+        this.elapsed,
+        this.stormCur ?? 0.7,
+      );
+      if (f.root.position.y < wy + 0.2) {
+        f.vel.y += (wy + 0.35 - f.root.position.y) * dt * 6;
+        f.vel.multiplyScalar(0.97);
+      }
       f.root.position.y = Math.max(
-        0.15,
-        f.root.position.y + Math.sin(this.elapsed * 14 + i) * dt * 0.4,
+        wy - 1.4,
+        f.root.position.y + Math.sin(this.elapsed * 10 + i) * dt * 0.35,
       );
       this.mageDirectors[f.dirIdx]?.mixer.update(dt);
 
@@ -3910,6 +3961,9 @@ export class LeviathanOceanCinema {
           .multiplyScalar(radial)
           .addScaledVector(push, beamSpeed)
           .add(new THREE.Vector3(0, lift, 0));
+        if (this.rogueWave && this.rogueWave.intensity > 0.2) {
+          vel.add(this.rogueWave.impulse());
+        }
 
         // Angular impulse scales with size (big planks tumble slower)
         const angScale = keepFloat ? 2.2 : 6 / Math.max(0.4, Math.sqrt(rWorld));
@@ -3997,9 +4051,9 @@ export class LeviathanOceanCinema {
    * Mage cast hand world position (Bip001 R Hand if present, else chest-forward).
    */
   private getMageHandWorld(mageRoot: THREE.Object3D, out = new THREE.Vector3()): THREE.Vector3 {
-    let hand: THREE.Object3D | null = null;
+    const hands: THREE.Object3D[] = [];
     mageRoot.traverse((o) => {
-      if (hand) return;
+      if (hands.length) return;
       const n = (o.name || '').toLowerCase().replace(/[:\s.]+/g, '');
       if (
         n.includes('rhand') ||
@@ -4008,9 +4062,10 @@ export class LeviathanOceanCinema {
         n.endsWith('r_hand') ||
         n.includes('r_hand_container')
       ) {
-        hand = o;
+        hands.push(o);
       }
     });
+    const hand = hands[0];
     if (hand) {
       hand.getWorldPosition(out);
       return out;
@@ -5243,6 +5298,7 @@ export class LeviathanOceanCinema {
     this.updateSpellSplines(dt);
     this.updateIceSnakes(dt, beat);
     this.ensureBoatVisible();
+    this.updateRogueWave(dt, beat);
     this.updateHeroThrow(dt);
     this.updateRagdollInWater(dt);
     // blizzard VFX off (perf)
@@ -5558,6 +5614,8 @@ export class LeviathanOceanCinema {
     this.dragonVfx = null;
     this.waterSplash?.dispose();
     this.waterSplash = null;
+    this.rogueWave?.dispose();
+    this.rogueWave = null;
     if (this.skyDome) {
       this.scene.remove(this.skyDome);
       this.skyDome.geometry.dispose();

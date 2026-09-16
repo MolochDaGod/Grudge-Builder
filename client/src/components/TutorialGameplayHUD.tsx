@@ -1,10 +1,10 @@
 /**
  * TutorialGameplayHUD — overlay HUD for the Home Island gameplay page.
  *
- * Renders the harvest/combat/build mode toggle, character vitals, skill +
- * weapon hotbars, gathered resources, an ally message, and transient
- * notifications. Visual language matches the rest of the Home Island page
- * (black glass panels with an amber accent).
+ * Renders the harvest/combat mode toggle, character vitals, canonical class +
+ * weapon mastery hotbars, gathered resources, professions, ally messaging, and
+ * transient notifications. Real skill icon assets render directly from the shared
+ * Grudge skill definitions; emoji remains supported for definitions that use it.
  */
 import { Pickaxe, Swords, Hammer, Sparkles, Leaf } from 'lucide-react';
 import type { HotbarSlot, GatheringProfession } from '@/lib/tutorialSkills';
@@ -49,21 +49,54 @@ const MODES: { id: 'harvest' | 'combat'; label: string; icon: typeof Pickaxe }[]
 
 const PANEL = 'bg-black/70 backdrop-blur-sm rounded-xl border border-amber-600/30';
 
+function isAssetIcon(icon?: string): boolean {
+  if (!icon) return false;
+  return icon.startsWith('/') || icon.startsWith('https://') || icon.startsWith('http://');
+}
+
 function HotbarButton({ slot, hotkey, onUse }: { slot: HotbarSlot; hotkey: string; onUse: (s: HotbarSlot) => void }) {
+  const title = slot.locked
+    ? slot.lockReason ?? 'Locked'
+    : [slot.label, slot.description, slot.cooldown ? `${slot.cooldown}s cooldown` : null]
+        .filter(Boolean)
+        .join(' — ');
+  const assetIcon = isAssetIcon(slot.icon);
+
   return (
     <button
       type="button"
-      onClick={() => onUse(slot)}
-      title={slot.locked ? slot.lockReason ?? 'Locked' : slot.label}
-      className={`relative w-11 h-11 rounded-lg border flex items-center justify-center text-lg transition-all pointer-events-auto ${
+      onClick={() => {
+        if (!slot.locked) onUse(slot);
+      }}
+      disabled={slot.locked}
+      aria-label={title}
+      title={title}
+      className={`relative w-12 h-12 rounded-lg border flex items-center justify-center text-lg transition-all pointer-events-auto overflow-hidden ${
         slot.locked
-          ? 'border-stone-700 bg-stone-900/60 opacity-40 cursor-not-allowed'
-          : 'border-amber-600/40 bg-stone-900/70 hover:border-amber-400 hover:scale-105'
+          ? 'border-stone-700 bg-stone-900/60 opacity-45 cursor-not-allowed'
+          : 'border-amber-600/40 bg-stone-900/75 hover:border-amber-300 hover:scale-105 hover:bg-stone-800/90'
       }`}
     >
-      <span aria-hidden>{slot.icon ?? '•'}</span>
-      <span className="absolute -top-1.5 -left-1.5 text-[9px] text-amber-300/80 font-mono bg-black/70 rounded px-1">{hotkey}</span>
-      {slot.locked && <span className="absolute inset-0 flex items-center justify-center text-stone-500 text-xs">🔒</span>}
+      {assetIcon ? (
+        <img
+          src={slot.icon}
+          alt=""
+          aria-hidden="true"
+          draggable={false}
+          className="w-9 h-9 object-contain drop-shadow-[0_1px_3px_rgba(0,0,0,0.8)]"
+        />
+      ) : (
+        <span aria-hidden className="text-xl leading-none">{slot.icon ?? '•'}</span>
+      )}
+      <span className="absolute top-0 left-0 text-[9px] leading-4 text-amber-200/90 font-mono bg-black/80 rounded-br px-1.5">{hotkey}</span>
+      {!!slot.cooldown && slot.cooldown > 0 && !slot.locked && (
+        <span className="absolute bottom-0 right-0 text-[8px] leading-4 text-stone-200 font-mono bg-black/75 rounded-tl px-1">
+          {slot.cooldown}s
+        </span>
+      )}
+      {slot.locked && (
+        <span className="absolute inset-0 flex items-center justify-center bg-black/35 text-stone-300 text-sm">🔒</span>
+      )}
     </button>
   );
 }
@@ -95,7 +128,7 @@ export function TutorialGameplayHUD(props: TutorialGameplayHUDProps) {
         </div>
 
         {resourceEntries.length > 0 && (
-          <div className={`${PANEL} px-3 py-2 flex flex-wrap gap-2 max-w-[240px]`}>
+          <div className={`${PANEL} px-3 py-2 flex flex-wrap gap-2 max-w-[260px]`}>
             {resourceEntries.map(([name, qty]) => (
               <span key={name} className="text-[11px] text-stone-300 flex items-center gap-1">
                 <Leaf className="w-3 h-3 text-emerald-400" />{name} <span className="text-amber-300 font-bold">{qty}</span>
@@ -105,7 +138,7 @@ export function TutorialGameplayHUD(props: TutorialGameplayHUDProps) {
         )}
 
         {professions.length > 0 && (
-          <div className={`${PANEL} px-3 py-2 text-[10px] text-stone-400 max-w-[240px]`}>
+          <div className={`${PANEL} px-3 py-2 text-[10px] text-stone-400 max-w-[280px]`}>
             {professions.map((p) => (
               <span key={p.id} className="inline-block mr-2 capitalize">{p.name} <span className="text-amber-300">{p.level}</span></span>
             ))}
@@ -154,7 +187,7 @@ export function TutorialGameplayHUD(props: TutorialGameplayHUDProps) {
           })}
         </div>
 
-        {/* Hotbars */}
+        {/* Canonical class + weapon mastery hotbars */}
         <div className={`${PANEL} flex items-center gap-3 px-3 py-2`}>
           <div className="flex gap-1.5">
             {classHotbar.map((slot, i) => (

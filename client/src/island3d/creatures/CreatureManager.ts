@@ -5,7 +5,7 @@
  *   - Loading GLTF models from R2 CDN with proper animation binding
  *   - State-machine AI: idle → wander → flee/attack → dead → respawn
  *   - Fish swim below water surface with depth variance
- *   - Birds fly at fixed altitude
+ *   - Birds fly above the same terrain sample as feet (not a fixed world Y)
  *   - Combat: take damage, death animation, loot drop callback
  *   - Respawn on timer after death
  *
@@ -42,6 +42,7 @@ import {
   isDryLand,
   isWaterColumn,
 } from '@shared/definitions/worldSurfaceLayers';
+import { FAUNA_HEIGHT, fishSwimY } from './faunaHeight';
 import {
   CORPSE_TO_SKELETON_S,
   SKELETON_LINGER_S,
@@ -83,6 +84,10 @@ interface CreatureInstance {
   stateTimer: number;
   respawnTimer: number;
   provoked: boolean;
+  /** Seconds remaining of stun lockout (Freya stun totem, etc.). */
+  stunTimer: number;
+  /** WoW-style room pack — hitting one pulls the pack. */
+  packId?: string;
   alerted: boolean;
   /** Flesh looted / skinned (or auto after 2 min → skeleton). */
   looted: boolean;
@@ -122,7 +127,10 @@ const IDLE_DURATION_MAX = 6;
 /** Flesh corpse window before auto-skeleton (also matches skin window). */
 const DEATH_LINGER_TIME = CORPSE_TO_SKELETON_S;
 const FLEE_DURATION = 4;
-const BIRD_ALTITUDE = 30;
+const BIRD_ABOVE_M =
+  typeof FAUNA_HEIGHT === 'object' && FAUNA_HEIGHT && typeof FAUNA_HEIGHT.birdAboveTerrainM === 'number'
+    ? FAUNA_HEIGHT.birdAboveTerrainM
+    : 30;
 /** Melee floor — grudge-ai-brains: no silent instant wildlife hit */
 const WILDLIFE_TELEGRAPH_SEC = 0.35;
 
@@ -218,7 +226,7 @@ export class CreatureManager {
 
       let y = sampleHeight(x, z);
       if (y === null || !isDryLand(y, this.waterLevel, WORLD_SURFACE.dryLandMarginM)) continue;
-      if (def.category === 'bird') y = BIRD_ALTITUDE;
+      if (def.category === 'bird') y = y + BIRD_ABOVE_M;
 
       this.spawnCreature(def, new THREE.Vector3(x, y, z));
     }
@@ -273,7 +281,7 @@ export class CreatureManager {
       // Dry land only — animals never spawn in water (worldSurfaceLayers SSOT)
       if (y === null || !isDryLand(y, this.waterLevel)) continue;
 
-      if (def.category === 'bird') y = BIRD_ALTITUDE;
+      if (def.category === 'bird') y = y + BIRD_ABOVE_M;
 
       this.spawnCreature(def, new THREE.Vector3(x, y, z));
       placed++;
@@ -327,16 +335,17 @@ export class CreatureManager {
         // without sampler only allow when waterLevel is known and we use pure sea plane
       }
 
-      const depthRange = def.swimDepth || [2, 8];
-      let depth = depthRange[0] + this.rand() * (depthRange[1] - depthRange[0]);
-      // Clamp swim depth so fish stay between seabed+0.4 and water surface-margin
-      if (this.sampleHeight) {
-        const groundY = this.sampleHeight(x, z)!;
-        const maxDepth = Math.max(0.8, this.waterLevel - groundY - 0.4);
-        depth = Math.min(depth, maxDepth);
+      const groundY = this.sampleHeight ? this.sampleHeight(x, z) : this.waterLevel - 8;
+      if (groundY === null || !Number.isFinite(groundY)) continue;
+      let swimY = fishSwimY(groundY, this.waterLevel);
+      if (swimY == null) continue;
+      if (def.swimDepth) {
+        const depth =
+          def.swimDepth[0] + this.rand() * (def.swimDepth[1] - def.swimDepth[0]);
+        const minY = groundY + (FAUNA_HEIGHT.fishMinAboveSeabedM ?? 0.4);
+        const maxY = this.waterLevel - (FAUNA_HEIGHT.fishMinUnderSurfaceM ?? 0.3);
+        swimY = Math.min(maxY, Math.max(minY, this.waterLevel - depth));
       }
-      const swimY = this.waterLevel - depth;
-      if (swimY >= this.waterLevel - WORLD_SURFACE.minSwimUnderSurfaceM) continue;
 
       this.spawnCreature(def, new THREE.Vector3(x, swimY, z), swimY);
       placed++;
@@ -365,7 +374,7 @@ export class CreatureManager {
       isFish ? new THREE.ConeGeometry(0.5, 1.5, 6) : new THREE.BoxGeometry(0.7, 1.0, 0.7),
       new THREE.MeshLambertMaterial({ color }),
     );
-    placeholder.position.y = isFish ? 0 : 1;
+    placeholder.position.y = isFish ? 0 : 0.5;
     if (isFish) placeholder.rotation.x = Math.PI / 2;
     placeholder.castShadow = true;
     placeholder.name = '__placeholder';
@@ -389,6 +398,7 @@ export class CreatureManager {
       stateTimer: IDLE_DURATION_MIN + this.rand() * (IDLE_DURATION_MAX - IDLE_DURATION_MIN),
       respawnTimer: 0,
       provoked: false,
+      stunTimer: 0,
       alerted: false,
       looted: false,
       isSkeleton: false,
@@ -427,7 +437,16 @@ export class CreatureManager {
       existing.group.position.z = z;
       if (this.sampleHeight) {
         const gy = this.sampleHeight(x, z);
-        if (gy !== null) existing.group.position.y = gy;
+        if (gy !== null) {
+          if (existing.def.category === 'bird') {
+            existing.group.position.y = gy + BIRD_ABOVE_M;
+          } else if (
+            existing.def.category !== 'fish' &&
+            existing.def.category !== 'predator'
+          ) {
+            existing.group.position.y = gy + (FAUNA_HEIGHT.feetOnTerrainM ?? 0);
+          }
+        }
       } else if (y) {
         existing.group.position.y = y;
       }
@@ -526,6 +545,16 @@ export class CreatureManager {
       const placeholder = instance.group.getObjectByName('__placeholder');
       if (placeholder) instance.group.remove(placeholder);
 
+      // Land animals / monsters / NPCs: bone-box feet on terrain (not pelvis).
+      if (
+        instance.def.category !== 'fish' &&
+        instance.def.category !== 'predator' &&
+        instance.def.category !== 'bird'
+      ) {
+        loaded.scene.updateMatrixWorld(true);
+        const box = new THREE.Box3().setFromObject(loaded.scene);
+        if (Number.isFinite(box.min.y)) loaded.scene.position.y -= box.min.y;
+      }
       instance.group.add(loaded.scene);
 
       instance.mixer = new THREE.AnimationMixer(loaded.scene);
@@ -635,6 +664,16 @@ export class CreatureManager {
 
       // Update mixer
       c.mixer?.update(dt);
+
+      if (
+        c.stunTimer > 0
+        && c.state !== 'dead'
+        && c.state !== 'skeleton'
+        && c.state !== 'despawned'
+      ) {
+        c.stunTimer = Math.max(0, c.stunTimer - dt);
+        continue;
+      }
 
       // Server-owned enemies: pose/HP from schema only — no local wander/chase AI
       if (c.networkAuth) {
@@ -943,7 +982,27 @@ export class CreatureManager {
     return event;
   }
 
-  // ── Combat Interface ───────────────────────────────────────────────────
+  /** Hitting one member pulls the pack (same packId, else same species in 6.5 m). */
+  private provokePack(src: CreatureInstance, radiusM: number): void {
+    const r2 = radiusM * radiusM;
+    const sx = src.group.position.x;
+    const sz = src.group.position.z;
+    for (const [, o] of this.creatures) {
+      if (o === src || o.state === 'dead' || o.state === 'skeleton' || o.state === 'despawned') {
+        continue;
+      }
+      const dx = o.group.position.x - sx;
+      const dz = o.group.position.z - sz;
+      if (dx * dx + dz * dz > r2) continue;
+      const samePack = src.packId && o.packId === src.packId;
+      const sameKind = !src.packId && o.def.id === src.def.id;
+      if (!samePack && !sameKind) continue;
+      o.provoked = true;
+      if (o.state === 'idle' || o.state === 'wander') {
+        this.setState(o, 'chase');
+      }
+    }
+  }
 
   /**
    * Deal damage to a creature.
@@ -963,6 +1022,7 @@ export class CreatureManager {
         c.currentAnim = ''; // allow re-triggering
       }
       c.provoked = true;
+      this.provokePack(c, 6.5);
       if (c.def.ai === 'neutral' || c.def.ai === 'passive') {
         this.setState(c, 'chase');
       }
@@ -976,6 +1036,18 @@ export class CreatureManager {
     this.setState(c, 'dead', DEATH_LINGER_TIME);
     this.playAnim(c, 'death', false);
     return null;
+  }
+
+  /** Stun lockout — skips wander/chase/attack until timer elapses. */
+  applyStun(creatureId: string, stunSec: number): void {
+    const c = this.creatures.get(creatureId);
+    if (!c || c.state === 'dead' || c.state === 'skeleton' || c.state === 'despawned') return;
+    if (stunSec <= 0) return;
+    c.stunTimer = Math.max(c.stunTimer || 0, stunSec);
+    if (c.def.anims.hitReact) {
+      this.playAnim(c, 'hitReact', false);
+      c.currentAnim = '';
+    }
   }
 
   /** Find nearest alive creature within range of a position */
@@ -1066,8 +1138,13 @@ export class CreatureManager {
     c.group.position.z += dz;
     if (this.sampleHeight) {
       const y = this.sampleHeight(c.group.position.x, c.group.position.z);
-      if (y !== null && c.def.category !== 'bird' && c.def.category !== 'fish') {
-        c.group.position.y = y;
+      if (
+        y !== null &&
+        c.def.category !== 'bird' &&
+        c.def.category !== 'fish' &&
+        c.def.category !== 'predator'
+      ) {
+        c.group.position.y = y + (FAUNA_HEIGHT.feetOnTerrainM ?? 0);
       }
     }
   }
@@ -1134,10 +1211,15 @@ export class CreatureManager {
     if (c.def.category === 'fish' || c.def.category === 'predator') {
       c.group.position.y = c.swimY + Math.sin(performance.now() * 0.001 + c.swimY) * 0.3;
     } else if (c.def.category === 'bird') {
-      c.group.position.y = BIRD_ALTITUDE + Math.sin(performance.now() * 0.0008) * 3;
+      const gy = this.sampleHeight
+        ? this.sampleHeight(c.group.position.x, c.group.position.z)
+        : null;
+      const base = (gy ?? c.spawnPos.y - BIRD_ABOVE_M) + BIRD_ABOVE_M;
+      c.group.position.y =
+        base + Math.sin(performance.now() * 0.0008) * FAUNA_HEIGHT.birdBobM;
     } else if (this.sampleHeight) {
       const y = this.sampleHeight(c.group.position.x, c.group.position.z);
-      if (y !== null) c.group.position.y = y;
+      if (y !== null) c.group.position.y = y + (FAUNA_HEIGHT.feetOnTerrainM ?? 0);
     }
 
     return arrived;

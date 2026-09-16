@@ -17,7 +17,25 @@ import {
 import type { LinkedWalletProvider, WalletPurchaseCurrency } from "@shared/schema";
 import { WALLET_PURCHASE_CURRENCIES } from "@shared/schema";
 
-const JWT_SECRET = process.env.SESSION_SECRET || process.env.JWT_SECRET || "grudge-dev-secret";
+/** Prefer SESSION_SECRET (auth.ts) then JWT_SECRET / GRUDGE_JWT_SECRET — use first non-empty candidate only. */
+const JWT_SECRET_CANDIDATES = [
+  process.env.SESSION_SECRET,
+  process.env.JWT_SECRET,
+  process.env.GRUDGE_JWT_SECRET,
+]
+  .map((s) => s?.trim())
+  .filter((s): s is string => !!s && s.length > 0);
+
+const JWT_SECRET = JWT_SECRET_CANDIDATES[0] || "";
+
+function readWalletSessionToken(req: Request): string | null {
+  const authHeader = req.get("Authorization") || req.get("X-Session-Token") || "";
+  if (authHeader.startsWith("Bearer ")) return authHeader.slice(7);
+  if (authHeader) return authHeader;
+  const cookie = req.get("Cookie") || "";
+  const match = cookie.match(/(?:^|;\s*)grudge_auth_token=([^;]+)/);
+  return match ? decodeURIComponent(match[1]) : null;
+}
 
 function readWalletSessionToken(req: Request): string | null {
   const authHeader = req.get("Authorization") || req.get("X-Session-Token") || "";
@@ -32,6 +50,10 @@ function requireAuth(req: Request, res: Response, next: NextFunction): void {
   const token = readWalletSessionToken(req);
   if (!token) {
     res.status(401).json({ error: "Authentication required" });
+    return;
+  }
+  if (!JWT_SECRET) {
+    res.status(500).json({ error: "Authentication not configured (SESSION_SECRET, JWT_SECRET, or GRUDGE_JWT_SECRET required)" });
     return;
   }
   try {
@@ -91,6 +113,7 @@ export function registerWalletRoutes(app: Express): void {
         return res.status(400).json({ error: "walletAddress required" });
       }
       const challenge = createLinkChallenge(account.id, walletAddress, originFromRequest(req));
+      const challenge = createLinkChallenge(account.id, walletAddress);
       res.json({
         message: challenge.message,
         nonce: challenge.nonce,
@@ -285,6 +308,11 @@ export function registerWalletRoutes(app: Express): void {
       // Credit D1 play ledger on poker edge
       const pokerOrigin =
         process.env.POKER_ORIGIN || "https://poker.grudge-studio.com";
+      const fleetSecret =
+        process.env.FLEET_PLAY_CREDIT_SECRET?.trim() ||
+        process.env.SESSION_SECRET?.trim() ||
+        process.env.JWT_SECRET?.trim() ||
+        "";
       let playCredit: Record<string, unknown> | null = null;
       let playError: string | null = null;
       try {
@@ -346,7 +374,100 @@ export function registerWalletRoutes(app: Express): void {
     }
   });
 
+  /**
+   * Sign+send on-chain GBUX from the account Crossmint Solana wallet.
+   * Official Crossmint transfer-token (server API key). No Phantom.
+   * @see https://docs.crossmint.com/wallets/guides/transfer-tokens
+   */
+  app.post("/api/wallet/send-gbux", requireAuth, async (req, res) => {
+    try {
+      const account = await requireAccount(req, res);
+      if (!account) return;
+      const body = req.body as {
+        amount?: number | string;
+        to?: string;
+        fromWallet?: string;
+      };
+      const amount = Number(body.amount);
+      if (!Number.isFinite(amount) || amount <= 0) {
+        return res.status(400).json({ error: "amount must be > 0" });
+      }
+      const { crossmintWalletService } = await import("../services/crossmintWallet");
+      const grudgeId = String((account as { grudgeId?: string }).grudgeId || "");
+      const cm = grudgeId
+        ? await crossmintWalletService.getOrCreateWalletForGrudgeId(grudgeId)
+        : null;
+      const overview = await getWalletOverview(account.id);
+      const stored = String(
+        (overview as { custodialWallet?: string; primaryWallet?: string } | null)?.custodialWallet ||
+          overview?.primaryWallet ||
+          account.walletAddress ||
+          "",
+      ).trim();
+      // JWT identity owns the Crossmint wallet. Ignore client fromWallet so a
+      // linked Phantom cannot be used as the custodial signer source.
+      const fromWallet = String(cm?.address || stored).trim();
+      if (fromWallet.length < 32) {
+        return res.status(400).json({
+          error: "No Crossmint play wallet on this Grudge ID",
+        });
+      }
+      const to = String(
+        body.to ||
+          process.env.AI_AGENT_WALLET ||
+          "6P7Pp5eHzPAVjnbNLkW8DzAuuc7gj9Sm5XiprwnjzvRs",
+      ).trim();
+      if (to.length < 32) {
+        return res.status(400).json({ error: "recipient required" });
+      }
+      const GBUX_MINT =
+        process.env.GBUX_MINT ||
+        "55TpSoMNxbfsNJ9U1dQoo9H3dRtDmjBZVMcKqvU2nray";
+      const email = grudgeId
+        ? crossmintWalletService.stableEmailForGrudgeId(grudgeId)
+        : "";
+      const emailLocator = email ? `email:${email}:solana` : undefined;
+
+      const sent = await crossmintWalletService.sendSplToken({
+        fromWallet,
+        toWallet: to,
+        amount: String(amount),
+        mint: GBUX_MINT,
+        emailLocator,
+        extraLocators: email
+          ? [
+              `email:${email}:solana-custodial-wallet`,
+              `email:${email}:solana:solana-custodial-wallet`,
+            ]
+          : undefined,
+        idempotencyKey: `gbux:${account.id}:${to.slice(0, 8)}:${amount}`,
+      });
+      if (!sent.success) {
+        return res.status(502).json({
+          error: sent.error || "Crossmint send failed",
+          fromWallet,
+          to,
+        });
+      }
+      res.json({
+        success: true,
+        signature: sent.signature,
+        explorerLink: sent.explorerLink,
+        pending: sent.pending,
+        status: sent.status,
+        fromWallet,
+        to,
+        amount,
+        mint: GBUX_MINT,
+        via: "crossmint",
+      });
+    } catch (e: any) {
+      console.error("[Wallet/send-gbux]", e);
+      res.status(400).json({ error: e.message || "Send failed" });
+    }
+  });
+
   console.log(
-    "[Wallet] Routes: GET /api/wallet/overview, /linked; POST /link/*, /purchase/*, /transfer-to-play",
+    "[Wallet] Routes: GET /api/wallet/overview, /linked; POST /link/*, /purchase/*, /transfer-to-play, /send-gbux",
   );
 }

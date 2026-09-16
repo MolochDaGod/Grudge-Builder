@@ -22,6 +22,10 @@ export const WARLORDS_PLAY_URL = `https://${WARLORDS_PLAY_HOST}` as const;
 /** Legacy studio-branded client — same SPA; keep working, prefer warlords zone. */
 export const WARLORDS_CLIENT_STUDIO = "https://client.grudge-studio.com" as const;
 
+/** Stable Warlords playtest host; shares fleet identity and content services. */
+export const WARLORDS_TEST_HOST = "test.grudge-studio.com" as const;
+export const WARLORDS_TEST_ORIGIN = `https://${WARLORDS_TEST_HOST}` as const;
+
 /** Dead / non-Warlords hub — do not use for Warlords era. */
 export const PLAY_GRUDGE_STUDIO_LEGACY = "https://play.grudge.studio" as const;
 
@@ -82,6 +86,15 @@ export const WARLORDS_HOST_PATH: Record<
  * Server/browser: WARLORDS_PLAY_ORIGIN=https://play.grudgewarlords.com
  */
 export function warlordsPlayOrigin(): string {
+  // Keep in-game absolute links on the stable test deployment. Never trust an
+  // arbitrary preview hostname as a destination for character/SSO handoffs.
+  if (
+    typeof window !== "undefined" &&
+    window.location.protocol === "https:" &&
+    window.location.hostname.toLowerCase() === WARLORDS_TEST_HOST
+  ) {
+    return WARLORDS_TEST_ORIGIN;
+  }
   try {
     const env =
       (typeof process !== "undefined" &&
@@ -172,13 +185,14 @@ export function isWarlordsPlayHost(hostname: string): boolean {
   if (WARLORDS_NON_PLAY_HOSTS.has(h)) return false;
   if (h === "grudgewarlords.com" || h === "www.grudgewarlords.com") return true;
   if (h.endsWith(".grudgewarlords.com")) return true;
-  if (h === "client.grudge-studio.com") return true;
+  if (h === "client.grudge-studio.com" || h === WARLORDS_TEST_HOST) return true;
   return false;
 }
 
 /** Studio platform hosts (not Warlords product zone). */
 export function isStudioPlatformHost(hostname: string): boolean {
-  const h = hostname.toLowerCase();
+  const h = hostname.toLowerCase().replace(/\.$/, "");
+  if (h === WARLORDS_TEST_HOST) return false;
   if (h === "grudge-studio.com" || h === "www.grudge-studio.com") return true;
   if (h.endsWith(".grudge-studio.com") && h !== "client.grudge-studio.com") return true;
   return false;

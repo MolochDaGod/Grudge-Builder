@@ -39,6 +39,7 @@ import {
   resolveDiscordGrudgeAccount,
   resolvePuterIdentity,
   stampPuterLink,
+  findUserByPuterId,
   listLinkedProviders,
   asSchemaUser,
   fetchIdentityUserById,
@@ -56,6 +57,18 @@ import {
 import type { LinkedWalletProvider } from "@shared/schema";
 
 const JWT_SECRET = process.env.SESSION_SECRET || process.env.JWT_SECRET || "grudge-dev-secret";
+  listLinkedWallets,
+} from "../services/walletAccess";
+import type { LinkedWalletProvider } from "@shared/schema";
+
+/** Prefer SESSION_SECRET (auth.ts) then JWT_SECRET / GRUDGE_JWT_SECRET — use first non-empty candidate only. */
+const JWT_SECRET_CANDIDATES = [
+  process.env.SESSION_SECRET,
+  process.env.JWT_SECRET,
+  process.env.GRUDGE_JWT_SECRET,
+].filter((s): s is string => !!s && s.length > 0);
+
+const JWT_SECRET = JWT_SECRET_CANDIDATES[0] || "";
 /**
  * Session JWT lifetime — max allowed “stay signed in” for fleet SSO.
  * Default **365d**. Override JWT_SESSION_TTL (capped at 365d).
@@ -142,6 +155,32 @@ function generateGrudgeId(): string {
   return `GRUDGE_${ts}${rand}`.slice(0, 20);
 }
 
+// ── Referral code generator (WERA- + 6 uppercase A-Z0-9) ───────────
+
+function generateReferralCode(): string {
+  const chars = 'ABCDEFGHIJKLMNOPQRSTUVWXYZ0123456789';
+  let code = 'WERA-';
+  for (let i = 0; i < 6; i++) {
+    code += chars.charAt(Math.floor(Math.random() * chars.length));
+  }
+  return code;
+}
+
+async function generateUniqueReferralCode(): Promise<string> {
+  let attempts = 0;
+  while (attempts < 10) {
+    const code = generateReferralCode();
+    const [existing] = await db
+      .select()
+      .from(accounts)
+      .where(eq(accounts.referralCode, code))
+      .limit(1);
+    if (!existing) return code;
+    attempts++;
+  }
+  throw new Error('Failed to generate unique referral code');
+}
+
 // ── Password hashing (native crypto.scrypt, no bcrypt dependency) ───
 
 async function hashPassword(password: string): Promise<string> {
@@ -175,6 +214,9 @@ function signToken(payload: {
   isAdmin?: boolean;
   email?: string | null;
 }): string {
+  if (!JWT_SECRET) {
+    throw new Error("JWT secret not configured (SESSION_SECRET, JWT_SECRET, or GRUDGE_JWT_SECRET required)");
+  }
   const role = payload.role ?? "player";
   return jwt.sign(
     {
@@ -379,6 +421,7 @@ function readSessionToken(req: Request): string | null {
 function trySessionUserId(req: Request): string | null {
   const token = readSessionToken(req);
   if (!token) return null;
+  if (!token || !JWT_SECRET) return null;
   try {
     const payload = jwt.verify(token, JWT_SECRET) as { userId?: string; sub?: string };
     return payload.userId || (payload.sub != null ? String(payload.sub) : null);
@@ -565,6 +608,9 @@ async function resolvePuterGrudgeAccount(
 }
 
 function mintLaunchToken(userId: string, grudgeId: string, audience: string): string {
+  if (!JWT_SECRET) {
+    throw new Error("JWT secret not configured (SESSION_SECRET, JWT_SECRET, or GRUDGE_JWT_SECRET required)");
+  }
   return jwt.sign(
     { type: "launch", userId, grudgeId, aud: audience },
     JWT_SECRET,
@@ -651,6 +697,10 @@ export function registerAuthRoutes(app: Express) {
 
     if (!token) {
       return res.redirect(302, loginFallback);
+    }
+
+    if (!JWT_SECRET) {
+      return res.status(500).send("Authentication not configured");
     }
 
     try {
@@ -877,6 +927,7 @@ export function registerAuthRoutes(app: Express) {
     try {
       const token = readSessionToken(req);
       if (!token) return res.status(401).json({ success: false, error: "Not authenticated" });
+      if (!JWT_SECRET) return res.status(500).json({ success: false, error: "Authentication not configured" });
 
       const payload = jwt.verify(token, JWT_SECRET) as { userId: string };
       const { username, email, displayName: bodyDisplay } = req.body as {
@@ -944,6 +995,7 @@ export function registerAuthRoutes(app: Express) {
     try {
       const token = readSessionToken(req);
       if (!token) return res.status(401).json({ error: "Authentication required" });
+      if (!JWT_SECRET) return res.status(500).json({ error: "Authentication not configured" });
 
       const payload = jwt.verify(token, JWT_SECRET) as { userId: string; grudgeId?: string };
       const audience = (req.body?.audience as string) || "";
@@ -983,6 +1035,7 @@ export function registerAuthRoutes(app: Express) {
     try {
       const token = readSessionToken(req) || (req.body?.token as string) || "";
       if (!token) return res.status(401).json({ success: false, error: "Authentication required" });
+      if (!JWT_SECRET) return res.status(500).json({ success: false, error: "Authentication not configured" });
 
       const payload = jwt.verify(token, JWT_SECRET) as {
         userId?: string;
@@ -1041,6 +1094,10 @@ export function registerAuthRoutes(app: Express) {
         });
       }
 
+      if (!JWT_SECRET) {
+        return res.status(500).json({ error: "Authentication not configured" });
+      }
+
       const payload = jwt.verify(token, JWT_SECRET) as {
         userId?: string;
         grudgeId?: string;
@@ -1085,6 +1142,10 @@ export function registerAuthRoutes(app: Express) {
     let grudgeId = "";
     let identityUserId = "";
     let decodedAud = "";
+
+    if (!JWT_SECRET) {
+      throw new Error("Authentication not configured");
+    }
 
     try {
       const decoded = jwt.verify(launchToken, JWT_SECRET) as {
@@ -1254,6 +1315,21 @@ export function registerAuthRoutes(app: Express) {
         });
       }
       const challenge = createLoginChallenge(walletAddress, originFromRequest(req));
+      }
+      const sessionUserId = trySessionUserId(req);
+      if (sessionUserId) {
+        const account = await ensureAccount(sessionUserId);
+        const challenge = createLinkChallenge(account.id, walletAddress);
+        return res.json({
+          success: true,
+          purpose: "link",
+          message: challenge.message,
+          nonce: challenge.nonce,
+          walletAddress: challenge.walletAddress,
+          siws: challenge.siws,
+        });
+      }
+      const challenge = createLoginChallenge(walletAddress);
       res.json({
         success: true,
         purpose: "login",
@@ -1376,6 +1452,31 @@ export function registerAuthRoutes(app: Express) {
           "Sign a SIWS message to prove wallet ownership. POST /api/auth/phantom/nonce then /api/auth/phantom/verify.",
       });
     }
+    return res.status(400).json({
+      success: false,
+      error: "Use /api/auth/phantom/verify after /api/auth/phantom/nonce.",
+      hint: "https://id.grudge-studio.com/account",
+    });
+  });
+
+  /**
+   * POST /api/auth/wallet
+   * Solana wallet login — SIWS required (unsigned address login is closed).
+   */
+  app.post("/api/auth/wallet", authRateLimit, async (req: Request, res: Response) => {
+    const walletAddress = req.body.wallet_address || req.body.walletAddress;
+    const message = req.body.message || req.body.signedMessage;
+    const signature = req.body.signature;
+    if (!walletAddress) {
+      return res.status(400).json({ success: false, error: "wallet_address required" });
+    }
+    if (!message || !signature) {
+      return res.status(400).json({
+        success: false,
+        error:
+          "Sign a SIWS message to prove wallet ownership. POST /api/auth/phantom/nonce then /api/auth/phantom/verify.",
+      });
+    }
     req.body.address = walletAddress;
     req.body.message = message;
     req.body.signature = signature;
@@ -1420,10 +1521,11 @@ export function registerAuthRoutes(app: Express) {
   /**
    * POST /api/auth/register
    * Create new account with username + password.
+   * Generates unique referral code and creates Crossmint wallet on register.
    */
   app.post("/api/auth/register", authRateLimit, async (req: Request, res: Response) => {
     try {
-      const { username, password, email } = req.body;
+      const { username, password, email, referralCode: claimedCode } = req.body;
       if (!username || !password) {
         return res.status(400).json({ success: false, error: "Username and password required" });
       }
@@ -1445,6 +1547,20 @@ export function registerAuthRoutes(app: Express) {
         return res.status(409).json({ success: false, error: "Username already taken" });
       }
 
+      // Validate claimed referral code if provided (case-insensitive)
+      let referrerAccount: typeof accounts.$inferSelect | undefined;
+      if (claimedCode && typeof claimedCode === 'string') {
+        const normalized = claimedCode.toUpperCase().trim();
+        [referrerAccount] = await db
+          .select()
+          .from(accounts)
+          .where(sql`UPPER(${accounts.referralCode}) = ${normalized}`)
+          .limit(1);
+        if (!referrerAccount) {
+          return res.status(400).json({ success: false, error: "Invalid referral code" });
+        }
+      }
+
       const grudgeId = generateGrudgeId();
       const hashedPw = await hashPassword(password);
 
@@ -1459,15 +1575,54 @@ export function registerAuthRoutes(app: Express) {
         .returning();
 
       const account = await ensureAccount(user.id);
-      // Register username is the account display name — no second profile step
-      if (account && username) {
-        await storage.updateAccount(account.id, { displayName: username.trim() });
-        markProfileComplete(user.id);
+      
+      // Generate unique referral code for new account
+      const myReferralCode = await generateUniqueReferralCode();
+      
+      // Create Crossmint server-signer wallet for new account
+      const walletEmail = email || `${grudgeId.toLowerCase()}@id.grudge-studio.com`;
+      let walletAddress: string | null = null;
+      try {
+        const wallet = await crossmintService.getOrCreateWallet(walletEmail);
+        if (wallet?.address) {
+          walletAddress = wallet.address;
+        }
+      } catch (walletErr) {
+        console.error('[Auth/Register] Crossmint wallet creation failed:', walletErr);
+        // Non-fatal — account can still be created
       }
+
+      // Update account with referral code, wallet, and claimed referral
+      const accountUpdates: any = {
+        displayName: username.trim(),
+        referralCode: myReferralCode,
+      };
+      if (walletAddress) {
+        accountUpdates.walletAddress = walletAddress;
+        accountUpdates.walletType = 'crossmint';
+        accountUpdates.crossmintEmail = walletEmail;
+      }
+      
+      // Always grant first character on register (one per new account)
+      accountUpdates.firstCharacterGranted = true;
+      accountUpdates.characterTokens = (account.characterTokens || 1) + 1;
+      
+      // Track referral code if provided (independent of character grant)
+      if (referrerAccount) {
+        accountUpdates.referredBy = referrerAccount.referralCode;
+      }
+      
+      await storage.updateAccount(account.id, accountUpdates);
+      markProfileComplete(user.id);
+      
       const fresh = await storage.getAccount(account.id);
       res.json({
         ...buildAuthResponse(user, fresh || account),
-        message: "Welcome to Grudge Warlords!",
+        message: referrerAccount
+          ? "Welcome to Grudge Warlords! Your referral bonus has been applied."
+          : "Welcome to Grudge Warlords!",
+        referralCode: myReferralCode,
+        firstCharacterGranted: true,
       });
     } catch (e: any) {
       console.error("[Auth/Register]", e);
@@ -1489,6 +1644,10 @@ export function registerAuthRoutes(app: Express) {
 
       if (!token) {
         return res.json({ success: false, valid: false });
+      }
+
+      if (!JWT_SECRET) {
+        return res.status(500).json({ success: false, valid: false, error: "Authentication not configured" });
       }
 
       const payload = jwt.verify(token, JWT_SECRET) as any;
@@ -1513,6 +1672,7 @@ export function registerAuthRoutes(app: Express) {
       const authHeader = req.get("Authorization") || "";
       const token = authHeader.startsWith("Bearer ") ? authHeader.slice(7) : "";
       if (!token) return res.status(401).json({ success: false, error: "Auth required" });
+      if (!JWT_SECRET) return res.status(500).json({ success: false, error: "Authentication not configured" });
 
       const payload = jwt.verify(token, JWT_SECRET) as { userId?: string; grudgeId?: string };
       if (!payload.userId) return res.status(401).json({ success: false, error: "Invalid token" });
@@ -1522,18 +1682,30 @@ export function registerAuthRoutes(app: Express) {
       const email = (req.body?.email as string | undefined) || undefined;
       if (!puterUuid) return res.status(400).json({ success: false, error: "puterUuid required" });
 
+      const already = await findUserByPuterId(puterUuid);
+      if (already && already.id !== payload.userId) {
+        return res.status(409).json({
+          success: false,
+          error: "This Puter account is already linked to another Grudge ID",
+          linkedGrudgeId: already.grudgeId || null,
+        });
+      }
+
       // Stamp Puter onto the *authenticated* user — never create a second grudge_id.
       await stampPuterLink(payload.userId, {
         id: puterUuid,
         username: puterUsername ?? null,
         email: email ?? null,
       });
+      const account = await ensureAccount(payload.userId);
       const identity = await fetchIdentityUserById(payload.userId);
       res.json({
         success: true,
         linked: true,
-        grudgeId: identity?.grudgeId || payload.grudgeId || null,
+        grudgeId: identity?.grudgeId || payload.grudgeId || account.grudgeId || null,
         puter_user_id: puterUuid,
+        walletAddress: account.walletAddress || null,
+        walletType: (account as { walletType?: string | null }).walletType || null,
         providers: identity ? listLinkedProviders(identity) : ["puter"],
       });
     } catch (e: any) {
@@ -1585,6 +1757,7 @@ export function registerAuthRoutes(app: Express) {
       const authHeader = req.get("Authorization") || "";
       const token = authHeader.startsWith("Bearer ") ? authHeader.slice(7) : "";
       if (!token) return res.status(401).json({ success: false, error: "No token" });
+      if (!JWT_SECRET) return res.status(500).json({ success: false, error: "Authentication not configured" });
 
       const payload = jwt.verify(token, JWT_SECRET) as { userId?: string };
       if (!payload.userId) return res.status(401).json({ success: false, error: "Invalid token" });
@@ -1744,10 +1917,14 @@ export function registerAuthRoutes(app: Express) {
         return res.status(401).json({ success: false, error: "No token provided" });
       }
 
+      if (!JWT_SECRET) {
+        return res.status(500).json({ success: false, error: "Authentication not configured" });
+      }
+
       const payload = jwt.verify(token, JWT_SECRET) as any;
       const userId = payload.userId;
 
-      const [user] = await db.select().from(users).where(eq(users.id, userId)).limit(1);
+      let [user] = await db.select().from(users).where(eq(users.id, userId)).limit(1);
       if (!user) {
         return res.status(404).json({ success: false, error: "User not found" });
       }
@@ -1773,6 +1950,27 @@ export function registerAuthRoutes(app: Express) {
 
       const usernameClaimed = hasClaimedUsername(user, account, [payload.username]) && !isAutoUsername(user.username);
 
+      if (account?.grudgeId && !user.grudgeId) {
+        await db.update(users).set({ grudgeId: account.grudgeId }).where(eq(users.id, user.id));
+        user = { ...user, grudgeId: account.grudgeId };
+      }
+
+      let linkedAddrs: string[] = [];
+      try {
+        if (account) {
+          const linked = await listLinkedWallets(account.id);
+          linkedAddrs = linked.map((w) => w.walletAddress).filter(Boolean);
+        }
+      } catch {
+        /* table may not exist on older shards */
+      }
+      const walletType = account?.walletType || null;
+      const custodialWallet =
+        walletType === "crossmint" ? account?.walletAddress || null : null;
+      const linkedSolana =
+        linkedAddrs[0] ||
+        (walletType === "external" ? account?.walletAddress || null : null);
+
       res.json({
         success: true,
         id: user.id,
@@ -1783,8 +1981,13 @@ export function registerAuthRoutes(app: Express) {
         loginUsername: user.username,
         usernameClaimed,
         email,
+        walletType,
         walletAddress: account?.walletAddress || null,
         solanaAddress: account?.walletAddress || null,
+        custodialWallet,
+        linkedSolana,
+        linkedWallets: linkedAddrs,
+        solanaAddress: linkedSolana || account?.walletAddress || null,
         gbuxBalance: account?.gbuxBalance || 0,
         accountXp: account?.accountXp || 0,
         isPremium: (account?.premiumCurrency || 0) > 0,
@@ -1923,7 +2126,138 @@ export function registerAuthRoutes(app: Express) {
     }
   });
 
+  /**
+   * POST /api/auth/referral/claim
+   * Claim a referral code for an existing authenticated account.
+   * Grants first free character if this is the first successful claim.
+   */
+  app.post("/api/auth/referral/claim", authRateLimit, async (req: Request, res: Response) => {
+    try {
+      const token = readSessionToken(req);
+      if (!token) {
+        return res.status(401).json({ success: false, error: "Authentication required" });
+      }
+
+      if (!JWT_SECRET) {
+        return res.status(500).json({ success: false, error: "Authentication not configured" });
+      }
+
+      const payload = jwt.verify(token, JWT_SECRET) as { userId: string };
+      const { code } = req.body as { code?: string };
+      
+      if (!code || typeof code !== 'string') {
+        return res.status(400).json({ success: false, error: "Referral code required" });
+      }
+
+      const [user] = await db.select().from(users).where(eq(users.id, payload.userId)).limit(1);
+      if (!user) {
+        return res.status(404).json({ success: false, error: "User not found" });
+      }
+
+      const [account] = await db.select().from(accounts).where(eq(accounts.userId, user.id)).limit(1);
+      if (!account) {
+        return res.status(404).json({ success: false, error: "Account not found" });
+      }
+
+      // Check if already claimed a referral code
+      if (account.referredBy) {
+        return res.status(400).json({ 
+          success: false, 
+          error: "You have already claimed a referral code",
+          claimedCode: account.referredBy,
+        });
+      }
+
+      // Validate referral code (case-insensitive)
+      const normalized = code.toUpperCase().trim();
+      const [referrerAccount] = await db
+        .select()
+        .from(accounts)
+        .where(sql`UPPER(${accounts.referralCode}) = ${normalized}`)
+        .limit(1);
+
+      if (!referrerAccount) {
+        return res.status(400).json({ success: false, error: "Invalid referral code" });
+      }
+
+      // Can't claim your own referral code
+      if (referrerAccount.id === account.id) {
+        return res.status(400).json({ success: false, error: "Cannot claim your own referral code" });
+      }
+
+      // Update account with claimed referral and grant first character if not already granted
+      const updates: any = {
+        referredBy: referrerAccount.referralCode,
+      };
+      
+      if (!account.firstCharacterGranted) {
+        updates.firstCharacterGranted = true;
+        updates.characterTokens = (account.characterTokens || 1) + 1;
+      }
+
+      await storage.updateAccount(account.id, updates);
+
+      const fresh = await storage.getAccount(account.id);
+      res.json({
+        success: true,
+        claimedCode: referrerAccount.referralCode,
+        firstCharacterGranted: !account.firstCharacterGranted,
+        characterTokens: fresh?.characterTokens || account.characterTokens,
+      });
+    } catch (e: any) {
+      console.error("[Auth/ReferralClaim]", e);
+      if (e.name === 'JsonWebTokenError') {
+        return res.status(401).json({ success: false, error: "Invalid token" });
+      }
+      res.status(500).json({ success: false, error: e.message || "Failed to claim referral code" });
+    }
+  });
+
+  /**
+   * GET /api/auth/referral/me
+   * Get the authenticated user's referral information.
+   */
+  app.get("/api/auth/referral/me", async (req: Request, res: Response) => {
+    try {
+      const token = readSessionToken(req);
+      if (!token) {
+        return res.status(401).json({ success: false, error: "Authentication required" });
+      }
+
+      if (!JWT_SECRET) {
+        return res.status(500).json({ success: false, error: "Authentication not configured" });
+      }
+
+      const payload = jwt.verify(token, JWT_SECRET) as { userId: string };
+      const [user] = await db.select().from(users).where(eq(users.id, payload.userId)).limit(1);
+      
+      if (!user) {
+        return res.status(404).json({ success: false, error: "User not found" });
+      }
+
+      const [account] = await db.select().from(accounts).where(eq(accounts.userId, user.id)).limit(1);
+      if (!account) {
+        return res.status(404).json({ success: false, error: "Account not found" });
+      }
+
+      res.json({
+        success: true,
+        referralCode: account.referralCode || null,
+        referredBy: account.referredBy || null,
+        firstCharacterGranted: account.firstCharacterGranted || false,
+        characterTokens: account.characterTokens || 1,
+      });
+    } catch (e: any) {
+      console.error("[Auth/ReferralMe]", e);
+      if (e.name === 'JsonWebTokenError') {
+        return res.status(401).json({ success: false, error: "Invalid token" });
+      }
+      res.status(500).json({ success: false, error: e.message || "Failed to get referral info" });
+    }
+  });
+
   console.log(
     `[Auth] Routes registered (session=${JWT_EXPIRES}, launch=${LAUNCH_TTL}): /api/auth/{page,puter,puter-sso,guest,complete-profile,popup-token,refresh,session/exchange,grudge-bridge,wallet,phantom/nonce,phantom/verify,login,register,verify,me,puter-link,discord/callback,google/start,phone/send,phone/verify}`,
+    `[Auth] Routes registered (session=${JWT_EXPIRES}, launch=${LAUNCH_TTL}): /api/auth/{page,puter,puter-sso,guest,complete-profile,popup-token,refresh,session/exchange,grudge-bridge,wallet,phantom/nonce,phantom/verify,login,register,verify,me,puter-link,discord/callback,google/start,phone/send,phone/verify,referral/claim,referral/me}`,
   );
 }

@@ -1,3 +1,4 @@
+import { authenticateGameJoin } from '../gameAuth';
 /**
  * DungeonRoom.ts
  * ─────────────────────────────────────────────────────────────
@@ -112,7 +113,13 @@ interface DungeonJoinOptions {
 
 // ── Room ────────────────────────────────────────────────────
 
-export class DungeonRoom extends Room<DungeonState> {
+export class DungeonRoom extends Room<{ state: DungeonState }> {
+  async onAuth(client: Client, options: any, context: any) {
+    const identity = await authenticateGameJoin(context?.token, options, true);
+    Object.assign(options, identity.join);
+    return identity;
+  }
+
   maxClients = 4;
   private config: DungeonJoinOptions = {};
   private timeoutH: ReturnType<typeof setTimeout> | null = null;
@@ -160,7 +167,7 @@ export class DungeonRoom extends Room<DungeonState> {
     console.log(`[Dungeon:${this.state.dungeonName}] ${p.characterName} joined`);
   }
 
-  async onLeave(c: Client, consented?: boolean) {
+  async onLeave(c: Client, consented?: number) {
     const { leaveWithReconnect } = await import("../reconnect");
     await leaveWithReconnect(this, c, consented, () => {
       this.state.players.delete(c.sessionId);

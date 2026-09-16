@@ -401,7 +401,7 @@ export class EvilMountainTriadSystem {
     if (atMouth) {
       this.discovered = true;
       this.triad.portal.group.visible = true;
-      this.hintState = this.triad.portal.canInteract() ? 'interact' : 'discovered';
+      this.hintState = this.triad.portal.canInteract ? 'interact' : 'discovered';
     } else if (approachDist < TRIAD_APPROACH_RADIUS) {
       this.hintState = 'approach';
     } else {
@@ -413,10 +413,10 @@ export class EvilMountainTriadSystem {
   }
 
   tryInteract(): boolean {
-    return this.triad.portal.tryInteract();
+    return this.triad.portal.interact();
   }
 
   get canInteract(): boolean {
-    return this.discovered && this.triad.portal.canInteract();
+    return this.discovered && this.triad.portal.canInteract;
   }
 }

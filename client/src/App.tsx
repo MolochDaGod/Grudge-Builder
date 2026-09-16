@@ -1,5 +1,6 @@
+import { GameErrorBoundary } from '@/components/GameRecovery';
 import { useEffect, useLayoutEffect, lazy, Suspense } from "react";
-import { Switch, Route } from "wouter";
+import { Switch, Route, useLocation } from "wouter";
 import { queryClient } from "./lib/queryClient";
 import { QueryClientProvider } from "@tanstack/react-query";
 import { Toaster } from "@/components/ui/toaster";
@@ -67,6 +68,8 @@ const AirshipZonePage = lazy(() => import("@/pages/AirshipZonePage"));
 import HeroCodexPage from "@/pages/hero-codex";
 import CraftingPage from "@/pages/crafting";
 const Island3DPage = lazy(() => import("@/pages/island-3d"));
+const LavaCaesarLabPage = lazy(() => import("@/pages/lava-caesar-lab"));
+const DockRaftLabPage = lazy(() => import("@/pages/dock-raft-lab"));
 /** Canonical first-voyage: LeviathanOceanCinema */
 const LeviathanCinemaPage = lazy(() => import("@/pages/shipwreck-cinema"));
 /** Legacy deep link — redirect only */
@@ -83,6 +86,7 @@ import Grudge6ViewerPage from "@/pages/grudge6-viewer";
 import GrudgeAI from "@/components/GrudgeAI";
 import { GrudgeTruthBadge } from "@/components/GrudgeTruthBadge";
 import { GrudgeTokenWidget } from "@/components/grudge-token/GrudgeTokenWidget";
+import { StudioFriendsDock } from "@/components/StudioFriendsDock";
 // Lazy-load the organizer page: it pulls in react-force-graph → aframe-extras
 // (A-Frame VR lib that uses THREE as a global). Code-splitting it keeps
 // aframe out of the main bundle and loads it only when /organizer is visited.
@@ -123,6 +127,9 @@ import { CharacterManager } from "@/lib/characterManager";
 
 const AssassinationGroundsPage = lazy(() => import("@/pages/assassination-grounds"));
 
+const GameLobbyPage = lazy(() => import('@/pages/game-lobby'));
+const DeploymentDeskPage = lazy(() => import('@/pages/deployment-desk'));
+
 function Router() {
   return (
     <Suspense fallback={<div className="min-h-screen bg-black" />}>
@@ -141,7 +148,7 @@ function Router() {
       <Route path="/home" component={HomePage} />
       <Route path="/main-panel" component={MainPanelPage} />
       <Route path="/equipment" component={MainPanelPage} />
-      {/* /character create → GCS; /heroes roster; /home → /airship; /airship = era select */}
+      {/* /character create → GCS; /heroes roster; /home = WCS hub; /airship = era select */}
       <Route path="/character" component={CharacterRedirect} />
       <Route path="/characters" component={HeroesPage} />
       <Route path="/create-character" component={CreateCharacterRedirect} />
@@ -185,7 +192,10 @@ function Router() {
       <Route path="/island-v2" component={IslandV2Page} />
       <Route path="/admin-island-v2" component={AdminIslandV2Page} />
       <Route path="/admin-island-3d" component={AdminIsland3DPage} />
-      <Route path="/lobby" component={HomePage} />
+      <Route path="/lobby" component={GameLobbyPage} />
+      <Route path="/lobby/maps" component={GameLobbyPage} />
+      <Route path="/diagnostics" component={DeploymentDeskPage} />
+      <Route path="/deployments" component={DeploymentDeskPage} />
       <Route path="/launcher" component={LauncherPage} />
       <Route path="/rts-grudge" component={RtsGrudgePage} />
       <Route path="/open-world" component={OpenWorldEntryPage} />
@@ -203,6 +213,8 @@ function Router() {
       <Route path="/crafting" component={CraftingPage} />
       <Route path="/crafting-suite" component={CraftingPage} />
       <Route path="/island-3d" component={Island3DPage} />
+      <Route path="/lava-caesar-lab" component={LavaCaesarLabPage} />
+      <Route path="/dock-raft-lab" component={DockRaftLabPage} />
       {/* First voyage — LeviathanOceanCinema (canonical) */}
       <Route path="/leviathan-cinema" component={LeviathanCinemaPage} />
       {/* Legacy bookmark — soft-redirect to /leviathan-cinema (keeps characterId) */}
@@ -274,6 +286,7 @@ function Router() {
           <AssassinationGroundsPage />
         </Suspense>
       )}</Route>
+      {/* Warerareward served as static HTML via vercel.json redirect */}
       {/* Fallback to 404 */}
       <Route component={NotFound} />
     </Switch>
@@ -282,6 +295,8 @@ function Router() {
 }
 
 function AppContent() {
+  const [currentPath] = useLocation();
+  const hasCouncilShell = ['/lobby', '/lobby/maps', '/diagnostics', '/deployments'].includes(currentPath);
   const { isTransitioning, isAdmin } = useAdmin();
 
   useEffect(() => {
@@ -318,11 +333,14 @@ function AppContent() {
       <RtsDomainBootstrap />
       <TooltipProvider>
         <Toaster />
-        <Router />
-        <GrudgeAI />
-        <GrudgeTruthBadge />
-        <GrudgeTokenWidget />
-        <PuterFooter />
+        <GameErrorBoundary><Router /></GameErrorBoundary>
+        {!hasCouncilShell && <>
+          <GrudgeAI />
+          <GrudgeTruthBadge />
+          <GrudgeTokenWidget />
+          <StudioFriendsDock />
+          <PuterFooter />
+        </>}
       </TooltipProvider>
     </>
   );

@@ -298,7 +298,8 @@ Manual smoke baseline (re-probe on ship):
 4. **Open world (Warlords 9 sectors)** — `/play?sector=haven_shore&mode=zone` (PVE trade village foundation, map ocean only).
 5. **Build + camps** — Build Hammer + Dune-style piece tabs; Claim Flag spawns unarmed race garrison; F1–F5 unit orders on owned camps.
 6. **Crafting** — same JWT + same UUID on `grudge-crafting.puter.site` (or in-app `/crafting`); camp benches raise profession level.
-7. **Side systems** — dungeons, skill trees, arsenal, treaty, tools (many are prototypes).
+7. **Combat play (Island3D)** — weapon hotbar 1–5; heal/buff first click remaps 1–4 to Self/allies; Mage Shield (Shift+1) drops a **2 min** red/green echo totem (20 s recast, one at a time); **Stun Totem** is the arcane **staff** ability (default slot 3) — ground AOE, Freya pole, purple stun. Meshes: CDN `models/vfx/totems/{tyr_tier_2,loki_tier_4,freya_tier_3}.glb` (1.2 m SI, WebP 256).
+8. **Side systems** — dungeons, skill trees, arsenal, treaty, tools (many are prototypes).
 
 It shares **one Railway roster** with other fleet games when those apps use fleet SSO + `era=warlords` (or their era), never a parallel hero store.
 

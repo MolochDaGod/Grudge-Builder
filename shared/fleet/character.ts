@@ -39,13 +39,16 @@ export interface Grudge6RaceConfig {
  * Canonical grudge6 race kits on R2 (not legacy /models/characters/races/*).
  * Equipment = child-mesh visibility via setupGrudge6Equipment / grudge6-kit EquipmentManager.
  */
+/** Must match Casting public/api/v1/grudge6-warlords-play-contract.json */
+export const WARLORDS_PLAY_CONTRACT_VERSION = "2026-08-18.play-kit.1";
+
 export const RACE_GRUDGE6: Record<string, Grudge6RaceConfig> = {
-  human:     { modelId: "human",     prefix: "WK_",  label: "Human",     cdnPath: "/models/grudge6/races/WK_Characters.glb",  scale: 1.0,  faction: "crusade", baseModelStem: "WK_Characters" },
-  barbarian: { modelId: "barbarian", prefix: "BRB_", label: "Barbarian", cdnPath: "/models/grudge6/races/BRB_Characters.glb", scale: 1.1,  faction: "crusade", baseModelStem: "BRB_Characters" },
-  elf:       { modelId: "elf",       prefix: "ELF_", label: "Elf",       cdnPath: "/models/grudge6/races/ELF_Characters.glb", scale: 1.0,  faction: "fabled",  baseModelStem: "ELF_Characters" },
-  dwarf:     { modelId: "dwarf",     prefix: "DWF_", label: "Dwarf",     cdnPath: "/models/grudge6/races/DWF_Characters.glb", scale: 0.85, faction: "crusade", baseModelStem: "DWF_Characters" },
-  orc:       { modelId: "orc",       prefix: "ORC_", label: "Orc",       cdnPath: "/models/grudge6/races/ORC_Characters.glb", scale: 1.15, faction: "legion",  baseModelStem: "ORC_Characters" },
-  undead:    { modelId: "undead",    prefix: "UD_",  label: "Undead",    cdnPath: "/models/grudge6/races/UD_Characters.glb",  scale: 1.0,  faction: "legion",  baseModelStem: "UD_Characters" },
+  human:     { modelId: "human",     prefix: "WK_",  label: "Human",     cdnPath: "/asset-packs/toon-rts-characters/glb/characters/human.glb",     scale: 1.0,  faction: "crusade", baseModelStem: "WK_Characters" },
+  barbarian: { modelId: "barbarian", prefix: "BRB_", label: "Barbarian", cdnPath: "/asset-packs/toon-rts-characters/glb/characters/barbarian.glb", scale: 1.1,  faction: "crusade", baseModelStem: "BRB_Characters" },
+  elf:       { modelId: "elf",       prefix: "ELF_", label: "Elf",       cdnPath: "/asset-packs/toon-rts-characters/glb/characters/elf.glb",       scale: 1.0,  faction: "fabled",  baseModelStem: "ELF_Characters" },
+  dwarf:     { modelId: "dwarf",     prefix: "DWF_", label: "Dwarf",     cdnPath: "/asset-packs/toon-rts-characters/glb/characters/dwarf.glb",     scale: 0.85, faction: "crusade", baseModelStem: "DWF_Characters" },
+  orc:       { modelId: "orc",       prefix: "ORC_", label: "Orc",       cdnPath: "/asset-packs/toon-rts-characters/glb/characters/orc.glb",       scale: 1.15, faction: "legion",  baseModelStem: "ORC_Characters" },
+  undead:    { modelId: "undead",    prefix: "UD_",  label: "Undead",    cdnPath: "/asset-packs/toon-rts-characters/glb/characters/undead.glb",    scale: 1.0,  faction: "legion",  baseModelStem: "UD_Characters" },
 };
 
 /**
@@ -86,6 +89,19 @@ export function raceMeshPrefix(raceId: string): string {
   const id = normalizeRaceId(raceId);
   return (RACE_GRUDGE6[id] ?? RACE_GRUDGE6.human).prefix;
 }
+
+/**
+ * Warlords play kits — Toon RTS GLB only (`loadRaceKit` / `deployToonPlayKit`).
+ * Not races bake / FBX / metaverse.
+ */
+export const RACE_TOON_RTS_PATHS: Record<string, string> = {
+  human: "/asset-packs/toon-rts-characters/glb/characters/human.glb",
+  barbarian: "/asset-packs/toon-rts-characters/glb/characters/barbarian.glb",
+  elf: "/asset-packs/toon-rts-characters/glb/characters/elf.glb",
+  dwarf: "/asset-packs/toon-rts-characters/glb/characters/dwarf.glb",
+  orc: "/asset-packs/toon-rts-characters/glb/characters/orc.glb",
+  undead: "/asset-packs/toon-rts-characters/glb/characters/undead.glb",
+};
 
 /** Production grudge6 FBX path (materials correct; prefer over stripped GLB) */
 export const RACE_FBX_PATHS: Record<string, string> = {

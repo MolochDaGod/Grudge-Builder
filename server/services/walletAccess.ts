@@ -73,6 +73,7 @@ type StoredChallenge = {
   accountId: string | null;
   walletAddress: string;
   expiresAt: number;
+  messageHash: string;
 };
 
 export type SiwsFields = {
@@ -165,6 +166,62 @@ function buildSiwsMessage(fields: SiwsFields): string {
   return lines.join("\n");
 }
 
+  }
+  const lines = text.split("\n");
+  if (/wants you to sign in with your Solana account/i.test(lines[0] || "")) {
+    const addr = (lines[1] || "").trim().replace(/^solana:(?:mainnet:)?/i, "");
+    return addr || null;
+  }
+  return null;
+}
+
+export function parseSiwsDomain(message: string): string | null {
+  const text = String(message || "");
+  const lines = text.split("\n");
+  const firstLine = lines[0] || "";
+  const domainMatch = firstLine.match(/^(.+?)\s+wants you to sign in with your Solana account/i);
+  if (domainMatch) {
+    return domainMatch[1].trim() || null;
+  }
+  return null;
+}
+
+export function parseSiwsUri(message: string): string | null {
+  const text = String(message || "");
+  const uriLine = text.split("\n").find((l) => /^URI:\s*/i.test(l));
+  if (uriLine) {
+    return uriLine.replace(/^URI:\s*/i, "").trim() || null;
+  }
+  return null;
+}
+
+export function parseSiwsChainId(message: string): string | null {
+  const text = String(message || "");
+  const chainLine = text.split("\n").find((l) => /^Chain ID:\s*/i.test(l));
+  if (chainLine) {
+    return chainLine.replace(/^Chain ID:\s*/i, "").trim() || null;
+  }
+  return null;
+}
+
+function buildSiwsMessage(fields: SiwsFields): string {
+  const lines = [
+    `${fields.domain} wants you to sign in with your Solana account:`,
+    fields.address,
+    "",
+    fields.statement,
+    "",
+    `URI: ${fields.uri}`,
+    `Version: ${fields.version}`,
+    `Chain ID: ${fields.chainId}`,
+    `Nonce: ${fields.nonce}`,
+    `Issued At: ${fields.issuedAt}`,
+    `Expiration Time: ${fields.expirationTime}`,
+  ];
+  if (fields.requestId) lines.push(`Request ID: ${fields.requestId}`);
+  return lines.join("\n");
+}
+
 function createSiwsChallenge(opts: {
   purpose: SiwsPurpose;
   walletAddress: string;
@@ -185,6 +242,11 @@ function createSiwsChallenge(opts: {
     address: opts.walletAddress,
     statement: opts.purpose === "link" ? SIWS_STATEMENT_LINK : SIWS_STATEMENT_LOGIN,
     uri,
+  const siws: SiwsFields = {
+    domain: SIWS_DOMAIN,
+    address: opts.walletAddress,
+    statement: opts.purpose === "link" ? SIWS_STATEMENT_LINK : SIWS_STATEMENT_LOGIN,
+    uri: SIWS_URI,
     version: SIWS_VERSION,
     chainId: SIWS_CHAIN,
     nonce,
@@ -192,6 +254,10 @@ function createSiwsChallenge(opts: {
     expirationTime,
     requestId: opts.accountId || undefined,
   };
+
+  const message = buildSiwsMessage(siws);
+  const messageHash = crypto.createHash("sha256").update(message, "utf8").digest("hex");
+
   siwsChallenges.set(nonce, {
     purpose: opts.purpose,
     accountId: opts.accountId || null,
@@ -200,6 +266,11 @@ function createSiwsChallenge(opts: {
   });
   return {
     message: buildSiwsMessage(siws),
+    messageHash,
+  });
+
+  return {
+    message,
     nonce,
     walletAddress: opts.walletAddress,
     siws,
@@ -218,6 +289,13 @@ export function createLinkChallenge(
 /** Sign-in (not yet linked) → SIWS challenge. */
 export function createLoginChallenge(walletAddress: string, origin?: string | null): SiwsChallenge {
   return createSiwsChallenge({ purpose: "login", walletAddress, origin });
+export function createLinkChallenge(accountId: string, walletAddress: string): SiwsChallenge {
+  return createSiwsChallenge({ purpose: "link", walletAddress, accountId });
+}
+
+/** Sign-in (not yet linked) → SIWS challenge. */
+export function createLoginChallenge(walletAddress: string): SiwsChallenge {
+  return createSiwsChallenge({ purpose: "login", walletAddress });
 }
 
 export function consumeSiwsChallenge(opts: {
@@ -249,6 +327,29 @@ export function consumeSiwsChallenge(opts: {
   if (msgAddr && msgAddr !== opts.walletAddress) {
     throw new Error("Signed address does not match wallet");
   }
+
+  // CRITICAL: Verify the signed message hash matches the exact issued SIWS message.
+  // This cryptographically binds verification to the complete issued statement.
+  const providedMessageHash = crypto.createHash("sha256").update(opts.message, "utf8").digest("hex");
+  if (providedMessageHash !== challenge.messageHash) {
+    throw new Error("Message does not match issued SIWS challenge");
+  }
+
+  // CRITICAL: Verify the signed message contains the exact issued domain, URI, and chain ID.
+  // This binds the signature to the specific context that was issued, not just nonce+signature.
+  const msgDomain = parseSiwsDomain(opts.message);
+  if (!msgDomain || msgDomain !== SIWS_DOMAIN) {
+    throw new Error("Signed message domain does not match issued challenge");
+  }
+  const msgUri = parseSiwsUri(opts.message);
+  if (!msgUri || msgUri !== SIWS_URI) {
+    throw new Error("Signed message URI does not match issued challenge");
+  }
+  const msgChain = parseSiwsChainId(opts.message);
+  if (!msgChain || msgChain !== SIWS_CHAIN) {
+    throw new Error("Signed message chain ID does not match issued challenge");
+  }
+
   if (!verifyWalletSignature(opts.walletAddress, opts.message, opts.signature)) {
     throw new Error("Invalid wallet signature");
   }
@@ -263,6 +364,34 @@ export async function findAccountIdByWalletAddress(walletAddress: string): Promi
     .where(eq(linkedWallets.walletAddress, walletAddress))
     .limit(1);
   if (linked?.accountId) return linked.accountId;
+
+  const [account] = await db
+    .select()
+    .from(accounts)
+    .where(eq(accounts.walletAddress, walletAddress))
+    .limit(1);
+  return account?.id || null;
+}
+
+async function assertWalletAvailable(accountId: string, walletAddress: string): Promise<void> {
+  const [linkedOther] = await db
+    .select()
+    .from(linkedWallets)
+    .where(eq(linkedWallets.walletAddress, walletAddress))
+    .limit(1);
+  if (linkedOther && linkedOther.accountId !== accountId) {
+    throw new Error("This Solana wallet is already linked to another Grudge ID");
+  }
+  const [acctOther] = await db
+    .select()
+    .from(accounts)
+    .where(eq(accounts.walletAddress, walletAddress))
+    .limit(1);
+  if (acctOther && acctOther.id !== accountId) {
+    throw new Error("This Solana wallet is already linked to another Grudge ID");
+  }
+}
+
 
   const [account] = await db
     .select()

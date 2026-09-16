@@ -401,6 +401,62 @@ export const GAME_AUDIO_EVENTS: GameAudioEvent[] = [
   { id: 'class.worg.ready', category: 'class', key: fx('train.ogg'), description: 'Worge loadout equip' },
   { id: 'race.equip', category: 'race', key: fx('select.ogg'), description: 'Race select / equip generic' },
 
+  // ── Leviathan cinema (user WAV pack; same-origin on client.grudge-studio.com) ─
+  // Accidentally shipped only on casting.grudge.studio/audio/sfx. Cinema player
+  // (CinemaCastingSfx) prefers /audio/sfx then falls back to the casting host.
+  // Do not point these at assets.grudge-studio.com/audio/casting/sfx (truncated).
+  {
+    id: 'cinema.cast.ramp',
+    category: 'combat_magic',
+    key: '/audio/sfx/cast-ramp.wav',
+    description: 'Leviathan deck mage channel / dragon charge',
+    tags: ['cinema', 'leviathan', 'cast'],
+  },
+  {
+    id: 'cinema.cast.chant',
+    category: 'combat_magic',
+    key: '/audio/sfx/cast-chant.wav',
+    description: 'Leviathan ice / blizzard / pinata chant',
+    tags: ['cinema', 'leviathan', 'cast'],
+  },
+  {
+    id: 'cinema.parry',
+    category: 'combat_magic',
+    key: '/audio/sfx/parry.wav',
+    description: 'Leviathan mage flee / metal parry',
+    tags: ['cinema', 'leviathan'],
+  },
+  {
+    id: 'cinema.parry.magic',
+    category: 'combat_magic',
+    key: '/audio/sfx/parry-magic.wav',
+    description: 'Leviathan ward / shield bounce',
+    tags: ['cinema', 'leviathan', 'ward'],
+  },
+  {
+    id: 'cinema.impact.magic',
+    category: 'combat_magic',
+    key: '/audio/sfx/impact-magic-a.wav',
+    variants: ['/audio/sfx/impact-magic-b.wav', '/audio/sfx/impact-magic-c.wav'],
+    description: 'Leviathan beam / pinata / ice impact (3 variants)',
+    tags: ['cinema', 'leviathan', 'impact'],
+  },
+  {
+    id: 'cinema.burn',
+    category: 'combat_magic',
+    key: '/audio/sfx/burn.wav',
+    description: 'Leviathan fire-beam / hull-fire loop (not impact)',
+    tags: ['cinema', 'leviathan', 'burning'],
+  },
+  {
+    id: 'cinema.heal',
+    category: 'combat_magic',
+    key: '/audio/sfx/heal-a.wav',
+    variants: ['/audio/sfx/heal-b.wav'],
+    description: 'Leviathan heal reserved',
+    tags: ['cinema', 'leviathan'],
+  },
+
   // ── Music beds ───────────────────────────────────────────────────────────
   { id: 'music.battle', category: 'music', key: music('corrupted-circuitry.ogg'), description: 'Combat BGM' },
   { id: 'music.ocean', category: 'music', key: music('beach-vibes.ogg'), description: 'Ocean / sail' },

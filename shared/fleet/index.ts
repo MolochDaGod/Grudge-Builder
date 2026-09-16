@@ -25,6 +25,12 @@ export {
   canonicalSsoReturnOrigin,
 } from "./authReturn";
 
+export {
+  FLEET_AUTH_TOKEN_KEYS as WARLORDS_AUTH_TOKEN_KEYS,
+  FLEET_OPEN_TOKEN_KEY,
+  FLEET_AUTH_TOKEN_READ_FALLBACK,
+} from "./tokenKeys";
+
 /** Warlords era *.grudgewarlords.com product zone */
 export {
   WARLORDS_APEX,
@@ -82,6 +88,9 @@ export {
   FLEET_AUTH_IMPLEMENTATION,
   FLEET_AUTH_DEPRECATED_API,
   FLEET_AUTH_TOKEN_KEYS,
+  FLEET_AUTH_PROFILE_KEYS,
+  clearFleetAuthTokens,
+  readFleetAuthToken,
   FLEET_AUTH_RETURN_PARAMS,
   FLEET_AUTH_WIRING_GUIDE,
   FLEET_AUTH_PROXY_PATHS,
@@ -117,7 +126,7 @@ export {
 
 export { FLEET_VIDEO_CATALOG, type FleetVideoEntry } from "./videoCatalog";
 
-export { GBUX_TOKEN_ICON, TOME_ICON_PATHS, tomeIconCdnUrl } from "./uiIcons";
+export { GBUX_TOKEN_ICON, GBUX_TOKEN_ICON_PATH, TOME_ICON_PATHS, tomeIconCdnUrl } from "./uiIcons";
 
 export {
   FLEET_FONTS,
@@ -168,6 +177,7 @@ export {
 } from "./uiArt";
 
 export {
+  WARLORDS_PLAY_CONTRACT_VERSION,
   RACE_GRUDGE6,
   RACE_TOON_RTS_PATHS,
   RACE_FBX_PATHS,
@@ -217,3 +227,19 @@ export {
   type MountDef,
   type SiegeDef,
 } from "./vehicles";
+
+/** Warlords MMO host contract — grudgewarlords.com only */
+export {
+  WARLORDS_MMO_HOST,
+  WARLORDS_MMO_CONTRACT,
+  WARLORDS_MMO_ROUTES,
+  WARLORDS_MMO_MAP_FAMILIES,
+  WARLORDS_MMO_CATALOGS,
+  WARLORDS_MMO_KEYS,
+  WARLORDS_MMO_NOT_HOST,
+  CHARACTER_HEIGHT_M,
+  BUILDING_HEIGHT_M,
+  HOME_ISLAND_DIAMETER_M,
+  catalogUrls,
+  isWarlordsMmoPlayPath,
+} from "./warlordsMmoDeploy";

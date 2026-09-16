@@ -1,14 +1,15 @@
 /**
- * Solo starting adventure — shipwreck on pirate island.
+ * Multiplayer starting adventure — Shipwreck Cove on the pirate-islands map.
  *
- * NOT multiplayer lobby. Room name: "tutorial" (alias "shipwreck").
- * Private instance: filterBy characterId, maxClients 1.
+ * Room name: "tutorial" (alias "shipwreck").
+ * Shared Colyseus shards host up to 24 survivors while tutorial progression,
+ * crafting, rewards, and completion remain authoritative per character.
  *
  * Opener is driven by the Dock Quest Traveler (same quest line for every race;
  * destinations change). Full step SSOT: travelerTutorialQuest.ts
  *
- * After completion → sail to race faction island → meet commander
- * → then home-island video/creation/cNFT → real multiplayer.
+ * After completion → sail to the shared pirate/faction lobby → race faction
+ * island → commander → home island / open world.
  */
 
 import type { FactionIslandRaceId } from "./factionLobbyIslands";
@@ -17,33 +18,33 @@ import {
   TRAVELER_NPC,
   fullTravelerQuestForRace,
 } from "./travelerTutorialQuest";
+import { MULTIPLAYER_SHIPWRECK } from "./multiplayerTutorial";
 
-// Re-export race type for consumers that import tutorialFlow only
 export type { FactionIslandRaceId };
 
-export const TUTORIAL_ROOM = "tutorial" as const;
+export const TUTORIAL_ROOM = MULTIPLAYER_SHIPWRECK.roomName;
 /** Back-compat alias registered on Colyseus */
-export const TUTORIAL_ROOM_ALIAS = "shipwreck" as const;
+export const TUTORIAL_ROOM_ALIAS = MULTIPLAYER_SHIPWRECK.legacyAlias;
 
-/** Dock traveler that opens the tutorial on every race boat (island1). */
+/** Dock traveler that opens the tutorial for every race. */
 export const TUTORIAL_OPENER_NPC = TRAVELER_NPC;
 
 /**
- * Ordered solo mission steps (server schema + client checklist).
- * Aligned with traveler tutorial — ends on raft → faction island → commander.
+ * Ordered mission steps (server titles + client checklist).
+ * Completion is per character even though the world shard is multiplayer.
  */
 export const TUTORIAL_STEPS = [
   {
     id: "intro_video",
-    title: "Watch the intro",
+    title: "Survive the Leviathan",
     detail:
-      "TI / Warlords open movie ends → shipwreck load → slow zoom to unarmed Grudge6 near wreck, boats, and the Dock Quest Traveler.",
+      "Leviathan Ocean cinema destroys the first-voyage ship, then the hero wakes unarmed at multiplayer Shipwreck Cove.",
   },
   {
     id: "meet_traveler",
     title: "Speak with Dock Quest Traveler",
     detail:
-      "Same quest line for all races. Traveler stands on the starter boat / dock (quest_traveler · starter_quest_boat).",
+      "Same quest line for all races. Other survivors may be completing their own objectives nearby.",
   },
   {
     id: "gather_sticks",
@@ -53,7 +54,7 @@ export const TUTORIAL_STEPS = [
   {
     id: "gather_stones",
     title: "Collect stones (×2)",
-    detail: "Gather small stones in the same wake area.",
+    detail: "Gather small stones in the same wake area; tutorial resources are non-competitive.",
   },
   {
     id: "craft_t0_tools",
@@ -74,7 +75,7 @@ export const TUTORIAL_STEPS = [
   {
     id: "fight_boar",
     title: "Defeat a training foe",
-    detail: "Combat basics: attack, block, dodge — then loot.",
+    detail: "Combat basics: attack, block, dodge. Nearby survivors can assist without stealing progression.",
   },
   {
     id: "cook_meat",
@@ -94,19 +95,19 @@ export const TUTORIAL_STEPS = [
   {
     id: "board_raft",
     title: "Board the raft (E)",
-    detail: "Enter the raft and prepare to sail.",
+    detail: "Enter the raft and prepare to sail from Shipwreck Cove.",
   },
   {
     id: "sail_faction_island",
     title: "Sail to your faction island",
     detail:
-      "Race-specific destination only — human→Haven Reach, barbarian→Stormfang, elf→Starleaf, dwarf→Anvilspire, orc→Bloodwake, undead→Gravewake.",
+      "Enter the shared pirate/faction lobby and sail the outer ring to your race destination.",
   },
   {
     id: "meet_commander",
     title: "Meet your race commander",
     detail:
-      "Dock and report to the mounted captain / commander. Traveler quest completes; improved rewards grant.",
+      "Dock at your faction island and report to the mounted captain / commander. The world game loop opens from here.",
   },
 ] as const;
 
@@ -121,16 +122,16 @@ export function tutorialOpenerForRace(raceId: FactionIslandRaceId) {
 export const TRAVELER_OPENER_STEP_IDS = TRAVELER_TUTORIAL_STEPS.map((s) => s.id);
 
 /**
- * Post-tutorial player journey (real game — multiplayer Colyseus).
+ * Post-tutorial Warlords journey.
  *
- * 0. Traveler opener complete (raft → faction island → commander)
- * 1. Home-island video + creation + home-island cNFT
- * 2. Live on home_island (private/owned instance, can invite others)
- * 3. Raft travel → world map (9 sectors)
- * 4. Multiplayer: lobby, sector/zone, town, dungeon, instances
- * 5. Home-island invite: near portal/raft press E → create or accept invite
+ * 0. Shared Shipwreck Cove tutorial (Leviathan wash-up)
+ * 1. Raft → multiplayer pirate/faction lobby
+ * 2. Race faction island → commander / hero-NPC campaigns
+ * 3. Home island + professions / crafting / building
+ * 4. World map → 9 multiplayer sectors / towns / dungeons / bosses
  */
 export const POST_TUTORIAL_FLOW = {
+  factionLobby: "/island-3d?mode=lobby&map=pirate-islands&from=tutorial&focus=faction",
   factionIslandReport: "/faction-island",
   homeIslandReveal: "/island-reveal",
   homeIslandPlay: "/home-island",

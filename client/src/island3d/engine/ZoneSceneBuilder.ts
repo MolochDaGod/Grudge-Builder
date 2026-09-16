@@ -24,7 +24,7 @@ import {
   generateIslandTerrain,
   type IslandTerrainConfig,
 } from '../terrain/IslandTerrainGenerator';
-import { createSectorTerrainMaterial, createTerrainMaterial } from '../terrain/TerrainMaterial';
+import { createSectorTerrainMaterial } from '../terrain/TerrainMaterial';
 import {
   createOceanMesh,
   updateOceanMaterial,
@@ -172,7 +172,6 @@ export function buildZoneScene(
       small:    { xSegments: 55, ySegments: 55, xSize: 520, ySize: 520, maxHeight: 55 },
       medium:   { xSegments: 79, ySegments: 79, xSize: 900, ySize: 900, maxHeight: 95 },
       large:    { xSegments: 111, ySegments: 111, xSize: 1500, ySize: 1500, maxHeight: 130 },
-      home:     { xSegments: 127, ySegments: 127, xSize: 2000, ySize: 2000, maxHeight: 150 },
       fortress: { xSegments: 159, ySegments: 159, xSize: 2800, ySize: 2800, maxHeight: 200 },
     };
     const sizeConfig = sizeToConfig[island.size] ?? sizeToConfig.medium;
@@ -187,15 +186,9 @@ export function buildZoneScene(
       maxHeight: sizeConfig.maxHeight ?? cfg.maxHeight * 0.6,
     } as IslandTerrainConfig);
 
-    // Multi-layer height+slope blend (Valheim-like) — home uses generic grass stack;
-    // other islands use sector biome GroundPBR stack.
-    const material = island.size === 'home'
-      ? createTerrainMaterial({
-          minHeight: seafloorY,
-          maxHeight: sizeConfig.maxHeight,
-          waterLevel: cfg.waterLevel,
-        })
-      : createSectorTerrainMaterial(sector, {
+    // Sector islands use their biome's height+slope blend. Player home islands
+    // load through the separate home-island scene, not an IslandSize value.
+    const material = createSectorTerrainMaterial(sector, {
           waterLevel: cfg.waterLevel,
           minHeight: landMin,
           maxHeight: sizeConfig.maxHeight ?? cfg.maxHeight * 0.6,
@@ -331,7 +324,6 @@ export function buildZoneScene(
     ship.userData.wpIndex = 0;
     const hostile =
       patrol.faction === 'hostile' ||
-      patrol.faction === 'pirate' ||
       patrol.faction === 'legion' ||
       patrol.difficulty >= 6;
     ship.userData.burning = hostile;
@@ -355,21 +347,8 @@ export function buildZoneScene(
   // ── 6. Update Function ─────────────────────────────────────
 
   function update(dt: number, elapsed: number): void {
-    // Animate ocean
-    try {
-      updateOceanMaterial(ocean, elapsed);
-    } catch {
-      // Fallback wave animation
-      const pos = (ocean.geometry as THREE.BufferGeometry).attributes.position;
-      if (pos) {
-        const arr = pos.array as Float32Array;
-        for (let i = 0; i < arr.length; i += 3) {
-          arr[i + 1] = Math.sin(arr[i] * 0.02 + elapsed) * 0.8
-                      + Math.cos(arr[i + 2] * 0.015 + elapsed * 0.7) * 0.5;
-        }
-        pos.needsUpdate = true;
-      }
-    }
+    // Waves are displaced by the shader, matching the gameplay height sampler.
+    updateOceanMaterial(ocean.material, elapsed);
 
     // Animate markers
     for (const { obj, type } of animatedObjects) {

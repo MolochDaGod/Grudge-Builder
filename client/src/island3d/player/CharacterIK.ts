@@ -373,6 +373,22 @@ export class CharacterIK {
     this.rightPhaseTimer = duration;
   }
 
+  private harvestIkT = 0;
+  private harvestIkTarget = new THREE.Vector3();
+
+  /** Hatchet swing — right-hand IK toward the chop point (one mixer, FK then IK). */
+  pulseHarvestAxeIK(target: THREE.Vector3, duration = 0.38): void {
+    this.harvestIkT = duration;
+    this.harvestIkTarget.copy(target);
+  }
+
+  tickHarvestAxeIK(dt: number): void {
+    if (this.harvestIkT <= 0) return;
+    this.harvestIkT -= dt;
+    const w = THREE.MathUtils.clamp(this.harvestIkT / 0.22, 0, 1) * 0.88;
+    this.updateHandIK('right', this.harvestIkTarget, w);
+  }
+
   /** Debug text for lil-gui style foot phase panel. */
   getFootPhaseDebugText(side: 'left' | 'right'): string {
     return side === 'left' ? this.leftFootPhase : this.rightFootPhase;

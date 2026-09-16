@@ -9,6 +9,8 @@ const CORS_HEADERS = {
   'Access-Control-Allow-Methods': 'GET, HEAD, OPTIONS',
   'Access-Control-Allow-Headers': 'Content-Type, Range',
   'Access-Control-Max-Age': '86400',
+  'Access-Control-Expose-Headers': 'ETag, Accept-Ranges, Content-Length, Content-Type',
+  Vary: 'Origin',
 };
 
 /** Map common extensions to Content-Type (R2 metadata may already have it) */
