@@ -1,6 +1,6 @@
 /**
  * PIP boss phase / attack pick smoke tests.
- * Run: npx tsx client/src/island3d/combat/LargeBossFightSystem.test.ts
+ * Run: npx vitest run --config client/vitest.config.ts client/src/island3d/combat/LargeBossFightSystem.test.ts
  */
 import {
   PIP_SKULL_BOSS_FIGHT,
@@ -14,6 +14,9 @@ import {
   isLavaCaesarFight,
 } from '../../../../shared/definitions/lavaCaesarBossFight.ts';
 
+import { test } from 'vitest';
+
+test('LargeBossFightSystem gameplay invariants', () => {
 function assert(c: boolean, m: string) {
   if (!c) throw new Error(m);
 }
@@ -72,4 +75,5 @@ console.log('LargeBossFightSystem.test.ts OK', {
   heightM: h.toFixed(1),
   slamKb: slam.knockbackMps,
   zapStun: zap.stunSec,
+});
 });

@@ -83,7 +83,9 @@ const JWT_SECRET_CANDIDATES = [
   process.env.SESSION_SECRET,
   process.env.JWT_SECRET,
   process.env.GRUDGE_JWT_SECRET,
-].filter((s): s is string => !!s && s.length > 0);
+]
+  .map((s) => s?.trim())
+  .filter((s): s is string => !!s && s.length > 0);
 
 const JWT_SECRET = JWT_SECRET_CANDIDATES[0] || "";
 
@@ -363,6 +365,11 @@ export async function registerRoutes(
   // Multiplayer REST bootstrap (status / session / sector asset manifests)
   const { registerMultiplayerRoutes } = await import("./routes/multiplayerRoutes");
   registerMultiplayerRoutes(app);
+
+  // AI router (gruda-ai-router) — Legion first, Puter fallback, page logging, cost tiers
+  // Protects grudgewarlords.com/craft and all direct puter.ai.chat callers
+  import aiRouter from "./ai/gruda-ai-router/server/ai-router.mjs";
+  app.use("/api/ai", aiRouter);
 
   // Local huge medieval battle GLB (dev) — 517MB on D: drive
   app.get("/api/local-war-scene", (req, res) => {
@@ -1881,7 +1888,7 @@ export async function registerRoutes(
   });
 
   // Get the player's home island (creates one if doesn't exist)
-  app.get("/api/island", async (req, res) => {
+  app.get("/api/island", requireAuth, async (req, res) => {
     try {
       const userId = getUserId(req);
       const account = await storage.getOrCreateAccountForUser(userId);
@@ -1921,7 +1928,7 @@ export async function registerRoutes(
     }
   });
 
-  app.get("/api/island/status", async (req, res) => {
+  app.get("/api/island/status", requireAuth, async (req, res) => {
     try {
       const userId = getUserId(req);
       const account = await storage.getOrCreateAccountForUser(userId);
@@ -8379,31 +8386,6 @@ Your response must be valid JSON array only, no markdown or explanation.`;
     } catch (error) {
       console.error("Error fetching accounts summary:", error);
       res.status(500).json({ error: "Failed to fetch accounts summary" });
-    }
-  });
-
-  // ==================== Health Check ====================
-  app.get("/api/health", async (_req, res) => {
-    try {
-      const dbResult = await db.execute(sql`SELECT 1`);
-      res.status(200).json({
-        status: "healthy",
-        app: "grudge-builder",
-        version: "1.0.0",
-        timestamp: new Date().toISOString(),
-        services: {
-          database: dbResult ? "operational" : "error",
-          api: "operational",
-        },
-      });
-    } catch (error) {
-      res.status(503).json({
-        status: "unhealthy",
-        app: "grudge-builder",
-        version: "1.0.0",
-        timestamp: new Date().toISOString(),
-        error: error instanceof Error ? error.message : "Unknown error",
-      });
     }
   });
 

@@ -9,7 +9,7 @@
  * not in these trees (see .gitignore / .vercelignore).
  */
 import { cp } from "node:fs/promises";
-import { existsSync } from "node:fs";
+import { existsSync, readFileSync, readdirSync } from "node:fs";
 import path from "node:path";
 import { fileURLToPath } from "node:url";
 
@@ -57,3 +57,37 @@ if (!existsSync(craftIndex)) {
 }
 console.log("public assets copied to client/dist (client/public SSOT last)");
 console.log("craft suite present:", path.relative(repoRoot, craftIndex));
+
+// Hard gate: React Warlords main panel (not the old vanilla panel.js hub)
+const panelDir = path.join(distDir, "main-panel");
+const panelIndex = path.join(panelDir, "index.html");
+const panelHtml = existsSync(panelIndex) ? readFileSync(panelIndex, "utf8") : "";
+const assetsDir = path.join(panelDir, "assets");
+const panelBundle = existsSync(assetsDir)
+  ? readdirSync(assetsDir).find((f) => /^panel-.*\.js$/.test(f))
+  : null;
+const panelBundleSrc =
+  panelBundle && existsSync(path.join(assetsDir, panelBundle))
+    ? readFileSync(path.join(assetsDir, panelBundle), "utf8")
+    : "";
+if (
+  !panelHtml.includes('id="app"') ||
+  !panelHtml.includes("/main-panel/assets/") ||
+  !panelBundle ||
+  !panelBundleSrc.includes("boats") ||
+  !panelBundleSrc.includes("crew") ||
+  !panelBundleSrc.includes("paperdoll")
+) {
+  console.error(
+    "copy-public-to-dist: main-panel React bundle missing (index.html + assets/panel-*.js with boats/crew/paperdoll) — refusing to ship a stub hub",
+  );
+  process.exit(1);
+}
+console.log(
+  "main panel present:",
+  path.relative(repoRoot, panelIndex),
+  "bundle",
+  panelBundle,
+  panelBundleSrc.length,
+  "bytes",
+);

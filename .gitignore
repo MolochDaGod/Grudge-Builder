@@ -1,5 +1,6 @@
 # Vendored monorepo (CI clone for native /world)
 vendor/grudge-character-animator/
+_stage_long_row_boat/
 
 # Dependencies
 node_modules/

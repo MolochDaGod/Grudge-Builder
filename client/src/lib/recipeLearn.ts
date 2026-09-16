@@ -149,6 +149,43 @@ export async function tryLearnRecipeFromAsset(
   return { ok: true, recipe, firstTime: true };
 }
 
+/**
+ * Vendor sale — learn a catalog recipe id (not an ice-biome world prop).
+ * Same unlock API + local cache as E-learn.
+ */
+export async function tryLearnRecipeFromVendor(
+  recipeId: string,
+  opts?: { characterId?: string; vendorId?: string },
+): Promise<{ ok: true; firstTime: boolean } | { ok: false; reason: string }> {
+  const cid = opts?.characterId ?? getActiveCharacterId();
+  if (!cid) return { ok: false, reason: 'No active character' };
+  const id = String(recipeId || '').trim();
+  if (!id) return { ok: false, reason: 'Missing recipe' };
+
+  if (hasLearnedRecipe(cid, id)) {
+    return { ok: true, firstTime: false };
+  }
+
+  const set = readCache(cid);
+  set.add(id);
+  writeCache(cid, set);
+
+  try {
+    await fetch(`/api/characters/${encodeURIComponent(cid)}/recipes/unlock`, {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({
+        recipeId: id,
+        source: 'vendor',
+        vendorId: opts?.vendorId ?? null,
+      }),
+    });
+  } catch {
+    /* local cache holds until sync */
+  }
+  return { ok: true, firstTime: true };
+}
+
 export function listLearnedRecipeIds(characterId?: string | null): string[] {
   const cid = characterId ?? getActiveCharacterId();
   if (!cid) return [];

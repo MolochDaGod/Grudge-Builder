@@ -318,6 +318,19 @@ export const ITEMS: Record<string, ItemDefinition> = {
     maxStack: 9999
   },
   
+  "item_long_row_boat": {
+    id: "item_long_row_boat",
+    name: "Long Row Boat",
+    description:
+      "Barbarian long oar hull (~11.7 m). Recipe from the Stormfang Dock Master. Craft at a dock.",
+    icon: "🚣",
+    type: "vehicle",
+    rarity: "uncommon",
+    levelRequirement: 1,
+    sellValue: 40,
+    stackable: false,
+  },
+
   "item_legendary_sword": {
     id: "item_legendary_sword",
     name: "Excalibur",

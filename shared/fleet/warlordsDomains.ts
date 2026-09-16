@@ -37,6 +37,12 @@ export const WARLORDS_CLIENT_STUDIO = "https://client.grudge-studio.com" as cons
 export const PLAY_GRUDGE_STUDIO_HUB = "https://play.grudge.studio" as const;
 /** @deprecated use PLAY_GRUDGE_STUDIO_HUB — was wrongly labeled “dead Warlords alias” */
 export const PLAY_GRUDGE_STUDIO_LEGACY = PLAY_GRUDGE_STUDIO_HUB;
+/** Stable Warlords playtest host; shares fleet identity and content services. */
+export const WARLORDS_TEST_HOST = "test.grudge-studio.com" as const;
+export const WARLORDS_TEST_ORIGIN = `https://${WARLORDS_TEST_HOST}` as const;
+
+/** Dead / non-Warlords hub — do not use for Warlords era. */
+export const PLAY_GRUDGE_STUDIO_LEGACY = "https://play.grudge.studio" as const;
 
 /**
  * Clean Warlords subdomains (all should CNAME → same Vercel SPA as apex).
@@ -95,6 +101,15 @@ export const WARLORDS_HOST_PATH: Record<
  * Server/browser: WARLORDS_PLAY_ORIGIN=https://play.grudgewarlords.com
  */
 export function warlordsPlayOrigin(): string {
+  // Keep in-game absolute links on the stable test deployment. Never trust an
+  // arbitrary preview hostname as a destination for character/SSO handoffs.
+  if (
+    typeof window !== "undefined" &&
+    window.location.protocol === "https:" &&
+    window.location.hostname.toLowerCase() === WARLORDS_TEST_HOST
+  ) {
+    return WARLORDS_TEST_ORIGIN;
+  }
   try {
     const env =
       (typeof process !== "undefined" &&
@@ -217,6 +232,7 @@ export function isWarlordsPlayHost(hostname: string): boolean {
   if (h === "grudgewarlords.com" || h === "www.grudgewarlords.com") return true;
   if (h.endsWith(".grudgewarlords.com")) return true;
   // client.grudge-studio.com = Nexus /heroes interim — NOT Warlords play
+  if (h === "client.grudge-studio.com" || h === WARLORDS_TEST_HOST) return true;
   return false;
 }
 
@@ -234,7 +250,8 @@ export function isGrudgeStudioHubHost(hostname: string): boolean {
 
 /** Studio platform hosts (id, assets, foundry — not era play). */
 export function isStudioPlatformHost(hostname: string): boolean {
-  const h = hostname.toLowerCase();
+  const h = hostname.toLowerCase().replace(/\.$/, "");
+  if (h === WARLORDS_TEST_HOST) return false;
   if (h === "grudge-studio.com" || h === "www.grudge-studio.com") return true;
   if (h.endsWith(".grudge-studio.com") && h !== "client.grudge-studio.com") return true;
   return false;

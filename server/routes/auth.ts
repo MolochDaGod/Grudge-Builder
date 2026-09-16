@@ -45,8 +45,30 @@ import {
   fetchIdentityUserById,
   type IdentityUser,
 } from "../lib/identityLink";
+import {
+  createLinkChallenge,
+  createLoginChallenge,
+  originFromRequest,
+  consumeSiwsChallenge,
+  confirmLinkedWallet,
+  persistLinkedWallet,
+  findAccountIdByWalletAddress,
+} from "../services/walletAccess";
+import type { LinkedWalletProvider } from "@shared/schema";
 
 const JWT_SECRET = process.env.SESSION_SECRET || process.env.JWT_SECRET || "grudge-dev-secret";
+  listLinkedWallets,
+} from "../services/walletAccess";
+import type { LinkedWalletProvider } from "@shared/schema";
+
+/** Prefer SESSION_SECRET (auth.ts) then JWT_SECRET / GRUDGE_JWT_SECRET — use first non-empty candidate only. */
+const JWT_SECRET_CANDIDATES = [
+  process.env.SESSION_SECRET,
+  process.env.JWT_SECRET,
+  process.env.GRUDGE_JWT_SECRET,
+].filter((s): s is string => !!s && s.length > 0);
+
+const JWT_SECRET = JWT_SECRET_CANDIDATES[0] || "";
 /**
  * Session JWT lifetime — max allowed “stay signed in” for fleet SSO.
  * Default **365d**. Override JWT_SESSION_TTL (capped at 365d).
@@ -192,6 +214,9 @@ function signToken(payload: {
   isAdmin?: boolean;
   email?: string | null;
 }): string {
+  if (!JWT_SECRET) {
+    throw new Error("JWT secret not configured (SESSION_SECRET, JWT_SECRET, or GRUDGE_JWT_SECRET required)");
+  }
   const role = payload.role ?? "player";
   return jwt.sign(
     {
@@ -393,6 +418,50 @@ function readSessionToken(req: Request): string | null {
   return match ? decodeURIComponent(match[1]) : null;
 }
 
+function trySessionUserId(req: Request): string | null {
+  const token = readSessionToken(req);
+  if (!token) return null;
+  if (!token || !JWT_SECRET) return null;
+  try {
+    const payload = jwt.verify(token, JWT_SECRET) as { userId?: string; sub?: string };
+    return payload.userId || (payload.sub != null ? String(payload.sub) : null);
+  } catch {
+    return null;
+  }
+}
+
+async function findUserForPasswordLogin(identifier: string) {
+  const raw = String(identifier || "").trim();
+  if (!raw) return null;
+  const [byName] = await db.select().from(users).where(eq(users.username, raw)).limit(1);
+  if (byName) return byName;
+  if (raw.includes("@")) {
+    const [byEmail] = await db
+      .select()
+      .from(users)
+      .where(eq(users.email, raw.toLowerCase()))
+      .limit(1);
+    if (byEmail) return byEmail;
+  }
+  if (/^GRUDGE_/i.test(raw)) {
+    const gid = raw.toUpperCase();
+    const [byGid] = await db.select().from(users).where(eq(users.grudgeId, gid)).limit(1);
+    if (byGid) return byGid;
+    const [acct] = await db.select().from(accounts).where(eq(accounts.grudgeId, gid)).limit(1);
+    if (acct?.userId) {
+      const [u] = await db.select().from(users).where(eq(users.id, acct.userId)).limit(1);
+      if (u) return u;
+    }
+  }
+  return null;
+}
+
+function normalizeWalletProvider(raw: unknown): LinkedWalletProvider {
+  const p = String(raw || "").toLowerCase();
+  if (p === "phantom" || p === "solflare" || p === "backpack") return p;
+  return "other";
+}
+
 function resolveReturnUrl(req: Request): string {
   const fromQuery = resolveFleetReturnUrl(req.query as Record<string, string | string[] | undefined>, "");
   if (fromQuery) return fromQuery;
@@ -539,6 +608,9 @@ async function resolvePuterGrudgeAccount(
 }
 
 function mintLaunchToken(userId: string, grudgeId: string, audience: string): string {
+  if (!JWT_SECRET) {
+    throw new Error("JWT secret not configured (SESSION_SECRET, JWT_SECRET, or GRUDGE_JWT_SECRET required)");
+  }
   return jwt.sign(
     { type: "launch", userId, grudgeId, aud: audience },
     JWT_SECRET,
@@ -627,6 +699,10 @@ export function registerAuthRoutes(app: Express) {
       return res.redirect(302, loginFallback);
     }
 
+    if (!JWT_SECRET) {
+      return res.status(500).send("Authentication not configured");
+    }
+
     try {
       const payload = jwt.verify(token, JWT_SECRET) as {
         userId?: string;
@@ -687,14 +763,17 @@ export function registerAuthRoutes(app: Express) {
   });
 
   // ── GET /api/auth/page — Grudge ID sign-in UI (id.grudge-studio.com) ──
-  app.get("/api/auth/page", (_req: Request, res: Response) => {
+  const serveAuthPage = (_req: Request, res: Response) => {
     const pagePath = authAssetPath("auth-page.html");
     if (!fs.existsSync(pagePath)) {
       return res.status(503).send("Auth page unavailable");
     }
     res.setHeader("Cache-Control", "no-store, must-revalidate");
     res.type("html").sendFile(pagePath);
-  });
+  };
+  app.get("/api/auth/page", serveAuthPage);
+  app.get("/account", serveAuthPage);
+  app.get("/account/", serveAuthPage);
 
   const serveAuthFavicon = (file: string, type: string) => (_req: Request, res: Response) => {
     const iconPath = authAssetPath(file);
@@ -848,6 +927,7 @@ export function registerAuthRoutes(app: Express) {
     try {
       const token = readSessionToken(req);
       if (!token) return res.status(401).json({ success: false, error: "Not authenticated" });
+      if (!JWT_SECRET) return res.status(500).json({ success: false, error: "Authentication not configured" });
 
       const payload = jwt.verify(token, JWT_SECRET) as { userId: string };
       const { username, email, displayName: bodyDisplay } = req.body as {
@@ -856,7 +936,7 @@ export function registerAuthRoutes(app: Express) {
         displayName?: string;
       };
 
-      const [user] = await db.select().from(users).where(eq(users.id, payload.userId)).limit(1);
+      let [user] = await db.select().from(users).where(eq(users.id, payload.userId)).limit(1);
       if (!user) return res.status(404).json({ success: false, error: "User not found" });
 
       const [account] = await db.select().from(accounts).where(eq(accounts.userId, user.id)).limit(1);
@@ -873,6 +953,10 @@ export function registerAuthRoutes(app: Express) {
         const [taken] = await db.select().from(users).where(eq(users.username, requested)).limit(1);
         if (taken && taken.id !== user.id) {
           return res.status(409).json({ success: false, error: "Username taken" });
+        }
+        if (isAutoUsername(user.username) && user.username !== requested) {
+          await db.update(users).set({ username: requested }).where(eq(users.id, user.id));
+          user = { ...user, username: requested };
         }
         if (account) {
           await storage.updateAccount(account.id, { displayName: requested });
@@ -923,6 +1007,7 @@ export function registerAuthRoutes(app: Express) {
     try {
       const token = readSessionToken(req);
       if (!token) return res.status(401).json({ error: "Authentication required" });
+      if (!JWT_SECRET) return res.status(500).json({ error: "Authentication not configured" });
 
       const payload = jwt.verify(token, JWT_SECRET) as { userId: string; grudgeId?: string };
       const audience = (req.body?.audience as string) || "";
@@ -962,6 +1047,7 @@ export function registerAuthRoutes(app: Express) {
     try {
       const token = readSessionToken(req) || (req.body?.token as string) || "";
       if (!token) return res.status(401).json({ success: false, error: "Authentication required" });
+      if (!JWT_SECRET) return res.status(500).json({ success: false, error: "Authentication not configured" });
 
       const payload = jwt.verify(token, JWT_SECRET) as {
         userId?: string;
@@ -1011,11 +1097,17 @@ export function registerAuthRoutes(app: Express) {
     try {
       const token = readSessionToken(req) || (req.body?.token as string) || "";
       if (!token) {
-        return res.status(401).json({
+        // Unsigned is normal — 200 so browsers do not log a failed claim probe.
+        return res.status(200).json({
           success: false,
+          claimed: false,
           error: "No session",
           hint: "Sign in once at id.grudge-studio.com — then claim works on all fleet hosts.",
         });
+      }
+
+      if (!JWT_SECRET) {
+        return res.status(500).json({ error: "Authentication not configured" });
       }
 
       const payload = jwt.verify(token, JWT_SECRET) as {
@@ -1062,6 +1154,10 @@ export function registerAuthRoutes(app: Express) {
     let grudgeId = "";
     let identityUserId = "";
     let decodedAud = "";
+
+    if (!JWT_SECRET) {
+      throw new Error("Authentication not configured");
+    }
 
     try {
       const decoded = jwt.verify(launchToken, JWT_SECRET) as {
@@ -1208,56 +1304,201 @@ export function registerAuthRoutes(app: Express) {
   });
 
   /**
-   * POST /api/auth/wallet
-   * Solana wallet login — creates account if new.
+   * POST /api/auth/phantom/nonce
+   * SIWS challenge for Solana login or (when already signed in) wallet link.
    */
-  app.post("/api/auth/wallet", authRateLimit, async (req: Request, res: Response) => {
+  app.post("/api/auth/phantom/nonce", authRateLimit, async (req: Request, res: Response) => {
     try {
-      const walletAddress = req.body.wallet_address || req.body.walletAddress;
+      const walletAddress = String(req.body?.address || req.body?.walletAddress || "").trim();
       if (!walletAddress) {
-        return res.status(400).json({ success: false, error: "wallet_address required" });
+        return res.status(400).json({ success: false, error: "address required" });
+      }
+      const sessionUserId = trySessionUserId(req);
+      if (sessionUserId) {
+        const account = await ensureAccount(sessionUserId);
+        const challenge = createLinkChallenge(account.id, walletAddress, originFromRequest(req));
+        return res.json({
+          success: true,
+          purpose: "link",
+          message: challenge.message,
+          nonce: challenge.nonce,
+          walletAddress: challenge.walletAddress,
+          siws: challenge.siws,
+        });
+      }
+      const challenge = createLoginChallenge(walletAddress, originFromRequest(req));
+      }
+      const sessionUserId = trySessionUserId(req);
+      if (sessionUserId) {
+        const account = await ensureAccount(sessionUserId);
+        const challenge = createLinkChallenge(account.id, walletAddress);
+        return res.json({
+          success: true,
+          purpose: "link",
+          message: challenge.message,
+          nonce: challenge.nonce,
+          walletAddress: challenge.walletAddress,
+          siws: challenge.siws,
+        });
+      }
+      const challenge = createLoginChallenge(walletAddress);
+      res.json({
+        success: true,
+        purpose: "login",
+        message: challenge.message,
+        nonce: challenge.nonce,
+        walletAddress: challenge.walletAddress,
+        siws: challenge.siws,
+      });
+    } catch (e: any) {
+      res.status(400).json({ success: false, error: e.message || "Could not start wallet challenge" });
+    }
+  });
+
+  /**
+   * POST /api/auth/phantom/verify
+   * Verify SIWS signature. Logged-in session → link wallet to this Grudge ID.
+   * Otherwise sign in to the account that already owns the wallet, or create one.
+   */
+  app.post("/api/auth/phantom/verify", authRateLimit, async (req: Request, res: Response) => {
+    try {
+      const walletAddress = String(req.body?.address || req.body?.walletAddress || "").trim();
+      const message = String(req.body?.message || req.body?.signedMessage || "");
+      const signature = String(req.body?.signature || "");
+      const provider = normalizeWalletProvider(req.body?.provider);
+      if (!walletAddress || !message || !signature) {
+        return res.status(400).json({
+          success: false,
+          error: "address, message, and signature required",
+        });
       }
 
-      const walletKey = `wallet:${walletAddress}`;
+      const sessionUserId = trySessionUserId(req);
+      if (sessionUserId) {
+        const account = await ensureAccount(sessionUserId);
+        const result = await confirmLinkedWallet(
+          account.id,
+          walletAddress,
+          message,
+          signature,
+          provider,
+          provider,
+        );
+        const [user] = await db.select().from(users).where(eq(users.id, sessionUserId)).limit(1);
+        const fresh = await storage.getAccount(account.id);
+        return res.json({
+          ...buildAuthResponse(user!, fresh),
+          linked: true,
+          walletAddress,
+          setPrimary: result.setPrimary,
+        });
+      }
 
-      let [user] = await db
-        .select()
-        .from(users)
-        .where(eq(users.username, walletKey))
-        .limit(1);
+      consumeSiwsChallenge({
+        purpose: "login",
+        walletAddress,
+        message,
+        signature,
+      });
+
+      const linkedAccountId = await findAccountIdByWalletAddress(walletAddress);
+      let user =
+        linkedAccountId
+          ? await (async () => {
+              const acct = await storage.getAccount(linkedAccountId);
+              if (!acct?.userId) return null;
+              const [u] = await db.select().from(users).where(eq(users.id, acct.userId)).limit(1);
+              return u || null;
+            })()
+          : null;
+
+      const walletKey = `wallet:${walletAddress}`;
+      if (!user) {
+        const [byKey] = await db.select().from(users).where(eq(users.username, walletKey)).limit(1);
+        user = byKey || null;
+      }
 
       if (!user) {
         const grudgeId = generateGrudgeId();
         const dummyPw = await hashPassword(crypto.randomBytes(32).toString("hex"));
-
-        [user] = await db
+        const [created] = await db
           .insert(users)
           .values({ username: walletKey, password: dummyPw, grudgeId })
           .onConflictDoNothing()
           .returning();
-
-        if (!user) {
-          [user] = await db.select().from(users).where(eq(users.username, walletKey)).limit(1);
-        }
+        user =
+          created ||
+          (await db.select().from(users).where(eq(users.username, walletKey)).limit(1))[0];
       }
 
       if (!user) {
-        return res.status(500).json({ success: false, error: "Failed to create wallet account" });
+        return res.status(500).json({ success: false, error: "Failed to resolve wallet account" });
       }
 
       const account = await ensureAccount(user.id);
+      await persistLinkedWallet(account.id, walletAddress, provider, provider);
 
-      // Update wallet address on account if not set (external wallet, not Crossmint)
-      if (account && !account.walletAddress) {
-        await storage.updateAccount(account.id, { walletAddress, walletType: 'external' } as any);
-      }
-
-      const shortAddr = `${walletAddress.slice(0, 4)}...${walletAddress.slice(-4)}`;
-      res.json(buildAuthResponse({ ...user, username: shortAddr }, { ...account, walletAddress }));
+      const fresh = await storage.getAccount(account.id);
+      res.json(buildAuthResponse(user, fresh));
     } catch (e: any) {
-      console.error("[Auth/Wallet]", e);
-      res.status(500).json({ success: false, error: e.message });
+      console.error("[Auth/PhantomVerify]", e);
+      res.status(400).json({ success: false, error: e.message || "Wallet verify failed" });
     }
+  });
+
+  /**
+   * POST /api/auth/wallet
+   * Solana wallet login — SIWS required (unsigned address login is closed).
+   */
+  app.post("/api/auth/wallet", authRateLimit, async (req: Request, res: Response) => {
+    const walletAddress = req.body.wallet_address || req.body.walletAddress;
+    const message = req.body.message || req.body.signedMessage;
+    const signature = req.body.signature;
+    if (!walletAddress) {
+      return res.status(400).json({ success: false, error: "wallet_address required" });
+    }
+    if (!message || !signature) {
+      return res.status(400).json({
+        success: false,
+        error:
+          "Sign a SIWS message to prove wallet ownership. POST /api/auth/phantom/nonce then /api/auth/phantom/verify.",
+      });
+    }
+    return res.status(400).json({
+      success: false,
+      error: "Use /api/auth/phantom/verify after /api/auth/phantom/nonce.",
+      hint: "https://id.grudge-studio.com/account",
+    });
+  });
+
+  /**
+   * POST /api/auth/wallet
+   * Solana wallet login — SIWS required (unsigned address login is closed).
+   */
+  app.post("/api/auth/wallet", authRateLimit, async (req: Request, res: Response) => {
+    const walletAddress = req.body.wallet_address || req.body.walletAddress;
+    const message = req.body.message || req.body.signedMessage;
+    const signature = req.body.signature;
+    if (!walletAddress) {
+      return res.status(400).json({ success: false, error: "wallet_address required" });
+    }
+    if (!message || !signature) {
+      return res.status(400).json({
+        success: false,
+        error:
+          "Sign a SIWS message to prove wallet ownership. POST /api/auth/phantom/nonce then /api/auth/phantom/verify.",
+      });
+    }
+    req.body.address = walletAddress;
+    req.body.message = message;
+    req.body.signature = signature;
+    // Delegate to SIWS verify (same handler stack via internal re-call is messy —
+    // clients should hit /phantom/verify. Keep a clear error if they didn't.)
+    return res.status(400).json({
+      success: false,
+      error: "Use /api/auth/phantom/verify after /api/auth/phantom/nonce.",
+      hint: "https://id.grudge-studio.com/account",
+    });
   });
 
   /**
@@ -1271,12 +1512,7 @@ export function registerAuthRoutes(app: Express) {
         return res.status(400).json({ success: false, error: "Username and password required" });
       }
 
-      const [user] = await db
-        .select()
-        .from(users)
-        .where(eq(users.username, username.trim()))
-        .limit(1);
-
+      const user = await findUserForPasswordLogin(username);
       if (!user) {
         return res.status(401).json({ success: false, error: "Invalid username or password" });
       }
@@ -1305,8 +1541,8 @@ export function registerAuthRoutes(app: Express) {
       if (!username || !password) {
         return res.status(400).json({ success: false, error: "Username and password required" });
       }
-      if (username.length < 3 || username.length > 20) {
-        return res.status(400).json({ success: false, error: "Username must be 3-20 characters" });
+      if (!/^[a-zA-Z0-9_-]{3,30}$/.test(String(username).trim())) {
+        return res.status(400).json({ success: false, error: "Username must be 3–30 letters, numbers, _ or -" });
       }
       if (password.length < 4) {
         return res.status(400).json({ success: false, error: "Password must be at least 4 characters" });
@@ -1378,11 +1614,14 @@ export function registerAuthRoutes(app: Express) {
         accountUpdates.walletType = 'crossmint';
         accountUpdates.crossmintEmail = walletEmail;
       }
+      
+      // Always grant first character on register (one per new account)
+      accountUpdates.firstCharacterGranted = true;
+      accountUpdates.characterTokens = (account.characterTokens || 1) + 1;
+      
+      // Track referral code if provided (independent of character grant)
       if (referrerAccount) {
         accountUpdates.referredBy = referrerAccount.referralCode;
-        // Grant first free character on successful referral claim (one per new account)
-        accountUpdates.firstCharacterGranted = true;
-        accountUpdates.characterTokens = (account.characterTokens || 1) + 1;
       }
       
       await storage.updateAccount(account.id, accountUpdates);
@@ -1395,7 +1634,7 @@ export function registerAuthRoutes(app: Express) {
           ? "Welcome to Grudge Warlords! Your referral bonus has been applied."
           : "Welcome to Grudge Warlords!",
         referralCode: myReferralCode,
-        firstCharacterGranted: !!referrerAccount,
+        firstCharacterGranted: true,
       });
     } catch (e: any) {
       console.error("[Auth/Register]", e);
@@ -1417,6 +1656,10 @@ export function registerAuthRoutes(app: Express) {
 
       if (!token) {
         return res.json({ success: false, valid: false });
+      }
+
+      if (!JWT_SECRET) {
+        return res.status(500).json({ success: false, valid: false, error: "Authentication not configured" });
       }
 
       const payload = jwt.verify(token, JWT_SECRET) as any;
@@ -1441,6 +1684,7 @@ export function registerAuthRoutes(app: Express) {
       const authHeader = req.get("Authorization") || "";
       const token = authHeader.startsWith("Bearer ") ? authHeader.slice(7) : "";
       if (!token) return res.status(401).json({ success: false, error: "Auth required" });
+      if (!JWT_SECRET) return res.status(500).json({ success: false, error: "Authentication not configured" });
 
       const payload = jwt.verify(token, JWT_SECRET) as { userId?: string; grudgeId?: string };
       if (!payload.userId) return res.status(401).json({ success: false, error: "Invalid token" });
@@ -1525,6 +1769,7 @@ export function registerAuthRoutes(app: Express) {
       const authHeader = req.get("Authorization") || "";
       const token = authHeader.startsWith("Bearer ") ? authHeader.slice(7) : "";
       if (!token) return res.status(401).json({ success: false, error: "No token" });
+      if (!JWT_SECRET) return res.status(500).json({ success: false, error: "Authentication not configured" });
 
       const payload = jwt.verify(token, JWT_SECRET) as { userId?: string };
       if (!payload.userId) return res.status(401).json({ success: false, error: "Invalid token" });
@@ -1684,10 +1929,14 @@ export function registerAuthRoutes(app: Express) {
         return res.status(401).json({ success: false, error: "No token provided" });
       }
 
+      if (!JWT_SECRET) {
+        return res.status(500).json({ success: false, error: "Authentication not configured" });
+      }
+
       const payload = jwt.verify(token, JWT_SECRET) as any;
       const userId = payload.userId;
 
-      const [user] = await db.select().from(users).where(eq(users.id, userId)).limit(1);
+      let [user] = await db.select().from(users).where(eq(users.id, userId)).limit(1);
       if (!user) {
         return res.status(404).json({ success: false, error: "User not found" });
       }
@@ -1711,14 +1960,46 @@ export function registerAuthRoutes(app: Express) {
         jwtIsAdmin: payload.isAdmin,
       });
 
+      const usernameClaimed = hasClaimedUsername(user, account, [payload.username]) && !isAutoUsername(user.username);
+
+      if (account?.grudgeId && !user.grudgeId) {
+        await db.update(users).set({ grudgeId: account.grudgeId }).where(eq(users.id, user.id));
+        user = { ...user, grudgeId: account.grudgeId };
+      }
+
+      let linkedAddrs: string[] = [];
+      try {
+        if (account) {
+          const linked = await listLinkedWallets(account.id);
+          linkedAddrs = linked.map((w) => w.walletAddress).filter(Boolean);
+        }
+      } catch {
+        /* table may not exist on older shards */
+      }
+      const walletType = account?.walletType || null;
+      const custodialWallet =
+        walletType === "crossmint" ? account?.walletAddress || null : null;
+      const linkedSolana =
+        linkedAddrs[0] ||
+        (walletType === "external" ? account?.walletAddress || null : null);
+
       res.json({
         success: true,
         id: user.id,
         grudgeId: user.grudgeId || account?.grudgeId || "",
         username: displayName,
         displayName,
+        handle: usernameClaimed ? user.username : null,
+        loginUsername: user.username,
+        usernameClaimed,
         email,
+        walletType,
         walletAddress: account?.walletAddress || null,
+        solanaAddress: account?.walletAddress || null,
+        custodialWallet,
+        linkedSolana,
+        linkedWallets: linkedAddrs,
+        solanaAddress: linkedSolana || account?.walletAddress || null,
         gbuxBalance: account?.gbuxBalance || 0,
         accountXp: account?.accountXp || 0,
         isPremium: (account?.premiumCurrency || 0) > 0,
@@ -1869,6 +2150,10 @@ export function registerAuthRoutes(app: Express) {
         return res.status(401).json({ success: false, error: "Authentication required" });
       }
 
+      if (!JWT_SECRET) {
+        return res.status(500).json({ success: false, error: "Authentication not configured" });
+      }
+
       const payload = jwt.verify(token, JWT_SECRET) as { userId: string };
       const { code } = req.body as { code?: string };
       
@@ -1951,6 +2236,10 @@ export function registerAuthRoutes(app: Express) {
         return res.status(401).json({ success: false, error: "Authentication required" });
       }
 
+      if (!JWT_SECRET) {
+        return res.status(500).json({ success: false, error: "Authentication not configured" });
+      }
+
       const payload = jwt.verify(token, JWT_SECRET) as { userId: string };
       const [user] = await db.select().from(users).where(eq(users.id, payload.userId)).limit(1);
       
@@ -1980,6 +2269,7 @@ export function registerAuthRoutes(app: Express) {
   });
 
   console.log(
-    `[Auth] Routes registered (session=${JWT_EXPIRES}, launch=${LAUNCH_TTL}): /api/auth/{page,puter,puter-sso,guest,complete-profile,popup-token,refresh,session/exchange,grudge-bridge,wallet,login,register,verify,me,puter-link,discord/callback,google/start,phone/send,phone/verify,referral/claim,referral/me}`,
+    `[Auth] Routes registered (session=${JWT_EXPIRES}, launch=${LAUNCH_TTL}): /api/auth/{page,puter,puter-sso,guest,complete-profile,popup-token,refresh,session/exchange,grudge-bridge,wallet,phantom/nonce,phantom/verify,login,register,verify,me,puter-link,discord/callback,google/start,phone/send,phone/verify}`,
+    `[Auth] Routes registered (session=${JWT_EXPIRES}, launch=${LAUNCH_TTL}): /api/auth/{page,puter,puter-sso,guest,complete-profile,popup-token,refresh,session/exchange,grudge-bridge,wallet,phantom/nonce,phantom/verify,login,register,verify,me,puter-link,discord/callback,google/start,phone/send,phone/verify,referral/claim,referral/me}`,
   );
 }

@@ -137,7 +137,7 @@ export function measureBoneChainHeight(root: THREE.Object3D): number {
   for (const names of groups) {
     let bone: THREE.Object3D | null = null;
     for (const name of names) {
-      bone = root.getObjectByName(name);
+      bone = root.getObjectByName(name) ?? null;
       if (bone) break;
     }
     if (!bone) continue;

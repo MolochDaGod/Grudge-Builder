@@ -13,6 +13,7 @@ import {
   type RaceTravelerDest,
 } from '@shared/definitions/travelerTutorialQuest';
 import type { FactionIslandRaceId } from '@shared/definitions/factionLobbyIslands';
+import { markRaftCrafted } from '@/lib/warlordsOnboarding';
 
 export type MissionProgress = {
   stepId: TravelerStepId | string;
@@ -158,12 +159,9 @@ export function useTravelerMissions(raceId: string | undefined) {
           if (step.kind === 'craft') {
             if (step.id === 'craft_tools' && event.itemId?.includes('pickaxe')) completeStep(step.id);
             else if (step.id === 'craft_raft' && (event.itemId === 'raft' || event.itemId?.includes('raft'))) {
-              try {
-                localStorage.setItem('warlords_raft_crafted_v1', '1');
-                localStorage.setItem('warlords_tutorial_complete_v1', '1');
-              } catch {
-                /* ignore */
-              }
+              // Crafting is only a milestone. Final tutorial completion is set by
+              // the authoritative room after launch/board succeeds.
+              markRaftCrafted();
               completeStep(step.id);
             } else if (step.id === 'craft_tools') {
               completeStep(step.id);

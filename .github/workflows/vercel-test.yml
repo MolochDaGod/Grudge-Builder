@@ -1,0 +1,100 @@
+name: Deploy Warlords test realm
+
+on:
+  push:
+    branches: [codex/warlords-test-realm]
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+concurrency:
+  group: warlords-test-grudge-studio-com
+  cancel-in-progress: false
+
+jobs:
+  deploy-test:
+    runs-on: ubuntu-latest
+    timeout-minutes: 60
+    env:
+      VERCEL_TOKEN: ${{ secrets.VERCEL_TOKEN }}
+      RAILWAY_TOKEN: ${{ secrets.RAILWAY_TOKEN }}
+      VERCEL_ORG_ID: team_VZ7uiFGiR9QBdqtzne04xygG
+      VERCEL_PROJECT_ID: prj_AT8CcdGZRjg838A2B0EyYtw65Fvb
+      GRUDGE_MONOREPO_GIT_TOKEN: ${{ secrets.GRUDGE_MONOREPO_GIT_TOKEN }}
+      VERCEL_AUTOMATION_BYPASS_SECRET: ${{ secrets.VERCEL_AUTOMATION_BYPASS_SECRET }}
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: '22'
+      - name: Verify hosting access and existing test-domain ownership
+        run: |
+          node --input-type=module <<'JS'
+          const { VERCEL_TOKEN: token, VERCEL_PROJECT_ID: project, VERCEL_ORG_ID: team } = process.env;
+          if (!token) throw new Error('VERCEL_TOKEN is missing; connect the Grudge Vercel team or configure its repository secret.');
+          const endpoint = `https://api.vercel.com/v9/projects/${project}/domains/test.grudge-studio.com?teamId=${team}`;
+          const response = await fetch(endpoint, { headers: { Authorization: `Bearer ${token}` }, signal: AbortSignal.timeout(15000) });
+          if (!response.ok) throw new Error(`Cannot verify test-domain ownership for the configured game project (HTTP ${response.status}). No deployment or domain change performed.`);
+          const domain = await response.json();
+          if (domain.name !== 'test.grudge-studio.com' || domain.verified !== true) throw new Error('Test domain must already belong to this project and be verified.');
+          console.log('Verified existing test-domain ownership.');
+          JS
+      - name: Check test-domain handoffs
+        run: node --experimental-strip-types --test scripts/test-warlords-test-domain.mjs
+      - name: Install deployment CLI
+        run: npm install --global vercel@59.11.7
+      - name: Load preview environment
+        run: vercel pull --yes --environment=preview --token "$VERCEL_TOKEN"
+      - name: Build complete client
+        env:
+          NODE_OPTIONS: --max-old-space-size=6144
+        run: vercel build --token "$VERCEL_TOKEN"
+      - name: Verify multiplayer protocol and graphics preflight
+        run: node --import tsx --test scripts/test-warlords-lobby.mjs
+      - name: Verify client account and gameplay tests
+        run: npm run test:client
+      - name: Build compatible server
+        run: npm run build:server
+      - name: Stamp client release identity
+        run: |
+          node --input-type=module <<'JS'
+          import fs from 'node:fs';
+          fs.writeFileSync('.vercel/output/static/release.json', JSON.stringify({ commit: process.env.GITHUB_SHA, builtAt: new Date().toISOString(), target: 'test.grudge-studio.com' }));
+          JS
+      - name: Deploy compatible multiplayer server
+        run: |
+          set -euo pipefail
+          if [ -z "$RAILWAY_TOKEN" ]; then
+            echo 'RAILWAY_TOKEN is missing. Compatible server deployment is required before publishing the multiplayer client.'
+            exit 1
+          fi
+          npx --yes @railway/cli@5.49.2 up --ci \
+            --project 92f039ec-2cce-4e1e-b06a-dd0ac6256d70 \
+            --environment production --service grudge-api \
+            --message "Warlords compatibility $GITHUB_SHA"
+      - name: Verify new room protocol is live
+        run: |
+          node --input-type=module <<'JS'
+          const url = 'https://grudge-api-production-0d46.up.railway.app/api/colyseus/health';
+          let ready = false;
+          for (let attempt = 0; attempt < 24; attempt++) {
+            const response = await fetch(url, { signal: AbortSignal.timeout(10000) }).catch(() => null);
+            const data = response?.ok ? await response.json() : null;
+            if (data?.matchMakerReady && data?.definedRooms?.includes('custom_lobby') && data?.definedRooms?.includes('game_lobby')) { ready = true; break; }
+            await new Promise(resolve => setTimeout(resolve, 5000));
+          }
+          if (!ready) throw new Error('The compatible multiplayer server is not ready; test alias was not changed.');
+          console.log('Verified game_lobby and custom_lobby on the live multiplayer server.');
+          JS
+      - name: Deploy preview and verify before assigning test domain
+        run: |
+          set -euo pipefail
+          DEPLOYMENT_URL=$(vercel deploy --prebuilt --yes --token "$VERCEL_TOKEN")
+          node scripts/probe-warlords-test.mjs "$DEPLOYMENT_URL"
+          vercel alias set "$DEPLOYMENT_URL" test.grudge-studio.com --scope "$VERCEL_ORG_ID" --token "$VERCEL_TOKEN"
+          vercel cache purge --yes --scope "$VERCEL_ORG_ID" --token "$VERCEL_TOKEN"
+          node scripts/probe-warlords-test.mjs https://test.grudge-studio.com
+          echo "Test deployment: $DEPLOYMENT_URL" >> "$GITHUB_STEP_SUMMARY"
+          echo 'Vercel CDN and data caches purged; stable-domain checks passed.' >> "$GITHUB_STEP_SUMMARY"
+          echo 'Target: https://test.grudge-studio.com. HTTP checks passed; authenticated gameplay acceptance remains required.' >> "$GITHUB_STEP_SUMMARY"

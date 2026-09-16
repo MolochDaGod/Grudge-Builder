@@ -308,7 +308,7 @@ export default function IslandsPage() {
               {!isAuthenticated ? (
                 <div className="rounded-xl border border-white/10 bg-black/60 backdrop-blur-sm p-4 text-center">
                   <p className="text-sm text-white/60 mb-3">Sign in to load your island from the server</p>
-                  <Button onClick={openLogin} className="w-full gap-2">
+                  <Button onClick={() => openLogin()} className="w-full gap-2">
                     <LogIn className="w-4 h-4" />
                     Login
                   </Button>

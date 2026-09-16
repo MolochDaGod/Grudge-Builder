@@ -11,6 +11,21 @@ export function htmlPage(env) {
   const poker = env.POKER_ORIGIN || "https://poker.grudge-studio.com";
   const logo = idGw + "/grudge-id-logo.png";
   const gbux = poker + "/media/gbux-logo-64.png";
+  const trader = env.TRADER_ORIGIN || "https://trader.grudge-studio.com";
+  const logo = idGw + "/grudge-id-logo.png";
+  const gbuxCoin = poker + "/media/gbux-coin.png";
+  const art = {
+    trader: trader + "/art/fabledgrudge.jpeg",
+    pokerFelt: poker + "/media/felt-budb-green.jpg",
+    pokerOg: poker + "/media/og-image.jpg",
+    warlords: client + "/opengraph.jpg",
+    foundry: "https://character.grudge-studio.com/opengraph.jpg",
+    open: "https://open.grudge-studio.com/opengraph.jpg",
+    grudox: "https://grudox.grudge-studio.com/opengraph.jpg",
+    mine: "https://mineloader.grudge-studio.com/opengraph.jpg",
+    forge: "https://forge.grudge-studio.com/opengraph.jpg",
+    portal: portal + "/opengraph.jpg",
+  };
 
   return `<!DOCTYPE html>
 <html lang="en">
@@ -19,7 +34,13 @@ export function htmlPage(env) {
 <meta name="viewport" content="width=device-width, initial-scale=1.0" />
 <title>Grudge Studio Wallet</title>
 <meta name="description" content="Grudge Studio wallet — one Grudge ID, fleet bag GBUX, send to games." />
+<meta name="theme-color" content="#d4af37" />
+<meta name="mobile-web-app-capable" content="yes" />
+<meta name="apple-mobile-web-app-capable" content="yes" />
+<meta name="apple-mobile-web-app-title" content="Gruda Wallet" />
+<link rel="manifest" href="/manifest.webmanifest" />
 <link rel="icon" href="${logo}" />
+<link rel="apple-touch-icon" href="${logo}" />
 <link rel="preconnect" href="https://fonts.googleapis.com" />
 <link href="https://fonts.googleapis.com/css2?family=Cinzel:wght@600;700&family=Jost:wght@400;500;600;700&display=swap" rel="stylesheet" />
 <style>
@@ -27,6 +48,7 @@ export function htmlPage(env) {
 *{box-sizing:border-box;margin:0;padding:0}
 body{min-height:100vh;font-family:Jost,system-ui,sans-serif;color:var(--text);
 background:#07070c;display:flex;flex-direction:column;align-items:center;padding:20px 14px 48px;position:relative}
+background:#07070c;display:flex;flex-direction:column;align-items:center;padding:0 0 72px;position:relative}
 .bg{position:fixed;inset:0;z-index:0;background:
 radial-gradient(ellipse 70% 45% at 15% 0%,rgba(168,85,247,.18),transparent 55%),
 radial-gradient(ellipse 60% 40% at 90% 10%,rgba(212,175,55,.12),transparent 50%),
@@ -42,6 +64,9 @@ linear-gradient(180deg,#0b0b14,#07070c);pointer-events:none}
 .hero{border-radius:18px;overflow:hidden;border:1px solid var(--border);margin-bottom:16px;position:relative;min-height:160px}
 .hero img{width:100%;height:180px;object-fit:cover;display:block}
 .hero .cap{position:absolute;inset:0;background:linear-gradient(120deg,rgba(7,7,12,.88),rgba(7,7,12,.35) 55%,rgba(7,7,12,.78));display:flex;flex-direction:column;justify-content:center;padding:20px 22px}
+.hero{border-radius:18px;overflow:hidden;border:1px solid var(--border);margin-bottom:16px;position:relative;min-height:120px}
+.hero img{width:100%;height:140px;object-fit:cover;display:block}
+.hero .cap{position:relative;min-height:120px;background:linear-gradient(120deg,rgba(18,12,28,.95),rgba(12,14,24,.72));display:flex;flex-direction:column;justify-content:center;padding:20px 22px}
 .hero h1{font-family:Cinzel,serif;color:var(--gold2);font-size:1.55rem;margin-bottom:4px}
 .hero p{color:var(--dim);font-size:.88rem;max-width:420px;line-height:1.45}
 .grid{display:grid;grid-template-columns:1fr 1fr;gap:14px}
@@ -67,6 +92,8 @@ button:disabled{opacity:.45;cursor:not-allowed}
 .game:hover{border-color:rgba(212,175,55,.45);transform:translateY(-2px)}
 .game img{width:100%;height:96px;object-fit:cover;display:block;background:#0a0a12}
 .game .meta{display:flex;flex-direction:column;gap:4px;padding:10px 12px 12px}
+.game img{width:100%;height:88px;object-fit:cover;object-position:center;background:#0a0a12;border-radius:8px;border:1px solid rgba(212,175,55,.15)}
+.tok img.coin{border-radius:50%;object-fit:contain;background:transparent;mix-blend-mode:multiply;filter:contrast(1.15)}
 .game strong{font-size:.88rem;color:var(--gold2)}
 .game .meta span{font-size:.72rem;color:var(--dim);line-height:1.35}
 .badge{display:inline-flex;font-size:.65rem;letter-spacing:.08em;text-transform:uppercase;padding:3px 8px;border-radius:999px;border:1px solid rgba(34,197,94,.35);color:#86efac;background:rgba(34,197,94,.08);margin-bottom:8px}
@@ -75,6 +102,45 @@ button:disabled{opacity:.45;cursor:not-allowed}
 .tabs button{background:rgba(0,0,0,.35);border:1px solid rgba(255,255,255,.08);color:var(--dim);padding:7px 12px;border-radius:999px;font-size:.75rem}
 .tabs button.on{border-color:var(--gold);color:var(--gold2)}
 .panel{display:none}.panel.on{display:block}
+.legal-back{position:fixed;inset:0;background:rgba(0,0,0,.72);z-index:40;display:none;align-items:center;justify-content:center;padding:16px}
+.legal-back.on{display:flex}
+.legal-card{max-width:560px;max-height:80vh;overflow:auto;background:#12121a;border:1px solid rgba(212,175,55,.35);border-radius:14px;padding:20px 22px}
+.legal-card h3{font-family:Cinzel,serif;color:var(--gold);margin-bottom:10px}
+.legal-card p,.legal-card li{font-size:.82rem;color:var(--dim);line-height:1.5;margin:0 0 8px}
+.shell{max-width:430px;margin:0 auto;padding:12px 14px 24px}
+.w-head{display:flex;align-items:center;gap:10px;padding:8px 0 4px}
+.acct{flex:1;display:flex;align-items:center;gap:8px;background:rgba(255,255,255,.04);border:1px solid var(--border);border-radius:999px;padding:6px 10px 6px 6px;min-width:0}
+.acct img{width:28px;height:28px;border-radius:50%}
+.acct b{font-size:.78rem;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+.acct span{font-size:.65rem;color:var(--dim);display:block}
+.hero-bal{text-align:center;padding:22px 8px 8px}
+.hero-bal .sym{font-size:.72rem;letter-spacing:.14em;text-transform:uppercase;color:var(--gold);margin-bottom:4px}
+.hero-bal .fig{font-size:2.35rem;font-weight:700;letter-spacing:-.03em;line-height:1.1}
+.hero-bal .sub{color:var(--dim);font-size:.82rem;margin-top:6px}
+.act{display:grid;grid-template-columns:repeat(4,1fr);gap:8px;margin:16px 0}
+.act a,.act button{flex-direction:column;justify-content:center;gap:4px;padding:12px 6px;border-radius:14px;background:rgba(255,255,255,.05);border:1px solid rgba(255,255,255,.08);font-size:.68rem;color:var(--gold2);text-align:center}
+.act .ic{font-size:1.15rem}
+.dock{position:fixed;left:0;right:0;bottom:0;z-index:20;display:flex;justify-content:center;gap:0;background:rgba(10,10,16,.94);border-top:1px solid var(--border);padding:8px 12px calc(8px + env(safe-area-inset-bottom))}
+.dock button{flex:1;max-width:120px;background:transparent;border:0;color:var(--dim);font-size:.72rem;padding:8px}
+.dock button.on{color:var(--gold2)}
+.dock-panel{display:none}.dock-panel.on{display:block}
+.tok{display:flex;align-items:center;gap:10px;padding:12px;border-radius:14px;background:rgba(255,255,255,.04);border:1px solid rgba(255,255,255,.07);margin:8px 0}
+.tok img{width:36px;height:36px;border-radius:50%}
+.tok .meta{flex:1;min-width:0}
+.tok .meta b{display:block;font-size:.88rem}
+.tok .meta span{font-size:.7rem;color:var(--dim)}
+.tok .bal{text-align:right;font-weight:700}
+.store{display:grid;grid-template-columns:repeat(2,1fr);gap:10px}
+.fund{border:1px solid rgba(212,175,55,.4);background:rgba(212,175,55,.08);border-radius:16px;padding:14px;margin:8px 0 14px}
+.fund h3{font-family:Cinzel,serif;color:var(--gold);font-size:1rem;margin:0 0 6px}
+.fund .big{font-family:ui-monospace,monospace;font-size:.72rem;word-break:break-all;background:#000;padding:10px;border-radius:8px;margin:8px 0}
+.nftg{display:grid;grid-template-columns:repeat(3,1fr);gap:8px}
+.nftg a{display:block;background:#0a0a12;border-radius:10px;overflow:hidden;border:1px solid rgba(255,255,255,.08);text-decoration:none;color:var(--text)}
+.nftg img{width:100%;aspect-ratio:1;object-fit:cover;display:block}
+.nftg span{display:block;font-size:.62rem;padding:4px 6px;color:var(--dim);white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+.set-row{display:flex;justify-content:space-between;gap:8px;padding:10px 0;border-bottom:1px solid rgba(255,255,255,.06);font-size:.8rem}
+.set-row b{color:var(--dim);font-weight:500}
+.dock button{font-size:.62rem}
 </style>
 </head>
 <body>
@@ -89,8 +155,20 @@ button:disabled{opacity:.45;cursor:not-allowed}
       <a href="${client}">Warlords</a>
       <a href="https://grudox.grudge-studio.com">GRUDOX</a>
       <a href="${idGw}/login?redirect_uri=${encodeURIComponent("https://wallet.grudge-studio.com/auth/callback")}&app=wallet&origin=${encodeURIComponent("https://wallet.grudge-studio.com")}">Sign in</a>
+<div class="wrap shell">
+  <header class="w-head">
+    <div class="acct">
+      <img src="${logo}" alt="" width="28" height="28" />
+      <div style="min-width:0">
+        <b id="sess">loading…</b>
+        <span id="gid">Grudge ID —</span>
+      </div>
     </div>
-  </nav>
+    <button class="cyan" type="button" id="btn-siws">Connect Phantom</button>
+    <a class="btn ghost" id="btn-login" href="${idGw}/login?redirect_uri=${encodeURIComponent("https://wallet.grudge-studio.com/")}&app=wallet&origin=${encodeURIComponent("https://wallet.grudge-studio.com")}">Grudge ID</a>
+    <button class="ghost" type="button" id="btn-logout" style="display:none">Out</button>
+    <button class="ghost" type="button" id="btn-install" style="display:none">Install</button>
+  </header>
 
   <div class="hero">
     <img src="/media/budb-table-hero.jpg" alt="" />
@@ -133,42 +211,145 @@ button:disabled{opacity:.45;cursor:not-allowed}
         <label class="k" style="font-size:.75rem">Amount (GBUX)</label>
         <input class="input" id="play-amt" type="number" min="1" step="1" value="100" />
         <button class="cyan" type="button" id="btn-fund-play" disabled>Send to Poker play</button>
+  <div class="hero-bal">
+    <div class="sym">Gruda Wallet · mainnet</div>
+    <div class="fig"><span id="gbux">—</span></div>
+    <div class="sub">GBUX bag · play <span id="play">—</span></div>
+    <div class="sub">Trader vault <span id="tr-sol">—</span> · spendable <span id="tr-spend">—</span></div>
+    <div class="badge" id="edge-badge">Solana</div>
+  </div>
+
+  <div class="act">
+    <button type="button" id="btn-tr-copy"><span class="ic">↓</span>Receive</button>
+    <button type="button" id="btn-go-send"><span class="ic">↑</span>Send</button>
+    <button type="button" id="btn-go-swap"><span class="ic">⇄</span>Swap</button>
+    <button type="button" id="btn-go-connect"><span class="ic">◎</span>Connect</button>
+  </div>
+  <p class="msg" id="msg"></p>
+
+  <div class="dock-panel on" id="dock-assets">
+    <div class="fund" id="fund-card">
+      <h3>Enable + Receive (your vault)</h3>
+      <p style="font-size:.78rem;color:var(--dim);line-height:1.45;margin:0">House aUp3 is admin only. Tap Enable, then send SOL from Phantom to <b>this</b> address. Keep 0.02 SOL for fees.</p>
+      <div class="big" id="tr-vault-full">Sign in → Enable trader</div>
+      <div class="btns">
+        <button class="primary" type="button" id="btn-tr-enroll" disabled>Enable trader</button>
+        <button class="cyan" type="button" id="btn-tr-copy">Copy receive</button>
+        <a class="btn ghost" id="btn-tr-scan" href="#" target="_blank" rel="noopener">Solscan</a>
       </div>
-      <div class="panel" id="tab-swap">
-        <p style="font-size:.8rem;color:var(--dim);line-height:1.45;margin-bottom:8px">Server bag swap on Railway (SOL ↔ GBUX). Not table chips until you Fund play.</p>
-        <label class="k" style="font-size:.75rem">Direction</label>
-        <select class="input" id="swap-dir">
-          <option value="sol-to-gbux">SOL → GBUX</option>
-          <option value="gbux-to-sol">GBUX → SOL</option>
-        </select>
-        <label class="k" style="font-size:.75rem">Amount</label>
-        <input class="input" id="swap-amt" type="number" min="0" step="any" value="0.1" />
-        <div class="btns">
-          <button class="ghost" type="button" id="btn-quote" disabled>Quote</button>
-          <button class="primary" type="button" id="btn-swap" disabled>Swap</button>
-        </div>
-        <pre id="swap-out" style="font-size:.7rem;color:var(--dim);margin-top:8px;white-space:pre-wrap;max-height:100px;overflow:auto"></pre>
+      <label class="k" style="font-size:.75rem">Then record the SOL you sent</label>
+      <input class="input" id="tr-from" placeholder="Your Phantom address" />
+      <input class="input" id="tr-amt" type="number" min="0" step="0.01" value="0.05" />
+      <div class="btns">
+        <button class="cyan" type="button" id="btn-tr-dep" disabled>Record deposit</button>
+        <button class="ghost" type="button" id="btn-tr-wd" disabled>Withdraw</button>
       </div>
-      <p class="msg" id="tx-msg"></p>
-    </section>
+      <p class="msg" id="tr-msg"></p>
+    </div>
+    <div class="tok"><img class="coin" src="${gbuxCoin}" alt="GBUX coin" /><div class="meta"><b>GBUX</b><span>coin · bag · Crossmint</span></div><div class="bal" id="tok-gbux">—</div></div>
+    <div class="tok"><img src="${logo}" alt="" /><div class="meta"><b>SOL vault</b><span id="tr-vault">trader house</span></div><div class="bal" id="tok-sol">—</div></div>
+    <span id="cmint" hidden></span><span id="net" hidden></span><span id="mint" hidden></span>
+    <div class="addr" id="addr"></div>
+    <p style="font-size:.72rem;color:var(--dim);margin:8px 0">Keep 0.02 SOL in the trader vault. Close fee 0.005 SOL → GBUX; TP +5%.</p>
+    <div class="row"><span class="k">Enrolled</span><span class="v" id="tr-enroll">—</span></div>
+    <div id="w-linked">Sign in to list linked Phantom accounts.</div>
+    <div class="row"><span class="k">Crossmint</span><span class="v" id="w-cm">—</span></div>
+    <div id="w-detect" class="btns"></div>
+    <div class="btns">
+      <button class="cyan" type="button" id="btn-link-ph" disabled>Phantom</button>
+      <button class="ghost" type="button" id="btn-link-sf" disabled>Solflare</button>
+      <button class="ghost" type="button" id="btn-link-bp" disabled>Backpack</button>
+      <a class="btn ghost" id="btn-open-phantom" href="#" style="display:none">Open in Phantom</a>
+      <button class="ghost" type="button" id="btn-create-wallet" style="display:none">Create Gruda</button>
+      <button class="primary" type="button" id="btn-refresh">Refresh</button>
+    </div>
+    <p class="msg" id="w-msg"></p>
   </div>
 
   <section class="card" style="margin-top:14px">
     <h2>Connected apps</h2>
     <div class="gamess" id="games"></div>
   </section>
+  <div class="dock-panel" id="dock-dapps">
+    <p style="font-size:.8rem;color:var(--dim);margin:0 0 10px">Dapp store · opens with your Grudge ID session</p>
+    <div class="store gamess" id="games"></div>
+    <div id="hero-list" style="font-size:.75rem;color:var(--dim);margin-top:12px"></div>
+    <div class="btns">
+      <a class="btn primary" id="btn-trader" href="${trader}">Trader</a>
+      <a class="btn ghost" id="btn-phantom" href="${poker}/wallet">Poker wallet</a>
+    </div>
+  </div>
 
-  <section class="card" style="margin-top:14px">
-    <h2>Heroes (Railway)</h2>
-    <div id="hero-list" style="font-size:.82rem;color:var(--dim)">—</div>
-  </section>
+  <div class="dock-panel" id="dock-coins">
+    <p style="font-size:.78rem;color:var(--dim)">Coins on <b>your</b> trader vault (Helius RPC). GBUX bag is Crossmint.</p>
+    <div id="coin-list"><p class="empty">Enable trader to load coins.</p></div>
+  </div>
 
   <p class="foot">wallet.grudge-studio.com · Grudge Studio fleet bag · Railway SSOT</p>
+  <div class="dock-panel" id="dock-nfts">
+    <p style="font-size:.78rem;color:var(--dim)">cNFTs and NFTs on your trader vault (DAS / Helius).</p>
+    <div class="nftg" id="nft-grid"><p class="empty" style="grid-column:1/-1">None yet — they appear after mint or transfer to your Receive address.</p></div>
+  </div>
+
+  <div class="dock-panel" id="dock-activity">
+    <p style="font-size:.8rem;color:var(--dim);line-height:1.45">Bag tools: fund Poker play GBUX, swap Crossmint SOL↔GBUX. Trader SOL is on Assets → Enable + Receive.</p>
+    <div class="tabs">
+      <button type="button" class="on" data-tab="play">Play ledger</button>
+      <button type="button" data-tab="swap">Swap bag</button>
+    </div>
+    <div class="panel on" id="tab-play">
+      <input class="input" id="play-amt" type="number" min="1" step="1" value="100" />
+      <button class="cyan" type="button" id="btn-fund-play" disabled>Send GBUX to Poker play</button>
+    </div>
+    <div class="panel" id="tab-swap">
+      <select class="input" id="swap-dir">
+        <option value="sol-to-gbux">SOL → GBUX</option>
+        <option value="gbux-to-sol">GBUX → SOL</option>
+      </select>
+      <input class="input" id="swap-amt" type="number" min="0" step="any" value="0.1" />
+      <div class="btns">
+        <button class="ghost" type="button" id="btn-quote" disabled>Quote</button>
+        <button class="primary" type="button" id="btn-swap" disabled>Swap</button>
+      </div>
+      <pre id="swap-out" style="font-size:.7rem;color:var(--dim);margin-top:8px;white-space:pre-wrap;max-height:100px;overflow:auto"></pre>
+    </div>
+    <p class="msg" id="tx-msg"></p>
+  </div>
+
+  <div class="dock-panel" id="dock-set">
+    <div class="set-row"><span>Network</span><b id="set-net">Solana mainnet-beta</b></div>
+    <div class="set-row"><span>RPC</span><b id="set-rpc">Helius + public fallback</b></div>
+    <div class="set-row"><span>Explorer</span><b>solscan.io</b></div>
+    <div class="set-row"><span>House vault</span><b>aUp3… admin only</b></div>
+    <div class="set-row"><span>Your vault</span><b id="set-vault">Enable first</b></div>
+    <div class="btns" style="margin-top:12px">
+      <button type="button" id="btn-privacy">Privacy</button>
+      <button type="button" id="btn-tos">Terms</button>
+      <a class="btn ghost" href="https://solscan.io">Solscan</a>
+    </div>
+  </div>
+
+  <nav class="dock" aria-label="Wallet sections">
+    <button type="button" class="on" data-dock="assets">Home</button>
+    <button type="button" data-dock="coins">Coins</button>
+    <button type="button" data-dock="nfts">cNFTs</button>
+    <button type="button" data-dock="dapps">Dapps</button>
+    <button type="button" data-dock="set">Set</button>
+  </nav>
+  <p class="foot">Gruda Wallet · Set for Privacy / Terms</p>
+</div>
+<div class="legal-back" id="legal-back" hidden>
+  <div class="legal-card">
+    <h3 id="legal-title">Privacy</h3>
+    <div id="legal-body"></div>
+    <button class="primary" type="button" id="legal-close">Close</button>
+  </div>
 </div>
 <script>
 const RAILWAY = ${JSON.stringify(railway)};
 const ID_GW = ${JSON.stringify(idGw)};
 const POKER = ${JSON.stringify(poker)};
+const TRADER = ${JSON.stringify(trader)};
 const FLEET_KEYS = ['grudge.open.token','grudge_auth_token','grudge_session_token','grudge.token','sso_token','grudge_token','access_token'];
 const $ = (id) => document.getElementById(id);
 let signedIn = false;
@@ -187,6 +368,16 @@ const GAMES = [
   { name: 'Forge', desc: 'Map / scene editor', href: 'https://forge.grudge-studio.com', img: 'https://forge.grudge-studio.com/apple-touch-icon.png' },
   { name: 'Casting lab', desc: 'Warlords skills VFX', href: 'https://casting.grudge-studio.com', img: '/media/tile-casting.jpg' },
   { name: 'Portal', desc: 'grudge-studio.com', href: '${portal}', img: 'https://grudge-studio.com/apple-touch-icon.png' },
+  { name: 'Auto-trader', desc: 'SOL desk · rotating capital', href: TRADER, img: '${art.trader}' },
+  { name: 'Poker wallet', desc: 'BUDB play · fund · sit', href: POKER + '/wallet', img: '${art.pokerFelt}' },
+  { name: 'BUDB Poker', desc: 'Holdem · slots · BJ', href: POKER + '/lobby', img: '${art.pokerOg}' },
+  { name: 'Warlords play', desc: 'Client · home island', href: '${client}/home', img: '${art.warlords}' },
+  { name: 'Character Foundry', desc: 'Create · 4 slots', href: 'https://character.grudge-studio.com/?era=warlords', img: '${art.foundry}' },
+  { name: 'Grudge Open', desc: 'Danger · library', href: 'https://open.grudge-studio.com', img: '${art.open}' },
+  { name: 'GRUDOX', desc: 'Arcade cabinets', href: 'https://grudox.grudge-studio.com', img: '${art.grudox}' },
+  { name: 'Mine-Loader', desc: 'Voxel realms', href: 'https://mineloader.grudge-studio.com', img: '${art.mine}' },
+  { name: 'Forge', desc: 'Map / scene editor', href: 'https://forge.grudge-studio.com', img: '${art.forge}' },
+  { name: 'Studio portal', desc: 'grudge-studio.com', href: '${portal}', img: '${art.portal}' },
 ];
 
 function storeFleetToken(token, meta) {
@@ -212,6 +403,8 @@ function getAuthToken() {
       const m = document.cookie.match(new RegExp('(?:^|; )' + n + '=([^;]+)'));
       if (m) return decodeURIComponent(m[1]);
     }
+    const m = document.cookie.match(/(?:^|; )sso_token=([^;]+)/);
+    if (m) return decodeURIComponent(m[1]);
   } catch {}
   return '';
 }
@@ -310,8 +503,22 @@ function setAuthedUi(on) {
   $('btn-login').style.display = on ? 'none' : '';
   $('btn-logout').style.display = on ? '' : 'none';
   $('btn-fund-play').disabled = !on || bagGbux < 1;
+  const login = $('btn-login');
+  const logout = $('btn-logout');
+  if (login) login.style.display = on ? 'none' : '';
+  if (logout) logout.style.display = on ? '' : 'none';
+  const siwsBtn = $('btn-siws');
+  if (siwsBtn) siwsBtn.textContent = on ? 'Link Phantom' : 'Connect Phantom';
+  $('btn-fund-play').disabled = !on;
   $('btn-quote').disabled = !on;
   $('btn-swap').disabled = !on;
+  const lp = $('btn-link-ph');
+  const ls = $('btn-link-sf');
+  if (lp) lp.disabled = !on;
+  if (ls) ls.disabled = !on;
+  const lb = $('btn-link-bp');
+  if (lb) lb.disabled = !on;
+  paintDetectedWallets();
 }
 function num(v) {
   const x = Number(v);
@@ -340,6 +547,183 @@ function renderGames() {
       '<img src="' + esc(g.img) + '" alt="" width="312" height="96" loading="eager" decoding="async" onerror="this.remove()">' +
       '<span class="meta"><strong>' + esc(g.name) + '</strong><span>' + esc(g.desc) + '</span></span>' +
     '</a>'
+function b58encode(bytes) {
+  const A = '123456789ABCDEFGHJKLMNPQRSTUVWXYZabcdefghijkmnopqrstuvwxyz';
+  const u8 = bytes instanceof Uint8Array ? bytes : new Uint8Array(bytes);
+  let zeros = 0;
+  while (zeros < u8.length && u8[zeros] === 0) zeros++;
+  const size = ((u8.length - zeros) * 138 / 100 + 1) | 0;
+  const b = new Uint8Array(size);
+  let length = 0;
+  for (let i = zeros; i < u8.length; i++) {
+    let carry = u8[i];
+    let j = size - 1;
+    for (; j >= 0 && (carry || (size - 1 - j) < length); j--) {
+      carry += 256 * b[j];
+      b[j] = carry % 58;
+      carry = (carry / 58) | 0;
+    }
+    length = size - 1 - j;
+  }
+  let it = size - length;
+  while (it < size && b[it] === 0) it++;
+  let s = '1'.repeat(zeros);
+  for (; it < size; it++) s += A[b[it]];
+  return s;
+}
+
+/** Poker SSOT: docs/PHANTOM_EMBEDDED_SSOT.md · client/src/lib/solana-wallets.ts
+ * Prefer window.phantom.solana (not hijackable window.solana). No auto-connect. */
+function getInjectedProvider(id) {
+  if (id === 'phantom') return (window.phantom && window.phantom.solana) || (window.solana && window.solana.isPhantom ? window.solana : null);
+  if (id === 'solflare') return window.solflare || (window.solana && window.solana.isSolflare ? window.solana : null);
+  if (id === 'backpack') return window.backpack || null;
+  if (window.solana && !window.solana.isPhantom && !window.solana.isSolflare) return window.solana;
+  return null;
+}
+function detectInjected() {
+  return [
+    { id: 'phantom', name: 'Phantom', install: 'https://phantom.app' },
+    { id: 'solflare', name: 'Solflare', install: 'https://solflare.com' },
+    { id: 'backpack', name: 'Backpack', install: 'https://backpack.app' },
+  ].map((w) => Object.assign(w, { available: Boolean(getInjectedProvider(w.id)) }));
+}
+function paintDetectedWallets() {
+  const box = $('w-detect');
+  if (!box) return;
+  const list = detectInjected();
+  const mobile = /Android|iPhone|iPad|iPod|Mobile/i.test(navigator.userAgent);
+  const inPhantom = /Phantom/i.test(navigator.userAgent) || Boolean(window.phantom && window.phantom.solana);
+  box.innerHTML = list.map((w) => {
+    if (w.available) return '<span class="v" style="font-size:.75rem">' + w.name + ' ready</span>';
+    return '<a class="btn ghost" href="' + w.install + '" target="_blank" rel="noopener">' + w.name + ' install</a>';
+  }).join('');
+  const openPh = $('btn-open-phantom');
+  if (openPh && mobile && !inPhantom) {
+    openPh.style.display = '';
+    openPh.href = 'https://phantom.app/ul/browse/' + encodeURIComponent(location.href);
+  }
+}
+
+async function siwsLogin() {
+  const msg = $('msg') || $('w-msg');
+  const w = getInjectedProvider('phantom') || getInjectedProvider('solflare') || getInjectedProvider('backpack');
+  const name = getInjectedProvider('phantom') ? 'phantom' : getInjectedProvider('solflare') ? 'solflare' : 'backpack';
+  if (!w) {
+    if (msg) { msg.className = 'msg err'; msg.textContent = 'Install Phantom, Solflare, or Backpack.'; }
+    window.open('https://phantom.app/', '_blank');
+    return;
+  }
+  if (msg) { msg.className = 'msg'; msg.textContent = 'Approve SIWS in ' + name + '...'; }
+  const resp = await w.connect({ onlyIfTrusted: false });
+  const address = String((resp && resp.publicKey && resp.publicKey.toString()) || (w.publicKey && w.publicKey.toString()) || '');
+  if (!address) throw new Error('no public key');
+  const ch = await api('/api/auth/phantom/nonce', {
+    method: 'POST',
+    headers: { 'Content-Type': 'application/json' },
+    body: JSON.stringify({ address, origin: location.origin }),
+  });
+  if (!ch.ok || !(ch.data && (ch.data.message || ch.data.siws))) {
+    throw new Error((ch.data && ch.data.error) || 'SIWS challenge failed');
+  }
+  const challenge = ch.data;
+  let message = challenge.message;
+  let signature;
+  let addr = address;
+  if (typeof w.signIn === 'function' && challenge.siws && challenge.siws.nonce) {
+    const out = await w.signIn(challenge.siws);
+    const signed = out.signedMessage || out.signed_message || message;
+    message = typeof signed === 'string' ? signed : new TextDecoder().decode(signed);
+    signature = typeof out.signature === 'string' ? out.signature : b58encode(out.signature);
+    addr = String((out.address && out.address.toString && out.address.toString()) || (out.account && out.account.address) || address);
+  } else {
+    const encoded = new TextEncoder().encode(message);
+    const signed = await w.signMessage(encoded, 'utf8');
+    signature = typeof signed === 'string' ? signed : b58encode(signed.signature || signed);
+  }
+  const verified = await api('/api/auth/phantom/verify', {
+    method: 'POST',
+    headers: { 'Content-Type': 'application/json' },
+    body: JSON.stringify({ address: addr, nonce: challenge.nonce, message, signature, provider: name }),
+  });
+  const body = verified.data || {};
+  const tok = body.token || body.sessionToken || body.sso_token;
+  if (!verified.ok && !body.success && !tok) throw new Error(body.error || 'SIWS verify failed');
+  if (tok) {
+    storeFleetToken(tok, { grudgeId: body.grudgeId || body.grudge_id || '', username: body.username || '' });
+  }
+  if (msg) { msg.className = 'msg ok'; msg.textContent = body.linked ? 'Wallet linked to Grudge ID' : 'Signed in with ' + name; }
+  await load();
+  await loadTraderCash();
+  await loadLinkedWallets();
+}
+
+async function connectAndLink(kind) {
+  const msg = $('w-msg');
+  msg.className = 'msg';
+  msg.textContent = 'Connecting ' + kind + '…';
+  const p = getInjectedProvider(kind);
+  if (!p) {
+    msg.className = 'msg err';
+    const install = kind === 'solflare' ? 'https://solflare.com' : kind === 'backpack' ? 'https://backpack.app' : 'https://phantom.app';
+    msg.innerHTML = kind + ' not injected. <a href="' + install + '" target="_blank" rel="noopener">Install</a> or Open in Phantom on mobile.';
+    return;
+  }
+  const resp = await p.connect({ onlyIfTrusted: false });
+  const walletAddress = (resp && resp.publicKey && resp.publicKey.toString()) || (p.publicKey && p.publicKey.toString()) || '';
+  if (!walletAddress) throw new Error('Wallet did not return a public key');
+  const ch = await api('/api/wallet/link/challenge', {
+    method: 'POST',
+    headers: { 'Content-Type': 'application/json' },
+    body: JSON.stringify({ walletAddress, origin: location.origin }),
+  });
+  if (!ch.ok) throw new Error(ch.data && ch.data.error || 'challenge failed');
+  const encoded = new TextEncoder().encode(ch.data.message);
+  const signed = await p.signMessage(encoded, 'utf8');
+  const sigBytes = signed.signature || signed;
+  const signature = b58encode(sigBytes);
+  const conf = await api('/api/wallet/link/confirm', {
+    method: 'POST',
+    headers: { 'Content-Type': 'application/json' },
+    body: JSON.stringify({ walletAddress, message: ch.data.message, signature, provider: kind }),
+  });
+  if (!conf.ok) throw new Error(conf.data && conf.data.error || 'confirm failed');
+  msg.className = 'msg ok';
+  msg.textContent = 'Linked ' + walletAddress.slice(0, 8) + '… (does not replace Crossmint)';
+  if ($('tr-from') && !$('tr-from').value) $('tr-from').value = walletAddress;
+  await loadLinkedWallets();
+}
+
+async function loadLinkedWallets() {
+  const box = $('w-linked');
+  const cm = $('w-cm');
+  if (cm) cm.textContent = walletAddr ? walletAddr.slice(0, 8) + '…' : 'none';
+  if (!getAuthToken()) {
+    box.textContent = 'Sign in to list linked wallets.';
+    return;
+  }
+  const r = await api('/api/wallet/linked');
+  const list = (r.data && (r.data.linkedWallets || r.data.wallets)) || [];
+  if (!r.ok) {
+    box.textContent = (r.data && r.data.error) || 'Could not load linked wallets.';
+    return;
+  }
+  if (!list.length) {
+    box.textContent = 'No Phantom/Solflare linked yet. Connect below — Crossmint stays the Gruda game wallet.';
+    return;
+  }
+  box.innerHTML = list.map((w) => {
+    const a = w.walletAddress || w.address || '';
+    const prov = w.provider || w.walletType || 'linked';
+    return '<div class="row"><span class="k">' + prov + '</span><span class="v" title="' + a + '">' + (a ? a.slice(0, 6) + '…' + a.slice(-4) : '—') + '</span></div>';
+  }).join('');
+  const first = list[0] && (list[0].walletAddress || list[0].address);
+  if (first && $('tr-from') && !$('tr-from').value) $('tr-from').value = first;
+}
+
+function renderGames() {
+  $('games').innerHTML = GAMES.map((g) =>
+    '<a class="game" href="' + g.href + '" data-handoff="1"><img src="' + g.img + '" alt="" onerror="this.remove()"><strong>' + g.name + '</strong><span>' + g.desc + '</span></a>'
   ).join('');
   $('games').querySelectorAll('a[data-handoff]').forEach((a) => {
     a.addEventListener('click', (e) => {
@@ -386,6 +770,7 @@ async function loadScopes(addr, chainHint) {
   }
 }
 async function load() {
+  if ($('sess')) $('sess').textContent = 'loading…';
   $('msg').textContent = '';
   $('msg').className = 'msg';
   $('hero-list').textContent = '';
@@ -407,7 +792,9 @@ async function load() {
       $('play').textContent = '—';
       $('chain').textContent = '—';
       $('sol').textContent = '—';
+      $('cmint').textContent = '—';
       $('addr').style.display = 'none';
+      $('btn-create-wallet').style.display = 'none';
       if (me.status === 401) $('msg').textContent = 'Sign in with Grudge ID to manage bag & fund play.';
       return;
     }
@@ -452,6 +839,35 @@ async function load() {
     } else {
       $('msg').textContent = 'Bag can move into play. Play GBUX is the real server wallet that sits tables. On-chain SPL is not table chips until deposited.';
       $('msg').className = 'msg ok';
+    const st = await api('/api/wallet/status');
+    if (st.ok && st.data) {
+      const bag = Number(st.data.gbuxBalance ?? 0).toLocaleString();
+    $('gbux').textContent = bag;
+    if ($('tok-gbux')) $('tok-gbux').textContent = bag;
+      if (st.data.hasWallet && st.data.walletAddress) {
+        walletAddr = st.data.walletAddress;
+        $('cmint').textContent = (st.data.walletType || 'crossmint') + ' · exists';
+        $('addr').style.display = 'block';
+        $('addr').textContent = walletAddr;
+        $('btn-create-wallet').style.display = 'none';
+        await loadPlayBalance(walletAddr);
+      } else {
+        $('cmint').textContent = 'none — create only if missing';
+        $('btn-create-wallet').style.display = '';
+      }
+    }
+    const ov = await api('/api/wallet/overview');
+    if (ov.ok && ov.data) {
+      const bag2 = Number(ov.data.gbuxBalance ?? $('gbux').textContent.replace(/,/g,'') ?? 0).toLocaleString();
+      $('gbux').textContent = bag2;
+      if ($('tok-gbux')) $('tok-gbux').textContent = bag2;
+      const linked = ov.data.primaryWallet || ov.data.linkedWallets?.[0]?.walletAddress || '';
+      if (!walletAddr && linked) {
+        walletAddr = linked;
+        $('addr').style.display = 'block';
+        $('addr').textContent = walletAddr;
+        await loadPlayBalance(walletAddr);
+      }
     }
 
     const ch = await api('/api/characters?era=warlords');
@@ -474,10 +890,33 @@ async function load() {
         document.cookie = 'sso_token=' + encodeURIComponent(tok) + '; path=/; max-age=' + maxAge + '; Domain=.grudge-studio.com; SameSite=Lax; Secure';
       }
     } catch {}
+    loadTraderCash();
+    loadLinkedWallets();
   } catch (e) {
     $('msg').textContent = 'Error: ' + (e && e.message ? e.message : e);
     $('msg').className = 'msg err';
   }
+}
+
+document.querySelectorAll('[data-dock]').forEach((b) => {
+  b.onclick = () => {
+    document.querySelectorAll('[data-dock]').forEach((x) => x.classList.remove('on'));
+    document.querySelectorAll('.dock-panel').forEach((p) => p.classList.remove('on'));
+    b.classList.add('on');
+    const pan = $('dock-' + b.dataset.dock);
+    if (pan) pan.classList.add('on');
+  };
+});
+function showDock(name) {
+  const b = document.querySelector('[data-dock="' + name + '"]');
+  if (b) b.click();
+}
+if ($('btn-go-send')) $('btn-go-send').onclick = () => showDock('assets');
+if ($('btn-go-swap')) $('btn-go-swap').onclick = () => { showDock('activity'); const t = document.querySelector('[data-tab="swap"]'); if (t) t.click(); };
+if ($('btn-go-connect')) $('btn-go-connect').onclick = () => showDock('assets');
+if ($('btn-tr-copy')) {
+  const prev = $('btn-tr-copy').onclick;
+  $('btn-tr-copy').addEventListener('click', () => showDock('assets'));
 }
 
 document.querySelectorAll('.tabs button').forEach((b) => {
@@ -493,6 +932,22 @@ $('btn-login').onclick = () => {
   const redir = encodeURIComponent(location.origin + '/auth/callback');
   location.href = ID_GW + '/login?redirect_uri=' + redir + '&return=' + redir + '&origin=' + encodeURIComponent(location.origin) + '&app=grudge-wallet';
 };
+$('btn-refresh').onclick = () => { load(); loadTraderCash(); loadLinkedWallets(); };
+$('btn-link-ph').onclick = () => connectAndLink('phantom').catch((e) => { $('w-msg').className = 'msg err'; $('w-msg').textContent = e.message || String(e); });
+$('btn-link-sf').onclick = () => connectAndLink('solflare').catch((e) => { $('w-msg').className = 'msg err'; $('w-msg').textContent = e.message || String(e); });
+if ($('btn-link-bp')) $('btn-link-bp').onclick = () => connectAndLink('backpack').catch((e) => { $('w-msg').className = 'msg err'; $('w-msg').textContent = e.message || String(e); });
+if ($('btn-siws')) {
+  $('btn-siws').onclick = () => siwsLogin().catch((e) => {
+    const m = $('msg') || $('w-msg');
+    if (m) { m.className = 'msg err'; m.textContent = e.message || String(e); }
+  });
+}
+if ($('btn-login') && $('btn-login').tagName === 'BUTTON') {
+  $('btn-login').onclick = () => {
+    const redir = encodeURIComponent(location.origin + '/');
+    location.href = ID_GW + '/login?redirect_uri=' + redir + '&return=' + redir + '&origin=' + encodeURIComponent(location.origin) + '&app=grudge-wallet';
+  };
+}
 $('btn-logout').onclick = () => {
   clearFleetAuth();
   try {
@@ -505,6 +960,42 @@ $('btn-phantom').onclick = (e) => {
   e.preventDefault();
   location.href = handoffUrl(POKER + '/wallet');
 };
+$('btn-trader').onclick = (e) => {
+  e.preventDefault();
+  location.href = handoffUrl(TRADER);
+};
+$('btn-create-wallet').onclick = async () => {
+  $('msg').className = 'msg';
+  $('msg').textContent = 'Checking Railway wallet…';
+  try {
+    const st = await api('/api/wallet/status');
+    if (st.ok && st.data && st.data.hasWallet && st.data.walletAddress) {
+      $('msg').textContent = 'Wallet already exists.';
+      $('msg').className = 'msg ok';
+      await load();
+      return;
+    }
+    const me = await api('/api/auth/me');
+    const email = me.data?.email || me.data?.user_email || '';
+    if (!email) {
+      $('msg').textContent = 'Grudge ID needs an email before Crossmint mint.';
+      $('msg').className = 'msg err';
+      return;
+    }
+    const r = await api('/api/wallet/create', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ email }),
+    });
+    if (!r.ok) throw new Error(r.data?.error || 'Create failed');
+    $('msg').textContent = r.data?.message || 'Wallet ready';
+    $('msg').className = 'msg ok';
+    await load();
+  } catch (e) {
+    $('msg').textContent = e.message || String(e);
+    $('msg').className = 'msg err';
+  }
+};
 $('btn-fund-play').onclick = async () => {
   const amount = Math.floor(parseFloat($('play-amt').value) || 0);
   $('tx-msg').className = 'msg';
@@ -516,7 +1007,7 @@ $('btn-fund-play').onclick = async () => {
     const r = await api('/api/wallet/transfer-to-play', {
       method: 'POST',
       headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify({ amount, game: 'poker', walletAddress: walletAddr || undefined }),
+      body: JSON.stringify({ amount, game: 'poker', walletAddress: walletAddr || $('tr-from') && $('tr-from').value || undefined }),
     });
     if (!r.ok) throw new Error(r.data?.error || 'Transfer failed');
     $('tx-msg').textContent = 'Funded play +' + amount + ' · bag ' + (r.data.gbuxBalance ?? '—') + ' · play ' + (r.data.play?.playGbux ?? '—');
@@ -557,8 +1048,152 @@ $('btn-swap').onclick = async () => {
   $('swap-out').textContent = JSON.stringify(r.data, null, 2);
 };
 
+const PRIVACY_HTML = '<p>Grudge Studio Wallet (wallet.grudge-studio.com) is the fleet bag for your Grudge ID. We store session tokens in the browser, account identity on Railway (grudge_id), Crossmint game-wallet addresses, and the auto-trader cash ledger (deposits/withdrawals/NAV) keyed by grudge_id. We do not sell personal data. On-chain SOL and token balances are public. Admin identities (grudachain / molochdadev) can halt the desk and flatten the house vault. Do not send funds you cannot lose. Contact: existing Grudge ID support paths.</p><p>Cookies: sso_token / Grudge ID session on .grudge-studio.com. No third-party ads. Analytics: none beyond host logs.</p>';
+const TOS_HTML = '<p>The auto-trader is experimental. You send SOL to the house trade vault. Buys, sells, and fees spend that vault. You must keep at least 0.02 SOL in the vault for network fees or new clips halt. Close fee: 0.005 SOL of proceeds swapped to GBUX; take-profit also takes 5%. Remaining SOL stays as your spendable NAV on the same ledger. Withdrawals only to a wallet that deposited or is linked on Grudge ID. Not financial advice. Markets can go to zero. Grudge Studio may halt, refuse, or change fee rates. Enabling the trader opts you into this ledger. Privacy and these terms apply to the installed PWA the same as the site.</p>';
+
+function openLegal(title, html) {
+  $('legal-title').textContent = title;
+  $('legal-body').innerHTML = html;
+  const back = $('legal-back');
+  back.hidden = false;
+  back.classList.add('on');
+}
+$('btn-privacy').onclick = () => openLegal('Privacy', PRIVACY_HTML);
+$('btn-tos').onclick = () => openLegal('Terms of service', TOS_HTML);
+$('legal-close').onclick = () => { $('legal-back').hidden = true; $('legal-back').classList.remove('on'); };
+$('legal-back').onclick = (e) => { if (e.target === $('legal-back')) { $('legal-back').hidden = true; $('legal-back').classList.remove('on'); } };
+
+async function traderApi(path, opt) {
+  const tok = getAuthToken();
+  const headers = { Accept: 'application/json', ...(opt && opt.headers || {}) };
+  if (tok) headers.Authorization = 'Bearer ' + tok;
+  if (opt && opt.body && !headers['Content-Type']) headers['Content-Type'] = 'application/json';
+  const r = await fetch(TRADER + path, { ...opt, headers });
+  const data = await r.json().catch(() => ({}));
+  return { ok: r.ok, status: r.status, data };
+}
+
+async function loadHoldings() {
+  const coins = $('coin-list');
+  const nfts = $('nft-grid');
+  if (!getAuthToken()) return;
+  const r = await traderApi('/api/gruda/holdings');
+  const d = r.data || {};
+  if ($('set-rpc') && d.rpc) $('set-rpc').textContent = d.rpc;
+  if ($('set-net') && d.network) $('set-net').textContent = 'Solana ' + d.network;
+  if (coins) {
+    const rows = [];
+    if (d.sol != null) rows.push('<div class="tok"><div class="meta"><b>SOL</b><span>your trader vault</span></div><div class="bal">' + Number(d.sol).toFixed(4) + '</div></div>');
+    (d.tokens || []).forEach((t) => {
+      const name = t.mint === '55TpSoMNxbfsNJ9U1dQoo9H3dRtDmjBZVMcKqvU2nray' ? 'GBUX' : (t.mint || '').slice(0, 6) + '…';
+      rows.push('<div class="tok"><div class="meta"><b>' + name + '</b><span>' + (t.mint || '') + '</span></div><div class="bal">' + t.uiAmount + '</div></div>');
+    });
+    coins.innerHTML = rows.length ? rows.join('') : '<p class="empty">No coins on your vault yet.</p>';
+  }
+  if (nfts) {
+    const items = d.nfts || [];
+    nfts.innerHTML = items.length
+      ? items.map((n) => '<a href="https://solscan.io/token/' + n.id + '" target="_blank" rel="noopener"><img src="' + (n.image || '/icon.svg') + '" alt="" onerror="this.remove()"><span>' + (n.compressed ? 'cNFT · ' : '') + (n.name || 'nft') + '</span></a>').join('')
+      : '<p class="empty" style="grid-column:1/-1">No cNFTs on this vault yet.</p>';
+  }
+}
+
+async function loadTraderCash() {
+  const msg = $('tr-msg');
+  try {
+    const ready = await fetch(TRADER + '/live-ready', { cache: 'no-store' }).then((r) => r.json());
+    const gw = await traderApi('/api/gruda/wallet');
+    const pk = (gw.data && gw.data.tradingPubkey) || '';
+    $('tr-vault').textContent = pk ? pk.slice(0, 8) + '…' + pk.slice(-4) : 'Enable trader first';
+    const tsol = gw.data && gw.data.tradingSol != null ? gw.data.tradingSol : ready.sol;
+    $('tr-sol').textContent = tsol != null ? Number(tsol).toFixed(4) + ' SOL' : '—';
+    if ($('tok-sol')) $('tok-sol').textContent = $('tr-sol').textContent;
+    if (pk) {
+      $('tr-vault-full').textContent = pk;
+      const scan = $('btn-tr-scan');
+      if (scan) scan.href = 'https://solscan.io/account/' + pk;
+      if ($('set-vault')) $('set-vault').textContent = pk.slice(0, 8) + '…';
+    }
+    $('btn-tr-copy').onclick = () => {
+      showDock('assets');
+      if (pk) {
+        navigator.clipboard.writeText(pk);
+        if ($('tr-msg')) { $('tr-msg').className = 'msg ok'; $('tr-msg').textContent = 'Receive address copied. Send SOL from Phantom to it, then Record deposit.'; }
+      } else if ($('tr-msg')) { $('tr-msg').className = 'msg err'; $('tr-msg').textContent = 'Enable trader first to mint YOUR vault.'; }
+    };
+    loadHoldings();
+    const port = await traderApi('/api/portfolio');
+    $('tr-enroll').textContent = gw.data && gw.data.enrolled ? 'yes' : 'no';
+    const spend = gw.data && gw.data.spendableSol != null ? gw.data.spendableSol : port.data && port.data.availableSol;
+    $('tr-spend').textContent = spend != null ? Number(spend).toFixed(4) + ' SOL' : '—';
+    const on = Boolean(getAuthToken());
+    $('btn-tr-dep').disabled = !on;
+    $('btn-tr-wd').disabled = !on;
+    $('btn-tr-enroll').disabled = !on;
+    if (gw.data && gw.data.walletAddress && !$('tr-from').value) $('tr-from').value = gw.data.walletAddress;
+    else if (port.data && port.data.sourceWallets && port.data.sourceWallets[0] && !$('tr-from').value) $('tr-from').value = port.data.sourceWallets[0];
+  } catch (e) {
+    if (msg) { msg.textContent = e.message || String(e); msg.className = 'msg err'; }
+  }
+}
+
+$('btn-tr-enroll').onclick = async () => {
+  $('tr-msg').className = 'msg';
+  $('tr-msg').textContent = 'Enabling…';
+  const r = await traderApi('/api/gruda/enable', { method: 'POST', body: '{}' });
+  $('tr-msg').textContent = r.ok ? 'Enrolled. Deposit SOL to the vault, then Record deposit.' : (r.data.error || 'Enable failed');
+  $('tr-msg').className = r.ok ? 'msg ok' : 'msg err';
+  await loadTraderCash();
+};
+$('btn-tr-dep').onclick = async () => {
+  const sourceWallet = $('tr-from').value.trim();
+  const amountSol = parseFloat($('tr-amt').value);
+  $('tr-msg').textContent = 'Recording deposit…';
+  const r = await traderApi('/api/ledger/deposit', {
+    method: 'POST',
+    body: JSON.stringify({ sourceWallet, amountSol }),
+  });
+  $('tr-msg').textContent = r.ok ? 'Deposit recorded. Keep 0.02 SOL in the vault for fees.' : (r.data.error || 'Deposit failed');
+  $('tr-msg').className = r.ok ? 'msg ok' : 'msg err';
+  await loadTraderCash();
+};
+$('btn-tr-wd').onclick = async () => {
+  const sourceWallet = $('tr-from').value.trim();
+  const amountSol = parseFloat($('tr-amt').value);
+  $('tr-msg').textContent = 'Withdrawing…';
+  const r = await traderApi('/api/ledger/withdraw', {
+    method: 'POST',
+    body: JSON.stringify({ sourceWallet, amountSol }),
+  });
+  $('tr-msg').textContent = r.ok ? ('Sent ' + (r.data.paid || amountSol) + ' SOL') : (r.data.error || 'Withdraw failed');
+  $('tr-msg').className = r.ok ? 'msg ok' : 'msg err';
+  await loadTraderCash();
+};
+
 renderGames();
+paintDetectedWallets();
 load();
+loadTraderCash();
+if ('serviceWorker' in navigator) {
+  navigator.serviceWorker.register('/sw.js').catch(() => {});
+}
+let deferredInstall = null;
+window.addEventListener('beforeinstallprompt', (e) => {
+  e.preventDefault();
+  deferredInstall = e;
+  const b = $('btn-install');
+  if (b) b.style.display = '';
+});
+const installBtn = $('btn-install');
+if (installBtn) {
+  installBtn.onclick = async () => {
+    if (!deferredInstall) return;
+    deferredInstall.prompt();
+    await deferredInstall.userChoice.catch(() => {});
+    deferredInstall = null;
+    installBtn.style.display = 'none';
+  };
+}
 </script>
 </body>
 </html>`;

@@ -11,6 +11,7 @@ export const WARLORDS_PRODUCT_HOSTS = new Set([
   'grudgewarlords.com',
   'www.grudgewarlords.com',
   'client.grudge-studio.com',
+  'test.grudge-studio.com',
   'localhost',
   '127.0.0.1',
 ]);
@@ -71,6 +72,8 @@ export function gcsCreateHeroUrl(): string {
 
 export type WarlordsNavId =
   | 'home'
+  | 'lobby'
+  | 'maps'
   | 'characters'
   | 'combat'
   | 'arsenal'
@@ -99,6 +102,8 @@ export const WARLORDS_NAV: Array<{
   primary?: boolean;
 }> = [
   { id: 'home', label: 'Home', href: '/' },
+  { id: 'lobby', label: 'Lobby', href: '/lobby' },
+  { id: 'maps', label: 'Maps', href: '/lobby/maps' },
   { id: 'characters', label: 'Characters', href: '/heroes' },
   { id: 'combat', label: 'Combat', href: '/combat' },
   { id: 'arsenal', label: 'Arsenal', href: '/arsenal' },
@@ -108,5 +113,5 @@ export const WARLORDS_NAV: Array<{
   { id: 'home-island', label: 'Home Island', href: '/home-island' },
   { id: 'lore', label: 'Lore', href: '/lore' },
   { id: 'account', label: 'Account', href: '/account' },
-  { id: 'play', label: 'Play', href: '/intro', primary: true },
+  { id: 'play', label: 'Play', href: '/lobby', primary: true },
 ];

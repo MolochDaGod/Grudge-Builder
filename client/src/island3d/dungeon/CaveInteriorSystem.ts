@@ -271,10 +271,7 @@ export class CaveInteriorSystem {
     if (this.character.physics) {
       this.character.physics.waterLevel = -1e6;
     }
-    this.character.userData = {
-      ...(this.character as unknown as { userData?: Record<string, unknown> }).userData,
-      inCaveInterior: true,
-    };
+    this.character.model.userData.inCaveInterior = true;
     // Mark on controller for update loop
     (this.character as CharacterController3D & { caveInteriorActive?: boolean }).caveInteriorActive =
       true;

@@ -222,7 +222,7 @@ export function IslandChat({
     }
   };
   
-  const selectChatter = (character: Character) => {
+  const selectChatter = (character: CharacterLike) => {
     setActiveChatterId(character.id);
     generateGreeting(character.id);
   };

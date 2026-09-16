@@ -44,6 +44,7 @@ export interface SystemNode {
 }
 
 export type EdgeKind =
+  | "redirects-to"
   | "routes-to"
   | "calls"
   | "rewrites-to"
@@ -107,7 +108,7 @@ const domains: SystemNode[] = [
   // Puter deployments — see docs/puter-registry.json for canonical list.
   { id: "dom:grudge-server.puter.work", label: "grudge-server.puter.work", kind: "domain", status: "live",  group: "puter", url: "https://grudge-server.puter.work/api/health", notes: "External Puter worker (AI chat, vision, sprite gen, NPC chat, game data sync). See GrudgeBuilder/puter.md." },
   { id: "dom:grudgewarlords-craft", label: "grudgewarlords.com/craft", kind: "domain", status: "live", group: "warlords", url: "https://grudgewarlords.com/craft/", notes: "Canonical WCS craft suite (inventory, recipes, item DB) on Warlords product domain." },
-  { id: "dom:grudge-crafting.puter.site", label: "grudge-crafting.puter.site", kind: "domain", status: "legacy",  group: "puter", url: "https://grudge-crafting.puter.site", notes: "Legacy Puter host — redirects to grudgewarlords.com/craft/." },
+  { id: "dom:grudge-crafting.puter.site", label: "grudge-crafting.puter.site", kind: "domain", status: "deprecated",  group: "puter", url: "https://grudge-crafting.puter.site", notes: "Legacy Puter host — redirects to grudgewarlords.com/craft/." },
   { id: "dom:js.puter.com",       label: "js.puter.com (SDK CDN)", kind: "domain", status: "live",  group: "puter", url: "https://js.puter.com/v2/", notes: "Puter SDK script loaded by all Grudge frontends for AI/KV/FS/auth. Third-party, not owned." },
   // Shadow / untracked Puter deployments discovered via probe — see docs/puter-registry.json nameBreakRisks + frontends entries.
   { id: "dom:grudgewarlords.puter.site", label: "grudgewarlords.puter.site", kind: "domain", status: "broken", group: "puter", url: "https://grudgewarlords.puter.site", notes: "UNTRACKED live Grudge deployment (title=Grudge Warlords). Not referenced by any current code path. Owner TBD; decide keep vs retire." },
@@ -175,7 +176,7 @@ const services: SystemNode[] = [
   // Puter services — external, but part of the Grudge identity + AI surface.
   { id: "svc:puter-worker",   label: "GRUDGE Puter Worker", kind: "service", status: "live",    group: "puter",   owner: "platform", notes: "grudge-server.puter.work — AI chat/vision, sprite gen jobs, NPC dialogue, game data sync. Endpoints documented in GrudgeBuilder/puter.md." },
   { id: "svc:warlords-crafting", label: "Warlords Craft Suite", kind: "service", status: "live", group: "warlords", owner: "frontend", repo: "Grudge-Builder", url: "https://grudgewarlords.com/craft/", notes: "Canonical WCS: inventory, recipes, item DB on product domain. Same Railway JWT + bag as SPA. Static /craft/ on Vercel." },
-  { id: "svc:puter-crafting", label: "Puter Crafting Site (legacy)", kind: "service", status: "legacy", group: "puter", owner: "frontend", notes: "Redirect-only to grudgewarlords.com/craft/. Keep allowlisted for old bookmarks." },
+  { id: "svc:puter-crafting", label: "Puter Crafting Site (legacy)", kind: "service", status: "deprecated", group: "puter", owner: "frontend", notes: "Redirect-only to grudgewarlords.com/craft/. Keep allowlisted for old bookmarks." },
   { id: "svc:puter-sdk",      label: "Puter SDK (ai/kv/fs/auth)", kind: "service", status: "live", group: "puter", owner: "platform", notes: "Loaded client-side from js.puter.com/v2. Consumed by GrudgeBuilder (puterIntegration.ts), grudge-sdk.js, and Puter-hosted frontends." },
   { id: "svc:puter-auth-bridge", label: "Puter \u2194 Grudge ID bridge", kind: "service", status: "live", group: "puter", owner: "backend", repo: "grudge-backend", notes: "id.grudge-studio.com /auth/puter (+ /auth/puter-link). Mints/links Grudge ID from Puter UUID; every auth path guarantees one Puter cloud storage per account. Proxied via grudge-platform api/puter.js + puter-link.js." },
   // Web3 hub. Distinct from svc:gaming-portal (/gs) and svc:frontend (grudgewarlords.com).

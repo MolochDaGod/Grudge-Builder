@@ -19,6 +19,7 @@ const CORS_ALLOW = [
   "https://open.grudge-studio.com",
   "https://grudox.grudge-studio.com",
   "https://character.grudge-studio.com",
+  "https://trader.grudge-studio.com",
   "https://dash.grudge-studio.com",
   "http://localhost:5173",
   "http://localhost:3000",
@@ -109,6 +110,7 @@ export default {
           environment: env.ENVIRONMENT || "production",
           railway: env.RAILWAY_API_ORIGIN,
           poker: env.POKER_ORIGIN || "https://poker.grudge-studio.com",
+          trader: env.TRADER_ORIGIN || "https://trader.grudge-studio.com",
           time: new Date().toISOString(),
           vps_origin: false,
           features: [
@@ -119,6 +121,11 @@ export default {
             "phantom-reconnect",
             "app-tiles",
             "auth-callback",
+            "crossmint-check-first",
+            "auto-trader-handoff",
+            "pwa-install",
+            "linked-wallets",
+            "poker-solana-inject",
           ],
         },
         200,
@@ -167,6 +174,73 @@ export default {
       "/auth/callback/",
     ]);
     if (htmlPaths.has(url.pathname)) {
+    if (url.pathname === "/manifest.webmanifest" || url.pathname === "/manifest.json") {
+      const logo = `${idGw}/grudge-id-logo.png`;
+      const manifest = {
+        name: "Grudge Studio Wallet",
+        short_name: "Gruda Wallet",
+        description: "One Grudge ID · Crossmint game wallet · fleet bag · auto-trader",
+        start_url: "/",
+        scope: "/",
+        display: "standalone",
+        orientation: "portrait-primary",
+        background_color: "#07070c",
+        theme_color: "#d4af37",
+        id: "https://wallet.grudge-studio.com/",
+        icons: [
+          { src: "/icon.svg", sizes: "any", type: "image/svg+xml", purpose: "any" },
+          { src: logo, sizes: "192x192", type: "image/png", purpose: "any" },
+          { src: logo, sizes: "512x512", type: "image/png", purpose: "any" },
+        ],
+      };
+      return new Response(JSON.stringify(manifest), {
+        status: 200,
+        headers: {
+          "Content-Type": "application/manifest+json; charset=utf-8",
+          "Cache-Control": "public, max-age=300",
+          ...cors,
+        },
+      });
+    }
+
+    if (url.pathname === "/icon.svg") {
+      const svg = `<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 512 512">
+<rect width="512" height="512" rx="96" fill="#07070c"/>
+<path d="M256 48l176 80v128c0 112-75 198-176 240C155 454 80 368 80 256V128z" fill="#1a1405" stroke="#d4af37" stroke-width="22"/>
+<text x="256" y="300" text-anchor="middle" font-family="Georgia,serif" font-size="140" fill="#d4af37">G</text>
+</svg>`;
+      return new Response(svg, {
+        status: 200,
+        headers: {
+          "Content-Type": "image/svg+xml; charset=utf-8",
+          "Cache-Control": "public, max-age=86400",
+          ...cors,
+        },
+      });
+    }
+
+    if (url.pathname === "/sw.js") {
+      const sw = `self.addEventListener('install', (e) => { self.skipWaiting(); });
+self.addEventListener('activate', (e) => { e.waitUntil(self.clients.claim()); });
+self.addEventListener('fetch', (e) => {
+  const u = new URL(e.request.url);
+  if (u.pathname.startsWith('/api/')) return;
+});`;
+      return new Response(sw, {
+        status: 200,
+        headers: {
+          "Content-Type": "text/javascript; charset=utf-8",
+          "Cache-Control": "public, max-age=60",
+          ...cors,
+        },
+      });
+    }
+
+    if (
+      url.pathname === "/" ||
+      url.pathname === "/index.html" ||
+      url.pathname === "/wallet"
+    ) {
       return new Response(htmlPage(env), {
         status: 200,
         headers: {

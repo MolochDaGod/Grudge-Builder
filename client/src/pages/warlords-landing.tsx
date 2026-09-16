@@ -10,7 +10,6 @@ import {
 import { WarlordsShell } from '@/components/WarlordsShell';
 import { CrusadeEmblem, FabledEmblem, LegionEmblem } from '@/components/FactionEmblems';
 import { useFleetVideo } from '@/hooks/use-fleet-video';
-import { useAuth } from '@/contexts/AuthContext';
 import { FACTIONS, GODS, SECTOR_LORE } from '@shared/definitions/lore';
 import { gcsCreateHeroUrl } from '@/lib/warlordsProduct';
 import {
@@ -48,16 +47,16 @@ const FACTION_UI = [
 const PLAY_PATH = [
   {
     n: '01',
-    title: 'Opening',
-    detail: 'Intro video · sign in',
-    href: '/intro',
+    title: 'War council',
+    detail: 'Meet your crew · choose a world',
+    href: '/lobby',
     icon: Flame,
     art: PRODUCTION_PATH_ART.opening,
   },
   {
     n: '02',
     title: 'Create hero',
-    detail: 'Foundry · Warlords era',
+    detail: 'Choose your race and calling',
     href: '/create-character',
     icon: Swords,
     art: PRODUCTION_PATH_ART.createHero,
@@ -65,7 +64,7 @@ const PLAY_PATH = [
   {
     n: '03',
     title: 'Airship',
-    detail: 'Combat tab · 4 characters',
+    detail: 'Prepare for your first voyage',
     href: '/combat',
     icon: Anchor,
     art: PRODUCTION_PATH_ART.tutorial,
@@ -81,8 +80,8 @@ const PLAY_PATH = [
   {
     n: '05',
     title: 'Home island',
-    detail: 'After raft · not level 20',
-    href: '/homeisland?cinematic=abandon-ship&from=tutorial',
+    detail: 'Build a home beyond the storm',
+    href: '/home-island',
     icon: Leaf,
     art: PRODUCTION_PATH_ART.homeIsland,
   },
@@ -122,7 +121,6 @@ function ArtPanel({
 export default function WarlordsLandingPage() {
   const [, setLocation] = useLocation();
   const introVideoSrc = useFleetVideo('warlordsIntro');
-  const { isAuthenticated, openLogin } = useAuth();
   const [activeClass, setActiveClass] = useState('warrior');
   const [heroBgFailed, setHeroBgFailed] = useState(false);
 
@@ -232,11 +230,7 @@ export default function WarlordsLandingPage() {
               <button
                 type="button"
                 onClick={() => {
-                  if (!isAuthenticated) {
-                    openLogin();
-                    return;
-                  }
-                  setLocation('/home');
+                  setLocation('/lobby');
                 }}
                 className="px-8 py-3.5 rounded-xl font-bold tracking-wider border-0 cursor-pointer"
                 style={{
@@ -246,7 +240,7 @@ export default function WarlordsLandingPage() {
                   boxShadow: '0 14px 40px -10px rgba(246,201,69,.55)',
                 }}
               >
-                {isAuthenticated ? 'CONTINUE' : 'SIGN IN · CONTINUE'}
+                ENTER THE LOBBY
               </button>
               <Link href="/lore">
                 <a className="px-6 py-3.5 rounded-xl text-sm font-semibold tracking-wide border border-white/10 text-slate-300 no-underline inline-flex items-center gap-2 hover:border-amber-500/40">
@@ -291,15 +285,15 @@ export default function WarlordsLandingPage() {
         <div className="flex items-end justify-between mb-6">
           <div>
             <h3 className="text-2xl font-bold tracking-wide text-amber-400" style={{ fontFamily: "'Cinzel', serif" }}>
-              Production path
+              Begin your journey
             </h3>
             <p className="text-slate-500 text-sm mt-1">
-              Intro → create → airship → tutorial → raft → home island → play
+              Gather in the lobby, choose a hero, and set sail.
             </p>
           </div>
-          <Link href="/warlords/start">
+          <Link href="/lobby">
             <a className="text-xs text-amber-500/80 hover:text-amber-400 no-underline flex items-center gap-1">
-              Full pipeline <ChevronRight className="w-3.5 h-3.5" />
+              Open war council <ChevronRight className="w-3.5 h-3.5" />
             </a>
           </Link>
         </div>
@@ -418,8 +412,7 @@ export default function WarlordsLandingPage() {
             </h3>
           </div>
           <p className="text-sm text-slate-300/90 mb-4">
-            From Haven Shore to the Grinding March — open-world biomes on seed{' '}
-            <code className="text-amber-400/90">grudge-world-1</code>.
+            Explore distant shores, frozen frontiers, and volcanic depths.
           </p>
           <ul className="grid grid-cols-2 gap-1.5 text-xs text-slate-400">
             {Object.values(SECTOR_LORE).slice(0, 6).map((s) => (
@@ -447,15 +440,15 @@ export default function WarlordsLandingPage() {
           <ol className="space-y-3 text-sm text-slate-300/90">
             <li className="flex gap-3">
               <span className="text-amber-400 font-mono text-xs">01</span>
-              Sign in with Grudge ID · Warlords era roster
+              Sign in and gather your crew
             </li>
             <li className="flex gap-3">
               <span className="text-amber-400 font-mono text-xs">02</span>
-              Create a hero (GCS · era=warlords)
+              Choose an existing hero or create a new warlord
             </li>
             <li className="flex gap-3">
               <span className="text-amber-400 font-mono text-xs">03</span>
-              Airship → home island → map · tutorial optional
+              Learn at Shipwreck Cove and explore the island sectors
             </li>
           </ol>
           <div className="flex flex-wrap gap-2 mt-5">
@@ -483,32 +476,11 @@ export default function WarlordsLandingPage() {
         </ArtPanel>
       </section>
 
-      {/* Connections strip */}
-      <section className="max-w-6xl mx-auto px-4 py-12">
-        <div className="rounded-xl border border-white/[.08] overflow-hidden relative">
-          <div
-            className="absolute inset-0 opacity-25 bg-cover bg-center"
-            style={{ backgroundImage: `url('${LANDING_SECTION_ART.void}')` }}
-          />
-          <div className="absolute inset-0 bg-black/70" />
-          <div className="relative px-4 py-3 flex flex-wrap gap-x-6 gap-y-2 text-[10px] text-slate-400 font-mono">
-            <span>
-              Product <strong className="text-slate-200">grudge.studio</strong>
-            </span>
-            <span>
-              Auth <strong className="text-slate-200">id.grudge-studio.com</strong>
-            </span>
-            <span>
-              Assets <strong className="text-slate-200">assets.grudge-studio.com</strong>
-            </span>
-            <span>
-              Era <strong className="text-amber-400/90">warlords</strong>
-            </span>
-            <span>
-              Home island <strong className="text-slate-200">/homeisland</strong>
-            </span>
-          </div>
-        </div>
+      <section className="max-w-6xl mx-auto px-4 py-10 flex flex-wrap gap-6 text-sm text-amber-300">
+        <Link href="/lobby">Game lobby</Link>
+        <Link href="/lobby/maps">Explore maps</Link>
+        <Link href="/account">Your account</Link>
+        <Link href="/diagnostics">Connection help</Link>
       </section>
     </WarlordsShell>
   );

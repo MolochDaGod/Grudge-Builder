@@ -248,7 +248,7 @@ export class CharacterController3D {
   private buildHammer: BuildHammerHandle | null = null;
   private harvestPickaxe: HarvestPickaxeHandle | null = null;
   /** Local stamina pool for climb / swim (syncs to state machine) */
-  public stamina = STAMINA_LOCOMOTION.maxStamina;
+  public stamina: number = STAMINA_LOCOMOTION.maxStamina;
   public maxStamina = STAMINA_LOCOMOTION.maxStamina;
   private staminaRegenDelay = 0;
   /** Climb wall contact */
@@ -2798,10 +2798,10 @@ export class CharacterController3D {
     if (this.animations && this.hitReactTimer > 0) {
       const key =
         opts?.anim === 'stun_loop'
-          ? 'hit_reaction'
+          ? 'impact'
           : opts?.knockdown || deltaVel.y > 3
             ? 'hard_landing'
-            : 'hit_reaction';
+            : 'impact';
       if (this.animations.hasClip?.(key)) {
         this.animations.play(key, { loop: false });
         this.oneShotTimer = Math.min(0.85, stunSec + 0.2);

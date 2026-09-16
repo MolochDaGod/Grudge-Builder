@@ -27,6 +27,7 @@
 | `LeviathanAnimController` | Levi swim/charge/roar | Uses director helpers above for charge scrub |
 | `CinemaDeckMages` | **`DECK_MAGE_SPECS` + `castHintsForVariant` only** | Runtime plant/tick stays in `LeviathanOceanCinema` (no dual mixer class in prod) |
 | `CinemaSceneAudio` | Beat BGM/SFX | `start` · `onBeat` · `tick` · `setMuted` · `dispose` |
+| `CinemaCastingSfx` | Leviathan WAV pack (was stuck on casting.*) | `play` · `impact` · `setBurning` · `prefetch` |
 | `cinemaVfxUtils` | Rain / lightning | Soft-fail optional GLBs |
 
 ### Historical missing-helper crashes (fixed)
@@ -56,6 +57,23 @@
 | Hero (throw) | `deck_hero` → rogue-wave crest → throw path | unarmed · 1.8 m |
 | Rogue wave | `CinemaRogueWave` wall | crash at ~38.6 s · hull pinata + ride |
 | Ship | `ship_origin` | tz-pirate · ~36 m LOA |
+
+## Audio (cinema WAV pack)
+
+Magic/combat stems live **on the cinema origin**, not only on Casting Lab.
+
+| Role | File | Beat |
+|------|------|------|
+| `cast_ramp` | `/audio/sfx/cast-ramp.wav` | deck mage channel, dragon charge/snap |
+| `cast_chant` | `/audio/sfx/cast-chant.wav` | ice snake, blizzard, hull pinata |
+| `parry_magic` | `/audio/sfx/parry-magic.wav` | wards, shield bounce, shatter |
+| `impact_magic` | `/audio/sfx/impact-magic-a\|b\|c.wav` | beam, pinata, ice hits |
+| `burn` | `/audio/sfx/burn.wav` (loop) | fire beam / hull fire |
+| `parry` | `/audio/sfx/parry.wav` | mage flee |
+
+Player: `CinemaCastingSfx` — same-origin first, then `https://casting.grudge.studio/audio/sfx` (CORS *).  
+Do **not** use `assets.grudge-studio.com/audio/casting/sfx` (truncated ~44 KB, incomplete).  
+Casting Lab still keeps its own copy for lab gameplay.
 
 ## QA
 

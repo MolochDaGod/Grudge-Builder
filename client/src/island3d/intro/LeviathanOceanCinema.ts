@@ -4029,9 +4029,9 @@ export class LeviathanOceanCinema {
    * Mage cast hand world position (Bip001 R Hand if present, else chest-forward).
    */
   private getMageHandWorld(mageRoot: THREE.Object3D, out = new THREE.Vector3()): THREE.Vector3 {
-    let hand: THREE.Object3D | null = null;
+    const hands: THREE.Object3D[] = [];
     mageRoot.traverse((o) => {
-      if (hand) return;
+      if (hands.length) return;
       const n = (o.name || '').toLowerCase().replace(/[:\s.]+/g, '');
       if (
         n.includes('rhand') ||
@@ -4040,9 +4040,10 @@ export class LeviathanOceanCinema {
         n.endsWith('r_hand') ||
         n.includes('r_hand_container')
       ) {
-        hand = o;
+        hands.push(o);
       }
     });
+    const hand = hands[0];
     if (hand) {
       hand.getWorldPosition(out);
       return out;

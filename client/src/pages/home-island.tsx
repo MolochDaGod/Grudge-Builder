@@ -1,3 +1,5 @@
+import { createGameClient } from '@/lib/gameClient';
+import { getStateCallbacks } from '@colyseus/sdk';
 /**
  * HomeIslandPage — persistent home island with RTS Grudge 3-state gameplay UI.
  *
@@ -6,7 +8,7 @@
  */
 import { useEffect, useRef, useState, useCallback } from 'react';
 import { useLocation } from 'wouter';
-import { Client, Room } from 'colyseus.js';
+import { Client, Room } from '@colyseus/sdk';
 import { Island3DEngine, type Island3DEngineConfig } from '@/island3d/engine/Island3DEngine';
 import { RemotePlayerManager } from '@/island3d/sync/RemotePlayerManager';
 import { TutorialGameplayHUD, type ControlMode } from '@/components/TutorialGameplayHUD';
@@ -293,14 +295,16 @@ export default function HomeIslandPage() {
   useEffect(() => {
     if (!islandSeed || !loadConfigRef.current) return;
 
+    let cancelled = false;
     let client: Client | null = null;
     let room: Room | null = null;
     const cfg = loadConfigRef.current;
+    const seed = islandSeed;
 
     async function connect() {
       try {
         const endpoint = getColyseusEndpoint();
-        client = new Client(endpoint);
+        client = createGameClient(endpoint);
         const myAccountId =
           localStorage.getItem('grudge_account_id') ||
           localStorage.getItem('grudge_user_id') ||
@@ -317,6 +321,7 @@ export default function HomeIslandPage() {
         setOwnerAccountId(roomAccountId);
 
         const joinOpts = {
+          characterId: cfg.characterId,
           accountId: roomAccountId,
           visitorAccountId: visiting ? myAccountId : undefined,
           isVisitor: visiting,
@@ -324,7 +329,7 @@ export default function HomeIslandPage() {
           heroRace: cfg.raceId,
           heroClass: cfg.classId,
           islandUUID: islandDto?.id || roomAccountId,
-          islandSeed: hashIslandSeedForColyseus(islandSeed),
+          islandSeed: hashIslandSeedForColyseus(seed),
           level: cfg.level,
           baseModelId: cfg.baseModelId,
           equippedMeshes: cfg.equippedMeshes,
@@ -345,13 +350,15 @@ export default function HomeIslandPage() {
         } else {
           room = await client.joinOrCreate('home_island', joinOpts);
         }
+        if (cancelled) { await room.leave(); return; }
         roomRef.current = room;
+        const callbacks = getStateCallbacks(room);
 
-        room.state.players.onAdd(() => setPlayerCount(room!.state.players.size));
-        room.state.players.onRemove(() => setPlayerCount(room!.state.players.size));
+        callbacks(room.state).players.onAdd(() => setPlayerCount(room!.state.players.size));
+        callbacks(room.state).players.onRemove(() => setPlayerCount(room!.state.players.size));
         setPlayerCount(room.state.players.size);
 
-        room.state.listen('buildingCount', (v: number) => setBuildingCount(v));
+        callbacks(room.state).listen('buildingCount', (v: number) => setBuildingCount(v));
 
         room.onMessage('island_role', (role: { isVisitor?: boolean; isOwner?: boolean }) => {
           const guest = role.isVisitor === true || role.isOwner === false;
@@ -400,12 +407,12 @@ export default function HomeIslandPage() {
           room.onMessage('resources', (data: Record<string, number>) => setResources(data));
         }
 
-        room.state.harvestNodes?.onAdd?.((node: any, id: string) => {
+        callbacks(room.state).harvestNodes.onAdd?.((node: any, id: string) => {
           nodesRef.current.set(id, {
             id, type: node.resourceType,
             x: node.x, z: node.z, depleted: node.depleted,
           });
-          node.onChange?.(() => {
+          callbacks(node).onChange(() => {
             nodesRef.current.set(id, {
               id, type: node.resourceType,
               x: node.x, z: node.z, depleted: node.depleted,
@@ -413,7 +420,7 @@ export default function HomeIslandPage() {
           });
         });
 
-        room.state.players.onAdd((player: any, sessionId: string) => {
+        callbacks(room.state).players.onAdd((player: any, sessionId: string) => {
           if (sessionId === room!.sessionId) return;
           showNotification(
             visiting
@@ -435,7 +442,8 @@ export default function HomeIslandPage() {
     connect();
 
     return () => {
-      room?.leave();
+      cancelled = true;
+      void room?.leave().catch(() => {});
       roomRef.current = null;
     };
   }, [islandSeed, islandDto?.id, showNotification, persistProfessionXp, setLocation]); // eslint-disable-line react-hooks/exhaustive-deps
@@ -483,10 +491,14 @@ export default function HomeIslandPage() {
       onHarvest: (evt) => onHarvestRef.current(evt),
     };
 
-    const engine = new Island3DEngine(config);
+    let cancelled = false;
+    let engine: Island3DEngine;
+    try { engine = new Island3DEngine(config); }
+    catch (error) { setLoadError(error instanceof Error ? error.message : 'Graphics initialization failed.'); return; }
     engineRef.current = engine;
 
     engine.init().then(async () => {
+      if (cancelled) { engine.dispose(); return; }
       setLoaded(true);
       engine.start();
       const cfg = loadConfigRef.current;
@@ -524,6 +536,7 @@ export default function HomeIslandPage() {
 
     return () => {
       window.removeEventListener('resize', handleResize);
+      cancelled = true;
       engine.dispose();
       engineRef.current = null;
     };
@@ -583,7 +596,7 @@ export default function HomeIslandPage() {
     rpmRef.current = rpm;
     const unregister = engine.onUpdate((dt) => rpm.update(dt));
 
-    room.state.players.onAdd((player: any, sessionId: string) => {
+    getStateCallbacks(room)(room.state).players.onAdd((player: any, sessionId: string) => {
       if (sessionId === localId) return;
       rpm.addPlayer(sessionId, {
         id: player.id,
@@ -603,7 +616,7 @@ export default function HomeIslandPage() {
         armorColor: player.armorColor || '#ffffff',
         equippedWeaponType: player.equippedWeaponType || 'sword-shield',
       });
-      player.onChange(() => {
+      getStateCallbacks(room)(player).onChange(() => {
         rpm.updatePlayer(sessionId, {
           x: player.x, y: player.y, z: player.z,
           facing: player.facing, state: player.state,
@@ -611,7 +624,7 @@ export default function HomeIslandPage() {
       });
     });
 
-    room.state.players.onRemove((_p: any, sessionId: string) => rpm.removePlayer(sessionId));
+    getStateCallbacks(room)(room.state).players.onRemove((_p: any, sessionId: string) => rpm.removePlayer(sessionId));
 
     return () => {
       unregister();

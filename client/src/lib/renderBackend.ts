@@ -8,6 +8,7 @@
  * Static pages: also load /js/grudge-render-capabilities.js (CDN mirror).
  */
 import * as THREE from "three";
+import { assertUsableWebGL2 } from "./webglPreflight";
 
 export type RenderApiKind = "webgpu" | "webgl2" | "webgl" | "none";
 
@@ -116,7 +117,7 @@ async function probeWebGPU(): Promise<boolean> {
 export function getRenderCapabilitiesSync(): RenderCapabilities {
   if (cachedCaps) return cachedCaps;
   const g = probeWebGL();
-  const preferred: RenderApiKind = g.webgl2 ? "webgl2" : g.webgl ? "webgl" : "none";
+  const preferred: RenderApiKind = g.webgl2 ? "webgl2" : "none";
   cachedCaps = {
     webgl: g.webgl,
     webgl2: g.webgl2,
@@ -173,28 +174,20 @@ export function createWebGLPlayRenderer(
     preserveDrawingBuffer: false,
     failIfMajorPerformanceCaveat: opts.failIfMajorPerformanceCaveat ?? false,
   };
+  const canvas = opts.canvas ?? document.createElement("canvas");
+  let gl: WebGL2RenderingContext | null = null;
+  try {
+    gl = canvas.getContext("webgl2", common) as WebGL2RenderingContext | null;
+    if (!gl) gl = canvas.getContext("webgl2", { ...common, antialias: false, powerPreference: "default" }) as WebGL2RenderingContext | null;
+    assertUsableWebGL2(gl);
+  } catch (error) {
+    throw new Error("WebGL2 is unavailable on this canvas. Enable hardware acceleration and retry.");
+  }
   let renderer: THREE.WebGLRenderer;
   try {
-    renderer = new THREE.WebGLRenderer(common);
-  } catch (e) {
-    console.warn("[renderBackend] high-perf WebGL failed, retrying default…", e);
-    renderer = new THREE.WebGLRenderer({
-      ...common,
-      antialias: false,
-      powerPreference: "default",
-    });
-  }
-  // Guard: SMAA / programs read gl precision — null context = hard React crash
-  const gl = renderer.getContext?.() as WebGLRenderingContext | null;
-  if (!gl) {
-    try {
-      renderer.dispose();
-    } catch {
-      /* */
-    }
-    throw new Error(
-      "[renderBackend] WebGL context is null — canvas missing or GPU blocked",
-    );
+    renderer = new THREE.WebGLRenderer({ ...common, canvas, context: gl! });
+  } catch (error) {
+    throw new Error("The graphics context failed during initialization. Retry with a fresh canvas.");
   }
   const maxPr = opts.maxPixelRatio ?? 1.5;
   if (typeof window !== "undefined") {
@@ -222,15 +215,13 @@ export async function tryCreateWebGPURenderer(
   const caps = await detectRenderCapabilities();
   if (!caps.webgpu) return null;
   try {
-    const mod = await import("three/webgpu");
-    const WebGPURenderer = (mod as { WebGPURenderer: new (o: object) => { init: () => Promise<void> } })
-      .WebGPURenderer;
+    const { WebGPURenderer } = await import("three/webgpu");
     if (!WebGPURenderer) return null;
     const r = new WebGPURenderer({
       canvas: opts.canvas,
       antialias: opts.antialias !== false,
       alpha: !!opts.alpha,
-      powerPreference: opts.powerPreference ?? "high-performance",
+      powerPreference: opts.powerPreference === "default" ? undefined : opts.powerPreference ?? "high-performance",
     });
     await r.init();
     return r;
@@ -252,8 +243,9 @@ export async function createPlayRenderer(
   let webgpuRenderer: unknown | null = null;
   let api: RenderApiKind = caps.webgl2 ? "webgl2" : caps.webgl ? "webgl" : "none";
 
-  if (wantWebGPU(opts) && caps.webgpu) {
-    webgpuRenderer = await tryCreateWebGPURenderer(opts);
+  if (wantWebGPU(opts) && caps.webgpu && !opts.canvas) {
+    // A canvas cannot own both WebGL and WebGPU contexts.
+    webgpuRenderer = await tryCreateWebGPURenderer({ ...opts, canvas: document.createElement('canvas') });
     if (webgpuRenderer) api = "webgpu";
   }
 

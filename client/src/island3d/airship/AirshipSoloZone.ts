@@ -417,6 +417,9 @@ export class AirshipSoloZone {
         // 3pirates Meshy bodies + walk/talk — not Toon race stand-ins
         const actor = await createPirateDeckNpc({
           npcId: def.id,
+        const actor = await createDeckActor({
+          raceId: def.id === 'john_wayne' ? 'crusade' : def.id === 'scourge_faithbearer' ? 'legion' : 'fabled',
+          role: this.npcOriginalRole(def),
           name: `npc_${def.id}`,
           heightM: def.heightM || AIRSHIP_HERO_HEIGHT_M,
         });
@@ -425,6 +428,7 @@ export class AirshipSoloZone {
         actor.model.userData.safeNpc = true;
         actor.model.userData.postRole = def.role;
         actor.model.userData.piratePack = '3pirates';
+        actor.model.userData.factionRace = actor.raceId;
 
         const wp0 = def.waypoints[0]!;
         actor.root.position.set(wp0.x, wp0.y, wp0.z);

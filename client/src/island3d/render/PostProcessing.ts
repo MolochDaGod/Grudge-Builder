@@ -197,7 +197,7 @@ export class PostProcessing {
     this.composer.addPass(this.bloomPass);
 
     // SMAA needs real size + live GL; skip on low or broken size
-    this.smaaPass = new SMAAPass(resolution.x, resolution.y);
+    this.smaaPass = new SMAAPass();
     this.smaaPass.enabled = this.quality !== 'low' && resolution.x >= 2 && resolution.y >= 2;
     this.composer.addPass(this.smaaPass);
 

@@ -1,5 +1,6 @@
+import { GameErrorBoundary } from '@/components/GameRecovery';
 import { useEffect, useLayoutEffect, lazy, Suspense } from "react";
-import { Switch, Route } from "wouter";
+import { Switch, Route, useLocation } from "wouter";
 import { queryClient } from "./lib/queryClient";
 import { QueryClientProvider } from "@tanstack/react-query";
 import { Toaster } from "@/components/ui/toaster";
@@ -101,6 +102,18 @@ const EditorPage = lazy(() => import("@/pages/editor"));
 const ForgePage = lazy(() => import("@/pages/forge"));
 const ScenePage = lazy(() => import("@/pages/scene"));
 const Grudge6ViewerPage = lazy(() => import("@/pages/grudge6-viewer"));
+import AuthCallbackPage from "@/pages/auth-callback";
+import EditorPage from "@/pages/editor";
+import ForgePage from "@/pages/forge";
+import ScenePage from "@/pages/scene";
+import Grudge6ViewerPage from "@/pages/grudge6-viewer";
+import GrudgeAI from "@/components/GrudgeAI";
+import { GrudgeTruthBadge } from "@/components/GrudgeTruthBadge";
+import { GrudgeTokenWidget } from "@/components/grudge-token/GrudgeTokenWidget";
+import { StudioFriendsDock } from "@/components/StudioFriendsDock";
+// Lazy-load the organizer page: it pulls in react-force-graph → aframe-extras
+// (A-Frame VR lib that uses THREE as a global). Code-splitting it keeps
+// aframe out of the main bundle and loads it only when /organizer is visited.
 const OrganizerPage = lazy(() => import("@/pages/organizer"));
 const PlayPage = lazy(() => import("@/pages/play"));
 const OceanPage = lazy(() => import("@/pages/ocean"));
@@ -118,7 +131,33 @@ const WeaponMasteryPage = lazy(() => import("@/pages/weapon-mastery"));
 const CombatLabPage = lazy(() => import("@/pages/combat-lab"));
 const TownPage = lazy(() => import("@/pages/town"));
 const AssetShowcasePage = lazy(() => import("@/pages/asset-showcase"));
+import IslandRevealPage from "@/pages/island-reveal";
+
+import HomeIslandPage from "@/pages/home-island";
+import HomeIslandEntryPage from "@/pages/homeisland";
+import AirshipHandoffPage from "@/pages/airship-handoff";
+import IslandsPage from "@/pages/islands";
+import { RtsDomainBootstrap } from "@/components/RtsDomainBootstrap";
+import { hydrateVideoCatalog } from "@/lib/fleetVideo";
+import { loadFleetCdnFonts } from "@/lib/fleetFonts";
+import WeaponModelAdminPage from "@/pages/weapon-model-admin";
+import WeaponSkillsPage from "@/pages/weapon-skills";
+import CastingMasterPage from "@/pages/casting-master";
+import VideoMocapPage from "@/pages/video-mocap";
+import WeaponMasteryPage from "@/pages/weapon-mastery";
+import CombatLabPage from "@/pages/combat-lab";
+import TownPage from "@/pages/town";
+import GameCharacterPage from "@/pages/game-character";
+import SystemsPage from "@/pages/systems";
+import AssetShowcasePage from "@/pages/asset-showcase";
+import MainPanelPage from "@/pages/main-panel";
+import { consumeGcsReturnHandoff } from "@/lib/gcsRedirect";
+import { CharacterManager } from "@/lib/characterManager";
+
 const AssassinationGroundsPage = lazy(() => import("@/pages/assassination-grounds"));
+
+const GameLobbyPage = lazy(() => import('@/pages/game-lobby'));
+const DeploymentDeskPage = lazy(() => import('@/pages/deployment-desk'));
 
 function Router() {
   return (
@@ -182,7 +221,10 @@ function Router() {
       <Route path="/island-v2" component={IslandV2Page} />
       <Route path="/admin-island-v2" component={AdminIslandV2Page} />
       <Route path="/admin-island-3d" component={AdminIsland3DPage} />
-      <Route path="/lobby" component={HomePage} />
+      <Route path="/lobby" component={GameLobbyPage} />
+      <Route path="/lobby/maps" component={GameLobbyPage} />
+      <Route path="/diagnostics" component={DeploymentDeskPage} />
+      <Route path="/deployments" component={DeploymentDeskPage} />
       <Route path="/launcher" component={LauncherPage} />
       <Route path="/rts-grudge" component={RtsGrudgePage} />
       <Route path="/open-world" component={OpenWorldEntryPage} />
@@ -273,9 +315,7 @@ function Router() {
           <AssassinationGroundsPage />
         </Suspense>
       )}</Route>
-      {/* Warerareward — Keel launch offer page (case-insensitive routes) */}
-      <Route path="/Warerareward" component={WarerarewardPage} />
-      <Route path="/warerareward" component={WarerarewardPage} />
+      {/* Warerareward served as static HTML via vercel.json redirect */}
       {/* Fallback to 404 */}
       <Route component={NotFound} />
     </Switch>
@@ -284,6 +324,8 @@ function Router() {
 }
 
 function AppContent() {
+  const [currentPath] = useLocation();
+  const hasCouncilShell = ['/lobby', '/lobby/maps', '/diagnostics', '/deployments'].includes(currentPath);
   const { isTransitioning, isAdmin } = useAdmin();
 
   useEffect(() => {
@@ -320,11 +362,14 @@ function AppContent() {
       <RtsDomainBootstrap />
       <TooltipProvider>
         <Toaster />
-        <Router />
-        <GrudgeAI />
-        <GrudgeTruthBadge />
-        <GrudgeTokenWidget />
-        <PuterFooter />
+        <GameErrorBoundary><Router /></GameErrorBoundary>
+        {!hasCouncilShell && <>
+          <GrudgeAI />
+          <GrudgeTruthBadge />
+          <GrudgeTokenWidget />
+          <StudioFriendsDock />
+          <PuterFooter />
+        </>}
       </TooltipProvider>
     </>
   );

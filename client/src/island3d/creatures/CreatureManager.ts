@@ -42,7 +42,7 @@ import {
   isDryLand,
   isWaterColumn,
 } from '@shared/definitions/worldSurfaceLayers';
-import { FAUNA_HEIGHT, fishSwimY } from '@shared/definitions/homeIslandNodeRules';
+import { FAUNA_HEIGHT, fishSwimY } from './faunaHeight';
 import {
   CORPSE_TO_SKELETON_S,
   SKELETON_LINGER_S,
@@ -132,6 +132,10 @@ const BIRD_BOB_M = FAUNA_HEIGHT?.birdBobM ?? 0.45;
 const FEET_ON_TERRAIN_M = FAUNA_HEIGHT?.feetOnTerrainM ?? 0.05;
 const FISH_MIN_SEABED_M = FAUNA_HEIGHT?.fishMinAboveSeabedM ?? 0.4;
 const FISH_MIN_SURFACE_M = FAUNA_HEIGHT?.fishMinUnderSurfaceM ?? 0.3;
+const BIRD_ABOVE_M =
+  typeof FAUNA_HEIGHT === 'object' && FAUNA_HEIGHT && typeof FAUNA_HEIGHT.birdAboveTerrainM === 'number'
+    ? FAUNA_HEIGHT.birdAboveTerrainM
+    : 30;
 /** Melee floor — grudge-ai-brains: no silent instant wildlife hit */
 const WILDLIFE_TELEGRAPH_SEC = 0.35;
 
@@ -345,6 +349,8 @@ export class CreatureManager {
           def.swimDepth[0] + this.rand() * (def.swimDepth[1] - def.swimDepth[0]);
         const minY = groundY + FISH_MIN_SEABED_M;
         const maxY = this.waterLevel - FISH_MIN_SURFACE_M;
+        const minY = groundY + (FAUNA_HEIGHT.fishMinAboveSeabedM ?? 0.4);
+        const maxY = this.waterLevel - (FAUNA_HEIGHT.fishMinUnderSurfaceM ?? 0.3);
         swimY = Math.min(maxY, Math.max(minY, this.waterLevel - depth));
       }
 
@@ -446,6 +452,7 @@ export class CreatureManager {
             existing.def.category !== 'predator'
           ) {
             existing.group.position.y = gy + FEET_ON_TERRAIN_M;
+            existing.group.position.y = gy + (FAUNA_HEIGHT.feetOnTerrainM ?? 0);
           }
         }
       } else if (y) {
@@ -1146,6 +1153,7 @@ export class CreatureManager {
         c.def.category !== 'predator'
       ) {
         c.group.position.y = y + FEET_ON_TERRAIN_M;
+        c.group.position.y = y + (FAUNA_HEIGHT.feetOnTerrainM ?? 0);
       }
     }
   }
@@ -1221,6 +1229,7 @@ export class CreatureManager {
     } else if (this.sampleHeight) {
       const y = this.sampleHeight(c.group.position.x, c.group.position.z);
       if (y !== null) c.group.position.y = y + FEET_ON_TERRAIN_M;
+      if (y !== null) c.group.position.y = y + (FAUNA_HEIGHT.feetOnTerrainM ?? 0);
     }
 
     return arrived;

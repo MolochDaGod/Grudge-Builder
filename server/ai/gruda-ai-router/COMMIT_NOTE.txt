@@ -1,0 +1,16 @@
+gruda-ai-router redeploy — 2026-09-15
+
+Changes:
+- Created DEPLOY.md with exact Railway grudge-api-production-0d46 wiring steps.
+- Updated SKILL.md §7 with the same concise deploy instructions and verification curl.
+- deploy-ai-router.ps1 executed (token warning surfaced as expected; JWT must be set once via railway variables).
+
+Next (manual, one-time):
+1. railway variables --set PUTER_BACKUP_TOKEN=... --project grudge-api-production-0d46
+2. Mount the router in the Express app that serves api.grudge-studio.com (see DEPLOY.md).
+3. railway up --service api
+4. curl https://api.grudge-studio.com/api/ai/models  → expect puterBackup:true
+
+After that step, grudgewarlords.com/craft (and ai_root.html, sprite tools) can safely migrate from direct puter.ai.chat to the controlled /api/ai/chat endpoint with page logging and cost tiers.
+
+All skill files staged and ready for commit in the GrudgeBuilder repo when the mount PR is opened.

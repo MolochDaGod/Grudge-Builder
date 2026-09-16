@@ -1,6 +1,9 @@
 {
   "include": ["client/src/**/*", "shared/**/*", "server/**/*"],
-  "exclude": ["node_modules", "build", "dist", "**/*.test.ts"],
+  "exclude": [
+    "node_modules", "build", "dist", "**/*.test.ts", "**/*.test.tsx",
+    "client/src/island/**/*", "client/src/test/**/*"
+  ],
   "compilerOptions": {
     "incremental": true,
     "tsBuildInfoFile": "./node_modules/typescript/tsbuildinfo",
@@ -21,7 +24,10 @@
     "emitDecoratorMetadata": true,
     "paths": {
       "@/*": ["./client/src/*"],
-      "@shared/*": ["./shared/*"]
+      "@shared/*": ["./shared/*"],
+      "@workspace/character-kit": ["./client/src/stubs/workspace/character-kit/index.ts"],
+      "@workspace/api-client-react": ["./client/src/stubs/workspace/api-client-react/index.ts"],
+      "@grudge-game/*": ["./client/src/stubs/grudge-game/*"]
     }
   }
 }

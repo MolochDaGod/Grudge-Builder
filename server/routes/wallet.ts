@@ -6,6 +6,7 @@ import jwt from "jsonwebtoken";
 import { storage } from "../storage";
 import {
   createLinkChallenge,
+  originFromRequest,
   confirmLinkedWallet,
   listLinkedWallets,
   getWalletOverview,
@@ -16,13 +17,43 @@ import {
 import type { LinkedWalletProvider, WalletPurchaseCurrency } from "@shared/schema";
 import { WALLET_PURCHASE_CURRENCIES } from "@shared/schema";
 
-const JWT_SECRET = process.env.SESSION_SECRET || process.env.JWT_SECRET || "grudge-dev-secret";
+/** Prefer SESSION_SECRET (auth.ts) then JWT_SECRET / GRUDGE_JWT_SECRET — use first non-empty candidate only. */
+const JWT_SECRET_CANDIDATES = [
+  process.env.SESSION_SECRET,
+  process.env.JWT_SECRET,
+  process.env.GRUDGE_JWT_SECRET,
+]
+  .map((s) => s?.trim())
+  .filter((s): s is string => !!s && s.length > 0);
+
+const JWT_SECRET = JWT_SECRET_CANDIDATES[0] || "";
+
+function readWalletSessionToken(req: Request): string | null {
+  const authHeader = req.get("Authorization") || req.get("X-Session-Token") || "";
+  if (authHeader.startsWith("Bearer ")) return authHeader.slice(7);
+  if (authHeader) return authHeader;
+  const cookie = req.get("Cookie") || "";
+  const match = cookie.match(/(?:^|;\s*)grudge_auth_token=([^;]+)/);
+  return match ? decodeURIComponent(match[1]) : null;
+}
+
+function readWalletSessionToken(req: Request): string | null {
+  const authHeader = req.get("Authorization") || req.get("X-Session-Token") || "";
+  if (authHeader.startsWith("Bearer ")) return authHeader.slice(7);
+  if (authHeader) return authHeader;
+  const cookie = req.get("Cookie") || "";
+  const match = cookie.match(/(?:^|;\s*)grudge_auth_token=([^;]+)/);
+  return match ? decodeURIComponent(match[1]) : null;
+}
 
 function requireAuth(req: Request, res: Response, next: NextFunction): void {
-  const authHeader = req.get("Authorization") || req.get("X-Session-Token");
-  const token = authHeader?.startsWith("Bearer ") ? authHeader.slice(7) : authHeader || null;
+  const token = readWalletSessionToken(req);
   if (!token) {
     res.status(401).json({ error: "Authentication required" });
+    return;
+  }
+  if (!JWT_SECRET) {
+    res.status(500).json({ error: "Authentication not configured (SESSION_SECRET, JWT_SECRET, or GRUDGE_JWT_SECRET required)" });
     return;
   }
   try {
@@ -81,8 +112,14 @@ export function registerWalletRoutes(app: Express): void {
       if (!walletAddress) {
         return res.status(400).json({ error: "walletAddress required" });
       }
-      const message = createLinkChallenge(account.id, walletAddress);
-      res.json({ message, walletAddress });
+      const challenge = createLinkChallenge(account.id, walletAddress, originFromRequest(req));
+      const challenge = createLinkChallenge(account.id, walletAddress);
+      res.json({
+        message: challenge.message,
+        nonce: challenge.nonce,
+        walletAddress: challenge.walletAddress,
+        siws: challenge.siws,
+      });
     } catch (e: any) {
       res.status(400).json({ error: e.message });
     }
@@ -248,6 +285,15 @@ export function registerWalletRoutes(app: Express): void {
         });
       }
 
+      const fleetSecret = process.env.FLEET_PLAY_CREDIT_SECRET || "";
+      if (!fleetSecret) {
+        return res.status(503).json({
+          error:
+            "Play ledger handshake not configured — set FLEET_PLAY_CREDIT_SECRET on Railway to match poker Worker",
+          gbuxBalance: account.gbuxBalance,
+        });
+      }
+
       const receiptId = `play-fund-${Date.now()}-${Math.random().toString(36).slice(2, 10)}`;
       await storage.debitGbux(account.id, amount, "ai_agent_transfer", {
         sourceRef: receiptId,
@@ -263,9 +309,9 @@ export function registerWalletRoutes(app: Express): void {
       const pokerOrigin =
         process.env.POKER_ORIGIN || "https://poker.grudge-studio.com";
       const fleetSecret =
-        process.env.FLEET_PLAY_CREDIT_SECRET ||
-        process.env.SESSION_SECRET ||
-        process.env.JWT_SECRET ||
+        process.env.FLEET_PLAY_CREDIT_SECRET?.trim() ||
+        process.env.SESSION_SECRET?.trim() ||
+        process.env.JWT_SECRET?.trim() ||
         "";
       let playCredit: Record<string, unknown> | null = null;
       let playError: string | null = null;
@@ -352,12 +398,14 @@ export function registerWalletRoutes(app: Express): void {
       const grudgeId = String(
         (account as { grudgeId?: string }).grudgeId || "",
       );
+      const { crossmintWalletService } = await import("../services/crossmintWallet");
+      const grudgeId = String((account as { grudgeId?: string }).grudgeId || "");
       const cm = grudgeId
         ? await crossmintWalletService.getOrCreateWalletForGrudgeId(grudgeId)
         : null;
       const overview = await getWalletOverview(account.id);
       const stored = String(
-        overview?.custodialWallet ||
+        (overview as { custodialWallet?: string; primaryWallet?: string } | null)?.custodialWallet ||
           overview?.primaryWallet ||
           account.walletAddress ||
           "",

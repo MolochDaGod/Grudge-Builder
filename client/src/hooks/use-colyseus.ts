@@ -1,3 +1,5 @@
+import { createGameClient } from '@/lib/gameClient';
+import { getStateCallbacks } from '@colyseus/sdk';
 /**
  * use-colyseus.ts — React hook for Colyseus room lifecycle.
  *
@@ -6,7 +8,7 @@
  * then provides helpers to join SectorRoom/TownRoom.
  */
 import { useState, useEffect, useRef, useCallback } from 'react';
-import { Client, Room } from 'colyseus.js';
+import { Client, Room } from '@colyseus/sdk';
 import { getColyseusEndpoint } from '@/lib/colyseusEndpoint';
 import { resolveZoneSectorId } from '@shared/definitions/sectorBridge';
 
@@ -45,6 +47,7 @@ export interface ColyseusState {
 
 export function useColyseus(playerInfo: PlayerInfo | null) {
   const clientRef = useRef<Client | null>(null);
+  const lifecycle = useRef(0);
   const worldRoomRef = useRef<Room | null>(null);
   const sectorRoomRef = useRef<Room | null>(null);
 
@@ -66,10 +69,11 @@ export function useColyseus(playerInfo: PlayerInfo | null) {
 
     setState(s => ({ ...s, connecting: true, error: null }));
 
+    const ticket = lifecycle.current;
     try {
       const endpoint = getColyseusEndpoint();
       console.log('[Colyseus] Connecting to', endpoint);
-      const client = new Client(endpoint);
+      const client = createGameClient(endpoint);
       clientRef.current = client;
 
       const worldRoom = await client.joinOrCreate('world', {
@@ -83,6 +87,7 @@ export function useColyseus(playerInfo: PlayerInfo | null) {
         sourceGame: 'warlords',
       });
 
+      if (ticket !== lifecycle.current) { await worldRoom.leave(); return; }
       worldRoomRef.current = worldRoom;
       console.log('[Colyseus] Joined WorldRoom:', worldRoom.sessionId);
 
@@ -108,7 +113,7 @@ export function useColyseus(playerInfo: PlayerInfo | null) {
       // Matchmake HTML/empty reservation → consumeSeatReservation reads .name of undefined
       const msg = err?.message || String(err);
       console.warn('[Colyseus] World join skipped (solo play continues):', msg);
-      clientRef.current = client;
+      clientRef.current = null;
       setState(s => ({
         ...s,
         connecting: false,
@@ -156,19 +161,20 @@ export function useColyseus(playerInfo: PlayerInfo | null) {
         equippedWeaponType: playerInfo.equippedWeaponType || 'sword-shield',
       });
 
+      if (client !== clientRef.current) { await sectorRoom.leave(); return; }
       sectorRoomRef.current = sectorRoom;
       // CRITICAL: localSessionId must be SectorRoom sessionId (not WorldRoom).
       // RemotePlayerManager skips self by this id — world id would spawn self as remote.
       console.log('[Colyseus] Joined SectorRoom:', sectorRoom.sessionId, 'char=', playerInfo.characterId);
 
       // Sync players
-      sectorRoom.state.players.onAdd((player: any, sessionId: string) => {
+      getStateCallbacks(sectorRoom)(sectorRoom.state).players.onAdd((player: any, sessionId: string) => {
         setState(s => {
           const players = new Map(s.players);
           players.set(sessionId, player);
           return { ...s, players };
         });
-        player.onChange?.(() => {
+        getStateCallbacks(sectorRoom)(player).onChange(() => {
           setState(s => {
             const players = new Map(s.players);
             players.set(sessionId, player);
@@ -177,7 +183,7 @@ export function useColyseus(playerInfo: PlayerInfo | null) {
         });
       });
 
-      sectorRoom.state.players.onRemove((_player: any, sessionId: string) => {
+      getStateCallbacks(sectorRoom)(sectorRoom.state).players.onRemove((_player: any, sessionId: string) => {
         setState(s => {
           const players = new Map(s.players);
           players.delete(sessionId);
@@ -186,13 +192,13 @@ export function useColyseus(playerInfo: PlayerInfo | null) {
       });
 
       // Sync enemies (schema SSOT for dual-browser PvE)
-      sectorRoom.state.enemies.onAdd((enemy: any, enemyId: string) => {
+      getStateCallbacks(sectorRoom)(sectorRoom.state).enemies.onAdd((enemy: any, enemyId: string) => {
         setState(s => {
           const enemies = new Map(s.enemies);
           enemies.set(enemyId, enemy);
           return { ...s, enemies };
         });
-        enemy.onChange?.(() => {
+        getStateCallbacks(sectorRoom)(enemy).onChange(() => {
           setState(s => {
             const enemies = new Map(s.enemies);
             enemies.set(enemyId, enemy);
@@ -201,7 +207,7 @@ export function useColyseus(playerInfo: PlayerInfo | null) {
         });
       });
 
-      sectorRoom.state.enemies.onRemove((_enemy: any, enemyId: string) => {
+      getStateCallbacks(sectorRoom)(sectorRoom.state).enemies.onRemove((_enemy: any, enemyId: string) => {
         setState(s => {
           const enemies = new Map(s.enemies);
           enemies.delete(enemyId);
@@ -282,8 +288,9 @@ export function useColyseus(playerInfo: PlayerInfo | null) {
   // Cleanup on unmount
   useEffect(() => {
     return () => {
-      sectorRoomRef.current?.leave();
-      worldRoomRef.current?.leave();
+      ++lifecycle.current;
+      void sectorRoomRef.current?.leave().catch(() => {});
+      void worldRoomRef.current?.leave().catch(() => {});
       clientRef.current = null;
     };
   }, []);

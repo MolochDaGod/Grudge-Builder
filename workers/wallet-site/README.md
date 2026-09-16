@@ -38,6 +38,8 @@ This host is the **studio bag**. Poker sit is **not** this page.
 | **Fund play** | `POST /api/wallet/transfer-to-play` → debit bag → poker D1 (disabled if bag &lt; 1) |
 | Bag SOL↔GBUX | `POST /api/exchange/quote` + `/swap` |
 | Games grid | Poker, Phantom, Warlords, Foundry, Open, GRUDOX, Mine, Forge, Casting, Portal |
+| Games grid | Auto-trader, Poker, Nexus, Warlords, Foundry, Open, GRUDOX, Mine, Forge, Casting |
+| Gruda / Crossmint | `GET /api/wallet/status` first · `POST /api/wallet/create` only if missing |
 
 ## Deploy
 
@@ -71,6 +73,8 @@ Shared handshake secret (align Railway + poker — **no SESSION_SECRET / JWT_SEC
 ```bash
 curl -s https://wallet.grudge-studio.com/health
 # features: fleet-bag, transfer-to-play, exchange-swap, game-handoff, phantom-reconnect, app-tiles, auth-callback
+# features: … crossmint-check-first, auto-trader-handoff, pwa-install
+# PWA: /manifest.webmanifest · /sw.js · Install app (Chrome/Edge/Android)
 ```
 
 ## Auth SSOT

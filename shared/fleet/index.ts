@@ -27,6 +27,13 @@ export {
 
 /** Warlords / Nexus era hosts (grudge.studio + grudgewarlords.com) */
 export {
+  FLEET_AUTH_TOKEN_KEYS as WARLORDS_AUTH_TOKEN_KEYS,
+  FLEET_OPEN_TOKEN_KEY,
+  FLEET_AUTH_TOKEN_READ_FALLBACK,
+} from "./tokenKeys";
+
+/** Warlords era *.grudgewarlords.com product zone */
+export {
   WARLORDS_APEX,
   WARLORDS_ERA_HOST,
   WARLORDS_ERA_URL,
@@ -243,3 +250,19 @@ export {
   type MountDef,
   type SiegeDef,
 } from "./vehicles";
+
+/** Warlords MMO host contract — grudgewarlords.com only */
+export {
+  WARLORDS_MMO_HOST,
+  WARLORDS_MMO_CONTRACT,
+  WARLORDS_MMO_ROUTES,
+  WARLORDS_MMO_MAP_FAMILIES,
+  WARLORDS_MMO_CATALOGS,
+  WARLORDS_MMO_KEYS,
+  WARLORDS_MMO_NOT_HOST,
+  CHARACTER_HEIGHT_M,
+  BUILDING_HEIGHT_M,
+  HOME_ISLAND_DIAMETER_M,
+  catalogUrls,
+  isWarlordsMmoPlayPath,
+} from "./warlordsMmoDeploy";

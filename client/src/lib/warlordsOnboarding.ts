@@ -35,8 +35,22 @@ export function markOpeningSeen(): void {
   setFlowFlag(WARLORDS_FLOW_FLAGS.openingSeen);
 }
 
+/** Raft craft is a tutorial milestone, not tutorial completion. */
+export function markRaftCrafted(): void {
+  setFlowFlag(WARLORDS_FLOW_FLAGS.raftCrafted);
+}
+
 export function markTutorialComplete(): void {
   setFlowFlag(WARLORDS_FLOW_FLAGS.tutorialComplete);
+}
+
+/**
+ * Owning a persisted home island is stronger evidence than a browser tutorial
+ * flag. Record the claim locally and treat first-voyage onboarding as complete.
+ */
+export function markHomeIslandClaimed(): void {
+  setFlowFlag('warlords_home_island_claimed_v1');
+  markTutorialComplete();
 }
 
 export function markAirshipSeen(): void {
@@ -46,6 +60,10 @@ export function markAirshipSeen(): void {
 /** True once this browser completed shipwreck tutorial (account first voyage). */
 export function isTutorialComplete(): boolean {
   return readFlowFlag(WARLORDS_FLOW_FLAGS.tutorialComplete);
+}
+
+export function isRaftCrafted(): boolean {
+  return readFlowFlag(WARLORDS_FLOW_FLAGS.raftCrafted);
 }
 
 export function isOpeningSeen(): boolean {
