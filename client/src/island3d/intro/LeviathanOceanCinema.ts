@@ -452,6 +452,8 @@ export class LeviathanOceanCinema {
   private throwDur = 2.8;
   private throwFrom = new THREE.Vector3();
   private throwTo = new THREE.Vector3();
+  private throwStartQ = new THREE.Quaternion();
+  private throwFaceUpQ = new THREE.Quaternion();
   private tornadoRoot: THREE.Object3D | null = null;
   private cycloneClones: THREE.Object3D[] = [];
   private fluidSplash: THREE.Object3D | null = null;
@@ -2627,7 +2629,7 @@ export class LeviathanOceanCinema {
    * Pathfinding: clamp to CIN_DECK_WALK + raycast Y at each step so feet stay on deck.
    */
   private tickMageCycles(dt: number, beat: CinBattleBeat): void {
-    if (this.pinataFired || this.ragdollActive) return;
+    if (this.pinataFired || this.ragdollActive || this.throwActive) return;
     const keys = ['mage_0', 'mage_1', 'mage_2', 'mage_3'] as const;
     const fleeing = new Set(this.fleeingMages.map((f) => f.root));
     // Intro chaos: mages pace even before wards (storm tension walk)
@@ -3620,11 +3622,9 @@ export class LeviathanOceanCinema {
     // Stop cast/walk — skeleton goes limp next
     const hi = this.deckMages.indexOf(hero);
     if (hi >= 0) {
-      try {
-        (this.mageDirectors[hi] as { mixer?: THREE.AnimationMixer }).mixer?.stopAllAction();
-      } catch {
-        /* ignore */
-      }
+      this.mageDirectors[hi]?.freezeLimp();
+      this.spineIk.get(`mage_${hi}`)?.setEnabled(false);
+      this.spineIk.aim(`mage_${hi}`, null, 0);
     }
 
     // Nothing in hand — hide weapons/staff on this body
@@ -3656,6 +3656,7 @@ export class LeviathanOceanCinema {
       }
     }
 
+    this.throwStartQ.copy(worldQuat);
     this.throwFrom.copy(worldPos);
     const [tx, ty, tz] = cinPos('throw_end');
     this.throwTo.set(
@@ -3723,14 +3724,9 @@ export class LeviathanOceanCinema {
       y = THREE.MathUtils.lerp(y, crest.y + 0.4, ride);
     }
     this.throwHero.position.set(x, y, z);
-    // Smooth arc into face-up — damped tumble, not continuous spin
-    this.throwHero.rotation.x = THREE.MathUtils.lerp(0.15, -Math.PI / 2, e);
-    this.throwHero.rotation.z = THREE.MathUtils.lerp(0, Math.sin(u * Math.PI) * 0.2, e);
-    this.throwHero.rotation.y = THREE.MathUtils.lerp(
-      this.throwHero.rotation.y,
-      Math.atan2(this.throwTo.x - this.throwFrom.x, this.throwTo.z - this.throwFrom.z),
-      dt * 1.2,
-    );
+    const yaw = Math.atan2(this.throwTo.x - this.throwFrom.x, this.throwTo.z - this.throwFrom.z);
+    this.throwFaceUpQ.setFromEuler(new THREE.Euler(-Math.PI / 2, yaw, 0, 'YXZ'));
+    this.throwHero.quaternion.copy(this.throwStartQ).slerp(this.throwFaceUpQ, e);
     this.throwHero.visible = true;
 
     if (u >= 1) {
@@ -3745,6 +3741,7 @@ export class LeviathanOceanCinema {
     this.ragdollActive = true;
     this.ragdollT = 0;
     this.limpRagdoll = beginLimpRagdoll(this.throwHero);
+    this.limpRagdoll.faceUpQ.copy(this.throwFaceUpQ);
     this.ragdollBones = this.limpRagdoll.bones;
     this.ragdollVel.copy(this.limpRagdoll.vel);
     const wy = sampleCinemaWaterY(
@@ -5321,7 +5318,10 @@ export class LeviathanOceanCinema {
     this.leviDirector?.update(dt);
     // Charge scrub + eel S-wave + maw shake AFTER mixer writes bones
     this.leviAnim?.update(dt);
-    for (const d of this.mageDirectors) d?.update(dt);
+    for (let i = 0; i < this.mageDirectors.length; i++) {
+      if (this.deckMages[i] === this.throwHero) continue;
+      this.mageDirectors[i]?.update(dt);
+    }
     this.fluidMixer?.update(dt);
 
     // 2) IK empties + soft upper-body aim toward levi (after mixer)

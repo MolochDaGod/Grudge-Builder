@@ -127,7 +127,11 @@ const IDLE_DURATION_MAX = 6;
 /** Flesh corpse window before auto-skeleton (also matches skin window). */
 const DEATH_LINGER_TIME = CORPSE_TO_SKELETON_S;
 const FLEE_DURATION = 4;
-const BIRD_ABOVE_M = FAUNA_HEIGHT.birdAboveTerrainM;
+const BIRD_ABOVE_M = FAUNA_HEIGHT?.birdAboveTerrainM ?? 12;
+const BIRD_BOB_M = FAUNA_HEIGHT?.birdBobM ?? 0.45;
+const FEET_ON_TERRAIN_M = FAUNA_HEIGHT?.feetOnTerrainM ?? 0.05;
+const FISH_MIN_SEABED_M = FAUNA_HEIGHT?.fishMinAboveSeabedM ?? 0.4;
+const FISH_MIN_SURFACE_M = FAUNA_HEIGHT?.fishMinUnderSurfaceM ?? 0.3;
 /** Melee floor — grudge-ai-brains: no silent instant wildlife hit */
 const WILDLIFE_TELEGRAPH_SEC = 0.35;
 
@@ -339,8 +343,8 @@ export class CreatureManager {
       if (def.swimDepth) {
         const depth =
           def.swimDepth[0] + this.rand() * (def.swimDepth[1] - def.swimDepth[0]);
-        const minY = groundY + FAUNA_HEIGHT.fishMinAboveSeabedM;
-        const maxY = this.waterLevel - FAUNA_HEIGHT.fishMinUnderSurfaceM;
+        const minY = groundY + FISH_MIN_SEABED_M;
+        const maxY = this.waterLevel - FISH_MIN_SURFACE_M;
         swimY = Math.min(maxY, Math.max(minY, this.waterLevel - depth));
       }
 
@@ -441,7 +445,7 @@ export class CreatureManager {
             existing.def.category !== 'fish' &&
             existing.def.category !== 'predator'
           ) {
-            existing.group.position.y = gy + FAUNA_HEIGHT.feetOnTerrainM;
+            existing.group.position.y = gy + FEET_ON_TERRAIN_M;
           }
         }
       } else if (y) {
@@ -1141,7 +1145,7 @@ export class CreatureManager {
         c.def.category !== 'fish' &&
         c.def.category !== 'predator'
       ) {
-        c.group.position.y = y + FAUNA_HEIGHT.feetOnTerrainM;
+        c.group.position.y = y + FEET_ON_TERRAIN_M;
       }
     }
   }
@@ -1213,10 +1217,10 @@ export class CreatureManager {
         : null;
       const base = (gy ?? c.spawnPos.y - BIRD_ABOVE_M) + BIRD_ABOVE_M;
       c.group.position.y =
-        base + Math.sin(performance.now() * 0.0008) * FAUNA_HEIGHT.birdBobM;
+        base + Math.sin(performance.now() * 0.0008) * BIRD_BOB_M;
     } else if (this.sampleHeight) {
       const y = this.sampleHeight(c.group.position.x, c.group.position.z);
-      if (y !== null) c.group.position.y = y + FAUNA_HEIGHT.feetOnTerrainM;
+      if (y !== null) c.group.position.y = y + FEET_ON_TERRAIN_M;
     }
 
     return arrived;
