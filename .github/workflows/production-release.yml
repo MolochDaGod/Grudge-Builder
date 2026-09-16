@@ -127,17 +127,17 @@ jobs:
             if (!response.ok) {
               throw new Error(`Cannot ensure project domain ${domain} (HTTP ${response.status}).`);
             }
-            const body = await response.text();
-            let data = null;
-            if (body) {
-              try {
-                data = JSON.parse(body);
-              } catch {
-                data = null;
-              }
+            response = await fetch(getEndpoint, { headers, signal: AbortSignal.timeout(15000) });
+            if (!response.ok) {
+              throw new Error(`Cannot verify project domain ${domain} after attach (HTTP ${response.status}).`);
             }
+            const data = await response.json();
             const name = data?.name ?? data?.domain?.name ?? data?.hostname;
+            const projectId = data?.projectId ?? data?.project?.id ?? data?.project?.projectId;
+            const teamId = data?.teamId ?? data?.team?.id;
             if ((name ?? domain) !== domain) throw new Error(`Unexpected domain response for ${domain}.`);
+            if (projectId && projectId !== project) throw new Error(`Domain ${domain} is attached to ${projectId}, not ${project}.`);
+            if (teamId && teamId !== team) throw new Error(`Domain ${domain} is attached to team ${teamId}, not ${team}.`);
             console.log(`Verified project domain: ${domain}`);
           }
           JS
