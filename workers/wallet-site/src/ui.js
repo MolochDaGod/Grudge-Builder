@@ -1,4 +1,4 @@
-/** Production wallet.grudge-studio.com UI — unique IDs, sheets, inline boot. */
+/** Production wallet.grudge-studio.com UI — one Wallet Standard sheet, unique IDs. */
 export function htmlPage(env) {
   const railway = env.RAILWAY_API_ORIGIN || "https://grudge-api-production-0d46.up.railway.app";
   const idGw = env.ID_GATEWAY_ORIGIN || "https://id.grudge-studio.com";
@@ -19,7 +19,7 @@ export function htmlPage(env) {
 <head>
 <meta charset="UTF-8" />
 <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover" />
-<meta name="gruda-build" content="2026-09-16-hub-v2" />
+<meta name="gruda-build" content="2026-09-16-connect-v3" />
 <title>Gruda Wallet</title>
 <link rel="icon" href="${logo}" />
 <link rel="preconnect" href="https://fonts.googleapis.com" />
@@ -61,6 +61,7 @@ section{padding:8px 16px 0}
 .bal{text-align:right;flex-shrink:0;font-variant-numeric:tabular-nums}
 .bal b{display:block;font-size:14px}.bal span{font-size:11px;color:var(--muted)}
 .pill{display:inline-block;margin-left:6px;font-size:9px;letter-spacing:.08em;text-transform:uppercase;color:var(--ok);border:1px solid rgba(61,222,176,.35);border-radius:999px;padding:1px 6px}
+.tiny{display:block;margin:2px 0 0 auto;background:none;border:0;color:var(--gold);font-size:10px;font-weight:600;padding:0}
 .dock{position:absolute;left:0;right:0;bottom:0;display:flex;justify-content:space-around;padding:8px 8px calc(8px + var(--safe));background:rgba(10,10,16,.94);border-top:1px solid var(--line)}
 .dock button{flex:1;background:none;border:0;color:var(--muted);font-size:10px;letter-spacing:.04em;text-transform:uppercase;padding:6px}
 .dock button.on{color:var(--gold2)}
@@ -108,7 +109,9 @@ section{padding:8px 16px 0}
   <div class="panel on" id="panel-home">
     <section>
       <div class="hrow"><h2>Wallets</h2><button type="button" id="act-add">+ Add</button></div>
-      <div class="row"><div class="av">1</div><div class="meta"><b>Wallet 1 <span class="pill">Primary</span></b><span class="mono" id="w1">Not linked</span></div><div class="bal"><span>funding</span></div></div>
+      <div id="linked-list">
+        <div class="row"><div class="av">1</div><div class="meta"><b>Wallet 1</b><span class="mono" id="w1">Not linked</span></div><div class="bal"><span>funding</span></div></div>
+      </div>
       <div class="row"><div class="av">T</div><div class="meta"><b>Trader vault</b><span>Engine key · not a browser wallet</span></div><div class="bal"><b id="vault-sol">0.00</b><span>SOL</span></div></div>
     </section>
     <section>
@@ -125,7 +128,7 @@ section{padding:8px 16px 0}
     <a class="dapp" href="https://grudgewarlords.com">Warlords</a>
   </section></div>
   <div class="panel" id="panel-set"><section><div class="hrow"><h2>Settings</h2></div>
-    <p class="msg">Session is Grudge ID. Connect only links SOL funding wallets.</p>
+    <p class="msg">Grudge ID is login. One Connect sheet links Phantom / Solflare / Backpack / any Wallet Standard SOL wallet into linked_wallets. The trader vault is never SIWS.</p>
     <button class="ghost" type="button" id="set-refresh">Refresh balances</button>
   </section></div>
   <nav class="dock">
@@ -137,10 +140,8 @@ section{padding:8px 16px 0}
   </nav>
   <div class="sheet" id="sheet-connect"><div class="pad"><div class="grab"></div>
     <h3>Connect a SOL wallet</h3>
-    <p>Links Wallet 1 to this Grudge ID. Does not replace the trader vault. House aUp3 is never listed here.</p>
-    <button class="prov" type="button" data-sol="phantom">Phantom</button>
-    <button class="prov" type="button" data-sol="solflare">Solflare</button>
-    <button class="prov" type="button" data-sol="backpack">Backpack</button>
+    <p>One system: Wallet Standard, then Phantom / Solflare / Backpack. Signs SIWS and writes Wallet 1 / 2 on this Grudge ID. Does not log you in, replace Crossmint, or touch the trader vault. House aUp3 is never listed.</p>
+    <div id="wallet-picker"></div>
     <p class="msg" id="connect-msg"></p>
     <button class="ghost" type="button" data-close>Cancel</button>
   </div></div>
@@ -171,23 +172,10 @@ window.GRUDA = {
   idGw: ${JSON.stringify(idGw)},
   poker: ${JSON.stringify(poker)},
   trader: ${JSON.stringify(trader)},
-  build: "2026-09-16-hub-v2"
+  build: "2026-09-16-connect-v3"
 };
 </script>
 <script src="/wallet-app.js" defer></script>
-<script>
-(function(){
-  function sheet(id){document.querySelectorAll(".sheet").forEach(function(s){s.classList.remove("on")});if(id){var el=document.getElementById(id);if(el)el.classList.add("on");}}
-  function on(id,fn){var el=document.getElementById(id);if(el)el.addEventListener("click",fn);}
-  on("act-recv",function(){sheet("sheet-recv")});
-  on("act-send",function(){sheet("sheet-send")});
-  on("act-connect",function(){sheet("sheet-connect")});
-  on("act-add",function(){sheet("sheet-connect")});
-  on("act-swap",function(){location.href=(window.GRUDA&&window.GRUDA.trader)||"https://trader.grudge-studio.com"});
-  document.querySelectorAll("[data-dock]").forEach(function(b){b.addEventListener("click",function(){document.querySelectorAll("[data-dock]").forEach(function(x){x.classList.toggle("on",x===b)});document.querySelectorAll(".panel").forEach(function(p){p.classList.toggle("on",p.id==="panel-"+b.dataset.dock)})})});
-  document.querySelectorAll("[data-close]").forEach(function(b){b.addEventListener("click",function(){sheet(null)})});
-})();
-</script>
 </body>
 </html>`;
 }

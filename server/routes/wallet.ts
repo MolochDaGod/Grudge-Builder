@@ -9,6 +9,8 @@ import {
   originFromRequest,
   confirmLinkedWallet,
   listLinkedWallets,
+  setPrimaryLinkedWallet,
+  unlinkLinkedWallet,
   getWalletOverview,
   quoteWalletPurchase,
   createPurchaseIntent,
@@ -457,7 +459,37 @@ export function registerWalletRoutes(app: Express): void {
     }
   });
 
+  app.post("/api/wallet/primary", requireAuth, async (req, res) => {
+    try {
+      const account = await requireAccount(req, res);
+      if (!account) return;
+      const walletAddress = String((req.body as { walletAddress?: string })?.walletAddress || "").trim();
+      if (!walletAddress) {
+        return res.status(400).json({ error: "walletAddress required" });
+      }
+      const linked = await setPrimaryLinkedWallet(account.id, walletAddress);
+      res.json({ success: true, linkedWallets: linked });
+    } catch (e: any) {
+      res.status(400).json({ error: e.message || "Could not set primary" });
+    }
+  });
+
+  app.delete("/api/wallet/linked/:address", requireAuth, async (req, res) => {
+    try {
+      const account = await requireAccount(req, res);
+      if (!account) return;
+      const walletAddress = decodeURIComponent(String(req.params.address || "")).trim();
+      if (!walletAddress) {
+        return res.status(400).json({ error: "address required" });
+      }
+      const linked = await unlinkLinkedWallet(account.id, walletAddress);
+      res.json({ success: true, linkedWallets: linked });
+    } catch (e: any) {
+      res.status(400).json({ error: e.message || "Could not unlink" });
+    }
+  });
+
   console.log(
-    "[Wallet] Routes: GET /api/wallet/overview, /linked; POST /link/*, /purchase/*, /transfer-to-play, /send-gbux",
+    "[Wallet] Routes: GET /api/wallet/overview, /linked; POST /link/*, /primary, /purchase/*, /transfer-to-play, /send-gbux; DELETE /linked/:address",
   );
 }

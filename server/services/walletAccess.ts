@@ -74,6 +74,8 @@ type StoredChallenge = {
   walletAddress: string;
   expiresAt: number;
   messageHash: string;
+  domain: string;
+  uri: string;
 };
 
 export type SiwsFields = {
@@ -232,6 +234,8 @@ function createSiwsChallenge(opts: {
     walletAddress: opts.walletAddress,
     expiresAt,
     messageHash,
+    domain,
+    uri,
   });
 
   return {
@@ -293,14 +297,14 @@ export function consumeSiwsChallenge(opts: {
     throw new Error("Message does not match issued SIWS challenge");
   }
 
-  // CRITICAL: Verify the signed message contains the exact issued domain, URI, and chain ID.
-  // This binds the signature to the specific context that was issued, not just nonce+signature.
+  // Bind domain/URI to the *issued* challenge (wallet.grudge-studio.com, trader, id, …).
+  // Do not compare against the ID-gateway constants — that rejects a valid hub connect.
   const msgDomain = parseSiwsDomain(opts.message);
-  if (!msgDomain || msgDomain !== SIWS_DOMAIN) {
+  if (!msgDomain || msgDomain !== challenge.domain) {
     throw new Error("Signed message domain does not match issued challenge");
   }
   const msgUri = parseSiwsUri(opts.message);
-  if (!msgUri || msgUri !== SIWS_URI) {
+  if (!msgUri || msgUri !== challenge.uri) {
     throw new Error("Signed message URI does not match issued challenge");
   }
   const msgChain = parseSiwsChainId(opts.message);
@@ -350,12 +354,18 @@ async function assertWalletAvailable(accountId: string, walletAddress: string): 
   }
 }
 
+const HOUSE_PUBKEY = "aUp3XZqAt27phQNEM7k5KiP6cL3ihyG7uEJuEADbEks";
+const LINKED_WALLET_CAP = 8;
+
 export async function persistLinkedWallet(
   accountId: string,
   walletAddress: string,
   provider: LinkedWalletProvider = "other",
   label?: string,
 ): Promise<{ linked: typeof linkedWallets.$inferSelect; setPrimary: boolean }> {
+  if (walletAddress === HOUSE_PUBKEY) {
+    throw new Error("House wallet cannot be linked");
+  }
   await assertWalletAvailable(accountId, walletAddress);
 
   const [existing] = await db
@@ -377,7 +387,11 @@ export async function persistLinkedWallet(
       .select()
       .from(linkedWallets)
       .where(eq(linkedWallets.accountId, accountId));
+    if (linkedCount.length >= LINKED_WALLET_CAP) {
+      throw new Error("Maximum 8 linked wallets on this Grudge ID");
+    }
     const isPrimary = linkedCount.length === 0;
+    const nextLabel = label || `Wallet ${linkedCount.length + 1}`;
 
     [row] = await db
       .insert(linkedWallets)
@@ -385,7 +399,7 @@ export async function persistLinkedWallet(
         accountId,
         walletAddress,
         provider,
-        label: label || provider,
+        label: nextLabel,
         isPrimary,
         verifiedAt: now,
       })
@@ -434,6 +448,59 @@ export async function confirmLinkedWallet(
 
 export async function listLinkedWallets(accountId: string) {
   return db.select().from(linkedWallets).where(eq(linkedWallets.accountId, accountId));
+}
+
+export async function setPrimaryLinkedWallet(accountId: string, walletAddress: string) {
+  const list = await listLinkedWallets(accountId);
+  const row = list.find((w) => w.walletAddress === walletAddress);
+  if (!row) throw new Error("Wallet is not linked to this Grudge ID");
+
+  await db
+    .update(linkedWallets)
+    .set({ isPrimary: false })
+    .where(and(eq(linkedWallets.accountId, accountId), eq(linkedWallets.isPrimary, true)));
+  await db
+    .update(linkedWallets)
+    .set({ isPrimary: true })
+    .where(eq(linkedWallets.id, row.id));
+
+  const [account] = await db.select().from(accounts).where(eq(accounts.id, accountId)).limit(1);
+  const custodial = account?.walletType === "crossmint" && Boolean(account.walletAddress);
+  if (account && !custodial) {
+    await storage.updateAccount(accountId, {
+      walletAddress,
+      walletType: "external",
+    } as any);
+  }
+  return listLinkedWallets(accountId);
+}
+
+export async function unlinkLinkedWallet(accountId: string, walletAddress: string) {
+  const list = await listLinkedWallets(accountId);
+  const row = list.find((w) => w.walletAddress === walletAddress);
+  if (!row) throw new Error("Wallet is not linked to this Grudge ID");
+
+  const [account] = await db.select().from(accounts).where(eq(accounts.id, accountId)).limit(1);
+  const custodial = account?.walletType === "crossmint" && Boolean(account.walletAddress);
+  if (custodial && account?.walletAddress === walletAddress) {
+    throw new Error("Cannot unlink the Crossmint play wallet");
+  }
+
+  await db.delete(linkedWallets).where(eq(linkedWallets.id, row.id));
+
+  if (row.isPrimary) {
+    const rest = await listLinkedWallets(accountId);
+    if (rest[0]) {
+      await db.update(linkedWallets).set({ isPrimary: true }).where(eq(linkedWallets.id, rest[0].id));
+      if (account && !custodial) {
+        await storage.updateAccount(accountId, {
+          walletAddress: rest[0].walletAddress,
+          walletType: "external",
+        } as any);
+      }
+    }
+  }
+  return listLinkedWallets(accountId);
 }
 
 export async function getWalletOverview(accountId: string) {

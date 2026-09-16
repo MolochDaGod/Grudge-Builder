@@ -3,7 +3,7 @@
  */
 import { htmlPage } from "./ui.js";
 
-export const WALLET_BUILD = "2026-09-16-hub-v2";
+export const WALLET_BUILD = "2026-09-16-connect-v3";
 
 const CORS_ALLOW = [
   "https://wallet.grudge-studio.com",
@@ -118,8 +118,7 @@ export default {
             "fleet-bag",
             "transfer-to-play",
             "sheets-recv-send-wallets",
-            "unique-button-ids",
-            "inline-wallet-app",
+            "wallet-standard-siws",
             "linked-wallets",
             "trader-vault-enable",
             "auth-callback",
