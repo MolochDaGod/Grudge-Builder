@@ -37,15 +37,6 @@ function readWalletSessionToken(req: Request): string | null {
   return match ? decodeURIComponent(match[1]) : null;
 }
 
-function readWalletSessionToken(req: Request): string | null {
-  const authHeader = req.get("Authorization") || req.get("X-Session-Token") || "";
-  if (authHeader.startsWith("Bearer ")) return authHeader.slice(7);
-  if (authHeader) return authHeader;
-  const cookie = req.get("Cookie") || "";
-  const match = cookie.match(/(?:^|;\s*)grudge_auth_token=([^;]+)/);
-  return match ? decodeURIComponent(match[1]) : null;
-}
-
 function requireAuth(req: Request, res: Response, next: NextFunction): void {
   const token = readWalletSessionToken(req);
   if (!token) {
@@ -113,7 +104,6 @@ export function registerWalletRoutes(app: Express): void {
         return res.status(400).json({ error: "walletAddress required" });
       }
       const challenge = createLinkChallenge(account.id, walletAddress, originFromRequest(req));
-      const challenge = createLinkChallenge(account.id, walletAddress);
       res.json({
         message: challenge.message,
         nonce: challenge.nonce,
@@ -308,11 +298,6 @@ export function registerWalletRoutes(app: Express): void {
       // Credit D1 play ledger on poker edge
       const pokerOrigin =
         process.env.POKER_ORIGIN || "https://poker.grudge-studio.com";
-      const fleetSecret =
-        process.env.FLEET_PLAY_CREDIT_SECRET?.trim() ||
-        process.env.SESSION_SECRET?.trim() ||
-        process.env.JWT_SECRET?.trim() ||
-        "";
       let playCredit: Record<string, unknown> | null = null;
       let playError: string | null = null;
       try {
@@ -398,8 +383,6 @@ export function registerWalletRoutes(app: Express): void {
       const grudgeId = String(
         (account as { grudgeId?: string }).grudgeId || "",
       );
-      const { crossmintWalletService } = await import("../services/crossmintWallet");
-      const grudgeId = String((account as { grudgeId?: string }).grudgeId || "");
       const cm = grudgeId
         ? await crossmintWalletService.getOrCreateWalletForGrudgeId(grudgeId)
         : null;

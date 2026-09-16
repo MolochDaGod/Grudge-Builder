@@ -3,7 +3,6 @@
 // Deploy alongside grudge-api-production-0d46 or as standalone Express.
 
 import express from 'express';
-import { init as initPuter } from '@heyputer/puter.js/src/init.cjs';
 import rateLimit from 'express-rate-limit';
 
 const router = express.Router();
@@ -53,22 +52,33 @@ async function callLegion(model, messages, { maxTokens = 512, stream = false } =
 
 async function callPuter(model, messages, { maxTokens = 512, stream = false } = {}) {
   if (!PUTER_BACKUP_TOKEN) throw new Error('no_puter_backup_token');
-  const puter = initPuter(PUTER_BACKUP_TOKEN);
   const clean = model.replace('puter:', '');
-  const resp = await puter.ai.chat(messages, { model: clean, max_tokens: maxTokens, stream });
-  return { text: resp?.message?.content || resp?.text || String(resp) };
+  const r = await fetch('https://api.puter.com/drivers/call', {
+    method: 'POST',
+    headers: {
+      'Content-Type': 'application/json',
+      Authorization: `Bearer ${PUTER_BACKUP_TOKEN}`,
+    },
+    body: JSON.stringify({
+      interface: 'puter-chat-completion',
+      method: 'complete',
+      args: { messages, model: clean, max_tokens: maxTokens, stream: !!stream },
+    }),
+  });
+  if (!r.ok) throw new Error(`puter_${r.status}`);
+  const data = await r.json();
+  return { text: data?.message?.content || data?.text || JSON.stringify(data) };
 }
 
 async function logUsage(page, modelUsed, tier, usage = {}) {
-  try {
-    const puter = initPuter(PUTER_BACKUP_TOKEN);
-    const key = `${USAGE_KV_PREFIX}${new Date().toISOString().slice(0,10)}:${page}`;
-    const existing = (await puter.kv.get(key)) || { count: 0, models: {} };
-    existing.count++;
-    existing.models[modelUsed] = (existing.models[modelUsed] || 0) + 1;
-    existing.last = Date.now();
-    await puter.kv.set(key, existing, Math.floor(Date.now()/1000) + 86400*30);
-  } catch (e) { console.warn('[ai-router] usage log failed', e.message); }
+  console.log('[ai-router] usage', {
+    page,
+    modelUsed,
+    tier,
+    tokens: usage?.total_tokens || usage?.tokens || null,
+    at: new Date().toISOString(),
+    kvHint: `${USAGE_KV_PREFIX}${new Date().toISOString().slice(0, 10)}:${page}`,
+  });
 }
 
 // --- Main endpoint ---

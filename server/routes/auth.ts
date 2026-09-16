@@ -53,10 +53,6 @@ import {
   confirmLinkedWallet,
   persistLinkedWallet,
   findAccountIdByWalletAddress,
-} from "../services/walletAccess";
-import type { LinkedWalletProvider } from "@shared/schema";
-
-const JWT_SECRET = process.env.SESSION_SECRET || process.env.JWT_SECRET || "grudge-dev-secret";
   listLinkedWallets,
 } from "../services/walletAccess";
 import type { LinkedWalletProvider } from "@shared/schema";
