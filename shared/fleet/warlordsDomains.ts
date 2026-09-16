@@ -41,9 +41,6 @@ export const PLAY_GRUDGE_STUDIO_LEGACY = PLAY_GRUDGE_STUDIO_HUB;
 export const WARLORDS_TEST_HOST = "test.grudge-studio.com" as const;
 export const WARLORDS_TEST_ORIGIN = `https://${WARLORDS_TEST_HOST}` as const;
 
-/** Dead / non-Warlords hub — do not use for Warlords era. */
-export const PLAY_GRUDGE_STUDIO_LEGACY = "https://play.grudge.studio" as const;
-
 /**
  * Clean Warlords subdomains (all should CNAME → same Vercel SPA as apex).
  * Path hosts optionally 301 to apex/play + path for pretty URLs.
@@ -229,6 +226,7 @@ export function isWarlordsPlayHost(hostname: string): boolean {
   const h = hostname.toLowerCase().replace(/\.$/, "");
   if (WARLORDS_NON_PLAY_HOSTS.has(h)) return false;
   if (h === WARLORDS_ERA_HOST) return true;
+  if (h === "grudge.studio" || h === "www.grudge.studio") return true;
   if (h === "grudgewarlords.com" || h === "www.grudgewarlords.com") return true;
   if (h.endsWith(".grudgewarlords.com")) return true;
   // client.grudge-studio.com = Nexus /heroes interim — NOT Warlords play
