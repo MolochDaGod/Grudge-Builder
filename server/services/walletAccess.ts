@@ -249,9 +249,6 @@ function createSiwsChallenge(opts: {
     accountId: opts.accountId || null,
     walletAddress: opts.walletAddress,
     expiresAt,
-  });
-  return {
-    message: buildSiwsMessage(siws),
     messageHash,
   });
 
