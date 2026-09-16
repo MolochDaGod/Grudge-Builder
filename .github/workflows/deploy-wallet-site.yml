@@ -23,4 +23,5 @@ jobs:
           apiToken: ${{ secrets.CLOUDFLARE_API_TOKEN }}
           accountId: ee475864561b02d4588180b8b9acf694
           workingDirectory: workers/wallet-site
+          wranglerVersion: "4.34.0"
           command: deploy
