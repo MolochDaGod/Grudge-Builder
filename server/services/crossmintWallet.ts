@@ -876,7 +876,6 @@ export class CrossmintWalletService {
     if (!this.apiKey) {
       return { success: false, error: "Crossmint API key not configured" };
     }
-    const tokenLocator = `solana:${opts.mint.trim()}`;
     const mint = opts.mint.trim();
     const tokenLocator = `solana:${mint}`;
     const locators = [

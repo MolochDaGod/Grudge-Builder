@@ -368,7 +368,7 @@ export async function registerRoutes(
 
   // AI router (gruda-ai-router) — Legion first, Puter fallback, page logging, cost tiers
   // Protects grudgewarlords.com/craft and all direct puter.ai.chat callers
-  import aiRouter from "./ai/gruda-ai-router/server/ai-router.mjs";
+  const { default: aiRouter } = await import("./ai/gruda-ai-router/server/ai-router.mjs");
   app.use("/api/ai", aiRouter);
 
   // Local huge medieval battle GLB (dev) — 517MB on D: drive
