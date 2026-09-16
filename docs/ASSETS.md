@@ -81,10 +81,13 @@ Uploads should set `CacheControl: public, max-age=31536000, immutable` and corre
 
 ## CDN Worker
 
-Repo: `workers/cdn/` (Worker name: **`grudge-asset-cdn`**) → deploy:
+Live Worker name: **`grudge-asset-cdn`**. Source of truth is **ObjectStore** `workers/cdn/` — not this repo.
 
 ```bash
-cd workers/cdn && npx wrangler deploy --env=""
+# CORRECT — ObjectStore
+cd F:/GitHub/ObjectStore/workers/cdn && npx wrangler deploy --env=""
+
+# DO NOT run from Grudge-Builder `workers/cdn` — same Worker name, it overwrites the live CDN.
 ```
 
 Worker enforces immutable cache headers and MIME types (png, glb, fbx, mp4, webm) even when R2 object metadata is stale.

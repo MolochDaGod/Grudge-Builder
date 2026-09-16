@@ -109,13 +109,13 @@ See `DEPLOY.md` for the exact steps.
 
 Summary:
 1. Set `PUTER_BACKUP_TOKEN` on the Railway project (one-time).
-2. Mount the router in the Express app that serves `api.grudge-studio.com`:
+2. Mount the router in Railway `grudge-api` (`grudge-api-production-0d46`). `api.grudge-studio.com` is deprecated.
    ```ts
-   import aiRouter from '../../../.grok/skills/gruda-ai-router/server/ai-router.mjs';
+   import aiRouter from './ai/gruda-ai-router/server/ai-router.mjs';
    app.use('/api/ai', aiRouter);
    ```
-3. `railway up --service api`
-4. Verify: `curl https://api.grudge-studio.com/api/ai/models`
+3. Redeploy Railway service `grudge-api`.
+4. Verify: `curl https://grudge-api-production-0d46.up.railway.app/api/ai/models`
 
 CORS already permits `*.puter.site`, `grudgewarlords.com`, `character.grudge-studio.com`.
 

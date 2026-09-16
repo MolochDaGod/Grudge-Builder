@@ -123,17 +123,31 @@ export const puterAI = {
     model?: string;
     temperature?: number;
     maxTokens?: number;
+    page?: string;
   }): Promise<string | null> {
-    if (!isPuterReady()) return null;
     try {
-      const response = await window.puter.ai.chat(prompt, {
-        model: options?.model || 'gpt-4o-mini',
-        temperature: options?.temperature || 0.7,
-        max_tokens: options?.maxTokens || 500
+      const messages = [{ role: 'user', content: prompt }];
+      const requested = options?.model;
+      const model = !requested
+        ? 'auto'
+        : requested.startsWith('puter:') || requested.startsWith('legion:')
+          ? requested
+          : `puter:${requested}`;
+      const res = await fetch('/api/ai/chat', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          messages,
+          model,
+          page: options?.page || 'warlords_puterAI',
+          tier: 'cheap',
+          maxTokens: options?.maxTokens || 500,
+        }),
       });
-      return response?.message?.content || response?.toString() || null;
+      const data = await res.json().catch(() => ({}));
+      return data.ok && data.text ? data.text : null;
     } catch (e) {
-      console.error('Puter AI chat error:', e);
+      console.error('gruda AI chat error:', e);
       return null;
     }
   },
@@ -497,13 +511,19 @@ export const puterServer = {
     maxTokens?: number;
   }): Promise<string | null> {
     try {
-      const res = await fetch(`${PUTER_CONFIG.serverUrl}/api/ai/chat`, {
+      const res = await fetch('/api/ai/chat', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ messages, ...options })
+        body: JSON.stringify({
+          messages,
+          model: options?.model || 'auto',
+          page: 'warlords_puterServer',
+          maxTokens: options?.maxTokens || 512,
+          tier: 'cheap',
+        })
       });
       const data = await res.json();
-      return data.content || data.message || null;
+      return data.text || data.content || data.message || null;
     } catch (e) {
       console.error('Puter server AI chat error:', e);
       return null;
