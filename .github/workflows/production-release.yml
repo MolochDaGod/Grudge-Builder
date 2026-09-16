@@ -141,6 +141,7 @@ jobs:
           node scripts/probe-warlords-test.mjs "$url"
       - name: Promote after preview probes
         env:
+          VERCEL_ORG_ID: ${{ env.VERCEL_ORG_ID }}
           VERCEL_TOKEN: ${{ secrets.VERCEL_TOKEN }}
         run: |
           vercel promote "$RELEASE_URL" --yes --scope "$VERCEL_ORG_ID" --token "$VERCEL_TOKEN"
