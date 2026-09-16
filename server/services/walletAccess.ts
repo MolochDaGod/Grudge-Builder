@@ -195,24 +195,6 @@ export function parseSiwsChainId(message: string): string | null {
   return null;
 }
 
-function buildSiwsMessage(fields: SiwsFields): string {
-  const lines = [
-    `${fields.domain} wants you to sign in with your Solana account:`,
-    fields.address,
-    "",
-    fields.statement,
-    "",
-    `URI: ${fields.uri}`,
-    `Version: ${fields.version}`,
-    `Chain ID: ${fields.chainId}`,
-    `Nonce: ${fields.nonce}`,
-    `Issued At: ${fields.issuedAt}`,
-    `Expiration Time: ${fields.expirationTime}`,
-  ];
-  if (fields.requestId) lines.push(`Request ID: ${fields.requestId}`);
-  return lines.join("\n");
-}
-
 function createSiwsChallenge(opts: {
   purpose: SiwsPurpose;
   walletAddress: string;
@@ -340,34 +322,6 @@ export async function findAccountIdByWalletAddress(walletAddress: string): Promi
     .where(eq(linkedWallets.walletAddress, walletAddress))
     .limit(1);
   if (linked?.accountId) return linked.accountId;
-
-  const [account] = await db
-    .select()
-    .from(accounts)
-    .where(eq(accounts.walletAddress, walletAddress))
-    .limit(1);
-  return account?.id || null;
-}
-
-async function assertWalletAvailable(accountId: string, walletAddress: string): Promise<void> {
-  const [linkedOther] = await db
-    .select()
-    .from(linkedWallets)
-    .where(eq(linkedWallets.walletAddress, walletAddress))
-    .limit(1);
-  if (linkedOther && linkedOther.accountId !== accountId) {
-    throw new Error("This Solana wallet is already linked to another Grudge ID");
-  }
-  const [acctOther] = await db
-    .select()
-    .from(accounts)
-    .where(eq(accounts.walletAddress, walletAddress))
-    .limit(1);
-  if (acctOther && acctOther.id !== accountId) {
-    throw new Error("This Solana wallet is already linked to another Grudge ID");
-  }
-}
-
 
   const [account] = await db
     .select()
