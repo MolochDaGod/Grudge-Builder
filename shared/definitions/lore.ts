@@ -289,6 +289,7 @@ export function wouldNPCAssist(
 // RACES
 // ═══════════════════════════════════════════════════════════════
 
+/** Play races: human, barbarian (Crusade label), orc, elf, dwarf, undead. `demon` is an NPC tribe key only. */
 export type RaceId = "human" | "orc" | "elf" | "dwarf" | "undead" | "demon";
 
 export interface Race {
@@ -350,9 +351,10 @@ export const RACES: Record<RaceId, Race> = {
     ],
     defaultFaction: "legion",
   },
+  /** NPC monster tribe (Ashen Throne / ashen_wastes). Not Foundry, not playable. */
   demon: {
     id: "demon", name: "Demon",
-    lore: "Infernal beings of chaos and destruction. Masters of dark magic.",
+    lore: "Infernal monster tribe of the glass desert — Ashen Throne. Not a player race.",
     bonuses: [
       { type: "Damage", effect: "+8% all damage" },
       { type: "Critical Factor", effect: "+10% critical damage multiplier" },

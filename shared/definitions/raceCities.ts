@@ -1,9 +1,12 @@
 /**
- * Race capital cities — Unity-era world map content for Three.js open world.
+ * Play-race capital cities — Warlords open world (WORLD_SECTORS).
  *
- * 6 playable races each get a capital in a Warlords zone (WORLD_SECTORS).
- * Faction towns (Crusade / Legion / Fabled) still live in factionTowns.ts;
- * race cities are the player-facing “go to my race city” layer + dungeon/harvest tags.
+ * Playable races (Toon / Foundry / FACTION_RACE_LABELS):
+ *   human, barbarian, elf, dwarf, orc, undead
+ * Crusade = Human + Barbarian → both land at Haven Port (haven_shore).
+ *
+ * Ashen Throne is a **demon NPC tribe** seat on ashen_wastes — not a play race,
+ * not a player capital. See NPC_TRIBE_SETTLEMENTS.
  *
  * Three entry: /play?sector=<zoneId>&mode=zone&worldSeed=grudge-world-1
  * Hub: /world-map → land into sector Three instance
@@ -12,54 +15,57 @@
 import type { RaceId } from './lore';
 import { resolveZoneSectorId } from './sectorBridge';
 
+/** Playable race keys that have a capital (barbarian shares Haven Port). */
+export type PlayableRaceCityRace =
+  | 'human'
+  | 'barbarian'
+  | 'elf'
+  | 'dwarf'
+  | 'orc'
+  | 'undead';
+
 export type RaceCityId =
   | 'haven_port'
   | 'runeforge_hold'
   | 'starweave_canopy'
   | 'pit_foundry'
-  | 'drowned_sepulcher'
-  | 'ashen_throne';
+  | 'drowned_sepulcher';
 
 export interface RaceCity {
   id: RaceCityId;
-  /** Primary race for this capital */
-  raceId: RaceId;
+  /** Primary play race for this capital (barbarian uses haven_port via getRaceCity). */
+  raceId: PlayableRaceCityRace;
   name: string;
   subtitle: string;
   /** Canonical WORLD_SECTORS id */
   sectorId: string;
   /** Optional link to FACTION_TOWNS key for 3D composeTown */
   factionTownKey?: 'crusade' | 'legion' | 'fabled';
-  /** Dungeon showcase for this capital’s sector */
   dungeon: {
     id: string;
     name: string;
     entranceModel: 'portal' | 'cave' | 'ruins' | 'gate' | 'tree_hollow';
   };
-  /** Harvest professions emphasized near the city */
   harvest: Array<'mining' | 'herbalism' | 'woodcutting' | 'skinning' | 'fishing'>;
-  /** Short blurb for world map UI */
   description: string;
-  /** Town GLB path when no faction town composition exists */
   modelPath: string;
   modelScale: number;
 }
 
-/** Six race capitals — mirrors Unity world fantasy layout */
+/** Player-facing race capitals only. One marker per city (Haven Port = Crusade). */
 export const RACE_CITIES: RaceCity[] = [
   {
     id: 'haven_port',
     raceId: 'human',
     name: 'Haven Port',
-    subtitle: 'Human Capital · PVE Trade Village',
+    subtitle: 'Crusade Capital · Human + Barbarian · PVE Trade',
     sectorId: 'haven_shore',
     factionTownKey: undefined,
     dungeon: { id: 'tropical_dungeon_0', name: "Pirate's Crypt", entranceModel: 'cave' },
     harvest: ['fishing', 'woodcutting', 'herbalism'],
     description:
-      'Safe tropical PVE trade hub (Fruzer islands foundation). Four vendors, mission givers, ' +
-      'DB harvest UUIDs, enemy vessels offshore. Map ocean only — no embedded water mesh.',
-    // Fruzer chicken_gun islands — loaded via HavenShoreFoundationLoader in zone mode
+      'Safe tropical PVE trade hub (Fruzer islands foundation). Crusade humans and barbarians land here. ' +
+      'Four vendors, mission givers, DB harvest UUIDs, enemy vessels offshore. Map ocean only — no embedded water mesh.',
     modelPath: '/models/warlords/haven_shore/fruzer_islands.glb',
     modelScale: 2.4,
   },
@@ -75,7 +81,6 @@ export const RACE_CITIES: RaceCity[] = [
     description:
       'Fabled sector core (fabledzone.glb): multi-island forge village. Cave doorways and building mouths ' +
       'portal into the uMMORPG dwarf main city / castle and hold interiors. Extra procedural islands around the core.',
-    // Core visual — FabledZoneFoundationLoader; castle via portals
     modelPath: '/models/warlords/fabled/fabledzone.glb',
     modelScale: 1.15,
   },
@@ -118,30 +123,38 @@ export const RACE_CITIES: RaceCity[] = [
     modelPath: '/models/towns/pit_foundry.glb',
     modelScale: 0.85,
   },
-  {
-    id: 'ashen_throne',
-    raceId: 'demon',
-    name: 'Ashen Throne',
-    subtitle: 'Demon Capital · Glass Desert',
-    sectorId: 'ashen_wastes',
-    factionTownKey: 'crusade',
-    dungeon: { id: 'desert_dungeon_0', name: 'Sunken Tomb', entranceModel: 'ruins' },
-    harvest: ['mining', 'herbalism'],
-    description: 'Scorched wastes and glass dunes. Hostile harvest routes and tomb dungeons.',
-    modelPath: '/models/towns/crusade/exterior.glb',
-    modelScale: 1.2,
-  },
 ];
 
-const BY_RACE = Object.fromEntries(RACE_CITIES.map((c) => [c.raceId, c])) as Record<
-  RaceId,
-  RaceCity | undefined
->;
+/**
+ * NPC monster-tribe seats on the 9 sectors. Not playable, not Foundry races.
+ * Ashen Throne = demon tribe on ashen_wastes.
+ */
+export const NPC_TRIBE_SETTLEMENTS = [
+  {
+    id: 'ashen_throne',
+    tribeId: 'demon',
+    playable: false as const,
+    name: 'Ashen Throne',
+    subtitle: 'Demon tribe · Glass Desert (NPC)',
+    sectorId: 'ashen_wastes',
+    dungeon: { id: 'desert_dungeon_0', name: 'Sunken Tomb', entranceModel: 'ruins' as const },
+    description:
+      'Scorched wastes and glass dunes. Demon monster tribe seat — not a player race, not a Foundry option.',
+  },
+] as const;
+
+const BY_RACE: Record<string, RaceCity | undefined> = Object.fromEntries(
+  RACE_CITIES.map((c) => [c.raceId, c]),
+);
+BY_RACE.barbarian = RACE_CITIES.find((c) => c.id === 'haven_port');
+
 const BY_SECTOR = new Map(RACE_CITIES.map((c) => [c.sectorId, c]));
 const BY_ID = Object.fromEntries(RACE_CITIES.map((c) => [c.id, c])) as Record<RaceCityId, RaceCity>;
 
 export function getRaceCity(raceId: string): RaceCity | null {
-  return BY_RACE[raceId as RaceId] ?? null;
+  const s = String(raceId || '').trim().toLowerCase();
+  if (s === 'demon') return null;
+  return BY_RACE[s as RaceId] ?? BY_RACE[s] ?? null;
 }
 
 export function getRaceCityBySector(sectorId: string): RaceCity | null {
@@ -150,10 +163,10 @@ export function getRaceCityBySector(sectorId: string): RaceCity | null {
 }
 
 export function getRaceCityById(id: string): RaceCity | null {
+  if (id === 'ashen_throne') return null;
   return BY_ID[id as RaceCityId] ?? null;
 }
 
-/** Three.js open-world URL for a race capital */
 export function raceCityPlayUrl(
   city: RaceCity,
   worldSeed = 'grudge-world-1',
@@ -161,7 +174,6 @@ export function raceCityPlayUrl(
   return `/play?sector=${encodeURIComponent(city.sectorId)}&mode=zone&worldSeed=${encodeURIComponent(worldSeed)}&city=${encodeURIComponent(city.id)}`;
 }
 
-/** All sectors that host a race capital */
 export function raceCitySectorIds(): string[] {
   return RACE_CITIES.map((c) => c.sectorId);
 }
