@@ -34,6 +34,8 @@ function at(url) {
 
 test('stable test domain is a game host, not the studio portal', () => {
   assert.equal(isWarlordsPlayHost('TEST.GRUDGE-STUDIO.COM.'), true);
+  assert.equal(isWarlordsPlayHost('grudge.studio'), true);
+  assert.equal(isWarlordsPlayHost('WWW.GRUDGE.STUDIO.'), true);
   assert.equal(isStudioPlatformHost('TEST.GRUDGE-STUDIO.COM.'), false);
   assert.equal(isWarlordsPlayHost('test.grudge-studio.com.attacker.example'), false);
   assert.equal(isStudioPlatformHost('forge.grudge-studio.com'), true);

@@ -86,6 +86,44 @@ jobs:
       - run: npm ci --ignore-scripts --include=dev
       - name: Install pinned Vercel CLI
         run: npm install --global vercel@59.11.7
+      - name: Ensure required production domains belong to grudge-builder
+        env:
+          VERCEL_TOKEN: ${{ secrets.VERCEL_TOKEN }}
+        run: |
+          node --input-type=module <<'JS'
+          const domains = [
+            'grudge.studio',
+            'www.grudge.studio',
+            'grudgewarlords.com',
+            'www.grudgewarlords.com',
+            'client.grudge-studio.com',
+          ];
+          const { VERCEL_TOKEN: token, VERCEL_PROJECT_ID: project, VERCEL_ORG_ID: team } = process.env;
+          if (!token) throw new Error('VERCEL_TOKEN is missing.');
+          const headers = {
+            Authorization: ['Bearer', token].join(' '),
+            'Content-Type': 'application/json',
+          };
+          for (const domain of domains) {
+            const getEndpoint = `https://api.vercel.com/v9/projects/${project}/domains/${domain}?teamId=${team}`;
+            let response = await fetch(getEndpoint, { headers, signal: AbortSignal.timeout(15000) });
+            if (response.status === 404) {
+              response = await fetch(`https://api.vercel.com/v9/projects/${project}/domains?teamId=${team}`, {
+                method: 'POST',
+                headers,
+                body: JSON.stringify({ name: domain }),
+                signal: AbortSignal.timeout(15000),
+              });
+            }
+            if (!response.ok) {
+              throw new Error(`Cannot ensure project domain ${domain} (HTTP ${response.status}).`);
+            }
+            const data = await response.json();
+            const name = data.name ?? data.domain?.name ?? data.hostname;
+            if (name !== domain) throw new Error(`Unexpected domain response for ${domain}.`);
+            console.log(`Verified project domain: ${domain}`);
+          }
+          JS
       - name: Build and stage immutable production artifact
         env:
           VERCEL_TOKEN: ${{ secrets.VERCEL_TOKEN }}
@@ -94,15 +132,17 @@ jobs:
           node -e "require('fs').writeFileSync('client/public/release.json', JSON.stringify({ commit: process.env.GITHUB_SHA, builtAt: new Date().toISOString() }) + '\\n')"
           vercel pull --yes --environment=production --token "$VERCEL_TOKEN"
           vercel build --prod --token "$VERCEL_TOKEN"
-          url=$(vercel deploy --prebuilt --prod --skip-domain --yes --token "$VERCEL_TOKEN")
+          url=$(vercel deploy --prebuilt --yes --token "$VERCEL_TOKEN")
           echo "RELEASE_URL=$url" >> "$GITHUB_ENV"
           node scripts/probe-warlords-test.mjs "$url"
       - name: Promote after preview probes
         env:
           VERCEL_TOKEN: ${{ secrets.VERCEL_TOKEN }}
         run: |
-          vercel promote "$RELEASE_URL" --token "$VERCEL_TOKEN"
+          vercel promote "$RELEASE_URL" --yes --scope "$VERCEL_ORG_ID" --token "$VERCEL_TOKEN"
           vercel cache purge --yes --scope "$VERCEL_ORG_ID" --token "$VERCEL_TOKEN"
+          node scripts/probe-warlords-test.mjs https://grudge.studio
+          node scripts/probe-warlords-test.mjs https://www.grudge.studio
           node scripts/probe-warlords-test.mjs https://grudgewarlords.com
           node scripts/probe-warlords-test.mjs https://client.grudge-studio.com
           node scripts/probe-warlords-test.mjs https://test.grudge-studio.com
