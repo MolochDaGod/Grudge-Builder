@@ -19,9 +19,12 @@ export function htmlPage(env) {
 <head>
 <meta charset="UTF-8" />
 <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover" />
-<meta name="gruda-build" content="2026-09-16-store-v2" />
+<meta name="gruda-build" content="2026-09-16-art-v1" />
 <title>Gruda Wallet</title>
-<link rel="icon" href="${logo}" />
+<link rel="icon" type="image/png" sizes="32x32" href="/favicon-32.png" />
+<link rel="icon" type="image/png" sizes="192x192" href="/icon-192.png" />
+<link rel="apple-touch-icon" href="/apple-touch-icon.png" />
+<link rel="manifest" href="/manifest.webmanifest" />
 <link rel="preconnect" href="https://fonts.googleapis.com" />
 <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
 <link href="https://fonts.googleapis.com/css2?family=IBM+Plex+Mono:wght@400;500&family=Sora:wght@400;500;600;700&display=swap" rel="stylesheet" />
@@ -36,7 +39,7 @@ button,a.btn{font-family:inherit;cursor:pointer}
 @media(min-width:720px){.app{min-height:820px;margin:28px 0;border-radius:28px;border:1px solid rgba(224,195,106,.18);box-shadow:0 30px 80px #000;overflow:hidden}}
 header{display:flex;align-items:center;gap:10px;padding:14px 16px 8px}
 .ident{flex:1;min-width:0;display:flex;align-items:center;gap:10px;background:rgba(255,255,255,.04);border:1px solid var(--line);border-radius:999px;padding:5px 12px 5px 5px}
-.ident img{width:28px;height:28px;border-radius:50%;flex-shrink:0}
+.ident img{width:28px;height:28px;border-radius:50%;flex-shrink:0;object-fit:cover;background:#0a0a12}
 .ident .who{min-width:0}
 .ident b,.ident span{display:block;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
 .ident b{font-size:12px}.ident span{font-size:11px;color:var(--muted)}
@@ -48,14 +51,15 @@ header{display:flex;align-items:center;gap:10px;padding:14px 16px 8px}
 .sub{margin-top:8px;font-size:12px;color:var(--muted);line-height:1.4}
 .acts{display:grid;grid-template-columns:repeat(4,1fr);gap:8px;padding:16px 16px 8px}
 .acts button{border:1px solid var(--line);background:var(--card);color:var(--gold2);border-radius:16px;padding:12px 4px 10px;font-size:11px;font-weight:600}
-.acts .ic{display:block;font-size:16px;margin-bottom:6px;color:var(--gold)}
+.acts .ic{display:grid;place-items:center;height:18px;margin-bottom:6px;color:var(--gold)}
+.acts .ic svg{width:18px;height:18px;display:block}
 section{padding:8px 16px 0}
 .hrow{display:flex;justify-content:space-between;align-items:baseline;margin:12px 0 8px}
 .hrow h2{font-size:13px;font-weight:600;letter-spacing:.04em;text-transform:uppercase;color:var(--muted)}
 .hrow button{background:none;border:0;color:var(--gold);font-size:12px;font-weight:600}
 .row{display:flex;align-items:center;gap:12px;padding:12px;background:var(--card);border:1px solid var(--line);border-radius:16px;margin-bottom:8px}
-.av{width:36px;height:36px;border-radius:50%;display:grid;place-items:center;flex-shrink:0;background:#1b1528;color:var(--gold);font-size:13px;font-weight:700;overflow:hidden}
-.av img{width:100%;height:100%;object-fit:cover}
+.av{width:36px;height:36px;border-radius:50%;display:grid;place-items:center;flex-shrink:0;background:#14141c;color:var(--gold);font-size:13px;font-weight:700;overflow:hidden}
+.av img{width:100%;height:100%;object-fit:contain;background:#0a0a12}
 .meta{flex:1;min-width:0}
 .meta b,.meta span{display:block;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
 .meta b{font-size:14px}.meta span{font-size:11px;color:var(--muted)}
@@ -75,6 +79,7 @@ section{padding:8px 16px 0}
 .sheet p,.msg{font-size:12px;color:var(--muted);line-height:1.45;margin-bottom:10px}
 .msg.ok{color:var(--ok)}.msg.err{color:var(--err)}
 .prov{display:flex;width:100%;align-items:center;gap:12px;background:var(--card);border:1px solid var(--line);border-radius:14px;padding:12px;color:var(--text);margin-bottom:8px;font-size:14px;font-weight:600;text-align:left}
+.prov img{width:28px;height:28px;border-radius:8px;object-fit:contain;background:#0a0a12;flex-shrink:0}
 .addrbox{font-family:"IBM Plex Mono",monospace;font-size:12px;word-break:break-all;background:#000;border-radius:12px;padding:12px;margin:8px 0 12px}
 .primary{width:100%;border:0;border-radius:14px;padding:12px;background:linear-gradient(180deg,#e8d07a,#b8922a);color:#1a1405;font-weight:700}
 .ghost{width:100%;margin-top:8px;border-radius:14px;padding:12px;background:transparent;color:var(--gold2);border:1px solid var(--line);font-weight:600}
@@ -136,7 +141,7 @@ section{padding:8px 16px 0}
 <div class="stage"><div class="app">
   <header>
     <div class="ident">
-      <img src="${logo}" alt="" width="28" height="28" />
+      <img src="/media/grudge-id.png" alt="Grudge ID" width="28" height="28" />
       <div class="who">
         <b id="name">Sign in</b>
         <span class="mono" id="gid">Grudge ID</span>
@@ -151,24 +156,24 @@ section{padding:8px 16px 0}
     <div class="sub">Vault <span id="tr-sol">0.00</span> · bag GBUX <span id="gbux">0</span> · play <span id="play">0</span></div>
   </div>
   <div class="acts">
-    <button type="button" id="act-recv"><span class="ic">↓</span>Receive</button>
-    <button type="button" id="act-send"><span class="ic">↑</span>Send</button>
-    <button type="button" id="act-swap"><span class="ic">⇄</span>Swap</button>
-    <button type="button" id="act-connect"><span class="ic">◎</span>Wallets</button>
+    <button type="button" id="act-recv"><span class="ic"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><path d="M12 4v12"/><path d="M7 12l5 5 5-5"/><path d="M5 20h14"/></svg></span>Receive</button>
+    <button type="button" id="act-send"><span class="ic"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><path d="M12 20V8"/><path d="M7 12l5-5 5 5"/><path d="M5 4h14"/></svg></span>Send</button>
+    <button type="button" id="act-swap"><span class="ic"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><path d="M7 7h11l-3-3"/><path d="M17 17H6l3 3"/></svg></span>Swap</button>
+    <button type="button" id="act-connect"><span class="ic"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><rect x="3" y="6" width="18" height="12" rx="2"/><path d="M3 10h18"/></svg></span>Wallets</button>
   </div>
   <p class="msg" id="toast"></p>
   <div class="panel on" id="panel-home">
     <section>
       <div class="hrow"><h2>Wallets</h2><button type="button" id="act-add">+ Add</button></div>
       <div id="linked-list">
-        <div class="row"><div class="av">1</div><div class="meta"><b>Wallet 1</b><span class="mono" id="w1">Not linked</span></div><div class="bal"><span>funding</span></div></div>
+        <div class="row"><div class="av"><img src="/media/sol.png" alt=""></div><div class="meta"><b>Wallet 1</b><span class="mono" id="w1">Not linked</span></div><div class="bal"><span>funding</span></div></div>
       </div>
-      <div class="row"><div class="av">T</div><div class="meta"><b>Trader vault</b><span>Engine key · not a browser wallet</span></div><div class="bal"><b id="vault-sol">0.00</b><span>SOL</span></div></div>
+      <div class="row"><div class="av"><img src="/media/sol.png" alt=""></div><div class="meta"><b>Trader vault</b><span>Engine key · not a browser wallet</span></div><div class="bal"><b id="vault-sol">0.00</b><span>SOL</span></div></div>
     </section>
     <section>
       <div class="hrow"><h2>Tokens</h2></div>
-      <div class="row"><div class="av">◎</div><div class="meta"><b>Solana</b><span>SOL</span></div><div class="bal"><b id="tok-sol">0.00</b></div></div>
-      <div class="row"><div class="av">G</div><div class="meta"><b>GBUX</b><span>Fleet bag · fee / play, not traded</span></div><div class="bal"><b id="tok-gbux">0</b></div></div>
+      <div class="row"><div class="av"><img src="/media/sol.png" alt="SOL"></div><div class="meta"><b>Solana</b><span>SOL</span></div><div class="bal"><b id="tok-sol">0.00</b></div></div>
+      <div class="row"><div class="av"><img src="/media/gbux.png" alt="GBUX"></div><div class="meta"><b>GBUX</b><span>Fleet bag · fee / play, not traded</span></div><div class="bal"><b id="tok-gbux">0</b></div></div>
     </section>
   </div>
   <div class="panel" id="panel-coins">
@@ -277,7 +282,15 @@ window.GRUDA = {
   idGw: ${JSON.stringify(idGw)},
   poker: ${JSON.stringify(poker)},
   trader: ${JSON.stringify(trader)},
-  build: "2026-09-16-store-v2"
+  build: "2026-09-16-art-v1",
+  art: {
+    sol: "/media/sol.png",
+    gbux: "/media/gbux.png",
+    id: "/media/grudge-id.png",
+    play: "/media/crossmint.png",
+    gbuxMint: "55TpSoMNxbfsNJ9U1dQoo9H3dRtDmjBZVMcKqvU2nray",
+    wsol: "So11111111111111111111111111111111111111112"
+  }
 };
 </script>
 <script src="/wallet-app.js" defer></script>

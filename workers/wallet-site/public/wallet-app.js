@@ -13,18 +13,26 @@
   const TRADER = G.trader || "https://trader.grudge-studio.com";
   const HOUSE = "aUp3XZqAt27phQNEM7k5KiP6cL3ihyG7uEJuEADbEks";
   const GBUX_MINT = "55TpSoMNxbfsNJ9U1dQoo9H3dRtDmjBZVMcKqvU2nray";
+  const WSOL = "So11111111111111111111111111111111111111112";
+  const ART = (G.art) || {
+    sol: "/media/sol.png",
+    gbux: "/media/gbux.png",
+    id: "/media/grudge-id.png",
+    play: "/media/crossmint.png",
+  };
+  const WALLET_GLYPH = "data:image/svg+xml," + encodeURIComponent('<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="none" stroke="#e0c36a" stroke-width="1.6"><rect x="3" y="6" width="18" height="12" rx="2"/><path d="M3 10h18"/></svg>');
   const WATCH_KEY = "gruda.watch.mints";
   const DAPPS_FALLBACK = [
-    { id: "trader", name: "Auto-trader", tagline: "SOL desk · rotating capital", category: "Desk", featured: true, row: "hero", href: "https://trader.grudge-studio.com", img: "https://trader.grudge-studio.com/art/fabledgrudge.jpeg", developer: "Grudge Studio", rating: "4.9", age: "18+", blurb: "Fund the vault from Wallet 1. Engine key, not SIWS." },
-    { id: "poker", name: "BUDB Poker", tagline: "Holdem · slots · blackjack", category: "Play", row: "must", href: "https://poker.grudge-studio.com/lobby", img: "https://poker.grudge-studio.com/media/og-image.jpg", developer: "Grudge Studio", rating: "4.8", age: "18+", blurb: "Sit with bag GBUX from this hub." },
-    { id: "poker-wallet", name: "Poker wallet", tagline: "BUDB play · fund · sit", category: "Play", row: "must", href: "https://poker.grudge-studio.com/wallet", img: "https://poker.grudge-studio.com/media/felt-budb-green.jpg", developer: "Grudge Studio", rating: "4.7", age: "18+", blurb: "Move GBUX onto the felt." },
-    { id: "warlords", name: "Warlords", tagline: "Home island · play", category: "Play", row: "must", href: "https://client.grudge-studio.com/home", img: "https://client.grudge-studio.com/opengraph.jpg", developer: "Grudge Studio", rating: "4.8", age: "13+", blurb: "Hero cNFTs mint to your Crossmint play wallet." },
-    { id: "grudox", name: "GRUDOX", tagline: "Arcade cabinets", category: "Play", row: "must", href: "https://grudox.grudge-studio.com", img: "https://grudox.grudge-studio.com/opengraph.jpg", developer: "Grudge Studio", rating: "4.6", age: "13+", blurb: "Cabinets, same Grudge ID." },
-    { id: "mine", name: "Mine-Loader", tagline: "Voxel realms", category: "Play", row: "must", href: "https://mineloader.grudge-studio.com", img: "https://mineloader.grudge-studio.com/opengraph.jpg", developer: "Grudge Studio", rating: "4.5", age: "9+", blurb: "Voxel worlds on your ID." },
-    { id: "foundry", name: "Character Foundry", tagline: "Create · 4 slots", category: "Studio", row: "studio", href: "https://character.grudge-studio.com/?era=warlords", img: "https://character.grudge-studio.com/opengraph.jpg", developer: "Grudge Studio", rating: "4.7", age: "13+", blurb: "Mint lands on Crossmint play — shows in cNFTs." },
-    { id: "forge", name: "Forge", tagline: "Map / scene editor", category: "Studio", row: "studio", href: "https://forge.grudge-studio.com", img: "https://forge.grudge-studio.com/opengraph.jpg", developer: "Grudge Studio", rating: "4.4", age: "13+", blurb: "Build scenes for Warlords." },
-    { id: "open", name: "Grudge Open", tagline: "Danger · library", category: "Studio", row: "studio", href: "https://open.grudge-studio.com", img: "https://open.grudge-studio.com/opengraph.jpg", developer: "Grudge Studio", rating: "4.3", age: "18+", blurb: "Research library, same session." },
-    { id: "studio", name: "Studio portal", tagline: "grudge-studio.com", category: "Studio", row: "studio", href: "https://grudge-studio.com", img: "https://grudge-studio.com/opengraph.jpg", developer: "Grudge Studio", rating: "4.6", age: "13+", blurb: "Home of the fleet." },
+    { id: "trader", name: "Auto-trader", tagline: "SOL desk · rotating capital", category: "Desk", featured: true, row: "hero", href: "https://trader.grudge-studio.com", img: "https://trader.grudge-studio.com/art/fabledgrudge.jpeg", developer: "Grudge Studio", blurb: "Fund the vault from Wallet 1. Engine key, not SIWS." },
+    { id: "poker", name: "BUDB Poker", tagline: "Holdem · slots · blackjack", category: "Play", row: "must", href: "https://poker.grudge-studio.com/lobby", img: "https://poker.grudge-studio.com/media/og-image.jpg", developer: "Grudge Studio", blurb: "Sit with bag GBUX from this hub." },
+    { id: "poker-wallet", name: "Poker wallet", tagline: "BUDB play · fund · sit", category: "Play", row: "must", href: "https://poker.grudge-studio.com/wallet", img: "https://poker.grudge-studio.com/media/felt-budb-green.jpg", developer: "Grudge Studio", blurb: "Move GBUX onto the felt." },
+    { id: "warlords", name: "Warlords", tagline: "Home island · play", category: "Play", row: "must", href: "https://client.grudge-studio.com/home", img: "https://client.grudge-studio.com/opengraph.jpg", developer: "Grudge Studio", blurb: "Hero cNFTs mint to your Crossmint play wallet." },
+    { id: "grudox", name: "GRUDOX", tagline: "Arcade cabinets", category: "Play", row: "must", href: "https://grudox.grudge-studio.com", img: "https://grudox.grudge-studio.com/opengraph.jpg", developer: "Grudge Studio", blurb: "Cabinets, same Grudge ID." },
+    { id: "mine", name: "Mine-Loader", tagline: "Voxel realms", category: "Play", row: "must", href: "https://mineloader.grudge-studio.com", img: "https://mineloader.grudge-studio.com/opengraph.jpg", developer: "Grudge Studio", blurb: "Voxel worlds on your ID." },
+    { id: "foundry", name: "Character Foundry", tagline: "Create · 4 slots", category: "Studio", row: "studio", href: "https://character.grudge-studio.com/?era=warlords", img: "https://character.grudge-studio.com/opengraph.jpg", developer: "Grudge Studio", blurb: "Mint lands on Crossmint play — shows in cNFTs." },
+    { id: "forge", name: "Forge", tagline: "Map / scene editor", category: "Studio", row: "studio", href: "https://forge.grudge-studio.com", img: "https://forge.grudge-studio.com/opengraph.jpg", developer: "Grudge Studio", blurb: "Build scenes for Warlords." },
+    { id: "open", name: "Grudge Open", tagline: "Danger · library", category: "Studio", row: "studio", href: "https://open.grudge-studio.com", img: "https://open.grudge-studio.com/opengraph.jpg", developer: "Grudge Studio", blurb: "Research library, same session." },
+    { id: "studio", name: "Studio portal", tagline: "grudge-studio.com", category: "Studio", row: "studio", href: "https://grudge-studio.com", img: "https://grudge-studio.com/opengraph.jpg", developer: "Grudge Studio", blurb: "Home of the fleet." },
   ];
   const LINK_CAP = 8;
   const FALLBACKS = [
@@ -32,6 +40,19 @@
     { id: "solflare", name: "Solflare", install: "https://solflare.com" },
     { id: "backpack", name: "Backpack", install: "https://backpack.app" },
   ];
+  const providerIcons = Object.create(null);
+  function tokenLogo(mint, symbol, remote) {
+    const m = String(mint || "");
+    const s = String(symbol || "").toUpperCase();
+    if (m === "SOL" || m === WSOL || s === "SOL") return ART.sol;
+    if (m === GBUX_MINT || s === "GBUX") return ART.gbux;
+    return remote || "";
+  }
+  function avImg(src) {
+    if (src) return '<div class="av"><img src="' + esc(src) + '" alt="" onerror="this.remove()"></div>';
+    return '<div class="av"></div>';
+  }
+
   const KEYS = ["grudge.open.token", "grudge_auth_token", "grudge_session_token", "grudge.token", "sso_token", "grudge_token", "access_token"];
   const ALPH = "123456789ABCDEFGHJKLMNPQRSTUVWXYZabcdefghijkmnopqrstuvwxyz";
 
@@ -209,12 +230,13 @@
     standardWallets.forEach((w) => {
       const id = providerId(w.name);
       seen.add(id);
-      out.push({ id: id, name: w.name, available: true, standard: w, legacy: null, install: null });
+      if (w.icon) providerIcons[id] = w.icon;
+      out.push({ id: id, name: w.name, available: true, standard: w, legacy: null, install: null, icon: w.icon || providerIcons[id] || "" });
     });
     FALLBACKS.forEach((f) => {
       if (seen.has(f.id)) return;
       const leg = legacy(f.id);
-      out.push({ id: f.id, name: f.name, available: Boolean(leg), standard: null, legacy: leg, install: f.install });
+      out.push({ id: f.id, name: f.name, available: Boolean(leg), standard: null, legacy: leg, install: f.install, icon: providerIcons[f.id] || "" });
     });
     return out;
   }
@@ -228,7 +250,14 @@
       b.type = "button";
       b.className = "prov";
       b.dataset.sol = row.id;
-      b.textContent = row.available ? row.name : row.name + " — install";
+      const img = document.createElement("img");
+      img.src = row.icon || WALLET_GLYPH;
+      img.alt = "";
+      img.width = 28;
+      img.height = 28;
+      img.addEventListener("error", () => { img.src = WALLET_GLYPH; });
+      b.appendChild(img);
+      b.appendChild(document.createTextNode(row.available ? row.name : row.name + " — install"));
       b.addEventListener("click", () => linkProvider(row));
       box.appendChild(b);
     });
@@ -319,15 +348,16 @@
     rows.sort((a, b) => Number(b.isPrimary) - Number(a.isPrimary));
     let html = "";
     if (!rows.length) {
-      html += '<div class="row"><div class="av">1</div><div class="meta"><b>Wallet 1</b><span class="mono">Not linked</span></div><div class="bal"><span>funding</span></div></div>';
+      html += '<div class="row">' + avImg(WALLET_GLYPH) + '<div class="meta"><b>Wallet 1</b><span class="mono">Not linked</span></div><div class="bal"><span>funding</span></div></div>';
     } else {
       rows.forEach((w, i) => {
         const addr = w.walletAddress || w.address || "";
         const n = i + 1;
         const pill = w.isPrimary ? ' <span class="pill">Primary</span>' : "";
         const prov = String(w.provider || w.label || "wallet");
+        const icon = providerIcons[String(prov).toLowerCase()] || WALLET_GLYPH;
         html += '<div class="row">' +
-          '<div class="av">' + n + "</div>" +
+          avImg(icon) +
           '<div class="meta"><b>Wallet ' + n + pill + '</b><span class="mono">' + short(addr) + " · " + prov + "</span></div>" +
           '<div class="bal">' +
             (w.isPrimary ? "<span>funding</span>" : '<button type="button" class="tiny" data-primary="' + addr + '">Primary</button>') +
@@ -336,7 +366,7 @@
       });
     }
     if (walletType === "crossmint" && playAddr && !rows.some((w) => (w.walletAddress || w.address) === playAddr)) {
-      html += '<div class="row"><div class="av">P</div><div class="meta"><b>Play wallet</b><span class="mono">' + short(playAddr) + " · Crossmint</span></div><div class=\"bal\"><span>custodial</span></div></div>";
+      html += '<div class="row">' + avImg(ART.play) + '<div class="meta"><b>Play wallet</b><span class="mono">' + short(playAddr) + " · Crossmint</span></div><div class=\"bal\"><span>custodial</span></div></div>";
     }
     box.innerHTML = html;
     box.querySelectorAll("[data-primary]").forEach((b) => {
@@ -507,9 +537,7 @@
     }
     box.hidden = false;
     box.innerHTML = items.map((t, i) => {
-      const av = t.logo
-        ? '<div class="av"><img src="' + esc(t.logo) + '" alt=""></div>'
-        : '<div class="av">' + esc((t.symbol || "?").slice(0, 2)) + "</div>";
+      const av = avImg(tokenLogo(t.mint, t.symbol, t.logo));
       return '<button type="button" data-idx="' + i + '">' + av +
         '<div class="meta"><b>' + esc(t.symbol || t.name) + "</b><span>" + esc(t.name || "") +
         '</span><span class="mint mono">' + esc(short(t.mint)) + "</span></div></button>";
@@ -550,11 +578,9 @@
   }
   function tokenRow(t) {
     const mint = t.mint || "";
-    const logo = t.logo || t.logoUrl || "";
-    const av = logo
-      ? '<div class="av"><img src="' + esc(logo) + '" alt="" onerror="this.parentNode.textContent=\'' + esc((t.symbol || "?").slice(0, 2)) + '\'"></div>'
-      : '<div class="av">' + esc((t.symbol || "?").slice(0, 2)) + "</div>";
-    const note = t.feeOnly ? "fee / play · not traded" : (t.watched ? "watched · " + short(mint) : short(mint === "SOL" ? "native" : mint));
+    const logo = tokenLogo(mint, t.symbol, t.logo || t.logoUrl || t.image);
+    const av = avImg(logo);
+    const note = t.feeOnly ? "fee / play · not traded" : (t.watched ? "watched · " + short(mint) : short(mint === "SOL" || mint === WSOL ? "native" : mint));
     const extra = t.bag != null ? '<span>bag ' + fmtAmt(t.bag) + "</span>" : "";
     const remove = t.watched ? '<button type="button" class="tiny" data-unwatch="' + esc(mint) + '">Remove</button>' : "";
     return '<div class="row" data-mint="' + esc(mint) + '">' + av +
@@ -674,7 +700,7 @@
     const box = $("token-preview");
     if (!box || !meta) return;
     box.innerHTML = '<div class="preview">' +
-      (meta.logo ? '<img src="' + esc(meta.logo) + '" alt="" width="40" height="40" style="border-radius:50%">' : '<div class="av">' + esc((meta.symbol || "?").slice(0, 2)) + "</div>") +
+      avImg(tokenLogo(meta.mint, meta.symbol, meta.logo)) +
       '<div class="meta"><b>' + esc(meta.symbol || "Token") + "</b><span class=\"mono\">" + esc(meta.name || "") + " · " + esc(short(meta.mint)) + "</span></div></div>" +
       '<button class="primary" type="button" id="btn-token-add">Add to Coins</button>';
     if ($("btn-token-add")) $("btn-token-add").onclick = confirmAddToken;
@@ -727,7 +753,7 @@
       const img = n.imageUrl || n.image || "";
       const tag = n.compressed || n.kind === "cnft" ? "cNFT" : "NFT";
       return '<a class="nftc" href="' + esc(href) + '" target="_blank" rel="noopener">' +
-        (img ? '<img src="' + esc(img) + '" alt="" onerror="this.style.opacity=.2">' : '<img alt="">') +
+        (img ? '<img src="' + esc(img) + '" alt="" onerror="this.remove()">' : "") +
         "<span>" + esc(n.name || "cNFT") + "</span>" +
         '<span class="tag">' + tag + (n.source ? " · " + esc(n.source) : "") + "</span></a>";
     }).join("");
@@ -796,19 +822,19 @@
     const featured = items.find((g) => g.featured || g.row === "hero") || items[0];
     if (feat) {
       feat.innerHTML = featured
-        ? '<a class="story" href="' + esc(featured.href) + '" data-handoff="1"><img src="' + esc(featured.img) + '" alt=""><span class="get">GET</span><div class="cap"><small>Featured</small><strong>' + esc(featured.name) + "</strong><em>" + esc(featured.blurb || featured.tagline || "") + "</em></div></a>"
+        ? '<a class="story" href="' + esc(featured.href) + '" data-handoff="1"><img src="' + esc(featured.img) + '" alt="" onerror="this.remove()"><span class="get">GET</span><div class="cap"><small>Featured</small><strong>' + esc(featured.name) + "</strong><em>" + esc(featured.blurb || featured.tagline || "") + "</em></div></a>"
         : "";
     }
     const mustItems = items.filter((g) => g.row === "must" || g.category === "Play");
     if (must) {
       must.innerHTML = mustItems.map((g) =>
-        '<a class="iconapp" href="' + esc(g.href) + '" data-handoff="1"><img src="' + esc(g.img) + '" alt=""><b>' + esc(g.name) + "</b><span>" + esc(g.tagline || "") + '</span><span class="get">GET</span></a>'
+        '<a class="iconapp" href="' + esc(g.href) + '" data-handoff="1"><img src="' + esc(g.img) + '" alt="" onerror="this.remove()"><b>' + esc(g.name) + "</b><span>" + esc(g.tagline || "") + '</span><span class="get">GET</span></a>'
       ).join("");
     }
     if ($("must-head")) $("must-head").style.display = mustItems.length ? "" : "none";
     const rest = items.filter((g) => !featured || g.id !== featured.id);
     list.innerHTML = rest.map((g) =>
-      '<a class="appc" href="' + esc(g.href) + '" data-handoff="1"><img src="' + esc(g.img) + '" alt=""><div class="meta"><b>' + esc(g.name) + "</b><span>" + esc(g.tagline || g.category || "") + '</span><span class="dev">' + esc(g.developer || "Grudge Studio") + " · " + esc(g.age || "13+") + (g.rating ? " · " + esc(g.rating) : "") + '</span></div><span class="get">GET</span></a>'
+      '<a class="appc" href="' + esc(g.href) + '" data-handoff="1"><img src="' + esc(g.img) + '" alt="" onerror="this.remove()"><div class="meta"><b>' + esc(g.name) + "</b><span>" + esc(g.tagline || g.category || "") + '</span><span class="dev">' + esc(g.developer || "Grudge Studio") + "</span></div><span class=\"get\">GET</span></a>"
     ).join("") || '<p class="empty">No apps in this category.</p>';
     bindHandoff();
   }
