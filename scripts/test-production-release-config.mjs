@@ -6,11 +6,17 @@ import test from 'node:test';
 const root = path.resolve(import.meta.dirname, '..');
 
 test('vercel config includes the grudge.studio production aliases', () => {
+  const vercelConfigText = fs.readFileSync(path.join(root, 'vercel.json'), 'utf8');
   const vercelConfig = JSON.parse(
-    fs.readFileSync(path.join(root, 'vercel.json'), 'utf8'),
+    vercelConfigText,
   );
   assert.ok(vercelConfig.alias.includes('grudge.studio'));
   assert.ok(vercelConfig.alias.includes('www.grudge.studio'));
+  assert.equal(vercelConfigText.includes('"source": "/api/:path*"'), false);
+  assert.ok(
+    vercelConfigText.indexOf('"source": "/api/multiplayer/:path*"') <
+      vercelConfigText.indexOf('"source": "/api/(.*)"'),
+  );
 });
 
 test('production release workflow verifies and probes apex production domains', () => {
