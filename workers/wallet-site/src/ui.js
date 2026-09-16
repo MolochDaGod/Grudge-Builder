@@ -189,7 +189,7 @@ button:disabled{opacity:.45;cursor:not-allowed}
       <p class="msg" id="tr-msg"></p>
     </div>
     <div class="tok"><img class="coin" src="${gbuxCoin}" alt="GBUX coin" /><div class="meta"><b>GBUX</b><span>coin · bag · Crossmint</span></div><div class="bal" id="tok-gbux">—</div></div>
-    <div class="tok"><img src="${logo}" alt="" /><div class="meta"><b>SOL vault</b><span id="tr-vault">trader house</span></div><div class="bal" id="tok-sol">—</div></div>
+    <div class="tok"><img src="${logo}" alt="" /><div class="meta"><b>SOL vault</b><span id="tr-vault">your trader vault</span></div><div class="bal" id="tok-sol">—</div></div>
     <span id="cmint" hidden></span><span id="net" hidden></span><span id="mint" hidden></span>
     <div class="addr" id="addr"></div>
     <p style="font-size:.72rem;color:var(--dim);margin:8px 0">Keep 0.02 SOL in the trader vault. Close fee 0.005 SOL → GBUX; TP +5%.</p>
@@ -871,7 +871,7 @@ $('btn-swap').onclick = async () => {
 };
 
 const PRIVACY_HTML = '<p>Grudge Studio Wallet (wallet.grudge-studio.com) is the fleet bag for your Grudge ID. We store session tokens in the browser, account identity on Railway (grudge_id), Crossmint game-wallet addresses, and the auto-trader cash ledger (deposits/withdrawals/NAV) keyed by grudge_id. We do not sell personal data. On-chain SOL and token balances are public. Admin identities (grudachain / molochdadev) can halt the desk and flatten the house vault. Do not send funds you cannot lose. Contact: existing Grudge ID support paths.</p><p>Cookies: sso_token / Grudge ID session on .grudge-studio.com. No third-party ads. Analytics: none beyond host logs.</p>';
-const TOS_HTML = '<p>The auto-trader is experimental. You send SOL to the house trade vault. Buys, sells, and fees spend that vault. You must keep at least 0.02 SOL in the vault for network fees or new clips halt. Close fee: 0.005 SOL of proceeds swapped to GBUX; take-profit also takes 5%. Remaining SOL stays as your spendable NAV on the same ledger. Withdrawals only to a wallet that deposited or is linked on Grudge ID. Not financial advice. Markets can go to zero. Grudge Studio may halt, refuse, or change fee rates. Enabling the trader opts you into this ledger. Privacy and these terms apply to the installed PWA the same as the site.</p>';
+const TOS_HTML = '<p>The auto-trader is experimental. Enable mints <b>your</b> trade vault. You send SOL to that address. Buys, sells, and fees spend your vault. Keep more than 0.03 SOL there (0.02 fees + 0.01 lottery) or new clips skip. Close fee: 0.005 SOL of proceeds swapped to GBUX; take-profit also takes 5%. Remaining SOL stays on your vault. Withdrawals only to a wallet that deposited or is linked on Grudge ID. Not financial advice. Markets can go to zero. Enabling the trader opts you into this ledger. Privacy and these terms apply to the installed PWA the same as the site.</p>';
 
 function openLegal(title, html) {
   $('legal-title').textContent = title;
