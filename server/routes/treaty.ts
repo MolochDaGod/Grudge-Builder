@@ -27,26 +27,13 @@ import {
   ensureTreatyServerChannels,
 } from "../services/treatyChat";
 
-/** Prefer SESSION_SECRET (auth.ts) then JWT_SECRET / GRUDGE_JWT_SECRET — use first non-empty candidate only. */
-const JWT_SECRET_CANDIDATES = [
-  process.env.SESSION_SECRET,
-  process.env.JWT_SECRET,
-  process.env.GRUDGE_JWT_SECRET,
-]
-  .map((s) => s?.trim())
-  .filter((s): s is string => !!s && s.length > 0);
-
-const JWT_SECRET = JWT_SECRET_CANDIDATES[0] || "";
+const JWT_SECRET = process.env.SESSION_SECRET || process.env.JWT_SECRET || "grudge-dev-secret";
 
 function requireAuth(req: Request, res: Response, next: NextFunction): void {
   const authHeader = req.get("Authorization") || req.get("X-Session-Token");
   const token = authHeader?.startsWith("Bearer ") ? authHeader.slice(7) : authHeader || null;
   if (!token) {
     res.status(401).json({ error: "Authentication required" });
-    return;
-  }
-  if (!JWT_SECRET) {
-    res.status(500).json({ error: "Authentication not configured (SESSION_SECRET, JWT_SECRET, or GRUDGE_JWT_SECRET required)" });
     return;
   }
   try {
@@ -74,6 +61,55 @@ async function requireAccount(req: Request, res: Response) {
 }
 
 export function registerTreatyRoutes(app: Express): void {
+  /**
+   * Chat with Grudge Agent (@grudagamebot) from Treaty UI.
+   * Proxies to Railway agent /agent/chat — no parallel chat product.
+   */
+  app.post("/api/treaty/agent/chat", requireAuth, async (req, res) => {
+    try {
+      const account = await requireAccount(req, res);
+      if (!account) return;
+      const text = String((req.body as { text?: string })?.text || "").trim();
+      if (!text) {
+        res.status(400).json({ error: "text required" });
+        return;
+      }
+      const agentUrl = (process.env.GRUDGE_AGENT_URL || "https://grudge-agent-bot-production.up.railway.app").replace(
+        /\/$/,
+        "",
+      );
+      const secret = process.env.GRUDGE_AGENT_CHAT_SECRET || "";
+      if (!secret) {
+        res.status(503).json({
+          error: "GRUDGE_AGENT_CHAT_SECRET not configured on API",
+          hint: "Set matching secret on grudge-agent-bot Railway service",
+        });
+        return;
+      }
+      const upstream = await fetch(`${agentUrl}/agent/chat`, {
+        method: "POST",
+        headers: {
+          Authorization: `Bearer ${secret}`,
+          "Content-Type": "application/json",
+        },
+        body: JSON.stringify({
+          text,
+          accountId: account.id,
+          sessionKey: `treaty-account-${account.id}`,
+        }),
+      });
+      const data = await upstream.json().catch(() => ({}));
+      if (!upstream.ok) {
+        res.status(upstream.status).json({ error: (data as any)?.error || "Agent unavailable", data });
+        return;
+      }
+      res.json(data);
+    } catch (e: any) {
+      console.error("[Treaty/Agent]", e);
+      res.status(500).json({ error: e.message || "Agent chat failed" });
+    }
+  });
+
   app.get("/api/treaty/social", requireAuth, async (req, res) => {
     try {
       const account = await requireAccount(req, res);
