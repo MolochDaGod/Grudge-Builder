@@ -233,11 +233,6 @@ function createSiwsChallenge(opts: {
     address: opts.walletAddress,
     statement: opts.purpose === "link" ? SIWS_STATEMENT_LINK : SIWS_STATEMENT_LOGIN,
     uri,
-  const siws: SiwsFields = {
-    domain: SIWS_DOMAIN,
-    address: opts.walletAddress,
-    statement: opts.purpose === "link" ? SIWS_STATEMENT_LINK : SIWS_STATEMENT_LOGIN,
-    uri: SIWS_URI,
     version: SIWS_VERSION,
     chainId: SIWS_CHAIN,
     nonce,
