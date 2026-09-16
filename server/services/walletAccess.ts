@@ -272,13 +272,6 @@ export function createLinkChallenge(
 /** Sign-in (not yet linked) → SIWS challenge. */
 export function createLoginChallenge(walletAddress: string, origin?: string | null): SiwsChallenge {
   return createSiwsChallenge({ purpose: "login", walletAddress, origin });
-export function createLinkChallenge(accountId: string, walletAddress: string): SiwsChallenge {
-  return createSiwsChallenge({ purpose: "link", walletAddress, accountId });
-}
-
-/** Sign-in (not yet linked) → SIWS challenge. */
-export function createLoginChallenge(walletAddress: string): SiwsChallenge {
-  return createSiwsChallenge({ purpose: "login", walletAddress });
 }
 
 export function consumeSiwsChallenge(opts: {
