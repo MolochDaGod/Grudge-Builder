@@ -4,8 +4,12 @@
 **Code:** `shared/fleet/warlordsDomains.ts` · `shared/fleet/manifest.ts` · `authReturn.ts`  
 **Journey:** [GAME_FLOW_SSOT.md](./GAME_FLOW_SSOT.md)
 
-Warlords era (airship, home island, maps, zones, scenes, game client) is branded under **`*.grudgewarlords.com`**.  
-Studio platform (login, forge, assets CDN, Foundry CF Pages) stays on **`*.grudge-studio.com`** unless noted.
+**Preferred play host:** **`warlords.grudge.studio`** (4 characters on airship).  
+**Live today:** **`grudgewarlords.com`** (same SPA; alias until DNS cutover).  
+**Account / apps hub:** **`grudge.studio`**.  
+**Nexus 4 characters:** **`nexus.grudge.studio/heroes`**.  
+Studio platform (login, forge, assets CDN, Foundry) stays on **`*.grudge-studio.com`**.  
+Full matrix: [GRUDGE_STUDIO_ERA_DOMAINS_SSOT.md](./GRUDGE_STUDIO_ERA_DOMAINS_SSOT.md).
 
 ---
 
@@ -52,7 +56,7 @@ Set `WARLORDS_PLAY_ORIGIN=https://play.grudgewarlords.com` (or `VITE_WARLORDS_PL
 |------|------|
 | `id.grudge-studio.com` | Fleet-wide login |
 | `character.grudge-studio.com` | Foundry create + 4-slot (CF Pages) |
-| `client.grudge-studio.com` | **Legacy** same SPA — keep until traffic cut over |
+| `client.grudge-studio.com` | **Legacy** — permanent redirect → `grudgewarlords.com` (not production brand) |
 | `forge.grudge-studio.com` | Map editor |
 | `assets.grudge-studio.com` | R2 CDN |
 | `info.grudge-studio.com` | Definitions + ops map |

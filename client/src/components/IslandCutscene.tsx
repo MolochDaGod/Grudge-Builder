@@ -103,6 +103,8 @@ export function IslandCutscene({
           loop
           playsInline
           autoPlay
+          preload="auto"
+          referrerPolicy="no-referrer"
         />
       )}
 

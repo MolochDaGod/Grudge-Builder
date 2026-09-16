@@ -366,6 +366,11 @@ export async function registerRoutes(
   const { registerMultiplayerRoutes } = await import("./routes/multiplayerRoutes");
   registerMultiplayerRoutes(app);
 
+  // AI router (gruda-ai-router) — Legion first, Puter fallback, page logging, cost tiers
+  // Protects grudgewarlords.com/craft and all direct puter.ai.chat callers
+  import aiRouter from "./ai/gruda-ai-router/server/ai-router.mjs";
+  app.use("/api/ai", aiRouter);
+
   // Local huge medieval battle GLB (dev) — 517MB on D: drive
   app.get("/api/local-war-scene", (req, res) => {
     const candidates = [
@@ -1444,13 +1449,35 @@ export async function registerRoutes(
       const account = await storage.getOrCreateAccountForUser(userId);
       
       // Sanitize payload - only allow safe fields to be updated (not userId, id)
-      const { displayName, gold, premiumCurrency } = req.body;
+      const { displayName, username, gold, premiumCurrency } = req.body;
       const safeUpdates: Record<string, unknown> = {};
-      if (displayName !== undefined) safeUpdates.displayName = displayName;
+      const handle =
+        typeof username === "string" && username.trim()
+          ? username.trim().slice(0, 48)
+          : typeof displayName === "string" && displayName.trim()
+            ? displayName.trim().slice(0, 48)
+            : undefined;
+      if (handle !== undefined) safeUpdates.displayName = handle;
+      if (displayName !== undefined && handle === undefined) safeUpdates.displayName = displayName;
       if (gold !== undefined) safeUpdates.gold = gold;
       if (premiumCurrency !== undefined) safeUpdates.premiumCurrency = premiumCurrency;
-      
+
       const updated = await storage.updateAccount(account.id, safeUpdates);
+      if (handle) {
+        try {
+          const { stampPuterLink, fetchIdentityUserById } = await import("./lib/identityLink");
+          const identity = await fetchIdentityUserById(userId);
+          if (identity?.puter_user_id) {
+            await stampPuterLink(userId, {
+              id: identity.puter_user_id,
+              username: handle,
+              email: identity.puter_email || identity.email,
+            });
+          }
+        } catch {
+          /* puter_username column optional */
+        }
+      }
       res.json(updated);
     } catch (error) {
       console.error("Error updating account:", error);
@@ -8359,31 +8386,6 @@ Your response must be valid JSON array only, no markdown or explanation.`;
     } catch (error) {
       console.error("Error fetching accounts summary:", error);
       res.status(500).json({ error: "Failed to fetch accounts summary" });
-    }
-  });
-
-  // ==================== Health Check ====================
-  app.get("/api/health", async (_req, res) => {
-    try {
-      const dbResult = await db.execute(sql`SELECT 1`);
-      res.status(200).json({
-        status: "healthy",
-        app: "grudge-builder",
-        version: "1.0.0",
-        timestamp: new Date().toISOString(),
-        services: {
-          database: dbResult ? "operational" : "error",
-          api: "operational",
-        },
-      });
-    } catch (error) {
-      res.status(503).json({
-        status: "unhealthy",
-        app: "grudge-builder",
-        version: "1.0.0",
-        timestamp: new Date().toISOString(),
-        error: error instanceof Error ? error.message : "Unknown error",
-      });
     }
   });
 

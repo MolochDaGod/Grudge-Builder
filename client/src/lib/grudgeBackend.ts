@@ -647,6 +647,7 @@ async function getPhantomSDK(): Promise<{
   if (!_phantomSdk) {
     const { BrowserSDK, AddressType } = await import("@phantom/browser-sdk");
     _phantomSdk = new BrowserSDK({
+      providerType: "embedded",
       embeddedWalletType: "user-wallet",
       addressTypes: [AddressType.solana],
       appId: phantomAppId(),
@@ -775,6 +776,7 @@ async function connectSolanaForLink(provider: "phantom" | "solflare"): Promise<s
     }
     const sdk = await getPhantomSDK();
     const { addresses } = await sdk.connect();
+    const sol = addresses?.find((a: { type?: string }) => a.type === "solana");
     const sol = addresses?.find((a) => typeof a !== "string" && a.type === "solana");
     const addr =
       typeof sol === "string"

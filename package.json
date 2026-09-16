@@ -37,7 +37,7 @@
     "db:connections": "powershell -NoProfile -ExecutionPolicy Bypass -File scripts/show-db-connections.ps1",
     "deploy:workers": "powershell -NoProfile -ExecutionPolicy Bypass -File scripts/deploy-workers.ps1",
     "seed:rag": "node scripts/seed-anythingllm.mjs",
-    "probe:truth": "tsx scripts/probe-truth-fleet.ts --base https://client.grudge-studio.com",
+    "probe:truth": "tsx scripts/probe-truth-fleet.ts --base https://grudgewarlords.com",
     "probe:truth:direct": "tsx scripts/probe-truth-fleet.ts",
     "probe:auth": "tsx scripts/probe-fleet-auth.ts",
     "probe:deployments": "node scripts/probe-deployments.mjs",
@@ -58,6 +58,7 @@
     "production:verify-magic": "node scripts/verify-cdn-magic-bytes.mjs",
     "production:verify-magic:strict": "node scripts/verify-cdn-magic-bytes.mjs --strict",
     "smoke:characters": "node scripts/smoke-characters-api.mjs",
+    "smoke:mmo": "node scripts/smoke-characters-api.mjs",
     "smoke:pipeline": "node scripts/verify-cdn-magic-bytes.mjs && node scripts/smoke-characters-api.mjs",
     "production:upload-island": "node scripts/upload-island-resources.mjs --remote",
     "production:assets": "npm run production:verify-assets && npm run production:upload-island",
@@ -362,7 +363,7 @@
     "vitest": "^4.1.7"
   },
   "engines": {
-    "node": "22.x",
+    "node": "24.x",
     "npm": ">=10"
   },
   "optionalDependencies": {

@@ -176,6 +176,8 @@ export default function WarlordsLandingPage() {
               muted
               playsInline
               loop
+              preload="auto"
+              referrerPolicy="no-referrer"
               className="absolute inset-0 w-full h-full object-cover opacity-25 mix-blend-lighten"
             />
           )}

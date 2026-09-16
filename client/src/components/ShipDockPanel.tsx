@@ -8,8 +8,10 @@ import { Badge } from '@/components/ui/badge';
 import {
   SHIP_CATALOG,
   RTS_SOUTH_DOCK,
+  LONG_ROW_BOAT_HULL,
   type ShipSize,
 } from '@shared/definitions/shipCatalog';
+import { hasLearnedRecipe, getActiveCharacterId } from '@/lib/recipeLearn';
 import {
   buildShipAtDock,
   ensureStarterShip,
@@ -194,6 +196,45 @@ export function ShipDockPanel({
                 {entry.starterFree && <span className="text-emerald-400 ml-1">Free</span>}
               </Button>
             ))}
+            {(() => {
+              const cid = getActiveCharacterId();
+              const known = cid ? hasLearnedRecipe(cid, LONG_ROW_BOAT_HULL.unlockRecipeId) : false;
+              return (
+                <Button
+                  size="sm"
+                  variant="outline"
+                  className="text-[10px] h-7 border-amber-700"
+                  disabled={!known}
+                  title={
+                    known
+                      ? 'Craft Long Row Boat'
+                      : 'Buy recipe from Stormfang Dock Master (Barbarian isle)'
+                  }
+                  onClick={() => {
+                    if (!known) {
+                      setMessage('Unlock the Long Row Boat recipe from the Barbarian Dock Master on Stormfang Isle.');
+                      return;
+                    }
+                    const result = buildShipAtDock({
+                      accountId,
+                      captainId,
+                      size: LONG_ROW_BOAT_HULL.size,
+                      dockId: RTS_SOUTH_DOCK.id,
+                      name: LONG_ROW_BOAT_HULL.label,
+                    });
+                    if (!result.ok) {
+                      setMessage(result.error);
+                      return;
+                    }
+                    setMessage(`Built ${result.ship.name}!`);
+                    refresh();
+                  }}
+                >
+                  {LONG_ROW_BOAT_HULL.label}
+                  {!known && <span className="text-amber-400 ml-1">Recipe</span>}
+                </Button>
+              );
+            })()}
           </div>
         </div>
 

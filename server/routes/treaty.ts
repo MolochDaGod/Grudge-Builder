@@ -74,6 +74,55 @@ async function requireAccount(req: Request, res: Response) {
 }
 
 export function registerTreatyRoutes(app: Express): void {
+  /**
+   * Chat with Grudge Agent (@grudagamebot) from Treaty UI.
+   * Proxies to Railway agent /agent/chat — no parallel chat product.
+   */
+  app.post("/api/treaty/agent/chat", requireAuth, async (req, res) => {
+    try {
+      const account = await requireAccount(req, res);
+      if (!account) return;
+      const text = String((req.body as { text?: string })?.text || "").trim();
+      if (!text) {
+        res.status(400).json({ error: "text required" });
+        return;
+      }
+      const agentUrl = (process.env.GRUDGE_AGENT_URL || "https://grudge-agent-bot-production.up.railway.app").replace(
+        /\/$/,
+        "",
+      );
+      const secret = process.env.GRUDGE_AGENT_CHAT_SECRET || "";
+      if (!secret) {
+        res.status(503).json({
+          error: "GRUDGE_AGENT_CHAT_SECRET not configured on API",
+          hint: "Set matching secret on grudge-agent-bot Railway service",
+        });
+        return;
+      }
+      const upstream = await fetch(`${agentUrl}/agent/chat`, {
+        method: "POST",
+        headers: {
+          Authorization: `Bearer ${secret}`,
+          "Content-Type": "application/json",
+        },
+        body: JSON.stringify({
+          text,
+          accountId: account.id,
+          sessionKey: `treaty-account-${account.id}`,
+        }),
+      });
+      const data = await upstream.json().catch(() => ({}));
+      if (!upstream.ok) {
+        res.status(upstream.status).json({ error: (data as any)?.error || "Agent unavailable", data });
+        return;
+      }
+      res.json(data);
+    } catch (e: any) {
+      console.error("[Treaty/Agent]", e);
+      res.status(500).json({ error: e.message || "Agent chat failed" });
+    }
+  });
+
   app.get("/api/treaty/social", requireAuth, async (req, res) => {
     try {
       const account = await requireAccount(req, res);

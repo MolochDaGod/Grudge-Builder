@@ -53,6 +53,7 @@ export const ACTIVITY_STATES: CharacterState[] = [
 export const STATE_ANIM_MAP: Record<CharacterState, StateAnimMapping> = {
   idle: { enter: "idle", loop: true },
   moving: { enter: "walk", loop: true, fallback: "run" },
+  // farming pack (CDN anims/baked/farming) — harvest/build use tool one-shots
   harvesting: { enter: "harvest", loop: false, fallback: "attack" },
   building: { enter: "harvest", loop: false, fallback: "attack" },
   sleeping: { enter: "idle", loop: true },
@@ -65,9 +66,22 @@ export const STATE_ANIM_MAP: Record<CharacterState, StateAnimMapping> = {
   fishing_reeling: { enter: "fishing_reel", loop: true, fallback: "attack" },
   fishing_catching: { enter: "fishing_catch", loop: false, fallback: "attack" },
   fishing_failed: { enter: "fishing_fail", loop: false, fallback: "impact" },
-  crafting: { enter: "idle", loop: true },
+  crafting: { enter: "harvest", loop: true, fallback: "idle" },
   trading: { enter: "idle", loop: true },
   talking: { enter: "idle", loop: true },
+};
+
+/** Loco / survival slot aliases from D:\Games\Models\_anim_packs */
+export const SURVIVAL_PACK_ALIASES: Record<string, PlaybackSlot> = {
+  watering: "harvest",
+  "dig and plant seeds": "harvest",
+  "pull plant": "harvest",
+  climbing: "climb_up",
+  swimming: "swim_surface",
+  "treading-water": "swim_underwater",
+  "great sword slash": "slash1",
+  "great sword idle": "idle",
+  dodging: "dodge",
 };
 
 export function isActivityState(state: CharacterState): boolean {

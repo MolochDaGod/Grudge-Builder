@@ -28,6 +28,36 @@ const USDT_DECIMALS = Number(process.env.USDT_DECIMALS || 6);
 
 const SIWS_DOMAIN = "id.grudge-studio.com";
 const SIWS_URI = "https://id.grudge-studio.com/account";
+
+/** Phantom SIWS: domain must match the page origin that requested the signature. */
+export function originFromRequest(req: { get?: (h: string) => string | undefined; body?: any; headers?: any }): string {
+  const body = req.body?.origin || req.body?.domain;
+  const get = typeof req.get === "function" ? req.get.bind(req) : (h: string) => req.headers?.[h] || req.headers?.[h.toLowerCase()];
+  const hdr = get("origin") || get("referer");
+  const xf = get("x-forwarded-host");
+  return String(body || hdr || (xf ? `https://${String(xf).split(",")[0].trim()}` : "") || "");
+}
+
+export function resolveSiwsOrigin(input?: string | null): { domain: string; uri: string } {
+  const raw = String(input || "").trim();
+  try {
+    const u = new URL(raw.includes("://") ? raw : `https://${raw}`);
+    const host = u.hostname.toLowerCase();
+    const ok =
+      host === "id.grudge-studio.com" ||
+      host === "wallet.grudge-studio.com" ||
+      host === "poker.grudge-studio.com" ||
+      host === "trader.grudge-studio.com" ||
+      host === "grudge-studio.com" ||
+      host === "www.grudge-studio.com" ||
+      host === "character.grudge-studio.com" ||
+      host.endsWith(".grudge-studio.com");
+    if (!ok) return { domain: SIWS_DOMAIN, uri: SIWS_URI };
+    return { domain: host, uri: `${u.protocol}//${u.host}/` };
+  } catch {
+    return { domain: SIWS_DOMAIN, uri: SIWS_URI };
+  }
+}
 const SIWS_VERSION = "1";
 const SIWS_CHAIN = "mainnet";
 const SIWS_TTL_MS = 5 * 60 * 1000;
@@ -118,6 +148,33 @@ export function parseSiwsAddress(message: string): string | null {
   return null;
 }
 
+function buildSiwsMessage(fields: SiwsFields): string {
+  const lines = [
+    `${fields.domain} wants you to sign in with your Solana account:`,
+    fields.address,
+    "",
+    fields.statement,
+    "",
+    `URI: ${fields.uri}`,
+    `Version: ${fields.version}`,
+    `Chain ID: ${fields.chainId}`,
+    `Nonce: ${fields.nonce}`,
+    `Issued At: ${fields.issuedAt}`,
+    `Expiration Time: ${fields.expirationTime}`,
+  ];
+  if (fields.requestId) lines.push(`Request ID: ${fields.requestId}`);
+  return lines.join("\n");
+}
+
+  }
+  const lines = text.split("\n");
+  if (/wants you to sign in with your Solana account/i.test(lines[0] || "")) {
+    const addr = (lines[1] || "").trim().replace(/^solana:(?:mainnet:)?/i, "");
+    return addr || null;
+  }
+  return null;
+}
+
 export function parseSiwsDomain(message: string): string | null {
   const text = String(message || "");
   const lines = text.split("\n");
@@ -169,6 +226,7 @@ function createSiwsChallenge(opts: {
   purpose: SiwsPurpose;
   walletAddress: string;
   accountId?: string | null;
+  origin?: string | null;
 }): SiwsChallenge {
   if (!isValidSolanaAddress(opts.walletAddress)) {
     throw new Error("Invalid Solana wallet address");
@@ -178,6 +236,12 @@ function createSiwsChallenge(opts: {
   const expiresAt = issuedAtMs + SIWS_TTL_MS;
   const issuedAt = new Date(issuedAtMs).toISOString();
   const expirationTime = new Date(expiresAt).toISOString();
+  const { domain, uri } = resolveSiwsOrigin(opts.origin);
+  const siws: SiwsFields = {
+    domain,
+    address: opts.walletAddress,
+    statement: opts.purpose === "link" ? SIWS_STATEMENT_LINK : SIWS_STATEMENT_LOGIN,
+    uri,
   const siws: SiwsFields = {
     domain: SIWS_DOMAIN,
     address: opts.walletAddress,
@@ -199,6 +263,9 @@ function createSiwsChallenge(opts: {
     accountId: opts.accountId || null,
     walletAddress: opts.walletAddress,
     expiresAt,
+  });
+  return {
+    message: buildSiwsMessage(siws),
     messageHash,
   });
 
@@ -211,6 +278,17 @@ function createSiwsChallenge(opts: {
 }
 
 /** Logged-in account → SIWS challenge (Wallet Standard signIn or signMessage). */
+export function createLinkChallenge(
+  accountId: string,
+  walletAddress: string,
+  origin?: string | null,
+): SiwsChallenge {
+  return createSiwsChallenge({ purpose: "link", walletAddress, accountId, origin });
+}
+
+/** Sign-in (not yet linked) → SIWS challenge. */
+export function createLoginChallenge(walletAddress: string, origin?: string | null): SiwsChallenge {
+  return createSiwsChallenge({ purpose: "login", walletAddress, origin });
 export function createLinkChallenge(accountId: string, walletAddress: string): SiwsChallenge {
   return createSiwsChallenge({ purpose: "link", walletAddress, accountId });
 }
@@ -286,6 +364,34 @@ export async function findAccountIdByWalletAddress(walletAddress: string): Promi
     .where(eq(linkedWallets.walletAddress, walletAddress))
     .limit(1);
   if (linked?.accountId) return linked.accountId;
+
+  const [account] = await db
+    .select()
+    .from(accounts)
+    .where(eq(accounts.walletAddress, walletAddress))
+    .limit(1);
+  return account?.id || null;
+}
+
+async function assertWalletAvailable(accountId: string, walletAddress: string): Promise<void> {
+  const [linkedOther] = await db
+    .select()
+    .from(linkedWallets)
+    .where(eq(linkedWallets.walletAddress, walletAddress))
+    .limit(1);
+  if (linkedOther && linkedOther.accountId !== accountId) {
+    throw new Error("This Solana wallet is already linked to another Grudge ID");
+  }
+  const [acctOther] = await db
+    .select()
+    .from(accounts)
+    .where(eq(accounts.walletAddress, walletAddress))
+    .limit(1);
+  if (acctOther && acctOther.id !== accountId) {
+    throw new Error("This Solana wallet is already linked to another Grudge ID");
+  }
+}
+
 
   const [account] = await db
     .select()

@@ -27,7 +27,7 @@ email / Discord / Puter / wallet  →  LINK only
 | ID | Meaning | Use for |
 |----|---------|---------|
 | **`grudge_id`** | Human account | Auth, bag, ownership of heroes |
-| **character UUID** | One Warlords hero row | Equipment, professions, island, play session |
+| **character UUID** | One Warlords hero row | Equipment, professions, play session (home island is **account**) |
 | **`grudgeCode`** | `GRDG-…` stamp | Display / support — **not** DB PK |
 | Puter / Discord / email | Login links | Must resolve to same `grudge_id` |
 
@@ -38,8 +38,8 @@ email / Discord / Puter / wallet  →  LINK only
 | `id.grudge-studio.com` | Login, register, JWT mint **only** |
 | Railway `grudge-api-production` | Characters, bag, progress, island |
 | `character.grudge-studio.com` | Foundry create + 4-slot hub → Railway (**not** 3D play) |
-| `client.grudge-studio.com` | **Canonical 3D play** (home-island, play, tutorial, airship) |
-| `grudgewarlords.com` | Same SPA as client (product alias) |
+| `grudgewarlords.com` | **Canonical Warlords 3D play** (home-island, play, tutorial, airship, combat) |
+| `client.grudge-studio.com` | **Legacy alias** — 301 → `grudgewarlords.com` (not production brand) |
 | `grudge-studio.com` | Studio portal / marketing — **not** login, **not** play SSOT |
 | `grudgewarlords.com/craft/` | Craft UI — same Railway + JWT; selects heroes only |
 | `grudge-crafting.puter.site` | **Legacy redirect** → `grudgewarlords.com/craft/` |

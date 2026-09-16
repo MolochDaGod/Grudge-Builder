@@ -20,7 +20,7 @@
 
 import { RACE_GRUDGE6 } from '../fleet/character';
 import { RACE_VEHICLES, type VehicleRaceId } from '../fleet/vehicles';
-import { DOCK_GLB, SHIP_CATALOG } from './shipCatalog';
+import { BARBARIAN_DOCK_MASTER, DOCK_GLB, SHIP_CATALOG } from './shipCatalog';
 import { BUILD_PACK_PATHS, SURVIVAL_KIT_NODES, MEDIEVAL_TOWER_NODES } from './buildSystem';
 import { FLEET_URLS } from '../fleet/manifest';
 
@@ -120,7 +120,8 @@ export type FactionNpcRole =
   | 'traveler'
   | 'blacksmith'
   | 'quest_traveler'
-  | 'guard';
+  | 'guard'
+  | 'dock_master';
 
 export interface FactionIslandTransform {
   /** Local island space (m); world = islandOrigin + local */
@@ -686,6 +687,25 @@ export function buildFactionIslandNpcs(raceId: FactionIslandRaceId): FactionIsla
     networkServices: ['vendor'],
   });
 
+  if (raceId === 'barbarian') {
+    npcs.push({
+      id: BARBARIAN_DOCK_MASTER.npcId,
+      role: 'dock_master',
+      name: BARBARIAN_DOCK_MASTER.name,
+      raceId: 'barbarian',
+      classId: 'warrior',
+      transform: {
+        position: [-2.2, T.dockDeckY + 0.2, R * 0.88],
+        rotationY: Math.PI,
+        scale: 1,
+      },
+      modelPath: model,
+      unarmed: false,
+      dialogueSetId: BARBARIAN_DOCK_MASTER.dialogueSetId,
+      networkServices: ['vendor'],
+    });
+  }
+
   return npcs;
 }
 
@@ -708,7 +728,7 @@ export function buildAllFactionLobbyIslands(): FactionIslandDef[] {
       boatShipSize: 'sloop',
       notes:
         'Generated like Haven Port density (4 docks, 5 buildings, 4 tents, 2 fires, water hole). ' +
-        'Captain mounted ┬╖ traveler network ┬╖ blacksmith ┬╖ profession benches ┬╖ siege ┬╖ Unity boat + respawn.',
+        'Captain mounted · traveler network · blacksmith · profession benches · siege · Unity boat + respawn. Barbarian isle: Dock Master sells Long Row Boat recipe.',
     };
   });
 }

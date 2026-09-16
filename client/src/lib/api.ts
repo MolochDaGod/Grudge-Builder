@@ -39,6 +39,7 @@ function isJwtExpired(token: string): boolean {
 async function apiFetch<T>(path: string, options: RequestInit = {}): Promise<T> {
   const privateRoute = /^\/api\/(characters|account|wallet|party|inventory|professions|island)(\/|\?|$)/.test(path);
   if (privateRoute && !(await verifyToken()).valid) throw new Error('Sign in with Grudge ID to continue.');
+  const headers = {
   const headers: Record<string, string> = {
     "Content-Type": "application/json",
     ...authHeaders(),

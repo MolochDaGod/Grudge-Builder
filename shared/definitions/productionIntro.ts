@@ -15,11 +15,15 @@
  *    Cannon fire · ship sinks · all models jump off (no throw overboard)
  *    → /homeisland · home-island spawn
  *
- * Production cinema: https://client.grudge-studio.com/leviathan-cinema
+ * Production cinema: https://grudgewarlords.com/leviathan-cinema
  * (legacy /shipwreck-cinema soft-redirects here — do not deep-link it)
- * Island-3d lobby: https://client.grudge-studio.com/island-3d
- * Home island: https://client.grudge-studio.com/homeisland
- *
+ * Island-3d lobby: https://grudgewarlords.com/island-3d
+ * Home island: https://grudgewarlords.com/home-island
+
+/** Full-screen load cover after rogue-wave / before tutorial scene. */
+export const WARLORDS_LOAD_COVER_URL = '/cinema/grudge-island-rts-load.png' as const;
+
+/**
  * KILL LIST for island-3d: TI iframe, Stonewisp stand-in, intro.mp4 as primary.
  * Legacy mp4 cutscene (IslandCutscene / warlordsIntro) is for /island only — not intro gate.
  * Do not route new product entry to /shipwreck-cinema — use /leviathan-cinema.
@@ -59,15 +63,15 @@ export const STORM_SHIP_INTRO: ProductionIntroDef = {
   id: 'storm_ship_attack',
   label: 'Leviathan Ocean Battle',
   description:
-    'v26 film cinema: orc deck cast (2.2 m SI), 36 m tz-pirate ship, 90 m leviathan, Gerstner OceanShader, ' +
-    'rogue-wave crash (hull → ocean debris, hero rides the face), film post, Box3 SI, dragon beam + pinata.',
+    'v27 film cinema: orc deck cast (2.2 m SI), 36 m tz-pirate ship, 90 m leviathan, Gerstner OceanShader, ' +
+    'rogue-wave crash, moon shafts + horizon mist, anamorphic grade, storm handheld/Dutch, Box3 SI, dragon beam + pinata.',
   usedFor: 'island-3d',
   tiPath: '/intro',
   tiUrl: `${TI_HOST}/intro`,
   durationMs: 56_000,
   cutBeforeOverboard: true,
   notes:
-    'Engine: LeviathanOceanCinema.ts v24 · stage SSOT leviathanCinemaStage · PostProcessing · CinemaFpsBudget(~100fps) · ' +
+    'Engine: LeviathanOceanCinema.ts v28 · stage SSOT leviathanCinemaStage · PostProcessing · CinemaFpsBudget(48fps film) · ' +
     'CinemaCastingTornado (casting-abilities-threejs wind GPU funnel + AI path) · cinemaGrudge6 ORC · deck pathfind. ' +
     'PURGED: voxel boats, toy water, lookAt tumble, TI/mp4 primary gate.',
 };
@@ -197,7 +201,7 @@ export const AFTER_INTRO_DESTINATIONS: Array<{
 ];
 
 /** Bump when cinema cut changes so players re-see the battle */
-export const INTRO_SESSION_KEY = 'grudge_shipwreck_intro_seen_v26';
+export const INTRO_SESSION_KEY = 'grudge_shipwreck_intro_seen_v29';
 export const INTRO_OPTIONS_KEY = 'grudge_island3d_intro_options_v26';
 
 export interface Island3dIntroOptions {

@@ -1,27 +1,42 @@
 /**
- * Warlords era domain zone SSOT — product hosts under *.grudgewarlords.com
+ * Warlords era domain zone SSOT
  *
- * Studio platform stays on *.grudge-studio.com (id, forge, assets, foundry CF).
- * Warlords era play (airship, home island, maps, zones, scenes) is branded
- * under grudgewarlords.com.
+ * Target play: warlords.grudge.studio (4 characters on airship).
+ * Live today: grudgewarlords.com until DNS cutover.
+ * Nexus: nexus.grudge.studio/heroes (interim client.grudge-studio.com/heroes).
+ * Account hub: grudge.studio · Platform: *.grudge-studio.com (id, assets, foundry).
  *
- * @see docs/GAME_FLOW_SSOT.md · docs/WARLORDS_DOMAIN_SSOT.md
+ * @see docs/GAME_FLOW_SSOT.md · docs/WARLORDS_DOMAIN_SSOT.md · docs/GRUDGE_STUDIO_ERA_DOMAINS_SSOT.md
  */
 
-/** Apex product + SPA (live today on Vercel). */
+/** Live apex SPA today (alias until warlords.grudge.studio DNS). */
 export const WARLORDS_APEX = "https://grudgewarlords.com" as const;
 
-/**
- * Canonical game-client host (target).
- * Until DNS/TLS is live for play.grudgewarlords.com, builders fall back to apex.
- * Prefer WARLORDS_PLAY_ORIGIN in new handoffs once DNS is green.
- */
+/** Preferred Warlords play host on grudge.studio. */
+export const WARLORDS_ERA_HOST = "warlords.grudge.studio" as const;
+export const WARLORDS_ERA_URL = `https://${WARLORDS_ERA_HOST}` as const;
+
+/** Legacy play.* under grudgewarlords.com */
 export const WARLORDS_PLAY_HOST = "play.grudgewarlords.com" as const;
 export const WARLORDS_PLAY_URL = `https://${WARLORDS_PLAY_HOST}` as const;
 
-/** Legacy studio-branded client — same SPA; keep working, prefer warlords zone. */
+/** Nexus heroes — interim host until nexus.grudge.studio DNS. */
+export const NEXUS_HEROES_INTERIM = "https://client.grudge-studio.com" as const;
+export const NEXUS_ERA_HOST = "nexus.grudge.studio" as const;
+export const NEXUS_ERA_URL = `https://${NEXUS_ERA_HOST}` as const;
+
+export const GRUDGE_STUDIO_HUB = "https://grudge.studio" as const;
+
+/** Interim Nexus /heroes host — not Warlords play. */
 export const WARLORDS_CLIENT_STUDIO = "https://client.grudge-studio.com" as const;
 
+/**
+ * play.grudge.studio = account / launcher / community hub (CF Worker → grudge-studio.com).
+ * NOT Warlords SPA. Warlords play = warlords.grudge.studio / grudgewarlords.com.
+ */
+export const PLAY_GRUDGE_STUDIO_HUB = "https://play.grudge.studio" as const;
+/** @deprecated use PLAY_GRUDGE_STUDIO_HUB — was wrongly labeled “dead Warlords alias” */
+export const PLAY_GRUDGE_STUDIO_LEGACY = PLAY_GRUDGE_STUDIO_HUB;
 /** Stable Warlords playtest host; shares fleet identity and content services. */
 export const WARLORDS_TEST_HOST = "test.grudge-studio.com" as const;
 export const WARLORDS_TEST_ORIGIN = `https://${WARLORDS_TEST_HOST}` as const;
@@ -105,8 +120,38 @@ export function warlordsPlayOrigin(): string {
   } catch {
     /* ignore */
   }
-  // Apex is known-live; play.* is the branded target once DNS is wired
+  // Live today: grudgewarlords.com. Cut over with WARLORDS_PLAY_ORIGIN=https://warlords.grudge.studio
   return WARLORDS_APEX;
+}
+
+/** Nexus 4-character host (heroes). Env NEXUS_PLAY_ORIGIN when DNS live. */
+export function nexusPlayOrigin(): string {
+  try {
+    const env =
+      (typeof process !== "undefined" &&
+        process.env &&
+        (process.env.NEXUS_PLAY_ORIGIN || process.env.VITE_NEXUS_PLAY_ORIGIN)) ||
+      "";
+    if (env && /^https:\/\//i.test(env)) return env.replace(/\/$/, "");
+  } catch {
+    /* ignore */
+  }
+  return NEXUS_HEROES_INTERIM;
+}
+
+export function nexusHeroesUrl(
+  path = "/heroes",
+  query?: Record<string, string | undefined | null>,
+): string {
+  const base = nexusPlayOrigin();
+  const p = path.startsWith("/") ? path : `/${path}`;
+  const u = new URL(p, base.endsWith("/") ? base : base + "/");
+  if (query) {
+    for (const [k, v] of Object.entries(query)) {
+      if (v != null && v !== "") u.searchParams.set(k, String(v));
+    }
+  }
+  return u.toString();
 }
 
 /** Absolute URL for a path on the Warlords play SPA. */
@@ -183,13 +228,27 @@ const WARLORDS_NON_PLAY_HOSTS = new Set([
 export function isWarlordsPlayHost(hostname: string): boolean {
   const h = hostname.toLowerCase().replace(/\.$/, "");
   if (WARLORDS_NON_PLAY_HOSTS.has(h)) return false;
+  if (h === WARLORDS_ERA_HOST) return true;
   if (h === "grudgewarlords.com" || h === "www.grudgewarlords.com") return true;
   if (h.endsWith(".grudgewarlords.com")) return true;
+  // client.grudge-studio.com = Nexus /heroes interim — NOT Warlords play
   if (h === "client.grudge-studio.com" || h === WARLORDS_TEST_HOST) return true;
   return false;
 }
 
-/** Studio platform hosts (not Warlords product zone). */
+/** Nexus heroes host (4 characters on /heroes). */
+export function isNexusPlayHost(hostname: string): boolean {
+  const h = hostname.toLowerCase().replace(/\.$/, "");
+  return h === NEXUS_ERA_HOST || h === "client.grudge-studio.com";
+}
+
+/** Account / apps hub on grudge.studio apex. */
+export function isGrudgeStudioHubHost(hostname: string): boolean {
+  const h = hostname.toLowerCase().replace(/\.$/, "");
+  return h === "grudge.studio" || h === "www.grudge.studio" || h === "account.grudge.studio" || h === "apps.grudge.studio";
+}
+
+/** Studio platform hosts (id, assets, foundry — not era play). */
 export function isStudioPlatformHost(hostname: string): boolean {
   const h = hostname.toLowerCase().replace(/\.$/, "");
   if (h === WARLORDS_TEST_HOST) return false;
