@@ -25,8 +25,9 @@ export const CINEMA_PREFETCH_SFX = [
   'combat.magic.thunder',
   'combat.hit.melee',
   'combat.death',
-  'ui.levelup',
-  'skill.warrior.charge',
+  'world.ship_sink',
+  'world.ocean_wave',
+  'world.wood_break',
 ] as const;
 
 const CINEMA_PREFETCH_BGM: BGMTrack[] = ['ocean', 'battle', 'explore'];
@@ -39,12 +40,17 @@ export class CinemaSceneAudio {
   /** Cast SFX throttle (per mage index last fire time) */
   private lastCastSfx: number[] = [0, 0, 0, 0];
   private elapsed = 0;
+  private lastSurfAt = 0;
+  private surfEl: HTMLAudioElement | null = null;
 
   setMuted(m: boolean): void {
     this.muted = m;
     if (m) {
       stopBGM();
       duckBGM(1);
+      if (this.surfEl) this.surfEl.volume = 0;
+    } else if (this.surfEl) {
+      this.surfEl.volume = 0.4;
     }
   }
 
@@ -58,10 +64,23 @@ export class CinemaSceneAudio {
     this.started = true;
     prefetchBGM(CINEMA_PREFETCH_BGM);
     prefetchGameSfx([...CINEMA_PREFETCH_SFX]);
-    // Slightly quieter bed under film mix
-    setBGMVolume(0.28);
-    playBGM('ocean', { volume: 0.28, loop: true });
-    console.info('[cinema audio] ocean bed + prefetch');
+    setBGMVolume(0.08);
+    playBGM('ocean', { volume: 0.08, loop: true });
+    this.startSurfLoop();
+    console.info('[cinema audio] soft ocean bed + surf loop');
+  }
+
+  private startSurfLoop(): void {
+    if (this.surfEl || typeof Audio === 'undefined') return;
+    try {
+      const el = new Audio('https://assets.grudge-studio.com/audio/fx/ship_sink.ogg');
+      el.loop = true;
+      el.volume = 0.4;
+      el.play().catch(() => {});
+      this.surfEl = el;
+    } catch {
+      /* ignore */
+    }
   }
 
   /** Per-frame: optional storm intensity duck (subtle). */
@@ -69,16 +88,23 @@ export class CinemaSceneAudio {
     this.elapsed += dt;
     if (this.muted || !this.started) return;
     const storm = beat.storm ?? 0.4;
-    // Keep BGM present; slight duck under heavy storm + beam
     const duck =
       beat.blackout && beat.blackout > 0.5
-        ? 0.15
+        ? 0.2
         : storm > 0.75
-          ? 0.55
+          ? 0.5
           : beat.fireBeam || beat.dragonPhase === 'blast'
-            ? 0.45
+            ? 0.35
             : 1;
     duckBGM(duck);
+    if (this.surfEl) {
+      this.surfEl.volume = 0.28 + storm * 0.3;
+    }
+    const gap = storm > 0.7 ? 1.15 : 2.1;
+    if (this.elapsed - this.lastSurfAt > gap) {
+      this.lastSurfAt = this.elapsed;
+      playGameSfx('world.ocean_wave', { volume: 0.22 + storm * 0.28, preferVariant: true });
+    }
   }
 
   /**
@@ -93,22 +119,23 @@ export class CinemaSceneAudio {
 
     const storm = beat.storm ?? 0.4;
 
-    // BGM: ocean → battle when fight intensifies
-    if (storm >= 0.72 || beat.shipPinata || beat.fireBeam || beat.dragonPhase === 'blast') {
-      if (!this.stormLayer) {
-        this.stormLayer = true;
-        playBGM('battle', { volume: 0.32, loop: true });
-      }
-    } else if (storm < 0.55 && this.stormLayer && !beat.shipPinata) {
-      // Soft return to ocean after peak (rare — most scripts climb)
-      this.stormLayer = false;
-      playBGM('ocean', { volume: 0.28, loop: true });
+    // Stay on ocean BGM (whisper). Do not swap to loud battle bed.
+    if (storm >= 0.72 || beat.shipPinata) {
+      this.stormLayer = true;
+      setBGMVolume(0.06);
+    }
+
+    if (beat.id === 'rogue_rise' || beat.id === 'breach') {
+      playGameSfx('world.ocean_wave', { volume: 0.7 });
+      playGameSfx('world.wood_break', { volume: 0.55, preferVariant: true });
     }
 
     // One-shots by beat flags
     if (beat.shipPinata) {
-      playGameSfx('combat.magic.fire', { volume: 1.1 });
-      playGameSfx('combat.magic.thunder', { volume: 0.9 });
+      playGameSfx('world.wood_break', { volume: 1, preferVariant: true });
+      playGameSfx('world.wood_break', { volume: 0.75, preferVariant: true });
+      playGameSfx('world.ship_sink', { volume: 0.85 });
+      playGameSfx('world.ocean_wave', { volume: 0.8 });
       playSFX('thunder');
       return;
     }
@@ -117,8 +144,8 @@ export class CinemaSceneAudio {
       playGameSfx('combat.magic.cast', { volume: 0.7 });
     }
     if (beat.fireBeam || beat.dragonPhase === 'blast') {
-      playGameSfx('combat.magic.fire', { volume: 0.95 });
-      playGameSfx('combat.magic.thunder', { volume: 0.65 });
+      playGameSfx('combat.magic.fire', { volume: 0.35 });
+      playGameSfx('world.ocean_wave', { volume: 0.45 });
     }
     if (beat.dragonPhase === 'snap' || beat.dragonPhase === 'charge') {
       playGameSfx('combat.magic.cast', { volume: 0.55 });
@@ -154,6 +181,11 @@ export class CinemaSceneAudio {
   dispose(): void {
     duckBGM(1);
     stopBGM();
+    if (this.surfEl) {
+      this.surfEl.pause();
+      this.surfEl.src = '';
+      this.surfEl = null;
+    }
     this.started = false;
     this.stormLayer = false;
     this.lastBeatId = '';
