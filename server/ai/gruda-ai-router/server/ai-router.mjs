@@ -19,7 +19,10 @@ router.use(limiter);
 
 // --- Config (env) ---
 const LEGION_BASE = process.env.LEGION_AI_URL || 'https://ai.grudge-studio.com';
-const PUTER_BACKUP_TOKEN = process.env.PUTER_BACKUP_TOKEN; // MolochDaDev JWT
+const PUTER_BACKUP_TOKEN =
+  process.env.PUTER_BACKUP_TOKEN ||
+  process.env.PUTER_DEPLOYER_TOKEN ||
+  ''; // MolochDaDev JWT from puter-cli — never commit
 const USAGE_KV_PREFIX = 'gruda:ai-usage:';
 
 // --- Model tiers (cost order) ---
