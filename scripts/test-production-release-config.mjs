@@ -40,5 +40,6 @@ test('production release workflow verifies and probes apex production domains', 
 
   assert.match(deploymentProbe, /https:\/\/grudge\.studio/);
   assert.match(deploymentProbe, /https:\/\/www\.grudge\.studio/);
+  assert.match(workflow, /vercel deploy --prebuilt --prod --skip-domain --yes/);
   assert.match(workflow, /vercel promote "\$RELEASE_URL" --yes/);
 });

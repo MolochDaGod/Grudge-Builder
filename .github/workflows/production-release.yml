@@ -136,7 +136,7 @@ jobs:
           node -e "require('fs').writeFileSync('client/public/release.json', JSON.stringify({ commit: process.env.GITHUB_SHA, builtAt: new Date().toISOString() }) + '\\n')"
           vercel pull --yes --environment=production --token "$VERCEL_TOKEN"
           vercel build --prod --token "$VERCEL_TOKEN"
-          url=$(vercel deploy --prebuilt --yes --token "$VERCEL_TOKEN")
+          url=$(vercel deploy --prebuilt --prod --skip-domain --yes --token "$VERCEL_TOKEN")
           echo "RELEASE_URL=$url" >> "$GITHUB_ENV"
           node scripts/probe-warlords-test.mjs "$url"
       - name: Promote after preview probes
