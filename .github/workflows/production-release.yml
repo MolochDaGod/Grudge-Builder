@@ -127,9 +127,17 @@ jobs:
             if (!response.ok) {
               throw new Error(`Cannot ensure project domain ${domain} (HTTP ${response.status}).`);
             }
-            const data = await response.json();
-            const name = data.name ?? data.domain?.name ?? data.hostname;
-            if (name !== domain) throw new Error(`Unexpected domain response for ${domain}.`);
+            const body = await response.text();
+            let data = null;
+            if (body) {
+              try {
+                data = JSON.parse(body);
+              } catch {
+                data = null;
+              }
+            }
+            const name = data?.name ?? data?.domain?.name ?? data?.hostname;
+            if ((name ?? domain) !== domain) throw new Error(`Unexpected domain response for ${domain}.`);
             console.log(`Verified project domain: ${domain}`);
           }
           JS
