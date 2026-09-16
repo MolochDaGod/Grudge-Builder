@@ -786,7 +786,7 @@ $('btn-fund-play').onclick = async () => {
     const r = await api('/api/wallet/transfer-to-play', {
       method: 'POST',
       headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify({ amount, game: 'poker', walletAddress: walletAddr || undefined }),
+      body: JSON.stringify({ amount, game: 'poker', walletAddress: walletAddr || $('tr-from') && $('tr-from').value || undefined }),
     });
     if (!r.ok) throw new Error(r.data?.error || 'Transfer failed');
     $('tx-msg').textContent = 'Funded play +' + amount + ' · bag ' + (r.data.gbuxBalance ?? '—') + ' · play ' + (r.data.play?.playGbux ?? '—');
