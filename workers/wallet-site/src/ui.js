@@ -123,6 +123,16 @@ button:disabled{opacity:.45;cursor:not-allowed}
 .tok .meta span{font-size:.7rem;color:var(--dim)}
 .tok .bal{text-align:right;font-weight:700}
 .store{display:grid;grid-template-columns:repeat(2,1fr);gap:10px}
+.fund{border:1px solid rgba(212,175,55,.4);background:rgba(212,175,55,.08);border-radius:16px;padding:14px;margin:8px 0 14px}
+.fund h3{font-family:Cinzel,serif;color:var(--gold);font-size:1rem;margin:0 0 6px}
+.fund .big{font-family:ui-monospace,monospace;font-size:.72rem;word-break:break-all;background:#000;padding:10px;border-radius:8px;margin:8px 0}
+.nftg{display:grid;grid-template-columns:repeat(3,1fr);gap:8px}
+.nftg a{display:block;background:#0a0a12;border-radius:10px;overflow:hidden;border:1px solid rgba(255,255,255,.08);text-decoration:none;color:var(--text)}
+.nftg img{width:100%;aspect-ratio:1;object-fit:cover;display:block}
+.nftg span{display:block;font-size:.62rem;padding:4px 6px;color:var(--dim);white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+.set-row{display:flex;justify-content:space-between;gap:8px;padding:10px 0;border-bottom:1px solid rgba(255,255,255,.06);font-size:.8rem}
+.set-row b{color:var(--dim);font-weight:500}
+.dock button{font-size:.62rem}
 </style>
 </head>
 <body>
@@ -160,11 +170,28 @@ button:disabled{opacity:.45;cursor:not-allowed}
   <p class="msg" id="msg"></p>
 
   <div class="dock-panel on" id="dock-assets">
+    <div class="fund" id="fund-card">
+      <h3>Enable + Receive (your vault)</h3>
+      <p style="font-size:.78rem;color:var(--dim);line-height:1.45;margin:0">House aUp3 is admin only. Tap Enable, then send SOL from Phantom to <b>this</b> address. Keep 0.02 SOL for fees.</p>
+      <div class="big" id="tr-vault-full">Sign in → Enable trader</div>
+      <div class="btns">
+        <button class="primary" type="button" id="btn-tr-enroll" disabled>Enable trader</button>
+        <button class="cyan" type="button" id="btn-tr-copy">Copy receive</button>
+        <a class="btn ghost" id="btn-tr-scan" href="#" target="_blank" rel="noopener">Solscan</a>
+      </div>
+      <label class="k" style="font-size:.75rem">Then record the SOL you sent</label>
+      <input class="input" id="tr-from" placeholder="Your Phantom address" />
+      <input class="input" id="tr-amt" type="number" min="0" step="0.01" value="0.05" />
+      <div class="btns">
+        <button class="cyan" type="button" id="btn-tr-dep" disabled>Record deposit</button>
+        <button class="ghost" type="button" id="btn-tr-wd" disabled>Withdraw</button>
+      </div>
+      <p class="msg" id="tr-msg"></p>
+    </div>
     <div class="tok"><img class="coin" src="${gbuxCoin}" alt="GBUX coin" /><div class="meta"><b>GBUX</b><span>coin · bag · Crossmint</span></div><div class="bal" id="tok-gbux">—</div></div>
     <div class="tok"><img src="${logo}" alt="" /><div class="meta"><b>SOL vault</b><span id="tr-vault">trader house</span></div><div class="bal" id="tok-sol">—</div></div>
     <span id="cmint" hidden></span><span id="net" hidden></span><span id="mint" hidden></span>
     <div class="addr" id="addr"></div>
-    <div class="addr" id="tr-vault-full"></div>
     <p style="font-size:.72rem;color:var(--dim);margin:8px 0">Keep 0.02 SOL in the trader vault. Close fee 0.005 SOL → GBUX; TP +5%.</p>
     <div class="row"><span class="k">Enrolled</span><span class="v" id="tr-enroll">—</span></div>
     <div id="w-linked">Sign in to list linked Phantom accounts.</div>
@@ -191,18 +218,18 @@ button:disabled{opacity:.45;cursor:not-allowed}
     </div>
   </div>
 
+  <div class="dock-panel" id="dock-coins">
+    <p style="font-size:.78rem;color:var(--dim)">Coins on <b>your</b> trader vault (Helius RPC). GBUX bag is Crossmint.</p>
+    <div id="coin-list"><p class="empty">Enable trader to load coins.</p></div>
+  </div>
+
+  <div class="dock-panel" id="dock-nfts">
+    <p style="font-size:.78rem;color:var(--dim)">cNFTs and NFTs on your trader vault (DAS / Helius).</p>
+    <div class="nftg" id="nft-grid"><p class="empty" style="grid-column:1/-1">None yet — they appear after mint or transfer to your Receive address.</p></div>
+  </div>
+
   <div class="dock-panel" id="dock-activity">
-    <p style="font-size:.8rem;color:var(--dim);line-height:1.45">Receive: copy vault, send SOL from Phantom, Record deposit. Send: withdraw to a linked wallet. Vault keeps 0.02 SOL.</p>
-    <label class="k" style="font-size:.75rem">From / to (linked Solana)</label>
-    <input class="input" id="tr-from" placeholder="Linked wallet address" />
-    <label class="k" style="font-size:.75rem">Amount SOL</label>
-    <input class="input" id="tr-amt" type="number" min="0" step="0.01" value="0.05" />
-    <div class="btns">
-      <button class="cyan" type="button" id="btn-tr-dep" disabled>Record deposit</button>
-      <button class="ghost" type="button" id="btn-tr-wd" disabled>Withdraw</button>
-      <button class="ghost" type="button" id="btn-tr-enroll" disabled>Enable trader</button>
-    </div>
-    <p class="msg" id="tr-msg"></p>
+    <p style="font-size:.8rem;color:var(--dim);line-height:1.45">Bag tools: fund Poker play GBUX, swap Crossmint SOL↔GBUX. Trader SOL is on Assets → Enable + Receive.</p>
     <div class="tabs">
       <button type="button" class="on" data-tab="play">Play ledger</button>
       <button type="button" data-tab="swap">Swap bag</button>
@@ -226,15 +253,27 @@ button:disabled{opacity:.45;cursor:not-allowed}
     <p class="msg" id="tx-msg"></p>
   </div>
 
+  <div class="dock-panel" id="dock-set">
+    <div class="set-row"><span>Network</span><b id="set-net">Solana mainnet-beta</b></div>
+    <div class="set-row"><span>RPC</span><b id="set-rpc">Helius + public fallback</b></div>
+    <div class="set-row"><span>Explorer</span><b>solscan.io</b></div>
+    <div class="set-row"><span>House vault</span><b>aUp3… admin only</b></div>
+    <div class="set-row"><span>Your vault</span><b id="set-vault">Enable first</b></div>
+    <div class="btns" style="margin-top:12px">
+      <button type="button" id="btn-privacy">Privacy</button>
+      <button type="button" id="btn-tos">Terms</button>
+      <a class="btn ghost" href="https://solscan.io">Solscan</a>
+    </div>
+  </div>
+
   <nav class="dock" aria-label="Wallet sections">
-    <button type="button" class="on" data-dock="assets">Assets</button>
+    <button type="button" class="on" data-dock="assets">Home</button>
+    <button type="button" data-dock="coins">Coins</button>
+    <button type="button" data-dock="nfts">cNFTs</button>
     <button type="button" data-dock="dapps">Dapps</button>
-    <button type="button" data-dock="activity">Activity</button>
+    <button type="button" data-dock="set">Set</button>
   </nav>
-  <p class="foot">
-    <button type="button" id="btn-privacy">Privacy</button> ·
-    <button type="button" id="btn-tos">Terms</button>
-  </p>
+  <p class="foot">Gruda Wallet · Set for Privacy / Terms</p>
 </div>
 <div class="legal-back" id="legal-back" hidden>
   <div class="legal-card">
@@ -700,9 +739,13 @@ function showDock(name) {
   const b = document.querySelector('[data-dock="' + name + '"]');
   if (b) b.click();
 }
-if ($('btn-go-send')) $('btn-go-send').onclick = () => showDock('activity');
+if ($('btn-go-send')) $('btn-go-send').onclick = () => showDock('assets');
 if ($('btn-go-swap')) $('btn-go-swap').onclick = () => { showDock('activity'); const t = document.querySelector('[data-tab="swap"]'); if (t) t.click(); };
 if ($('btn-go-connect')) $('btn-go-connect').onclick = () => showDock('assets');
+if ($('btn-tr-copy')) {
+  const prev = $('btn-tr-copy').onclick;
+  $('btn-tr-copy').addEventListener('click', () => showDock('assets'));
+}
 
 document.querySelectorAll('.tabs button').forEach((b) => {
   b.onclick = () => {
@@ -852,6 +895,31 @@ async function traderApi(path, opt) {
   return { ok: r.ok, status: r.status, data };
 }
 
+async function loadHoldings() {
+  const coins = $('coin-list');
+  const nfts = $('nft-grid');
+  if (!getAuthToken()) return;
+  const r = await traderApi('/api/gruda/holdings');
+  const d = r.data || {};
+  if ($('set-rpc') && d.rpc) $('set-rpc').textContent = d.rpc;
+  if ($('set-net') && d.network) $('set-net').textContent = 'Solana ' + d.network;
+  if (coins) {
+    const rows = [];
+    if (d.sol != null) rows.push('<div class="tok"><div class="meta"><b>SOL</b><span>your trader vault</span></div><div class="bal">' + Number(d.sol).toFixed(4) + '</div></div>');
+    (d.tokens || []).forEach((t) => {
+      const name = t.mint === '55TpSoMNxbfsNJ9U1dQoo9H3dRtDmjBZVMcKqvU2nray' ? 'GBUX' : (t.mint || '').slice(0, 6) + '…';
+      rows.push('<div class="tok"><div class="meta"><b>' + name + '</b><span>' + (t.mint || '') + '</span></div><div class="bal">' + t.uiAmount + '</div></div>');
+    });
+    coins.innerHTML = rows.length ? rows.join('') : '<p class="empty">No coins on your vault yet.</p>';
+  }
+  if (nfts) {
+    const items = d.nfts || [];
+    nfts.innerHTML = items.length
+      ? items.map((n) => '<a href="https://solscan.io/token/' + n.id + '" target="_blank" rel="noopener"><img src="' + (n.image || '/icon.svg') + '" alt="" onerror="this.remove()"><span>' + (n.compressed ? 'cNFT · ' : '') + (n.name || 'nft') + '</span></a>').join('')
+      : '<p class="empty" style="grid-column:1/-1">No cNFTs on this vault yet.</p>';
+  }
+}
+
 async function loadTraderCash() {
   const msg = $('tr-msg');
   try {
@@ -863,10 +931,19 @@ async function loadTraderCash() {
     $('tr-sol').textContent = tsol != null ? Number(tsol).toFixed(4) + ' SOL' : '—';
     if ($('tok-sol')) $('tok-sol').textContent = $('tr-sol').textContent;
     if (pk) {
-      $('tr-vault-full').style.display = 'block';
       $('tr-vault-full').textContent = pk;
+      const scan = $('btn-tr-scan');
+      if (scan) scan.href = 'https://solscan.io/account/' + pk;
+      if ($('set-vault')) $('set-vault').textContent = pk.slice(0, 8) + '…';
     }
-    $('btn-tr-copy').onclick = () => { if (pk) navigator.clipboard.writeText(pk); };
+    $('btn-tr-copy').onclick = () => {
+      showDock('assets');
+      if (pk) {
+        navigator.clipboard.writeText(pk);
+        if ($('tr-msg')) { $('tr-msg').className = 'msg ok'; $('tr-msg').textContent = 'Receive address copied. Send SOL from Phantom to it, then Record deposit.'; }
+      } else if ($('tr-msg')) { $('tr-msg').className = 'msg err'; $('tr-msg').textContent = 'Enable trader first to mint YOUR vault.'; }
+    };
+    loadHoldings();
     const port = await traderApi('/api/portfolio');
     $('tr-enroll').textContent = gw.data && gw.data.enrolled ? 'yes' : 'no';
     const spend = gw.data && gw.data.spendableSol != null ? gw.data.spendableSol : port.data && port.data.availableSol;
