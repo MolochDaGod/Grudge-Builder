@@ -10,6 +10,7 @@ import {
   removeWatchMint,
   dappsPayload,
   GBUX_MINT,
+  searchTokens,
   type OwnerKind,
 } from "../services/walletInventory";
 
@@ -36,10 +37,15 @@ export function registerWalletInventoryRoutes(
     try {
       const q = String(req.query.q || req.query.mint || "").trim();
       if (!q) return res.status(400).json({ error: "q or mint required" });
-      const token = await lookupMint(q);
-      if (!token) return res.status(404).json({ error: "Token not found on Solana" });
+      const items = await searchTokens(q);
+      if (!items.length) {
+        const token = await lookupMint(q);
+        if (!token) return res.status(404).json({ error: "Token not found on Solana" });
+        res.setHeader("Cache-Control", "no-store");
+        return res.json({ ...token, items: [token] });
+      }
       res.setHeader("Cache-Control", "no-store");
-      res.json(token);
+      res.json({ ...items[0], items });
     } catch (e: any) {
       res.status(502).json({ error: e.message || "lookup failed" });
     }

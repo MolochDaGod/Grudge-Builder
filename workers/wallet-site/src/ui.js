@@ -19,7 +19,7 @@ export function htmlPage(env) {
 <head>
 <meta charset="UTF-8" />
 <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover" />
-<meta name="gruda-build" content="2026-09-16-tabs-v1" />
+<meta name="gruda-build" content="2026-09-16-store-v2" />
 <title>Gruda Wallet</title>
 <link rel="icon" href="${logo}" />
 <link rel="preconnect" href="https://fonts.googleapis.com" />
@@ -104,6 +104,32 @@ section{padding:8px 16px 0}
 .search{width:100%;background:rgba(255,255,255,.05);border:1px solid var(--line);border-radius:12px;padding:10px 12px;color:var(--text);font:inherit;margin-bottom:10px}
 .preview{display:flex;align-items:center;gap:12px;padding:12px;background:#0a0a12;border-radius:14px;margin:8px 0}
 .empty{font-size:12px;color:var(--muted);line-height:1.45;padding:8px 0 16px}
+.suggest{background:var(--card);border:1px solid var(--line);border-radius:14px;margin:0 0 10px;overflow:hidden}
+.suggest button{display:flex;width:100%;align-items:center;gap:10px;padding:10px 12px;background:none;border:0;border-bottom:1px solid var(--line);color:var(--text);text-align:left;font:inherit}
+.suggest button:last-child{border-bottom:0}
+.suggest .av{width:32px;height:32px}
+.suggest .mint{font-size:10px;color:var(--muted)}
+.store-head{display:flex;justify-content:space-between;align-items:flex-end;padding:4px 0 10px}
+.store-head h2{font-size:26px;letter-spacing:-.04em;text-transform:none;color:var(--text);font-weight:700}
+.today{font-size:11px;letter-spacing:.14em;text-transform:uppercase;color:var(--gold);font-weight:600}
+.story{display:block;position:relative;border-radius:22px;overflow:hidden;margin-bottom:16px;text-decoration:none;color:#fff;min-height:210px;background:#16161f}
+.story img{width:100%;height:210px;object-fit:cover;display:block}
+.story .cap{position:absolute;left:0;right:0;bottom:0;padding:16px;background:linear-gradient(transparent,rgba(0,0,0,.88))}
+.story small{display:block;font-size:10px;letter-spacing:.14em;text-transform:uppercase;color:var(--gold);margin-bottom:4px}
+.story strong{display:block;font-size:20px;letter-spacing:-.03em}
+.story em{display:block;font-style:normal;font-size:12px;color:rgba(255,255,255,.78);margin:4px 0 10px}
+.story .get{position:absolute;top:14px;right:14px}
+.hscroll{display:flex;gap:12px;overflow-x:auto;padding:0 0 12px;scroll-snap-type:x mandatory;-webkit-overflow-scrolling:touch}
+.hscroll::-webkit-scrollbar{display:none}
+.iconapp{flex:0 0 108px;scroll-snap-align:start;text-decoration:none;color:var(--text);text-align:center}
+.iconapp img{width:72px;height:72px;border-radius:18px;object-fit:cover;display:block;margin:0 auto 8px;background:#16161f;border:1px solid var(--line)}
+.iconapp b{display:block;font-size:11px;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+.iconapp span{display:block;font-size:10px;color:var(--muted);white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+.iconapp .get{display:inline-block;margin-top:6px}
+.appc .dev{display:block;font-size:10px;color:var(--muted);margin-top:2px}
+.get{border:0;border-radius:999px;padding:6px 14px;background:rgba(224,195,106,.18);color:var(--gold2);font-size:11px;font-weight:700;text-decoration:none;letter-spacing:.04em}
+.cta{display:block;text-align:center;text-decoration:none;margin:8px 0 12px}
+.nftc .tag{display:block;font-size:9px;letter-spacing:.08em;text-transform:uppercase;color:var(--gold);padding:0 7px 6px}
 </style>
 </head>
 <body>
@@ -148,32 +174,39 @@ section{padding:8px 16px 0}
   <div class="panel" id="panel-coins">
     <section>
       <div class="hrow"><h2>Coins</h2><button type="button" id="btn-add-token">+ Token</button></div>
-      <p class="hint">Helius RPC · pick the owner. Play is Crossmint. Wallet 1 is your linked funding key. Vault is the trader engine (SOL clips, not a collector wallet).</p>
+      <p class="hint">Paste a mint or search a ticker. Jupiter metadata + Solana RPC balances. Play is Crossmint. Wallet 1 is linked funding. Vault is the trader engine (SOL clips — not a collector wallet).</p>
       <div class="chips" id="coin-owners">
         <button type="button" class="chip on" data-owner="crossmint">Play</button>
         <button type="button" class="chip" data-owner="linked">Wallet 1</button>
         <button type="button" class="chip" data-owner="vault">Vault</button>
       </div>
       <div class="addbar">
-        <input class="input" id="coin-q" placeholder="Mint address or ticker" autocomplete="off" />
+        <input class="input" id="coin-q" placeholder="Search JUP, BONK, or paste mint" autocomplete="off" />
         <button type="button" id="btn-lookup">Add</button>
       </div>
+      <div id="coin-suggest" class="suggest" hidden></div>
       <p class="msg" id="coin-msg"></p>
-      <div id="coin-list"><p class="empty">Sign in to load SOL + GBUX, then paste any mint to watch it.</p></div>
+      <div id="coin-list"><p class="empty">Sign in to load SOL + GBUX, then add any Solana token.</p></div>
     </section>
   </div>
   <div class="panel" id="panel-nfts">
     <section>
       <div class="hrow"><h2>cNFTs</h2><button type="button" id="btn-nft-sync">Sync</button></div>
-      <p class="hint" id="nft-empty">Hero and island cNFTs live on your Crossmint play wallet — not Phantom, not the trader vault.</p>
+      <p class="hint" id="nft-empty">Hero and island cNFTs live on your Crossmint play wallet — never Phantom, never the trader vault.</p>
       <p class="msg" id="nft-msg"></p>
+      <a class="ghost btn cta" href="https://character.grudge-studio.com/?era=warlords" id="nft-foundry">Mint in Character Foundry</a>
       <div class="nftg" id="nft-grid"></div>
     </section>
   </div>
   <div class="panel" id="panel-dapps">
     <section>
-      <div class="hrow"><h2>App Store</h2></div>
-      <input class="search" id="dapp-q" placeholder="Search Grudge apps" />
+      <div class="store-head">
+        <div>
+          <div class="today" id="store-today">Today</div>
+          <h2>App Store</h2>
+        </div>
+      </div>
+      <input class="search" id="dapp-q" placeholder="Search games, desk, studio" />
       <div class="chips" id="dapp-cats">
         <button type="button" class="chip on" data-cat="all">All</button>
         <button type="button" class="chip" data-cat="Play">Play</button>
@@ -181,13 +214,16 @@ section{padding:8px 16px 0}
         <button type="button" class="chip" data-cat="Studio">Studio</button>
       </div>
       <div id="dapp-feat"></div>
+      <div class="hrow" id="must-head"><h2>Must play</h2></div>
+      <div class="hscroll" id="dapp-must"></div>
+      <div class="hrow"><h2>From Grudge Studio</h2></div>
       <div id="dapp-list"></div>
     </section>
   </div>
   <div class="panel" id="panel-set"><section><div class="hrow"><h2>Settings</h2></div>
-    <p class="msg">Grudge ID is login. One Connect sheet links Phantom / Solflare / Backpack / any Wallet Standard SOL wallet into linked_wallets. The trader vault is never SIWS. Coins use Helius RPC. cNFTs sync from Crossmint.</p>
+    <p class="msg">Grudge ID is login. One Connect sheet links Phantom / Solflare / Backpack / any Wallet Standard SOL wallet into linked_wallets. The trader vault is never SIWS. Coins use Jupiter + Solana RPC. cNFTs sync from Crossmint play.</p>
     <div class="row"><div class="meta"><b>Network</b><span id="set-net">Solana mainnet-beta</span></div></div>
-    <div class="row"><div class="meta"><b>RPC</b><span id="set-rpc">Helius DAS + Jupiter meta</span></div></div>
+    <div class="row"><div class="meta"><b>RPC</b><span id="set-rpc">Jupiter meta · Solana RPC · Crossmint cNFTs</span></div></div>
     <button class="ghost" type="button" id="set-refresh">Refresh balances</button>
   </section></div>
   <nav class="dock">
@@ -226,9 +262,10 @@ section{padding:8px 16px 0}
   </div></div>
   <div class="sheet" id="sheet-token"><div class="pad"><div class="grab"></div>
     <h3>Add a Solana token</h3>
-    <p>Paste a mint or search a ticker. Metadata from Jupiter + Helius DAS. Balance is read on the owner you picked (Play / Wallet 1 / Vault).</p>
-    <input class="input" id="token-q" placeholder="Mint or ticker — e.g. JUP" autocomplete="off" />
-    <button class="primary" type="button" id="btn-token-lookup">Look up</button>
+    <p>Search a ticker or paste a mint. Results come from Jupiter. Balance is read on Play / Wallet 1 / Vault.</p>
+    <input class="input" id="token-q" placeholder="JUP, BONK, or mint address" autocomplete="off" />
+    <button class="primary" type="button" id="btn-token-lookup">Search</button>
+    <div id="token-suggest" class="suggest" hidden></div>
     <div id="token-preview"></div>
     <p class="msg" id="token-msg"></p>
     <button class="ghost" type="button" data-close>Cancel</button>
@@ -240,7 +277,7 @@ window.GRUDA = {
   idGw: ${JSON.stringify(idGw)},
   poker: ${JSON.stringify(poker)},
   trader: ${JSON.stringify(trader)},
-  build: "2026-09-16-tabs-v1"
+  build: "2026-09-16-store-v2"
 };
 </script>
 <script src="/wallet-app.js" defer></script>

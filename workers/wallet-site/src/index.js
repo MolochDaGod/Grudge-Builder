@@ -3,7 +3,7 @@
  */
 import { htmlPage } from "./ui.js";
 
-export const WALLET_BUILD = "2026-09-16-tabs-v1";
+export const WALLET_BUILD = "2026-09-16-store-v2";
 
 const CORS_ALLOW = [
   "https://wallet.grudge-studio.com",
@@ -36,16 +36,16 @@ const RPC_ALLOW = new Set([
 ]);
 
 const DAPPS = [
-  { id: "trader", name: "Auto-trader", tagline: "SOL desk · rotating capital", category: "Desk", featured: true, href: "https://trader.grudge-studio.com", img: "https://trader.grudge-studio.com/art/fabledgrudge.jpeg" },
-  { id: "poker-wallet", name: "Poker wallet", tagline: "BUDB play · fund · sit", category: "Play", href: "https://poker.grudge-studio.com/wallet", img: "https://poker.grudge-studio.com/media/felt-budb-green.jpg" },
-  { id: "poker", name: "BUDB Poker", tagline: "Holdem · slots · BJ", category: "Play", href: "https://poker.grudge-studio.com/lobby", img: "https://poker.grudge-studio.com/media/og-image.jpg" },
-  { id: "warlords", name: "Warlords", tagline: "Home island · play", category: "Play", href: "https://client.grudge-studio.com/home", img: "https://client.grudge-studio.com/opengraph.jpg" },
-  { id: "foundry", name: "Character Foundry", tagline: "Create · 4 slots", category: "Studio", href: "https://character.grudge-studio.com/?era=warlords", img: "https://character.grudge-studio.com/opengraph.jpg" },
-  { id: "open", name: "Grudge Open", tagline: "Danger · library", category: "Studio", href: "https://open.grudge-studio.com", img: "https://open.grudge-studio.com/opengraph.jpg" },
-  { id: "grudox", name: "GRUDOX", tagline: "Arcade cabinets", category: "Play", href: "https://grudox.grudge-studio.com", img: "https://grudox.grudge-studio.com/opengraph.jpg" },
-  { id: "mine", name: "Mine-Loader", tagline: "Voxel realms", category: "Play", href: "https://mineloader.grudge-studio.com", img: "https://mineloader.grudge-studio.com/opengraph.jpg" },
-  { id: "forge", name: "Forge", tagline: "Map / scene editor", category: "Studio", href: "https://forge.grudge-studio.com", img: "https://forge.grudge-studio.com/opengraph.jpg" },
-  { id: "studio", name: "Studio portal", tagline: "grudge-studio.com", category: "Studio", href: "https://grudge-studio.com", img: "https://grudge-studio.com/opengraph.jpg" },
+  { id: "trader", name: "Auto-trader", tagline: "SOL desk · rotating capital", category: "Desk", featured: true, row: "hero", href: "https://trader.grudge-studio.com", img: "https://trader.grudge-studio.com/art/fabledgrudge.jpeg", developer: "Grudge Studio", rating: "4.9", age: "18+", blurb: "Fund the vault from Wallet 1. Engine key, not SIWS." },
+  { id: "poker", name: "BUDB Poker", tagline: "Holdem · slots · blackjack", category: "Play", row: "must", href: "https://poker.grudge-studio.com/lobby", img: "https://poker.grudge-studio.com/media/og-image.jpg", developer: "Grudge Studio", rating: "4.8", age: "18+", blurb: "Sit with bag GBUX from this hub." },
+  { id: "poker-wallet", name: "Poker wallet", tagline: "BUDB play · fund · sit", category: "Play", row: "must", href: "https://poker.grudge-studio.com/wallet", img: "https://poker.grudge-studio.com/media/felt-budb-green.jpg", developer: "Grudge Studio", rating: "4.7", age: "18+", blurb: "Move GBUX onto the felt." },
+  { id: "warlords", name: "Warlords", tagline: "Home island · play", category: "Play", row: "must", href: "https://client.grudge-studio.com/home", img: "https://client.grudge-studio.com/opengraph.jpg", developer: "Grudge Studio", rating: "4.8", age: "13+", blurb: "Hero cNFTs mint to your Crossmint play wallet." },
+  { id: "grudox", name: "GRUDOX", tagline: "Arcade cabinets", category: "Play", row: "must", href: "https://grudox.grudge-studio.com", img: "https://grudox.grudge-studio.com/opengraph.jpg", developer: "Grudge Studio", rating: "4.6", age: "13+", blurb: "Cabinets, same Grudge ID." },
+  { id: "mine", name: "Mine-Loader", tagline: "Voxel realms", category: "Play", row: "must", href: "https://mineloader.grudge-studio.com", img: "https://mineloader.grudge-studio.com/opengraph.jpg", developer: "Grudge Studio", rating: "4.5", age: "9+", blurb: "Voxel worlds on your ID." },
+  { id: "foundry", name: "Character Foundry", tagline: "Create · 4 slots", category: "Studio", row: "studio", href: "https://character.grudge-studio.com/?era=warlords", img: "https://character.grudge-studio.com/opengraph.jpg", developer: "Grudge Studio", rating: "4.7", age: "13+", blurb: "Mint lands on Crossmint play — shows in cNFTs." },
+  { id: "forge", name: "Forge", tagline: "Map / scene editor", category: "Studio", row: "studio", href: "https://forge.grudge-studio.com", img: "https://forge.grudge-studio.com/opengraph.jpg", developer: "Grudge Studio", rating: "4.4", age: "13+", blurb: "Build scenes for Warlords." },
+  { id: "open", name: "Grudge Open", tagline: "Danger · library", category: "Studio", row: "studio", href: "https://open.grudge-studio.com", img: "https://open.grudge-studio.com/opengraph.jpg", developer: "Grudge Studio", rating: "4.3", age: "18+", blurb: "Research library, same session." },
+  { id: "studio", name: "Studio portal", tagline: "grudge-studio.com", category: "Studio", row: "studio", href: "https://grudge-studio.com", img: "https://grudge-studio.com/opengraph.jpg", developer: "Grudge Studio", rating: "4.6", age: "13+", blurb: "Home of the fleet." },
 ];
 
 function corsHeaders(request) {
@@ -146,6 +146,7 @@ async function handleRpc(request, env, cors) {
     });
     return json(await fallback.json(), 200, cors);
   }
+}
 
 async function handleTokenMeta(request, cors) {
   const q = new URL(request.url).searchParams.get("q") || new URL(request.url).searchParams.get("mint") || "";
@@ -153,15 +154,18 @@ async function handleTokenMeta(request, cors) {
   try {
     const jr = await fetch("https://lite-api.jup.ag/tokens/v2/search?query=" + encodeURIComponent(q.trim()));
     const rows = await jr.json();
-    const first = Array.isArray(rows) ? rows[0] : null;
-    if (first && first.id) {
-      return json({
-        mint: first.id,
-        symbol: first.symbol || "",
-        name: first.name || first.symbol || "Token",
-        logo: first.icon || first.logoURI || "",
-        decimals: Number(first.decimals || 0),
-      }, 200, cors);
+    const items = (Array.isArray(rows) ? rows : [])
+      .filter((row) => row && row.id)
+      .slice(0, 8)
+      .map((row) => ({
+        mint: row.id,
+        symbol: row.symbol || "",
+        name: row.name || row.symbol || "Token",
+        logo: row.icon || row.logoURI || "",
+        decimals: Number(row.decimals || 0),
+      }));
+    if (items.length) {
+      return json({ ...items[0], items }, 200, cors);
     }
   } catch {
     /* fall through */

@@ -10,6 +10,7 @@ import { sql } from "drizzle-orm";
 import { db } from "../db";
 import { listLinkedWallets } from "./walletAccess";
 import { getWalletOnChainBalances } from "./solanaBalances";
+import { crossmintWalletService } from "./crossmintWallet";
 
 export const GBUX_MINT =
   process.env.GBUX_MINT || "55TpSoMNxbfsNJ9U1dQoo9H3dRtDmjBZVMcKqvU2nray";
@@ -37,22 +38,39 @@ function rpcUrl(): string {
   return "https://api.mainnet-beta.solana.com";
 }
 
-async function das(method: string, params: unknown): Promise<any> {
-  const url = rpcUrl();
-  const r = await fetch(url, {
-    method: "POST",
-    headers: { "content-type": "application/json" },
-    body: JSON.stringify({ jsonrpc: "2.0", id: "gruda-wallet", method, params }),
-  });
-  const text = await r.text();
-  let j: any;
-  try {
-    j = JSON.parse(text);
-  } catch {
-    throw new Error(text.slice(0, 180) || "RPC non-JSON");
+async function rpcCall(method: string, params: unknown, opts?: { das?: boolean }): Promise<any> {
+  const isDas = Boolean(opts?.das) || method.startsWith("getAsset") || method === "searchAssets";
+  const urls = [rpcUrl()];
+  if (!urls.includes("https://api.mainnet-beta.solana.com")) {
+    urls.push("https://api.mainnet-beta.solana.com");
   }
-  if (j.error) throw new Error(j.error.message || "DAS error");
-  return j.result;
+  let last: Error | null = null;
+  for (const url of urls) {
+    if (isDas && url.includes("mainnet-beta.solana.com")) continue;
+    try {
+      const r = await fetch(url, {
+        method: "POST",
+        headers: { "content-type": "application/json" },
+        body: JSON.stringify({ jsonrpc: "2.0", id: "gruda-wallet", method, params }),
+      });
+      const text = await r.text();
+      let j: any;
+      try {
+        j = JSON.parse(text);
+      } catch {
+        throw new Error(text.slice(0, 180) || "RPC non-JSON");
+      }
+      if (j.error) throw new Error(j.error.message || "RPC error");
+      return j.result;
+    } catch (e) {
+      last = e as Error;
+    }
+  }
+  throw last || new Error("RPC failed");
+}
+
+async function das(method: string, params: unknown): Promise<any> {
+  return rpcCall(method, params, { das: true });
 }
 
 function looksLikeMint(s: string): boolean {
@@ -223,6 +241,39 @@ export async function removeWatchMint(accountId: string, mint: string): Promise<
   );
 }
 
+export async function searchTokens(query: string): Promise<
+  Array<{ mint: string; symbol: string; name: string; logo: string; decimals: number }>
+> {
+  const q = String(query || "").trim();
+  if (!q) return [];
+  const out: Array<{ mint: string; symbol: string; name: string; logo: string; decimals: number }> = [];
+  if (looksLikeMint(q)) {
+    const one = await lookupMint(q);
+    if (one) out.push(one);
+  }
+  try {
+    const url =
+      "https://lite-api.jup.ag/tokens/v2/search?query=" + encodeURIComponent(q);
+    const r = await fetch(url, { headers: { accept: "application/json" } });
+    const rows = (await r.json()) as any[];
+    for (const row of Array.isArray(rows) ? rows : []) {
+      if (!row?.id || row.id === GBUX_MINT) continue;
+      if (out.some((t) => t.mint === row.id)) continue;
+      out.push({
+        mint: String(row.id),
+        symbol: String(row.symbol || ""),
+        name: String(row.name || row.symbol || "Token"),
+        logo: String(row.icon || row.logoURI || ""),
+        decimals: Number(row.decimals ?? 0),
+      });
+      if (out.length >= 8) break;
+    }
+  } catch {
+    /* ignore */
+  }
+  return out.filter((t) => t.mint !== GBUX_MINT);
+}
+
 export async function lookupMint(query: string): Promise<{
   mint: string;
   symbol: string;
@@ -336,6 +387,39 @@ export async function listTokensForAccount(opts: {
       }
     } catch (e) {
       console.warn("[walletInventory] searchAssets", (e as Error).message);
+      try {
+        const parsed = await rpcCall("getTokenAccountsByOwner", [
+          resolved.address,
+          { programId: "TokenkegQfeZyiNwAJbNbGKPFXCWuBvf9Ss623VQ5DA" },
+          { encoding: "jsonParsed" },
+        ]);
+        const accs = parsed?.value || [];
+        for (const a of accs) {
+          const info = a?.account?.data?.parsed?.info;
+          if (!info?.mint) continue;
+          const tokAmt = info.tokenAmount || {};
+          const mint = String(info.mint);
+          if (mint === GBUX_MINT) {
+            onchainGbux = Number(tokAmt.uiAmount || 0);
+            continue;
+          }
+          if (mint === WSOL_MINT) continue;
+          items.push({
+            mint,
+            symbol: mint.slice(0, 4),
+            name: "Token",
+            logo: "",
+            decimals: Number(tokAmt.decimals || 0),
+            amount: Number(tokAmt.amount || 0),
+            uiAmount: Number(tokAmt.uiAmount || 0),
+            owner: resolved.kind,
+            ownerWallet: resolved.address,
+            watched: extra.includes(mint),
+          });
+        }
+      } catch (e2) {
+        console.warn("[walletInventory] token accounts", (e2 as Error).message);
+      }
     }
   }
 
@@ -504,12 +588,21 @@ export async function listNftsForAccount(opts: {
   };
 }) {
   const { account } = opts;
-  const play = String(account.walletAddress || "").trim();
+  let play = String(account.walletAddress || "").trim();
   const email =
     account.crossmintEmail ||
     (account.grudgeId
-      ? `grudge+${String(account.grudgeId).toLowerCase().replace(/[^a-z0-9_-]/g, "").slice(0, 48)}@accounts.grudge-studio.com`
+      ? crossmintWalletService.stableEmailForGrudgeId(account.grudgeId)
       : null);
+
+  if ((!play || play === HOUSE_PUBKEY) && email) {
+    try {
+      const w = await crossmintWalletService.getWalletByEmail(email);
+      if (w?.address && w.address !== HOUSE_PUBKEY) play = w.address;
+    } catch (e) {
+      console.warn("[walletInventory] crossmint wallet lookup", (e as Error).message);
+    }
+  }
 
   const [cm, dasItems, dbItems] = await Promise.all([
     crossmintNfts(play, email),
@@ -537,16 +630,16 @@ export async function listNftsForAccount(opts: {
 }
 
 export const DAPPS_CATALOG = [
-  { id: "trader", name: "Auto-trader", tagline: "SOL desk · rotating capital", category: "Desk", featured: true, href: "https://trader.grudge-studio.com", img: "https://trader.grudge-studio.com/art/fabledgrudge.jpeg" },
-  { id: "poker-wallet", name: "Poker wallet", tagline: "BUDB play · fund · sit", category: "Play", href: "https://poker.grudge-studio.com/wallet", img: "https://poker.grudge-studio.com/media/felt-budb-green.jpg" },
-  { id: "poker", name: "BUDB Poker", tagline: "Holdem · slots · BJ", category: "Play", href: "https://poker.grudge-studio.com/lobby", img: "https://poker.grudge-studio.com/media/og-image.jpg" },
-  { id: "warlords", name: "Warlords", tagline: "Home island · play", category: "Play", href: "https://client.grudge-studio.com/home", img: "https://client.grudge-studio.com/opengraph.jpg" },
-  { id: "foundry", name: "Character Foundry", tagline: "Create · 4 slots", category: "Studio", href: "https://character.grudge-studio.com/?era=warlords", img: "https://character.grudge-studio.com/opengraph.jpg" },
-  { id: "open", name: "Grudge Open", tagline: "Danger · library", category: "Studio", href: "https://open.grudge-studio.com", img: "https://open.grudge-studio.com/opengraph.jpg" },
-  { id: "grudox", name: "GRUDOX", tagline: "Arcade cabinets", category: "Play", href: "https://grudox.grudge-studio.com", img: "https://grudox.grudge-studio.com/opengraph.jpg" },
-  { id: "mine", name: "Mine-Loader", tagline: "Voxel realms", category: "Play", href: "https://mineloader.grudge-studio.com", img: "https://mineloader.grudge-studio.com/opengraph.jpg" },
-  { id: "forge", name: "Forge", tagline: "Map / scene editor", category: "Studio", href: "https://forge.grudge-studio.com", img: "https://forge.grudge-studio.com/opengraph.jpg" },
-  { id: "studio", name: "Studio portal", tagline: "grudge-studio.com", category: "Studio", href: "https://grudge-studio.com", img: "https://grudge-studio.com/opengraph.jpg" },
+  { id: "trader", name: "Auto-trader", tagline: "SOL desk · rotating capital", category: "Desk", featured: true, row: "hero", href: "https://trader.grudge-studio.com", img: "https://trader.grudge-studio.com/art/fabledgrudge.jpeg", developer: "Grudge Studio", rating: "4.9", age: "18+", blurb: "Fund the vault from Wallet 1. Engine key, not SIWS." },
+  { id: "poker", name: "BUDB Poker", tagline: "Holdem · slots · blackjack", category: "Play", row: "must", href: "https://poker.grudge-studio.com/lobby", img: "https://poker.grudge-studio.com/media/og-image.jpg", developer: "Grudge Studio", rating: "4.8", age: "18+", blurb: "Sit with bag GBUX from this hub." },
+  { id: "poker-wallet", name: "Poker wallet", tagline: "BUDB play · fund · sit", category: "Play", row: "must", href: "https://poker.grudge-studio.com/wallet", img: "https://poker.grudge-studio.com/media/felt-budb-green.jpg", developer: "Grudge Studio", rating: "4.7", age: "18+", blurb: "Move GBUX onto the felt." },
+  { id: "warlords", name: "Warlords", tagline: "Home island · play", category: "Play", row: "must", href: "https://client.grudge-studio.com/home", img: "https://client.grudge-studio.com/opengraph.jpg", developer: "Grudge Studio", rating: "4.8", age: "13+", blurb: "Hero cNFTs mint to your Crossmint play wallet." },
+  { id: "grudox", name: "GRUDOX", tagline: "Arcade cabinets", category: "Play", row: "must", href: "https://grudox.grudge-studio.com", img: "https://grudox.grudge-studio.com/opengraph.jpg", developer: "Grudge Studio", rating: "4.6", age: "13+", blurb: "Cabinets, same Grudge ID." },
+  { id: "mine", name: "Mine-Loader", tagline: "Voxel realms", category: "Play", row: "must", href: "https://mineloader.grudge-studio.com", img: "https://mineloader.grudge-studio.com/opengraph.jpg", developer: "Grudge Studio", rating: "4.5", age: "9+", blurb: "Voxel worlds on your ID." },
+  { id: "foundry", name: "Character Foundry", tagline: "Create · 4 slots", category: "Studio", row: "studio", href: "https://character.grudge-studio.com/?era=warlords", img: "https://character.grudge-studio.com/opengraph.jpg", developer: "Grudge Studio", rating: "4.7", age: "13+", blurb: "Mint lands on Crossmint play — shows in cNFTs." },
+  { id: "forge", name: "Forge", tagline: "Map / scene editor", category: "Studio", row: "studio", href: "https://forge.grudge-studio.com", img: "https://forge.grudge-studio.com/opengraph.jpg", developer: "Grudge Studio", rating: "4.4", age: "13+", blurb: "Build scenes for Warlords." },
+  { id: "open", name: "Grudge Open", tagline: "Danger · library", category: "Studio", row: "studio", href: "https://open.grudge-studio.com", img: "https://open.grudge-studio.com/opengraph.jpg", developer: "Grudge Studio", rating: "4.3", age: "18+", blurb: "Research library, same session." },
+  { id: "studio", name: "Studio portal", tagline: "grudge-studio.com", category: "Studio", row: "studio", href: "https://grudge-studio.com", img: "https://grudge-studio.com/opengraph.jpg", developer: "Grudge Studio", rating: "4.6", age: "13+", blurb: "Home of the fleet." },
 ];
 
 export function dappsPayload() {
