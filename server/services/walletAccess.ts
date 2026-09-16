@@ -166,15 +166,6 @@ function buildSiwsMessage(fields: SiwsFields): string {
   return lines.join("\n");
 }
 
-  }
-  const lines = text.split("\n");
-  if (/wants you to sign in with your Solana account/i.test(lines[0] || "")) {
-    const addr = (lines[1] || "").trim().replace(/^solana:(?:mainnet:)?/i, "");
-    return addr || null;
-  }
-  return null;
-}
-
 export function parseSiwsDomain(message: string): string | null {
   const text = String(message || "");
   const lines = text.split("\n");

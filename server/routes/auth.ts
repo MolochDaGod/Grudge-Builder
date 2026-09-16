@@ -1323,21 +1323,6 @@ export function registerAuthRoutes(app: Express) {
         });
       }
       const challenge = createLoginChallenge(walletAddress, originFromRequest(req));
-      }
-      const sessionUserId = trySessionUserId(req);
-      if (sessionUserId) {
-        const account = await ensureAccount(sessionUserId);
-        const challenge = createLinkChallenge(account.id, walletAddress);
-        return res.json({
-          success: true,
-          purpose: "link",
-          message: challenge.message,
-          nonce: challenge.nonce,
-          walletAddress: challenge.walletAddress,
-          siws: challenge.siws,
-        });
-      }
-      const challenge = createLoginChallenge(walletAddress);
       res.json({
         success: true,
         purpose: "login",
