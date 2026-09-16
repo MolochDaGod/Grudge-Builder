@@ -9,7 +9,13 @@ const NOTIFY_URL =
   process.env.ALE_NOTIFY_URL ||
   process.env.TELEGRAM_NOTIFY_URL ||
   "https://ale.grudge-studio.com/api/telegram/notify";
+/** Optional second notify path — @grudagamebot Railway agent */
+const AGENT_NOTIFY_URL =
+  process.env.AGENT_TELEGRAM_NOTIFY_URL ||
+  process.env.GRUDGE_AGENT_NOTIFY_URL ||
+  "";
 const ADMIN_KEY = process.env.TELEGRAM_BOT_ADMIN_KEY || process.env.GAME_API_ADMIN_KEY || "";
+const AGENT_BOT_TOKEN = process.env.GRUDGE_AGENT_BOT_TOKEN || "";
 
 async function senderLabel(accountId: string): Promise<string> {
   const [row] = await db
@@ -45,6 +51,14 @@ export async function notifyTreatyDm(params: {
   const preview = params.content.length > 400 ? `${params.content.slice(0, 400)}…` : params.content;
   const shortThread = params.threadId.slice(0, 8);
 
+  const text =
+    `📨 <b>Treaty DM</b> from ${from}\n` +
+    `${preview}\n\n` +
+    `<code>/treaty read ${shortThread}</code> · <code>/treaty inbox</code>`;
+
+  const payload = { telegramUserId: link.telegramUserId, text };
+
+  // Primary: Ale / existing notify worker (@grudachainbot)
   try {
     await fetch(NOTIFY_URL, {
       method: "POST",
@@ -52,15 +66,42 @@ export async function notifyTreatyDm(params: {
         Authorization: `Bearer ${ADMIN_KEY}`,
         "Content-Type": "application/json",
       },
-      body: JSON.stringify({
-        telegramUserId: link.telegramUserId,
-        text:
-          `📨 <b>Treaty DM</b> from ${from}\n` +
-          `${preview}\n\n` +
-          `<code>/treaty read ${shortThread}</code> · <code>/treaty inbox</code>`,
-      }),
+      body: JSON.stringify(payload),
     });
   } catch (e) {
-    console.warn("[Treaty/Telegram] notify failed:", e instanceof Error ? e.message : e);
+    console.warn("[Treaty/Telegram] ale notify failed:", e instanceof Error ? e.message : e);
+  }
+
+  // Secondary: Grudge Agent HTTP notify (@grudagamebot)
+  if (AGENT_NOTIFY_URL && ADMIN_KEY) {
+    try {
+      await fetch(AGENT_NOTIFY_URL, {
+        method: "POST",
+        headers: {
+          Authorization: `Bearer ${ADMIN_KEY}`,
+          "Content-Type": "application/json",
+        },
+        body: JSON.stringify(payload),
+      });
+    } catch (e) {
+      console.warn("[Treaty/Telegram] agent notify failed:", e instanceof Error ? e.message : e);
+    }
+  }
+
+  // Tertiary: direct Bot API if token present (same @grudagamebot)
+  if (AGENT_BOT_TOKEN) {
+    try {
+      await fetch(`https://api.telegram.org/bot${AGENT_BOT_TOKEN}/sendMessage`, {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({
+          chat_id: link.telegramUserId,
+          text,
+          parse_mode: "HTML",
+        }),
+      });
+    } catch (e) {
+      console.warn("[Treaty/Telegram] direct bot notify failed:", e instanceof Error ? e.message : e);
+    }
   }
 }
