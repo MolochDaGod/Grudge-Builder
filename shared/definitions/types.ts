@@ -123,7 +123,7 @@ export interface ItemDefinition {
   name: string;
   description: string;
   icon: string;
-  type: "weapon" | "armor" | "accessory" | "consumable" | "material" | "quest";
+  type: "weapon" | "armor" | "accessory" | "consumable" | "material" | "quest" | "vehicle";
   rarity: "common" | "uncommon" | "rare" | "epic" | "legendary" | "mythic";
   weaponType?: WeaponType;
   armorSlot?: "head" | "chest" | "hands" | "legs" | "feet" | "back";

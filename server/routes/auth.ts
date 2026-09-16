@@ -48,10 +48,15 @@ import {
 import {
   createLinkChallenge,
   createLoginChallenge,
+  originFromRequest,
   consumeSiwsChallenge,
   confirmLinkedWallet,
   persistLinkedWallet,
   findAccountIdByWalletAddress,
+} from "../services/walletAccess";
+import type { LinkedWalletProvider } from "@shared/schema";
+
+const JWT_SECRET = process.env.SESSION_SECRET || process.env.JWT_SECRET || "grudge-dev-secret";
   listLinkedWallets,
 } from "../services/walletAccess";
 import type { LinkedWalletProvider } from "@shared/schema";
@@ -415,6 +420,7 @@ function readSessionToken(req: Request): string | null {
 
 function trySessionUserId(req: Request): string | null {
   const token = readSessionToken(req);
+  if (!token) return null;
   if (!token || !JWT_SECRET) return null;
   try {
     const payload = jwt.verify(token, JWT_SECRET) as { userId?: string; sub?: string };
@@ -1079,8 +1085,10 @@ export function registerAuthRoutes(app: Express) {
     try {
       const token = readSessionToken(req) || (req.body?.token as string) || "";
       if (!token) {
-        return res.status(401).json({
+        // Unsigned is normal — 200 so browsers do not log a failed claim probe.
+        return res.status(200).json({
           success: false,
+          claimed: false,
           error: "No session",
           hint: "Sign in once at id.grudge-studio.com — then claim works on all fleet hosts.",
         });
@@ -1296,6 +1304,21 @@ export function registerAuthRoutes(app: Express) {
       const sessionUserId = trySessionUserId(req);
       if (sessionUserId) {
         const account = await ensureAccount(sessionUserId);
+        const challenge = createLinkChallenge(account.id, walletAddress, originFromRequest(req));
+        return res.json({
+          success: true,
+          purpose: "link",
+          message: challenge.message,
+          nonce: challenge.nonce,
+          walletAddress: challenge.walletAddress,
+          siws: challenge.siws,
+        });
+      }
+      const challenge = createLoginChallenge(walletAddress, originFromRequest(req));
+      }
+      const sessionUserId = trySessionUserId(req);
+      if (sessionUserId) {
+        const account = await ensureAccount(sessionUserId);
         const challenge = createLinkChallenge(account.id, walletAddress);
         return res.json({
           success: true,
@@ -1429,6 +1452,36 @@ export function registerAuthRoutes(app: Express) {
           "Sign a SIWS message to prove wallet ownership. POST /api/auth/phantom/nonce then /api/auth/phantom/verify.",
       });
     }
+    return res.status(400).json({
+      success: false,
+      error: "Use /api/auth/phantom/verify after /api/auth/phantom/nonce.",
+      hint: "https://id.grudge-studio.com/account",
+    });
+  });
+
+  /**
+   * POST /api/auth/wallet
+   * Solana wallet login — SIWS required (unsigned address login is closed).
+   */
+  app.post("/api/auth/wallet", authRateLimit, async (req: Request, res: Response) => {
+    const walletAddress = req.body.wallet_address || req.body.walletAddress;
+    const message = req.body.message || req.body.signedMessage;
+    const signature = req.body.signature;
+    if (!walletAddress) {
+      return res.status(400).json({ success: false, error: "wallet_address required" });
+    }
+    if (!message || !signature) {
+      return res.status(400).json({
+        success: false,
+        error:
+          "Sign a SIWS message to prove wallet ownership. POST /api/auth/phantom/nonce then /api/auth/phantom/verify.",
+      });
+    }
+    req.body.address = walletAddress;
+    req.body.message = message;
+    req.body.signature = signature;
+    // Delegate to SIWS verify (same handler stack via internal re-call is messy —
+    // clients should hit /phantom/verify. Keep a clear error if they didn't.)
     return res.status(400).json({
       success: false,
       error: "Use /api/auth/phantom/verify after /api/auth/phantom/nonce.",
@@ -1930,6 +1983,7 @@ export function registerAuthRoutes(app: Express) {
         email,
         walletType,
         walletAddress: account?.walletAddress || null,
+        solanaAddress: account?.walletAddress || null,
         custodialWallet,
         linkedSolana,
         linkedWallets: linkedAddrs,
@@ -2203,6 +2257,7 @@ export function registerAuthRoutes(app: Express) {
   });
 
   console.log(
+    `[Auth] Routes registered (session=${JWT_EXPIRES}, launch=${LAUNCH_TTL}): /api/auth/{page,puter,puter-sso,guest,complete-profile,popup-token,refresh,session/exchange,grudge-bridge,wallet,phantom/nonce,phantom/verify,login,register,verify,me,puter-link,discord/callback,google/start,phone/send,phone/verify}`,
     `[Auth] Routes registered (session=${JWT_EXPIRES}, launch=${LAUNCH_TTL}): /api/auth/{page,puter,puter-sso,guest,complete-profile,popup-token,refresh,session/exchange,grudge-bridge,wallet,phantom/nonce,phantom/verify,login,register,verify,me,puter-link,discord/callback,google/start,phone/send,phone/verify,referral/claim,referral/me}`,
   );
 }

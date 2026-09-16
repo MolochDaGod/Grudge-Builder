@@ -1,4 +1,18 @@
 {
+  "alias": [
+    "grudgewarlords.com",
+    "www.grudgewarlords.com",
+    "play.grudgewarlords.com",
+    "client.grudgewarlords.com",
+    "home.grudgewarlords.com",
+    "map.grudgewarlords.com",
+    "scenes.grudgewarlords.com",
+    "airship.grudgewarlords.com",
+    "craft.grudgewarlords.com",
+    "foundry.grudgewarlords.com",
+    "client.grudge-studio.com",
+    "warlord3d.grudge-studio.com"
+  ],
   "buildCommand": "npm run build:client",
   "outputDirectory": "client/dist",
   "devCommand": "npm run dev:client",

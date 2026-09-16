@@ -6,6 +6,7 @@ import jwt from "jsonwebtoken";
 import { storage } from "../storage";
 import {
   createLinkChallenge,
+  originFromRequest,
   confirmLinkedWallet,
   listLinkedWallets,
   getWalletOverview,
@@ -26,6 +27,15 @@ const JWT_SECRET_CANDIDATES = [
   .filter((s): s is string => !!s && s.length > 0);
 
 const JWT_SECRET = JWT_SECRET_CANDIDATES[0] || "";
+
+function readWalletSessionToken(req: Request): string | null {
+  const authHeader = req.get("Authorization") || req.get("X-Session-Token") || "";
+  if (authHeader.startsWith("Bearer ")) return authHeader.slice(7);
+  if (authHeader) return authHeader;
+  const cookie = req.get("Cookie") || "";
+  const match = cookie.match(/(?:^|;\s*)grudge_auth_token=([^;]+)/);
+  return match ? decodeURIComponent(match[1]) : null;
+}
 
 function readWalletSessionToken(req: Request): string | null {
   const authHeader = req.get("Authorization") || req.get("X-Session-Token") || "";
@@ -102,6 +112,7 @@ export function registerWalletRoutes(app: Express): void {
       if (!walletAddress) {
         return res.status(400).json({ error: "walletAddress required" });
       }
+      const challenge = createLinkChallenge(account.id, walletAddress, originFromRequest(req));
       const challenge = createLinkChallenge(account.id, walletAddress);
       res.json({
         message: challenge.message,
@@ -271,6 +282,15 @@ export function registerWalletRoutes(app: Express): void {
         return res.status(400).json({
           error: `Insufficient fleet bag GBUX (have ${bal}, need ${amount})`,
           gbuxBalance: bal,
+        });
+      }
+
+      const fleetSecret = process.env.FLEET_PLAY_CREDIT_SECRET || "";
+      if (!fleetSecret) {
+        return res.status(503).json({
+          error:
+            "Play ledger handshake not configured — set FLEET_PLAY_CREDIT_SECRET on Railway to match poker Worker",
+          gbuxBalance: account.gbuxBalance,
         });
       }
 

@@ -132,3 +132,91 @@ export const RTS_SOUTH_DOCK = {
   buildEnabled: true,
   oceanDeployEnabled: true,
 };
+
+/**
+ * Extra hulls that keep ShipSize (rowboat/sloop/galleon) but swap mesh + unlock.
+ * Long Row Boat is still a rowboat — not a fourth ocean size.
+ */
+export interface ShipHullVariant {
+  id: string;
+  size: ShipSize;
+  prefabKey: string;
+  label: string;
+  glbModel: string;
+  lengthM: number;
+  widthM: number;
+  crewCap: number;
+  cannonSlots: number;
+  oceanSpeed: number;
+  maxHp: number;
+  craftGold: number;
+  craftWood: number;
+  craftIron: number;
+  craftCloth: number;
+  starterFree: false;
+  unlockRecipeId: string;
+  vendorNpcId: string;
+  vendorServiceId: string;
+}
+
+export const LONG_ROW_BOAT_HULL: ShipHullVariant = {
+  id: 'long_row_boat',
+  size: 'rowboat',
+  prefabKey: 'skiff',
+  label: 'Long Row Boat',
+  glbModel: '/models/ships/long_row_boat.glb',
+  lengthM: 11.7,
+  widthM: 7.0,
+  crewCap: 8,
+  cannonSlots: 0,
+  oceanSpeed: 3.6,
+  maxHp: 55,
+  craftGold: 80,
+  craftWood: 40,
+  craftIron: 4,
+  craftCloth: 6,
+  starterFree: false,
+  unlockRecipeId: 'recipe_long_row_boat',
+  vendorNpcId: 'barbarian_dock_master',
+  vendorServiceId: 'shop_barbarian_dock_master',
+};
+
+export const SHIP_HULL_VARIANTS: ShipHullVariant[] = [LONG_ROW_BOAT_HULL];
+
+export function getShipHullVariant(id: string | null | undefined): ShipHullVariant | undefined {
+  if (!id) return undefined;
+  return SHIP_HULL_VARIANTS.find((h) => h.id === id);
+}
+
+/** Resolve play mesh: hull variant first, else size catalog. */
+export function glbForShip(opts: { size: ShipSize; name?: string; hullId?: string | null }): string {
+  const byId = getShipHullVariant(opts.hullId);
+  if (byId) return byId.glbModel;
+  if (opts.name && /long.?row/i.test(opts.name)) return LONG_ROW_BOAT_HULL.glbModel;
+  return getShipCatalogEntry(opts.size).glbModel;
+}
+
+export const BARBARIAN_DOCK_MASTER = {
+  npcId: 'barbarian_dock_master',
+  name: 'Stormfang Dock Master',
+  role: 'dock_master' as const,
+  serviceId: 'shop_barbarian_dock_master',
+  dialogueSetId: 'barbarian_dock_master',
+  sellsRecipeIds: ['recipe_long_row_boat'] as const,
+  raceId: 'barbarian' as const,
+};
+
+export const BARBARIAN_DOCK_MASTER_DIALOGUE = {
+  id: 'barbarian_dock_master',
+  greetings: [
+    'Stormfang dock. I sell one recipe — the Long Row Boat. Oars, not cannon.',
+    'Barbarian timber, long hull. Buy the recipe, then craft it at the dock.',
+    'The small raft is free. The long row boat is earned from me.',
+  ],
+  sell: [
+    'Recipe: Long Row Boat. Wood, cloth, a little iron. Learn it once.',
+  ],
+  alreadyKnown: [
+    'You already know the long hull. Craft it at the dock.',
+  ],
+} as const;

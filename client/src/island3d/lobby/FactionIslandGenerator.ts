@@ -377,7 +377,7 @@ async function resolveNpcObject(
     return wrap;
   }
 
-  if (npc.modelPath && (npc.role === 'faction_hero' || npc.role === 'blacksmith' || npc.role === 'unarmed' || npc.role === 'traveler' || npc.role === 'quest_traveler')) {
+  if (npc.modelPath && (npc.role === 'faction_hero' || npc.role === 'blacksmith' || npc.role === 'unarmed' || npc.role === 'traveler' || npc.role === 'quest_traveler' || npc.role === 'dock_master')) {
     // Unity Traveler / quest giver: human modular kit + unarmed (same on all 6 boats)
     if (npc.role === 'traveler' || npc.role === 'quest_traveler') {
       try {
@@ -489,6 +489,7 @@ async function buildOneIsland(
     traveler: 0x38bdf8,
     blacksmith: 0xf97316,
     quest_traveler: 0x22d3ee,
+    dock_master: 0x0ea5e9,
     guard: 0xef4444,
   };
 
