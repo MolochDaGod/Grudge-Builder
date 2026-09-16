@@ -1,12 +1,9 @@
 /**
  * grudge-wallet-site — production edge for wallet.grudge-studio.com
- *
- * - Clean multi-game wallet UI (images, reconnect, fund play, bag swap)
- * - Proxies /api/* → Railway game-state SSOT
- * - Auth handoff → id.grudge-studio.com
- * - /health for uptime monitors
  */
 import { htmlPage } from "./ui.js";
+
+export const WALLET_BUILD = "2026-09-16-hub-v2";
 
 const CORS_ALLOW = [
   "https://wallet.grudge-studio.com",
@@ -71,16 +68,10 @@ async function proxyTo(origin, request, pathWithSearch) {
   headers.set("X-Forwarded-Host", "wallet.grudge-studio.com");
   headers.set("X-Forwarded-Proto", "https");
   headers.set("X-Grudge-Edge", "grudge-wallet-site");
-
-  const init = {
-    method: request.method,
-    headers,
-    redirect: "manual",
-  };
+  const init = { method: request.method, headers, redirect: "manual" };
   if (request.method !== "GET" && request.method !== "HEAD") {
     init.body = await request.arrayBuffer();
   }
-
   const upstream = await fetch(url.toString(), init);
   const outHeaders = new Headers(upstream.headers);
   outHeaders.set("X-Grudge-Edge", "grudge-wallet-site");
@@ -92,6 +83,15 @@ async function proxyTo(origin, request, pathWithSearch) {
     headers: outHeaders,
   });
 }
+
+const HTML_PATHS = new Set([
+  "/",
+  "/index.html",
+  "/wallet",
+  "/wallet/",
+  "/auth/callback",
+  "/auth/callback/",
+]);
 
 export default {
   async fetch(request, env) {
@@ -107,6 +107,7 @@ export default {
         {
           ok: true,
           service: "grudge-wallet-site",
+          build: WALLET_BUILD,
           environment: env.ENVIRONMENT || "production",
           railway: env.RAILWAY_API_ORIGIN,
           poker: env.POKER_ORIGIN || "https://poker.grudge-studio.com",
@@ -116,21 +117,36 @@ export default {
           features: [
             "fleet-bag",
             "transfer-to-play",
-            "exchange-swap",
-            "game-handoff",
-            "phantom-reconnect",
-            "app-tiles",
-            "auth-callback",
-            "crossmint-check-first",
-            "auto-trader-handoff",
-            "pwa-install",
+            "sheets-recv-send-wallets",
+            "unique-button-ids",
+            "inline-wallet-app",
             "linked-wallets",
-            "poker-solana-inject",
+            "trader-vault-enable",
+            "auth-callback",
+            "pwa-install",
           ],
         },
         200,
         cors,
       );
+    }
+
+    if (url.pathname === "/wallet-app.js") {
+      if (env.ASSETS) {
+        const asset = await env.ASSETS.fetch(request);
+        if (asset.status !== 404) {
+          const h = new Headers(asset.headers);
+          h.set("Content-Type", "text/javascript; charset=utf-8");
+          h.set("Cache-Control", "no-store");
+          h.set("X-Grudge-Wallet-Build", WALLET_BUILD);
+          Object.entries(cors).forEach(([k, v]) => h.set(k, v));
+          return new Response(asset.body, { status: 200, headers: h });
+        }
+      }
+      return new Response("/* wallet-app missing */", {
+        status: 200,
+        headers: { "Content-Type": "text/javascript; charset=utf-8", "Cache-Control": "no-store", ...cors },
+      });
     }
 
     if (url.pathname.startsWith("/media/") && env.ASSETS) {
@@ -140,11 +156,7 @@ export default {
         h.set("X-Grudge-Edge", "grudge-wallet-site");
         h.set("Cache-Control", "public, max-age=86400");
         Object.entries(cors).forEach(([k, v]) => h.set(k, v));
-        return new Response(asset.body, {
-          status: asset.status,
-          statusText: asset.statusText,
-          headers: h,
-        });
+        return new Response(asset.body, { status: asset.status, headers: h });
       }
     }
 
@@ -153,102 +165,52 @@ export default {
       "https://grudge-api-production-0d46.up.railway.app";
     const idGw = env.ID_GATEWAY_ORIGIN || "https://id.grudge-studio.com";
 
-    // Never fetch id.grudge-studio.com from this Worker (same-zone orange-cloud → 526).
-    // Browser goes to Grudge ID; return lands on /auth/callback HTML.
     if (url.pathname === "/login") {
       const dest = `${url.origin}/auth/callback`;
       const loc =
         `${idGw}/login?redirect_uri=${encodeURIComponent(dest)}` +
         `&return=${encodeURIComponent(dest)}` +
         `&origin=${encodeURIComponent(url.origin)}` +
-        `&app=grudge-wallet`;
+        `&app=wallet`;
       return Response.redirect(loc, 302);
     }
 
-    const htmlPaths = new Set([
-      "/",
-      "/index.html",
-      "/wallet",
-      "/wallet/",
-      "/auth/callback",
-      "/auth/callback/",
-    ]);
-    if (htmlPaths.has(url.pathname)) {
     if (url.pathname === "/manifest.webmanifest" || url.pathname === "/manifest.json") {
       const logo = `${idGw}/grudge-id-logo.png`;
-      const manifest = {
-        name: "Grudge Studio Wallet",
-        short_name: "Gruda Wallet",
-        description: "One Grudge ID · Crossmint game wallet · fleet bag · auto-trader",
-        start_url: "/",
-        scope: "/",
-        display: "standalone",
-        orientation: "portrait-primary",
-        background_color: "#07070c",
-        theme_color: "#d4af37",
-        id: "https://wallet.grudge-studio.com/",
-        icons: [
-          { src: "/icon.svg", sizes: "any", type: "image/svg+xml", purpose: "any" },
-          { src: logo, sizes: "192x192", type: "image/png", purpose: "any" },
-          { src: logo, sizes: "512x512", type: "image/png", purpose: "any" },
-        ],
-      };
-      return new Response(JSON.stringify(manifest), {
-        status: 200,
-        headers: {
-          "Content-Type": "application/manifest+json; charset=utf-8",
-          "Cache-Control": "public, max-age=300",
-          ...cors,
+      return new Response(
+        JSON.stringify({
+          name: "Gruda Wallet",
+          short_name: "Gruda Wallet",
+          start_url: "/",
+          scope: "/",
+          display: "standalone",
+          background_color: "#07070c",
+          theme_color: "#e0c36a",
+          icons: [
+            { src: "/icon.svg", sizes: "any", type: "image/svg+xml", purpose: "any" },
+            { src: logo, sizes: "192x192", type: "image/png" },
+          ],
+        }),
+        {
+          status: 200,
+          headers: { "Content-Type": "application/manifest+json; charset=utf-8", "Cache-Control": "no-store", ...cors },
         },
-      });
+      );
     }
 
     if (url.pathname === "/icon.svg") {
-      const svg = `<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 512 512">
-<rect width="512" height="512" rx="96" fill="#07070c"/>
-<path d="M256 48l176 80v128c0 112-75 198-176 240C155 454 80 368 80 256V128z" fill="#1a1405" stroke="#d4af37" stroke-width="22"/>
-<text x="256" y="300" text-anchor="middle" font-family="Georgia,serif" font-size="140" fill="#d4af37">G</text>
-</svg>`;
+      const svg = `<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 512 512"><rect width="512" height="512" rx="96" fill="#07070c"/><path d="M256 48l176 80v128c0 112-75 198-176 240C155 454 80 368 80 256V128z" fill="#1a1405" stroke="#d4af37" stroke-width="22"/><text x="256" y="300" text-anchor="middle" font-family="Georgia,serif" font-size="140" fill="#d4af37">G</text></svg>`;
       return new Response(svg, {
         status: 200,
-        headers: {
-          "Content-Type": "image/svg+xml; charset=utf-8",
-          "Cache-Control": "public, max-age=86400",
-          ...cors,
-        },
+        headers: { "Content-Type": "image/svg+xml; charset=utf-8", "Cache-Control": "public, max-age=86400", ...cors },
       });
     }
 
     if (url.pathname === "/sw.js") {
-      const sw = `self.addEventListener('install', (e) => { self.skipWaiting(); });
-self.addEventListener('activate', (e) => { e.waitUntil(self.clients.claim()); });
-self.addEventListener('fetch', (e) => {
-  const u = new URL(e.request.url);
-  if (u.pathname.startsWith('/api/')) return;
-});`;
+      const sw = `self.addEventListener('install',(e)=>{self.skipWaiting();});self.addEventListener('activate',(e)=>{e.waitUntil(self.clients.claim());});self.addEventListener('fetch',(e)=>{const u=new URL(e.request.url);if(u.pathname.startsWith('/api/')||u.pathname==='/'||u.pathname==='/wallet-app.js')return;});`;
       return new Response(sw, {
         status: 200,
-        headers: {
-          "Content-Type": "text/javascript; charset=utf-8",
-          "Cache-Control": "public, max-age=60",
-          ...cors,
-        },
-      });
-    }
-
-    if (
-      url.pathname === "/" ||
-      url.pathname === "/index.html" ||
-      url.pathname === "/wallet"
-    ) {
-      return new Response(htmlPage(env), {
-        status: 200,
-        headers: {
-          "Content-Type": "text/html; charset=utf-8",
-          "Cache-Control": "no-store",
-          "X-Grudge-Edge": "grudge-wallet-site",
-          ...cors,
-        },
+        headers: { "Content-Type": "text/javascript; charset=utf-8", "Cache-Control": "no-store", ...cors },
       });
     }
 
@@ -259,15 +221,29 @@ self.addEventListener('fetch', (e) => {
         Object.entries(cors).forEach(([k, v]) => h.set(k, v));
         return new Response(res.body, { status: res.status, headers: h });
       } catch (err) {
-        return json(
-          {
-            ok: false,
-            error: "railway upstream unavailable",
-            service: "grudge-wallet-site",
-          },
-          502,
-          cors,
-        );
+        return json({ ok: false, error: "railway upstream unavailable", service: "grudge-wallet-site" }, 502, cors);
+      }
+    }
+
+    if (HTML_PATHS.has(url.pathname) || (request.headers.get("Accept") || "").includes("text/html")) {
+      return new Response(htmlPage(env), {
+        status: 200,
+        headers: {
+          "Content-Type": "text/html; charset=utf-8",
+          "Cache-Control": "no-store, no-cache, must-revalidate",
+          "X-Grudge-Edge": "grudge-wallet-site",
+          "X-Grudge-Wallet-Build": WALLET_BUILD,
+          ...cors,
+        },
+      });
+    }
+
+    if (env.ASSETS) {
+      const asset = await env.ASSETS.fetch(request);
+      if (asset.status !== 404) {
+        const h = new Headers(asset.headers);
+        Object.entries(cors).forEach(([k, v]) => h.set(k, v));
+        return new Response(asset.body, { status: asset.status, headers: h });
       }
     }
 
@@ -277,6 +253,7 @@ self.addEventListener('fetch', (e) => {
         "Content-Type": "text/html; charset=utf-8",
         "Cache-Control": "no-store",
         "X-Grudge-Edge": "grudge-wallet-site",
+        "X-Grudge-Wallet-Build": WALLET_BUILD,
         ...cors,
       },
     });
