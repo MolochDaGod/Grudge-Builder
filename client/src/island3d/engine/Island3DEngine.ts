@@ -497,6 +497,10 @@ export class Island3DEngine {
     return { center: this.lobbyResult.center, size: this.lobbyResult.size };
   }
 
+  public getLobbyScene(): THREE.Group | null {
+    return this.lobbyResult?.scene ?? null;
+  }
+
   /** Sample walkable height on lobby map (pirate-islands colliders). */
   public sampleLobbyGroundHeight(x: number, z: number): number | null {
     if (!this.lobbyCollider?.sampleHeight) return null;
@@ -1146,6 +1150,9 @@ export class Island3DEngine {
 
     // Map composition overlays (tents, chests, modular dock, nature samples)
     try {
+      if (mapDef.id === 'shipwreck-island') {
+        console.log('[Island3D] Baked shipwreck island — skip pirate composition overlay');
+      } else {
       const { loadMapComposition } = await import('../map/MapCompositionLoader');
       const comp = await loadMapComposition(
         this.scene,
@@ -1163,6 +1170,7 @@ export class Island3DEngine {
         (comp.ocean.material as THREE.Material)?.dispose?.();
       }
       console.log(`[Island3D] ${comp.summary}`);
+      }
     } catch (err) {
       console.warn('[Island3D] Map composition overlay skipped', err);
     }
@@ -1386,7 +1394,9 @@ export class Island3DEngine {
       this.config.biome ?? 'beach',
     );
     progress(12);
-    const terrainMaterial = await createTerrainMaterialAsync();
+    const terrainMaterial = await createTerrainMaterialAsync({
+      biome: this.config.biome ?? 'beach',
+    });
     const segs = HOME_ISLAND_TERRAIN_SEGMENTS;
     const terrainConfig: IslandTerrainConfig = {
       seed: this.config.seed,
@@ -1524,6 +1534,7 @@ export class Island3DEngine {
       {
         worldSizeM: HOME_ISLAND_WORLD_SIZE_M,
         seed: this.config.seed,
+        biome: this.config.biome ?? 'beach',
         campClearRadiusM: foundation.campClearRadiusM ?? HOME_ISLAND_CAMP_CLEAR_RADIUS_M,
         campX: campWorld.x,
         campZ: campWorld.z,
@@ -1788,6 +1799,43 @@ export class Island3DEngine {
       `[Island3D] Zone harvest nodes: ${zoneHarvest.trees.length} trees,`,
       `${zoneHarvest.rocks.length} rocks, ${zoneHarvest.crystals.length} gems`,
     );
+
+    // 2b2. Biome foliage on each sector island (GroundPBR mesh + battle nature pack)
+    // Not F:\\GitHub\\super-terrain (WebGPU editor). Same visual kit as home island.
+    const islandFootprintM: Record<string, number> = {
+      atoll: 240,
+      small: 520,
+      medium: 900,
+      large: 1500,
+      home: HOME_ISLAND_WORLD_SIZE_M,
+      fortress: 2800,
+    };
+    const islandNodes = getNodesByCategory<IslandNode>(this.zonePopulation, 'island');
+    for (const island of islandNodes) {
+      const mesh = this.zoneScene.islandMeshes.get(island.id);
+      if (!mesh) continue;
+      const foot = islandFootprintM[island.size] ?? 900;
+      const scale = Math.max(0.25, foot / 1024);
+      try {
+        await scatterBattleNatureOnTerrain(this.scene, mesh, {
+          worldSizeM: foot,
+          seed: `${worldSeed}:${island.id}`,
+          biome: sector.biome,
+          originX: island.position[0],
+          originZ: island.position[2],
+          campX: island.position[0],
+          campZ: island.position[2],
+          campClearRadiusM: Math.max(24, foot * 0.04),
+          layers: foot >= 1200 ? 3 : 2,
+          treeCount: Math.round(80 * scale),
+          rockCount: Math.round(50 * scale),
+          bushCount: Math.round(40 * scale),
+          grassCount: Math.round(90 * scale),
+        });
+      } catch (err) {
+        console.warn(`[Island3D] Zone foliage failed on ${island.id}:`, err);
+      }
+    }
 
     // 2c. Race capital city (Unity world map — 6 race cities)
     // For haven_shore: Fruzer foundation IS the village (vendors, missions, boats).
@@ -2587,7 +2635,7 @@ export class Island3DEngine {
     sampleHeight?: (x: number, z: number) => number | null,
   ): void {
     // AllyManager is created after nav bake on home island; zone/lobby may attach later.
-    // CampUnitSystem still spawns race meshes without allies (static posts until AI available).
+    // Garrison uses Toon RTS race kits; F1–F5 orders target wildlife via CreatureManager.
 
     if (!this.npcCamps) {
       this.npcCamps = new NpcCampSystem({
@@ -2597,6 +2645,16 @@ export class Island3DEngine {
         sampleHeight,
       });
     }
+    const getEnemies = () => {
+      const pos = this.character?.getPosition() ?? this.camera.position;
+      if (!this.creatures) return [];
+      return this.creatures.listSoftLockTargets(pos, 80).map((t) => ({
+        id: t.id,
+        position: t.position,
+        hp: t.hp,
+        dead: t.hp <= 0,
+      }));
+    };
     if (!this.campUnits) {
       this.campUnits = new CampUnitSystem({
         scene: this.scene,
@@ -2606,11 +2664,13 @@ export class Island3DEngine {
         playerAccountId: this.config.accountId ?? 'guest',
         getPlayerPosition: () =>
           this.character?.getPosition() ?? this.camera.position.clone(),
+        getEnemies,
         sampleHeight,
         waterLevel,
       });
     } else {
       this.campUnits.setAllyManager(this.allyManager);
+      this.campUnits.setGetEnemies(getEnemies);
     }
     this.npcCamps.setClaimFlagHandler(async (camp) => {
       if (!camp.data.ownerAccountId) {

@@ -392,6 +392,12 @@ export function registerWalletRoutes(app: Express): void {
       if (!Number.isFinite(amount) || amount <= 0) {
         return res.status(400).json({ error: "amount must be > 0" });
       }
+      const { crossmintWalletService } = await import(
+        "../services/crossmintWallet"
+      );
+      const grudgeId = String(
+        (account as { grudgeId?: string }).grudgeId || "",
+      );
       const { crossmintWalletService } = await import("../services/crossmintWallet");
       const grudgeId = String((account as { grudgeId?: string }).grudgeId || "");
       const cm = grudgeId
@@ -420,6 +426,7 @@ export function registerWalletRoutes(app: Express): void {
       if (to.length < 32) {
         return res.status(400).json({ error: "recipient required" });
       }
+
       const GBUX_MINT =
         process.env.GBUX_MINT ||
         "55TpSoMNxbfsNJ9U1dQoo9H3dRtDmjBZVMcKqvU2nray";

@@ -5,8 +5,21 @@
  */
 import * as THREE from 'three';
 
-export const DECK_HULL_NAMES = ['Object_163_1', 'object_163_1'] as const;
-export const WHEEL_NAMES = ['Object_16', 'Object_111', 'object_16', 'object_111'] as const;
+/** Scene(7) opener: Object_163_1 · scene(2) playground: Object_4 hull */
+export const DECK_HULL_NAMES = [
+  'Object_163_1',
+  'object_163_1',
+  'Object_4',
+  'object_4',
+] as const;
+export const WHEEL_NAMES = [
+  'Object_16',
+  'Object_111',
+  'object_16',
+  'object_111',
+  'Cube063_65',
+  'Cube063',
+] as const;
 /** Wrong copy — palm fragment, not the ship. Hide so pathfinding never uses it. */
 export const DECK_HULL_ALIASES_PURGE = ['Object_163'];
 

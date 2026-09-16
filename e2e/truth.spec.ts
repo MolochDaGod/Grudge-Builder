@@ -65,7 +65,7 @@ test.describe("ONE TRUTH fleet", () => {
   });
 
   test("shared truth probes meet minimum score via client rewrites", async () => {
-    const base = process.env.PLAYWRIGHT_BASE_URL ?? "https://client.grudge-studio.com";
+    const base = process.env.PLAYWRIGHT_BASE_URL ?? "https://grudgewarlords.com";
     const probes = buildTruthProbes("browser").map((p) => {
       if (!p.browserPath) return p;
       const url = /^https?:\/\//i.test(p.browserPath)

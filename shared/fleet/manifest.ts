@@ -96,7 +96,7 @@ export const FLEET_URLS = {
    * @deprecated Prefer warlordsPlay / play.grudgewarlords.com for Warlords era.
    * Legacy studio-branded client host — same SPA until traffic cut over.
    */
-  clientPlay: "https://client.grudge-studio.com",
+  clientPlay: "https://grudgewarlords.com",
   /** Warlords product marketing apex (grudge.studio) — not play SSOT */
   warlords: "https://grudge.studio",
   /**

@@ -13,6 +13,126 @@
 import * as THREE from 'three';
 import { applyCinemaBlend, CINEMA_RENDER_ORDER } from './CinemaMaterialBlend';
 
+/**
+ * Break a hull into exactly four world groups (bow/stern/port/starboard).
+ * Child meshes cluster by bbox center; a single mesh is triangle-split on XZ.
+ */
+export function pinataHullIntoFour(
+  source: THREE.Object3D,
+  origin: THREE.Vector3,
+): THREE.Group[] {
+  source.updateMatrixWorld(true);
+  const meshes: THREE.Mesh[] = [];
+  source.traverse((o) => {
+    const m = o as THREE.Mesh;
+    if (!m.isMesh || !m.geometry) return;
+    if (/^camera$/i.test(m.name) || /cameranode|cam_target/i.test(m.name)) return;
+    const mats = Array.isArray(m.material) ? m.material : m.material ? [m.material] : [];
+    const names = mats.map((mat) => (mat.name || '').toLowerCase()).join(' ');
+    if (/water[123]/.test(names)) return;
+    meshes.push(m);
+  });
+
+  const buckets: THREE.Object3D[][] = [[], [], [], []];
+  const tmp = new THREE.Vector3();
+  const box = new THREE.Box3();
+
+  const quad = (p: THREE.Vector3) =>
+    (p.x >= origin.x ? 1 : 0) + (p.z >= origin.z ? 2 : 0);
+
+  if (meshes.length >= 4) {
+    for (const m of meshes) {
+      box.setFromObject(m);
+      box.getCenter(tmp);
+      buckets[quad(tmp)].push(m);
+    }
+  } else if (meshes.length === 1) {
+    const split = splitMeshIntoFour(meshes[0]!, origin);
+    split.forEach((mesh, i) => buckets[i].push(mesh));
+  } else {
+    meshes.forEach((m, i) => buckets[i % 4].push(m));
+  }
+
+  // Rebalance empty quarters from the fullest bucket
+  for (let i = 0; i < 4; i++) {
+    if (buckets[i].length) continue;
+    const donor = buckets.reduce((a, b) => (a.length >= b.length ? a : b));
+    if (donor.length > 1) buckets[i].push(donor.pop()!);
+  }
+
+  const groups: THREE.Group[] = [];
+  for (let i = 0; i < 4; i++) {
+    const g = new THREE.Group();
+    g.name = `ship_quarter_${i}`;
+    const list = buckets[i];
+    if (!list.length && meshes[0]) {
+      const clone = meshes[0].clone(true);
+      clone.position.add(
+        new THREE.Vector3((i % 2 ? 2 : -2), 0.4, i > 1 ? 2 : -2),
+      );
+      list.push(clone);
+    }
+    g.userData.pendingPieces = list;
+    groups.push(g);
+  }
+  return groups;
+}
+
+function splitMeshIntoFour(mesh: THREE.Mesh, origin: THREE.Vector3): THREE.Mesh[] {
+  const src = mesh.geometry.index ? mesh.geometry.toNonIndexed() : mesh.geometry.clone();
+  const pos = src.getAttribute('position');
+  if (!pos) return [mesh];
+  const tri = pos.count / 3;
+  const idxBuckets: number[][] = [[], [], [], []];
+  const a = new THREE.Vector3();
+  const b = new THREE.Vector3();
+  const c = new THREE.Vector3();
+  mesh.updateMatrixWorld(true);
+  for (let t = 0; t < tri; t++) {
+    const i0 = t * 3;
+    a.fromBufferAttribute(pos, i0).applyMatrix4(mesh.matrixWorld);
+    b.fromBufferAttribute(pos, i0 + 1).applyMatrix4(mesh.matrixWorld);
+    c.fromBufferAttribute(pos, i0 + 2).applyMatrix4(mesh.matrixWorld);
+    const q =
+      ((a.x + b.x + c.x) / 3 >= origin.x ? 1 : 0) +
+      ((a.z + b.z + c.z) / 3 >= origin.z ? 2 : 0);
+    idxBuckets[qSafe].push(i0, i0 + 1, i0 + 2);
+  }
+  const out: THREE.Mesh[] = [];
+  for (let i = 0; i < 4; i++) {
+    const ids = idxBuckets[i];
+    const g = src.clone();
+    if (ids.length >= 3) {
+      const np = ids.length;
+      const attrNames = Object.keys(src.attributes);
+      const ng = new THREE.BufferGeometry();
+      for (const name of attrNames) {
+        const attr = src.getAttribute(name);
+        const item = attr.itemSize;
+        const arr = new Float32Array(np * item);
+        for (let k = 0; k < np; k++) {
+          const srcI = ids[k]!;
+          for (let c = 0; c < item; c++) arr[k * item + c] = attr.getComponent(srcI, c);
+        }
+        ng.setAttribute(name, new THREE.BufferAttribute(arr, item));
+      }
+      if (src.getAttribute('normal')) ng.computeVertexNormals();
+      const m = new THREE.Mesh(ng, mesh.material);
+      m.name = `${mesh.name || 'hull'}_q${i}`;
+      m.matrix.copy(mesh.matrixWorld);
+      m.matrix.decompose(m.position, m.quaternion, m.scale);
+      m.matrixAutoUpdate = true;
+      out.push(m);
+    } else {
+      const m = mesh.clone(true);
+      m.position.add(new THREE.Vector3((i % 2 ? 1.5 : -1.5), 0.2, i > 1 ? 1.5 : -1.5));
+      out.push(m);
+    }
+  }
+  mesh.visible = false;
+  return out;
+}
+
 export type DebrisKind = 'ship' | 'shield' | 'float_debris';
 export type DebrisPhase = 'blast' | 'sink' | 'float';
 
@@ -35,12 +155,12 @@ export type CinemaDebrisPiece = {
 export type CinemaRagdollState = {
   root: THREE.Object3D;
   vel: THREE.Vector3;
-  angVel: THREE.Vector3;
   bones: THREE.Object3D[];
-  /** Rest limp local euler per bone (captured at start) */
-  limp: Array<{ bone: THREE.Object3D; x: number; y: number; z: number }>;
+  /** Local quats: current pose → limp droop */
+  limp: Array<{ bone: THREE.Object3D; from: THREE.Quaternion; to: THREE.Quaternion }>;
   t: number;
   faceUp: boolean;
+  faceUpQ: THREE.Quaternion;
 };
 
 // ── Materials ──────────────────────────────────────────────────────────
@@ -261,30 +381,39 @@ export function integrateDebrisPiece(
 export function beginLimpRagdoll(root: THREE.Object3D): CinemaRagdollState {
   const bones: THREE.Object3D[] = [];
   const limp: CinemaRagdollState['limp'] = [];
+  const _eul = new THREE.Euler();
+  const _q = new THREE.Quaternion();
   root.traverse((o) => {
     if ((o as THREE.Bone).isBone || /bip001|spine|arm|leg|hand|foot|head|forearm|calf|thigh/i.test(o.name)) {
       bones.push(o);
-      // Limp: slight droop, not spinning
       const isArm = /arm|hand|fore/i.test(o.name);
       const isLeg = /leg|foot|calf|thigh/i.test(o.name);
-      limp.push({
-        bone: o,
-        x: isArm ? 0.35 : isLeg ? 0.15 : 0.05,
-        y: 0,
-        z: isArm ? (Math.random() > 0.5 ? 0.25 : -0.25) : 0.05,
-      });
+      const from = o.quaternion.clone();
+      _eul.set(
+        isArm ? 0.42 : isLeg ? 0.22 : 0.06,
+        0,
+        isArm ? (Math.random() > 0.5 ? 0.28 : -0.28) : 0.04,
+        'XYZ',
+      );
+      _q.setFromEuler(_eul);
+      limp.push({ bone: o, from, to: from.clone().multiply(_q) });
     }
   });
-  // Face-up: back in water
-  root.rotation.set(-Math.PI / 2, root.rotation.y, 0);
+  const yaw = Math.atan2(
+    Math.sin(root.rotation.y),
+    Math.cos(root.rotation.y),
+  );
+  const faceUpQ = new THREE.Quaternion().setFromEuler(
+    new THREE.Euler(-Math.PI / 2, yaw, 0, 'YXZ'),
+  );
   return {
     root,
-    vel: new THREE.Vector3((Math.random() - 0.5) * 0.35, 0, (Math.random() - 0.5) * 0.3),
-    angVel: new THREE.Vector3(0, (Math.random() - 0.5) * 0.15, 0),
+    vel: new THREE.Vector3((Math.random() - 0.5) * 0.28, 0, (Math.random() - 0.5) * 0.22),
     bones,
     limp,
     t: 0,
     faceUp: true,
+    faceUpQ,
   };
 }
 
@@ -298,26 +427,23 @@ export function integrateLimpRagdoll(
   const p = r.root.position;
   const wy = waterYAt(p.x, p.z);
   const wave =
-    Math.sin(elapsed * 1.6 + p.x * 0.18) * 0.1 + Math.sin(elapsed * 1.05 + p.z * 0.14) * 0.07;
+    Math.sin(elapsed * 1.15 + p.x * 0.16) * 0.08 + Math.sin(elapsed * 0.72 + p.z * 0.12) * 0.05;
 
-  // Float body on surface
-  p.y = THREE.MathUtils.lerp(p.y, wy + 0.14 + wave, 1 - Math.exp(-dt * 4));
-  p.x += r.vel.x * dt + Math.sin(elapsed * 0.85) * dt * 0.12;
-  p.z += r.vel.z * dt + Math.cos(elapsed * 0.65) * dt * 0.1;
-  r.vel.multiplyScalar(0.992);
+  p.y = THREE.MathUtils.lerp(p.y, wy + 0.12 + wave, 1 - Math.exp(-dt * 3.2));
+  p.x += r.vel.x * dt + Math.sin(elapsed * 0.55) * dt * 0.06;
+  p.z += r.vel.z * dt + Math.cos(elapsed * 0.42) * dt * 0.05;
+  r.vel.multiplyScalar(0.988);
 
-  // Face-up stable — swell tilt only (no tumble spin)
-  r.root.rotation.x = THREE.MathUtils.lerp(r.root.rotation.x, -Math.PI / 2 + wave * 0.35, dt * 2.2);
-  r.root.rotation.z = THREE.MathUtils.lerp(r.root.rotation.z, wave * 0.5, dt * 1.8);
-  r.root.rotation.y += r.angVel.y * dt;
-  r.angVel.y *= Math.exp(-dt * 0.8);
+  const swell = new THREE.Quaternion().setFromEuler(
+    new THREE.Euler(-Math.PI / 2 + wave * 0.22, 0, wave * 0.28, 'YXZ'),
+  );
+  const want = r.faceUpQ.clone().multiply(swell);
+  r.root.quaternion.slerp(want, 1 - Math.exp(-dt * 2.4));
 
-  // Limbs ease toward limp rest — NOT sin-spin animation
+  const k = 1 - Math.exp(-dt * 1.35);
   for (const L of r.limp) {
-    if (/root|hips|bip001$/i.test(L.bone.name)) continue;
-    L.bone.rotation.x = THREE.MathUtils.lerp(L.bone.rotation.x, L.x, 1 - Math.exp(-dt * 1.6));
-    L.bone.rotation.y = THREE.MathUtils.lerp(L.bone.rotation.y, L.y, 1 - Math.exp(-dt * 1.4));
-    L.bone.rotation.z = THREE.MathUtils.lerp(L.bone.rotation.z, L.z, 1 - Math.exp(-dt * 1.5));
+    if (/root|hips|^bip001$/i.test(L.bone.name)) continue;
+    L.bone.quaternion.slerp(L.to, k);
   }
   r.root.visible = true;
 }

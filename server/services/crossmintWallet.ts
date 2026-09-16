@@ -876,6 +876,7 @@ export class CrossmintWalletService {
     if (!this.apiKey) {
       return { success: false, error: "Crossmint API key not configured" };
     }
+    const tokenLocator = `solana:${opts.mint.trim()}`;
     const mint = opts.mint.trim();
     const tokenLocator = `solana:${mint}`;
     const locators = [
@@ -980,17 +981,6 @@ export class CrossmintWalletService {
         if (response.ok || response.status === 201) {
           const sig = j.onChain?.txId || j.id;
           const pending = /pending|awaiting/i.test(String(j.status || ""));
-          return {
-            success: true,
-            signature: sig,
-            explorerLink:
-              j.onChain?.explorerLink ||
-              (sig && sig.length > 40
-                ? `https://solscan.io/tx/${sig}`
-                : undefined),
-            pending,
-            status: j.status,
-          };
           const immediate = j.onChain?.txId;
           if (isSolanaSig(immediate)) {
             return {

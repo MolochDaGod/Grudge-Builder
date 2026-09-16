@@ -28,6 +28,7 @@ import { Label } from "@/components/ui/label";
 import { useToast } from "@/hooks/use-toast";
 import { useAccountResources } from "@/hooks/use-account";
 import * as professionSystem from "@/lib/professionSystem";
+import { getTierResources } from "@/lib/professionSync";
 import {
   ResourceNode,
   IslandState,
@@ -1144,12 +1145,19 @@ export default function IslandPage() {
       return;
     }
     
-    const baseLoot = rollLoot(node.drops, profLevel);
-    const loot = baseLoot.map(item => ({
-      ...item,
-      quantity: item.quantity + bonuses.quantityBonus
+    const resourceTier = professionSystem.resourceTierFromProfessionLevel(profLevel);
+    const tierNames = await getTierResources(node.profession, resourceTier);
+    const loot = (tierNames.length ? [tierNames[0]] : []).map((name) => ({
+      itemId: String(name).toLowerCase().replace(/\s+/g, "-"),
+      name,
+      quantity: 1 + bonuses.quantityBonus,
     }));
-    
+    if (loot.length === 0) {
+      for (const row of rollLoot(node.drops, profLevel)) {
+        loot.push({ ...row, quantity: row.quantity + bonuses.quantityBonus });
+      }
+    }
+
     const isCritical = Math.random() < bonuses.criticalGatherChance;
     if (isCritical) {
       loot.forEach(item => item.quantity = Math.floor(item.quantity * 1.5));
@@ -1157,7 +1165,7 @@ export default function IslandPage() {
     
     const gearDropped = Math.random() < bonuses.gearDropChance;
     if (gearDropped) {
-      const gearTier = Math.min(node.tier, bonuses.tierUnlocked);
+      const gearTier = resourceTier;
       loot.push({
         itemId: `gear_drop_t${gearTier}`,
         name: `T${gearTier} Equipment Piece`,
@@ -1165,7 +1173,7 @@ export default function IslandPage() {
       });
     }
     
-    const baseXp = professionSystem.getGatherXp(node.type, node.tier);
+    const baseXp = professionSystem.getGatherXpForProfessionLevel(profLevel);
     const xpGained = Math.floor(baseXp * (1 + bonuses.xpGainBonus));
     
     try {

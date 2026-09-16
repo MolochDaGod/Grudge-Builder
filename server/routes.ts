@@ -1449,13 +1449,35 @@ export async function registerRoutes(
       const account = await storage.getOrCreateAccountForUser(userId);
       
       // Sanitize payload - only allow safe fields to be updated (not userId, id)
-      const { displayName, gold, premiumCurrency } = req.body;
+      const { displayName, username, gold, premiumCurrency } = req.body;
       const safeUpdates: Record<string, unknown> = {};
-      if (displayName !== undefined) safeUpdates.displayName = displayName;
+      const handle =
+        typeof username === "string" && username.trim()
+          ? username.trim().slice(0, 48)
+          : typeof displayName === "string" && displayName.trim()
+            ? displayName.trim().slice(0, 48)
+            : undefined;
+      if (handle !== undefined) safeUpdates.displayName = handle;
+      if (displayName !== undefined && handle === undefined) safeUpdates.displayName = displayName;
       if (gold !== undefined) safeUpdates.gold = gold;
       if (premiumCurrency !== undefined) safeUpdates.premiumCurrency = premiumCurrency;
-      
+
       const updated = await storage.updateAccount(account.id, safeUpdates);
+      if (handle) {
+        try {
+          const { stampPuterLink, fetchIdentityUserById } = await import("./lib/identityLink");
+          const identity = await fetchIdentityUserById(userId);
+          if (identity?.puter_user_id) {
+            await stampPuterLink(userId, {
+              id: identity.puter_user_id,
+              username: handle,
+              email: identity.puter_email || identity.email,
+            });
+          }
+        } catch {
+          /* puter_username column optional */
+        }
+      }
       res.json(updated);
     } catch (error) {
       console.error("Error updating account:", error);

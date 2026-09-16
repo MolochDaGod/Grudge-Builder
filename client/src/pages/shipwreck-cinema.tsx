@@ -18,7 +18,10 @@ import {
   LEVIATHAN_CINEMA_SKIPPABLE_AFTER_SEC,
   STAGE_ID,
 } from '@/island3d/intro/LeviathanOceanCinema';
-import { INTRO_SESSION_KEY } from '@shared/definitions/productionIntro';
+import {
+  INTRO_SESSION_KEY,
+  WARLORDS_LOAD_COVER_URL,
+} from '@shared/definitions/productionIntro';
 import { tutorialShipwreckWashupPath } from '@shared/definitions/warlordsProductionFlow';
 import {
   applyCharacterHandoffFromLocation,
@@ -38,6 +41,7 @@ export default function ShipwreckCinemaPage() {
   const [loadStage, setLoadStage] = useState('Preparing cinema…');
   const [ready, setReady] = useState(false);
   const [canSkip, setCanSkip] = useState(false);
+  const [handoffCover, setHandoffCover] = useState(false);
   const finished = useRef(false);
 
   // Phase B: claim JWT + activate characterId before cinema (handoff to tutorial)
@@ -48,8 +52,7 @@ export default function ShipwreckCinemaPage() {
   const finish = useCallback(() => {
     if (finished.current) return;
     finished.current = true;
-    cinemaRef.current?.dispose();
-    cinemaRef.current = null;
+    setHandoffCover(true);
 
     try {
       sessionStorage.setItem(INTRO_SESSION_KEY, '1');
@@ -61,8 +64,11 @@ export default function ShipwreckCinemaPage() {
     const id = handoff.characterId?.trim() || null;
     if (id) persistActiveCharacter(id, handoff.from || 'shipwreck-intro');
 
-    // Chicken-gun pirate-islands · shipwreck_cove wash-up tutorial
-    navigate(tutorialShipwreckWashupPath(id, 'shipwreck-intro'));
+    window.setTimeout(() => {
+      cinemaRef.current?.dispose();
+      cinemaRef.current = null;
+      navigate(tutorialShipwreckWashupPath(id, 'shipwreck-intro'));
+    }, 900);
   }, [navigate]);
 
   useEffect(() => {
@@ -161,27 +167,32 @@ export default function ShipwreckCinemaPage() {
       <div className="relative" style={{ height: '86vh' }}>
         <div ref={hostRef} className="absolute inset-0 w-full h-full" />
 
-        {!ready && (
-          <div className="absolute inset-0 flex flex-col items-center justify-center bg-[#04080f] z-20 px-6">
-            <div className="absolute inset-0 bg-[radial-gradient(ellipse_at_center,_rgba(14,60,90,0.35)_0%,_transparent_65%)]" />
-            <div className="relative z-[1] w-full max-w-sm text-center">
-              <div className="text-[10px] uppercase tracking-[0.35em] text-cyan-500/90 font-semibold mb-2">
-                First voyage
+        {(!ready || handoffCover) && (
+          <div className="absolute inset-0 z-30 overflow-hidden bg-[#04080f]">
+            <img
+              src={WARLORDS_LOAD_COVER_URL}
+              alt="Grudge Island RTS"
+              className="absolute inset-0 w-full h-full object-cover"
+            />
+            <div className="absolute inset-0 bg-black/35" />
+            <div className="absolute inset-x-0 bottom-10 flex flex-col items-center px-6">
+              <div className="w-full max-w-sm text-center">
+                <div className="text-[10px] uppercase tracking-[0.35em] text-amber-200/90 font-semibold mb-2">
+                  {handoffCover ? 'Loading scene' : 'First voyage'}
+                </div>
+                <div className="h-1.5 rounded-full bg-black/50 overflow-hidden border border-white/10">
+                  <div
+                    className="h-full rounded-full bg-gradient-to-r from-cyan-600 via-sky-400 to-amber-400 transition-[width] duration-300"
+                    style={{ width: handoffCover ? '100%' : `${Math.max(4, loadU * 100)}%` }}
+                  />
+                </div>
+                <div className="mt-2 text-[10px] tabular-nums text-slate-200/80">
+                  {handoffCover ? 'Shipwreck cove…' : `${loadStage} · ${Math.round(loadU * 100)}%`}
+                </div>
+                {!handoffCover && (
+                  <p className="text-[10px] text-slate-400 mt-3 font-mono">{STAGE_ID}</p>
+                )}
               </div>
-              <div className="font-cinzel text-2xl tracking-widest text-amber-100/95">
-                Leviathan Ocean
-              </div>
-              <div className="mt-8 h-1.5 rounded-full bg-white/10 overflow-hidden border border-white/5">
-                <div
-                  className="h-full rounded-full bg-gradient-to-r from-cyan-600 via-sky-400 to-amber-400 transition-[width] duration-300"
-                  style={{ width: `${Math.max(4, loadU * 100)}%` }}
-                />
-              </div>
-              <div className="mt-2 flex justify-between text-[10px] tabular-nums text-slate-500">
-                <span className="text-cyan-300/80 truncate max-w-[70%] text-left">{loadStage}</span>
-                <span>{Math.round(loadU * 100)}%</span>
-              </div>
-              <p className="text-[10px] text-slate-600 mt-4 font-mono">{STAGE_ID}</p>
             </div>
           </div>
         )}
