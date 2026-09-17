@@ -3,7 +3,7 @@
  */
 import { htmlPage } from "./ui.js";
 
-export const WALLET_BUILD = "2026-09-17-swap-v1";
+export const WALLET_BUILD = "2026-09-17-inswap-v1";
 
 const CORS_ALLOW = [
   "https://wallet.grudge-studio.com",
@@ -209,6 +209,66 @@ export default {
         status: 200,
         headers: { "Content-Type": "text/javascript; charset=utf-8", "Cache-Control": "no-store", ...cors },
       });
+    }
+
+    if (url.pathname.startsWith("/api/swap/")) {
+      const jup = (env.JUPITER_SWAP_URL || "https://lite-api.jup.ag/swap/v2").replace(/\/$/, "");
+      const jh = { accept: "application/json" };
+      if (env.JUPITER_API_KEY) jh["x-api-key"] = env.JUPITER_API_KEY;
+      try {
+        if (url.pathname === "/api/swap/quote" && request.method === "GET") {
+          const q = url.searchParams;
+          const orderUrl = `${jup}/order?${new URLSearchParams({
+            inputMint: q.get("inputMint") || "",
+            outputMint: q.get("outputMint") || "",
+            amount: q.get("amount") || "",
+            slippageBps: q.get("slippageBps") || "100",
+            ...(q.get("taker") ? { taker: q.get("taker") } : {}),
+          })}`;
+          const r = await fetch(orderUrl, { headers: jh });
+          const body = await r.json().catch(() => ({}));
+          return json(
+            {
+              ok: r.ok && Boolean(body.outAmount),
+              inAmount: body.inAmount,
+              outAmount: body.outAmount,
+              otherAmountThreshold: body.otherAmountThreshold,
+              slippageBps: body.slippageBps,
+              requestId: body.requestId,
+              transaction: body.transaction || null,
+              error: body.errorMessage || body.error || null,
+            },
+            r.ok ? 200 : r.status,
+            cors,
+          );
+        }
+        if (url.pathname === "/api/swap/execute" && request.method === "POST") {
+          const payload = await request.json().catch(() => ({}));
+          const r = await fetch(`${jup}/execute`, {
+            method: "POST",
+            headers: { ...jh, "content-type": "application/json" },
+            body: JSON.stringify({
+              signedTransaction: payload.signedTransaction,
+              requestId: payload.requestId,
+            }),
+          });
+          const body = await r.json().catch(() => ({}));
+          return json(
+            {
+              ok: r.ok && Boolean(body.signature),
+              signature: body.signature,
+              status: body.status,
+              error: body.error || null,
+              result: body,
+            },
+            r.ok ? 200 : r.status,
+            cors,
+          );
+        }
+        return json({ error: "unknown swap route" }, 404, cors);
+      } catch (err) {
+        return json({ ok: false, error: "swap upstream failed" }, 502, cors);
+      }
     }
 
     if (url.pathname.startsWith("/api/")) {

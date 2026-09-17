@@ -894,76 +894,202 @@
   }
   let swapMint = USDC_MINT;
   let swapDir = "in";
-  let jupReady = false;
+  const DEC = {};
+  DEC[WSOL] = 9;
+  DEC.SOL = 9;
+  DEC[USDC_MINT] = 6;
+  DEC[GBUX_MINT] = 6;
+  DEC[THC_MINT] = 6;
+  function decOf(m) { return DEC[m] || DEC[mintForJup(m)] || 6; }
   function mintForJup(m) {
     if (!m || m === "SOL") return WSOL;
     return m;
   }
-  function swapForm(mint, dir) {
+  function uiToRaw(ui, mint) {
+    const n = Number(ui);
+    if (!(n > 0)) return "0";
+    const d = decOf(mint);
+    const s = n.toFixed(d).replace(/\./, "");
+    return s.replace(/^0+/, "") || "0";
+  }
+  function rawToUi(raw, mint) {
+    const d = decOf(mint);
+    const s = String(raw || "0");
+    if (s.length <= d) return Number("0." + s.padStart(d, "0"));
+    return Number(s.slice(0, s.length - d) + "." + s.slice(s.length - d));
+  }
+  function swapPair(mint, dir) {
     const token = mintForJup(mint);
-    if (dir === "out") {
-      return { initialInputMint: token, initialOutputMint: WSOL };
-    }
-    return { initialInputMint: WSOL, initialOutputMint: mint === "SOL" ? USDC_MINT : token };
+    if (dir === "out") return { pay: token, get: WSOL, payLabel: symbolOf(mint), getLabel: "SOL" };
+    if (mint === "SOL") return { pay: USDC_MINT, get: WSOL, payLabel: "USDC", getLabel: "SOL" };
+    return { pay: WSOL, get: token, payLabel: "SOL", getLabel: symbolOf(mint) };
   }
-  function parkPlugin() {
-    const plugin = $("jupiter-plugin");
-    const sheetBox = document.querySelector("#sheet-swap .swapbox");
-    if (plugin && sheetBox && plugin.parentElement !== sheetBox) sheetBox.appendChild(plugin);
-    document.querySelectorAll("[data-swapbox]").forEach((el) => { el.hidden = true; });
+  function symbolOf(mint) {
+    const c = CORE.find((x) => x.mint === mint || mintForJup(x.mint) === mint);
+    if (c) return c.symbol;
+    if (mint === WSOL || mint === "SOL") return "SOL";
+    return short(mint);
   }
-  function initPlugin(form) {
-    if (!window.Jupiter || typeof window.Jupiter.init !== "function") return false;
-    const opts = {
-      displayMode: "integrated",
-      integratedTargetId: "jupiter-plugin",
-      formProps: form,
-      branding: { name: "Gruda", logoUri: location.origin + "/media/play.png" },
-      containerStyles: { width: "100%", minHeight: "420px", borderRadius: "14px", overflow: "hidden" },
-    };
-    try {
-      if (!jupReady) {
-        window.Jupiter.init(opts);
-        jupReady = true;
-      } else if (typeof window.Jupiter.syncProps === "function") {
-        window.Jupiter.syncProps({ formProps: form });
-      } else {
-        window.Jupiter.init(opts);
-      }
-    } catch (e) {
-      try { window.Jupiter.init(opts); jupReady = true; } catch (e2) { return false; }
-    }
-    return true;
-  }
-  function mountSwapIn(box, mint, dir) {
-    const plugin = $("jupiter-plugin");
-    if (!plugin || !box) return;
-    box.hidden = false;
-    box.appendChild(plugin);
-    initPlugin(swapForm(mint, dir));
-  }
-  function paintSwap() {
-    parkPlugin();
-    initPlugin(swapForm(swapMint, swapDir));
-    document.querySelectorAll("#swap-dirs [data-dir]").forEach((b) => {
-      b.classList.toggle("on", b.dataset.dir === swapDir);
+  async function quoteSwap(pay, get, raw, taker) {
+    const q = new URLSearchParams({
+      inputMint: mintForJup(pay),
+      outputMint: mintForJup(get),
+      amount: raw,
+      slippageBps: "100",
     });
+    if (taker) q.set("taker", taker);
+    let r = await fetch("/api/swap/quote?" + q).then((x) => x.json()).catch(() => null);
+    if (!r || !r.outAmount) {
+      r = await fetch("https://lite-api.jup.ag/swap/v2/order?" + q).then((x) => x.json()).catch(() => ({}));
+      if (r.outAmount) r = { ok: true, inAmount: r.inAmount, outAmount: r.outAmount, requestId: r.requestId, transaction: r.transaction, slippageBps: r.slippageBps };
+    }
+    return r || {};
+  }
+  async function signLinkedTx(address, txB64) {
+    const providers = listProviders();
+    const installed = providers.installed || [];
+    let conn = null;
+    for (const row of installed) {
+      try {
+        const c = await connectHandle(row);
+        if (c.address === address) { conn = c; break; }
+      } catch (e) {}
+    }
+    if (!conn) throw new Error("Connect the wallet that holds this bag");
+    const raw = Uint8Array.from(atob(txB64), (ch) => ch.charCodeAt(0));
+    const s = feat(conn.handle, "solana:signTransaction");
+    if (s && typeof s.signTransaction === "function") {
+      const out = await s.signTransaction({ account: conn.account, transaction: raw });
+      const signed = Array.isArray(out) ? (out[0].signedTransaction || out[0]) : (out.signedTransaction || out);
+      const bytes = signed instanceof Uint8Array ? signed : new Uint8Array(signed);
+      let bin = "";
+      bytes.forEach((b) => { bin += String.fromCharCode(b); });
+      return btoa(bin);
+    }
+    if (conn.handle && typeof conn.handle.signTransaction === "function") {
+      throw new Error("Open this wallet's in-app browser, or use a Wallet Standard wallet (Phantom, Solflare, Backpack, Trust)");
+    }
+    throw new Error("This wallet cannot sign a swap");
+  }
+  function fillSwapBox(box, mint, dir) {
+    if (!box) return;
+    const pair = swapPair(mint, dir);
+    const owners = listOwners().filter((o) => o.id !== "trader");
+    const payLogo = tokenLogo(pair.pay === WSOL ? "SOL" : pair.pay, pair.payLabel);
+    const getLogo = tokenLogo(pair.get === WSOL ? "SOL" : pair.get, pair.getLabel);
+    box.hidden = false;
+    box.innerHTML =
+      '<div class="chips">' +
+        '<button type="button" class="chip' + (dir === "in" ? " on" : "") + '" data-swdir="in">In · buy</button>' +
+        '<button type="button" class="chip' + (dir === "out" ? " on" : "") + '" data-swdir="out">Out · sell</button>' +
+      "</div>" +
+      '<label>From</label>' +
+      '<select class="input sw-owner">' +
+        (owners.map((o) => '<option value="' + esc(o.address) + '" data-kind="' + esc(o.id) + '">' + esc(o.label) + " · " + esc(clip7(o.address)) + "</option>").join("") || "<option>Sign in</option>") +
+      "</select>" +
+      '<div class="sw-row">' + avImg(payLogo) + '<input class="sw-amt" type="number" min="0" step="any" placeholder="0" /><span>' + esc(pair.payLabel) + '</span><button type="button" class="tiny sw-max">Max</button></div>' +
+      '<div class="sw-row">' + avImg(getLogo) + '<b class="sw-out">—</b><span>' + esc(pair.getLabel) + "</span></div>" +
+      '<p class="hint sw-rate">Quote appears as you type.</p>' +
+      '<button type="button" class="primary sw-go">Swap</button>' +
+      '<p class="msg sw-msg"></p>';
+    const amtEl = box.querySelector(".sw-amt");
+    const outEl = box.querySelector(".sw-out");
+    const rateEl = box.querySelector(".sw-rate");
+    const msgEl = box.querySelector(".sw-msg");
+    const ownerEl = box.querySelector(".sw-owner");
+    const goEl = box.querySelector(".sw-go");
+    let timer = 0;
+    let last = null;
+    const say = (t, ok) => { if (msgEl) { msgEl.textContent = t || ""; msgEl.className = "msg" + (ok === true ? " ok" : ok === false ? " err" : ""); } };
+    async function refreshQuote() {
+      const raw = uiToRaw(amtEl.value, pair.pay);
+      if (raw === "0") { outEl.textContent = "—"; last = null; return; }
+      say("Quoting…");
+      const q = await quoteSwap(pair.pay, pair.get, raw, ownerEl.value);
+      if (!q.outAmount) { say(q.error || "No route", false); last = null; outEl.textContent = "—"; return; }
+      last = q;
+      const got = rawToUi(q.outAmount, pair.get);
+      outEl.textContent = fmtAmt(got);
+      rateEl.textContent = fmtAmt(amtEl.value) + " " + pair.payLabel + " → " + fmtAmt(got) + " " + pair.getLabel;
+      say("");
+    }
+    amtEl.addEventListener("input", () => { clearTimeout(timer); timer = setTimeout(refreshQuote, 280); });
+    box.querySelectorAll("[data-swdir]").forEach((b) => {
+      b.onclick = () => openTokenSwap(mint, b.dataset.swdir);
+    });
+    const maxBtn = box.querySelector(".sw-max");
+    if (maxBtn) maxBtn.onclick = () => {
+      const addr = ownerEl.value;
+      const t = pendingToken; // unused
+      const card = box.closest(".tok");
+      const holds = (card && window.__coinRows && window.__coinRows[mint] && window.__coinRows[mint].holds) || [];
+      const payMint = pair.pay === WSOL ? "SOL" : pair.pay;
+      const row = window.__coinRows && window.__coinRows[payMint];
+      const hit = ((row && row.holds) || holds).find((h) => h.address === addr);
+      const bal = hit ? hit.amount : 0;
+      amtEl.value = String(bal || "");
+      refreshQuote();
+    };
+    goEl.onclick = async () => {
+      const raw = uiToRaw(amtEl.value, pair.pay);
+      if (raw === "0") { say("Enter an amount", false); return; }
+      const opt = ownerEl.options[ownerEl.selectedIndex];
+      const kind = opt && opt.dataset.kind;
+      const taker = ownerEl.value;
+      if (!taker || taker.length < 32) { say("No wallet", false); return; }
+      if (kind === "trader") { say("Trader swaps on trader.grudge-studio.com", false); return; }
+      goEl.disabled = true;
+      say("Swapping…");
+      try {
+        if (kind === "play") {
+          const r = await api("/api/wallet/swap", {
+            method: "POST",
+            body: JSON.stringify({
+              inputMint: mintForJup(pair.pay),
+              outputMint: mintForJup(pair.get),
+              amount: raw,
+              slippageBps: 100,
+            }),
+          });
+          if (!r.ok) throw new Error((r.data && (r.data.error || r.data.message)) || "Play swap failed");
+          say("Done " + short((r.data && (r.data.signature || r.data.swapTx)) || ""), true);
+          loadCoins();
+          return;
+        }
+        const q = await quoteSwap(pair.pay, pair.get, raw, taker);
+        if (!q.transaction) throw new Error(q.error || "No unsigned swap — connect that wallet");
+        const signed = await signLinkedTx(taker, q.transaction);
+        const ex = await fetch("/api/swap/execute", {
+          method: "POST",
+          headers: { "content-type": "application/json" },
+          body: JSON.stringify({ signedTransaction: signed, requestId: q.requestId }),
+        }).then((x) => x.json());
+        if (!ex.ok && !ex.signature) throw new Error(ex.error || "execute failed");
+        say("Done " + short(ex.signature), true);
+        loadCoins();
+      } catch (e) {
+        say(e.message || String(e), false);
+      } finally {
+        goEl.disabled = false;
+      }
+    };
   }
   function openTokenSwap(mint, dir) {
     swapMint = mint || USDC_MINT;
     swapDir = dir === "out" ? "out" : "in";
-    const card = document.querySelector('.tok[data-mint="' + CSS.escape(swapMint) + '"]');
+    const card = document.querySelector('.tok[data-mint="' + (window.CSS && CSS.escape ? CSS.escape(swapMint) : swapMint) + '"]');
     const box = card && card.querySelector("[data-swapbox]");
     if (card && box) {
       document.querySelectorAll(".card.tok.on").forEach((c) => { if (c !== card) c.classList.remove("on"); });
       card.classList.add("on");
-      parkPlugin();
-      mountSwapIn(box, swapMint, swapDir);
+      document.querySelectorAll("[data-swapbox]").forEach((el) => { if (el !== box) { el.hidden = true; el.innerHTML = ""; } });
+      fillSwapBox(box, swapMint, swapDir);
       showSheet(null);
       card.scrollIntoView({ behavior: "smooth", block: "nearest" });
       return;
     }
-    paintSwap();
+    const sheetBox = $("sheet-swap-box");
+    fillSwapBox(sheetBox, swapMint, swapDir);
     showSheet("sheet-swap");
   }
   async function openTokenInfo(mint) {
@@ -1045,10 +1171,10 @@
       addHold(GBUX_MINT, "GBUX", "GBUX", ART.gbux, Number(playBagGbux) || 0, { label: "Budz play", address: playWallet || "play-bag" }, { bag: playBagGbux });
     }
     const rows = Object.keys(byMint).map((k) => byMint[k]).sort((a, b) => Number(b.uiAmount) - Number(a.uiAmount));
+    window.__coinRows = byMint;
     const sol = byMint.SOL ? byMint.SOL.uiAmount : 0;
     setText("fig-sol", Number(sol).toFixed(4));
     setText("tok-sol", Number(sol).toFixed(4));
-    parkPlugin();
     box.innerHTML = rows.length ? rows.map(tokenRow).join("") : '<p class="empty">No tokens on these wallets yet.</p>';
     bindCoinList();
     const home = $("home-tokens");
@@ -1278,26 +1404,13 @@
     document.querySelectorAll(".sheet").forEach((s) => { s.addEventListener("click", (e) => { if (e.target === s) showSheet(null); }); });
     if ($("act-recv")) $("act-recv").onclick = () => showSheet("sheet-recv");
     if ($("act-send")) $("act-send").onclick = () => showSheet("sheet-send");
-    if ($("act-swap")) $("act-swap").onclick = () => {
-      swapMint = USDC_MINT;
-      swapDir = "in";
-      paintSwap();
-      showSheet("sheet-swap");
-    };
+    if ($("act-swap")) $("act-swap").onclick = () => openTokenSwap(USDC_MINT, "in");
     if ($("act-connect")) $("act-connect").onclick = () => showSheet("sheet-connect");
     if ($("act-add")) $("act-add").onclick = () => showSheet("sheet-connect");
     if ($("btn-login")) $("btn-login").href = loginHref();
     if ($("btn-logout")) $("btn-logout").onclick = signOut;
     if ($("set-logout")) $("set-logout").onclick = signOut;
     if ($("set-copy-gid")) $("set-copy-gid").onclick = () => copyAddr("gid");
-    document.querySelectorAll("#swap-dirs [data-dir]").forEach((b) => {
-      b.onclick = () => {
-        swapDir = b.dataset.dir === "out" ? "out" : "in";
-        const sheet = $("sheet-swap");
-        if (sheet && sheet.classList.contains("on")) paintSwap();
-        else openTokenSwap(swapMint, swapDir);
-      };
-    });
     document.querySelectorAll("[data-copy]").forEach((b) => {
       b.onclick = () => copyAddr(b.dataset.copy);
     });

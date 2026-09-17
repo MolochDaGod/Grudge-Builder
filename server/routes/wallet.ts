@@ -19,6 +19,7 @@ import {
 import type { LinkedWalletProvider, WalletPurchaseCurrency } from "@shared/schema";
 import { WALLET_PURCHASE_CURRENCIES } from "@shared/schema";
 import { registerWalletInventoryRoutes } from "./walletInventoryRoutes";
+import { swapPlayWallet, jupiterOrder } from "../services/walletSwap";
 
 /** Prefer SESSION_SECRET (auth.ts) then JWT_SECRET / GRUDGE_JWT_SECRET — use first non-empty candidate only. */
 const JWT_SECRET_CANDIDATES = [
@@ -487,6 +488,77 @@ export function registerWalletRoutes(app: Express): void {
       res.json({ success: true, linkedWallets: linked });
     } catch (e: any) {
       res.status(400).json({ error: e.message || "Could not unlink" });
+    }
+  });
+
+  app.post("/api/wallet/swap/quote", requireAuth, async (req, res) => {
+    try {
+      const { inputMint, outputMint, amount, taker, slippageBps } = req.body as {
+        inputMint?: string;
+        outputMint?: string;
+        amount?: string | number;
+        taker?: string;
+        slippageBps?: number;
+      };
+      const amt = String(amount || "").split(".")[0];
+      if (!inputMint || !outputMint || !/^[1-9]\d*$/.test(amt)) {
+        return res.status(400).json({ error: "inputMint, outputMint, amount required" });
+      }
+      const order = await jupiterOrder({
+        inputMint,
+        outputMint,
+        amount: amt,
+        taker,
+        slippageBps,
+      });
+      if (!order.ok) {
+        return res.status(order.status || 400).json({
+          error: order.body?.errorMessage || order.body?.error || "No route",
+          order: order.body,
+        });
+      }
+      res.json({
+        ok: true,
+        inAmount: order.body.inAmount,
+        outAmount: order.body.outAmount,
+        otherAmountThreshold: order.body.otherAmountThreshold,
+        slippageBps: order.body.slippageBps,
+        requestId: order.body.requestId,
+        transaction: Boolean(order.body.transaction),
+      });
+    } catch (e: any) {
+      res.status(400).json({ error: e.message || "quote failed" });
+    }
+  });
+
+  app.post("/api/wallet/swap", requireAuth, async (req, res) => {
+    try {
+      const account = await requireAccount(req, res);
+      if (!account) return;
+      const play = String((account as { walletAddress?: string }).walletAddress || "").trim();
+      if (!play) return res.status(400).json({ error: "No Play wallet on this Grudge ID" });
+      const { inputMint, outputMint, amount, slippageBps } = req.body as {
+        inputMint?: string;
+        outputMint?: string;
+        amount?: string | number;
+        slippageBps?: number;
+      };
+      const amt = String(amount || "").split(".")[0];
+      if (!inputMint || !outputMint || !/^[1-9]\d*$/.test(amt)) {
+        return res.status(400).json({ error: "inputMint, outputMint, amount required" });
+      }
+      const result = await swapPlayWallet({
+        playAddress: play,
+        inputMint,
+        outputMint,
+        amount: amt,
+        slippageBps,
+      });
+      if (!result.ok) return res.status(400).json(result);
+      res.json({ success: true, ...result });
+    } catch (e: any) {
+      console.error("[Wallet/swap]", e);
+      res.status(400).json({ error: e.message || "Swap failed" });
     }
   });
 
