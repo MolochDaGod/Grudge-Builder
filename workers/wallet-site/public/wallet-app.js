@@ -26,7 +26,9 @@
     sol: "/media/sol.png",
     gbux: "/media/gbux.png",
     id: "/media/grudge-id.png",
-    play: "/media/crossmint.png",
+    play: "/media/play.png",
+    thc: "/media/thc.png",
+    usdc: "/media/usdc.png",
   };
   const WALLET_GLYPH = "data:image/svg+xml," + encodeURIComponent('<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="none" stroke="#e0c36a" stroke-width="1.6"><rect x="3" y="6" width="18" height="12" rx="2"/><path d="M3 10h18"/></svg>');
   const WATCH_KEY = "gruda.watch.mints";
@@ -67,7 +69,8 @@
     const s = String(symbol || "").toUpperCase();
     if (m === "SOL" || m === WSOL || s === "SOL") return ART.sol;
     if (m === GBUX_MINT || s === "GBUX") return ART.gbux;
-    if (m === USDC_MINT || s === "USDC") return remote || "https://raw.githubusercontent.com/solana-labs/token-list/main/assets/mainnet/EPjFWdd5AufqSSqeM2qN1xzybapC8G4wEGGkZwyTDt1v/logo.png";
+    if (m === USDC_MINT || s === "USDC") return ART.usdc || remote;
+    if (m === THC_MINT || s === "THC") return ART.thc || remote;
     return remote || "";
   }
   function avImg(src) {
@@ -90,6 +93,7 @@
 
   let linkedCache = [];
   let vaultPubkey = "";
+  let vaultSol = "0.00";
   let walletType = "";
   let playWallet = "";
   let playBagGbux = 0;
@@ -537,6 +541,7 @@
     }
     box.innerHTML = html;
     bindCopyChips(box);
+    renderTraderCard();
     box.querySelectorAll("[data-unlink]").forEach((b) => {
       b.addEventListener("click", async (e) => {
         e.stopPropagation();
@@ -547,6 +552,27 @@
         } catch (err) { toast(err.message || String(err), false); }
       });
     });
+  }
+  function renderTraderCard() {
+    const host = $("trader-card");
+    if (!host) return;
+    const addr = vaultPubkey;
+    const solEl = $("vault-sol") || $("tr-sol");
+    const sol = (solEl && solEl.textContent) || vaultSol || "0.00";
+    host.innerHTML = walletCard({
+      icon: ART.sol,
+      title: "Trader",
+      pill: addr ? ' <span class="pill">On</span>' : "",
+      address: addr,
+      right: addr
+        ? "<b>" + esc(sol) + "</b><span>SOL</span>"
+        : "<span>off</span>",
+      actions: addr
+        ? '<a class="tiny" href="' + TRADER + '" style="text-decoration:none">Open</a>'
+        : '<button type="button" class="tiny" id="home-enroll">Enable</button>',
+    });
+    bindCopyChips(host);
+    if ($("home-enroll")) $("home-enroll").onclick = () => showSheet("sheet-recv");
   }
   function fillSettings() {
     setText("set-name", ($("name") && $("name").textContent) || "Sign in");
@@ -623,6 +649,7 @@
       const h = await traderApi("/api/gruda/holdings");
       const d = h.data || {};
       const sol = d.sol != null ? Number(d.sol).toFixed(4) : "0.00";
+      vaultSol = sol;
       ["tr-sol", "vault-sol"].forEach((id) => setText(id, sol));
       const pk = d.vault || d.tradingPubkey || d.publicKey;
       if (pk) {
@@ -630,6 +657,7 @@
         if ($("vault-addr")) $("vault-addr").textContent = pk;
         if ($("btn-solscan")) $("btn-solscan").href = "https://solscan.io/account/" + pk;
       }
+      renderTraderCard();
     } catch (e) {}
     fillSettings();
     loadCoins();
@@ -823,7 +851,8 @@
     const chev = holds.length > 1 ? '<svg class="chev" viewBox="0 0 12 12"><path d="M2 4l4 4 4-4" fill="none" stroke="currentColor" stroke-width="1.6"/></svg>' : "";
     const remove = t.watched && !t.core ? '<button type="button" class="tiny" data-unwatch="' + esc(mint) + '">Remove</button>' : "";
     const actions = '<button type="button" class="tiny" data-info="' + esc(mint) + '">Info</button>' +
-      (mint && mint !== "SOL" && mint !== "BUDZ" ? '<button type="button" class="tiny" data-swap="' + esc(mint) + '">Swap</button>' : "");
+      '<button type="button" class="tiny" data-swap="' + esc(mint) + '" data-dir="in">In</button>' +
+      '<button type="button" class="tiny" data-swap="' + esc(mint) + '" data-dir="out">Out</button>';
     return '<article class="card tok" data-mint="' + esc(mint) + '">' +
       '<button type="button" class="card-hit" data-toggle="1">' +
         avImg(logo) +
@@ -856,15 +885,38 @@
       b.addEventListener("click", (e) => { e.stopPropagation(); openTokenInfo(b.dataset.info); });
     });
     box.querySelectorAll("[data-swap]").forEach((b) => {
-      b.addEventListener("click", (e) => { e.stopPropagation(); openTokenSwap(b.dataset.swap); });
+      b.addEventListener("click", (e) => {
+        e.stopPropagation();
+        openTokenSwap(b.dataset.swap, b.dataset.dir || "in");
+      });
     });
   }
-  function openTokenSwap(mint) {
-    if (!mint || mint === "SOL" || mint === "BUDZ") return;
-    const href = "https://jup.ag/swap/SOL-" + encodeURIComponent(mint);
+  let swapMint = USDC_MINT;
+  let swapDir = "in";
+  function jupPair(mint, dir) {
+    const m = mint === "SOL" ? WSOL : mint;
+    if (mint === "SOL" || mint === WSOL) {
+      return dir === "out" ? "SOL-" + USDC_MINT : USDC_MINT + "-SOL";
+    }
+    return dir === "out" ? m + "-SOL" : "SOL-" + m;
+  }
+  function paintSwap() {
+    const href = "https://jup.ag/swap/" + jupPair(swapMint, swapDir);
     if ($("swap-frame")) $("swap-frame").src = href;
     if ($("swap-open")) $("swap-open").href = href;
-    setText("swap-mint", mint);
+    const name = (CORE.find((c) => c.mint === swapMint) || {}).symbol || short(swapMint);
+    setText("swap-title", name);
+    setText("swap-hint", swapDir === "out"
+      ? "Sell " + name + " for SOL."
+      : (swapMint === "SOL" ? "Buy SOL with USDC." : "Spend SOL, get " + name + "."));
+    document.querySelectorAll("#swap-dirs [data-dir]").forEach((b) => {
+      b.classList.toggle("on", b.dataset.dir === swapDir);
+    });
+  }
+  function openTokenSwap(mint, dir) {
+    swapMint = mint || USDC_MINT;
+    swapDir = dir === "out" ? "out" : "in";
+    paintSwap();
     showSheet("sheet-swap");
   }
   async function openTokenInfo(mint) {
@@ -887,8 +939,9 @@
       '<div class="preview">' + avImg(logo) + '<div class="meta"><b>' + esc(meta.symbol || row.symbol) + "</b><span>" + esc(meta.name || "") + "</span></div></div>" +
       (mint !== "SOL" ? '<p class="mono">' + esc(mint) + "</p>" : "<p>Native SOL.</p>") +
       '<a class="ghost btn" href="https://solscan.io/' + (mint === "SOL" ? "" : "token/" + encodeURIComponent(mint)) + '" target="_blank" rel="noopener">Solscan</a>' +
-      (mint !== "SOL" ? '<button class="primary" type="button" id="info-swap">Swap on Jupiter</button>' : "");
-    if ($("info-swap")) $("info-swap").onclick = () => openTokenSwap(mint);
+      (mint ? '<button class="primary" type="button" id="info-in">Swap in</button><button class="ghost" type="button" id="info-out">Swap out</button>' : "");
+    if ($("info-in")) $("info-in").onclick = () => openTokenSwap(mint, "in");
+    if ($("info-out")) $("info-out").onclick = () => openTokenSwap(mint, "out");
   }
   async function loadCoins() {
     const box = $("coin-list");
@@ -924,7 +977,9 @@
       Object.keys(bag.tokens).forEach((mint) => {
         const amt = bag.tokens[mint];
         const gbux = mint === GBUX_MINT;
-        addHold(mint, gbux ? "GBUX" : "", gbux ? "GBUX" : "", gbux ? ART.gbux : "", amt, owner, gbux ? { feeOnly: true } : null);
+        const thc = mint === THC_MINT;
+        const usdc = mint === USDC_MINT;
+        addHold(mint, gbux ? "GBUX" : thc ? "THC" : usdc ? "USDC" : "", gbux ? "GBUX" : thc ? "THC Labz" : usdc ? "USD Coin" : "", tokenLogo(mint), amt, owner, gbux ? { feeOnly: true } : { core: gbux || thc || usdc });
       });
     });
     watch.forEach((m) => {
@@ -932,7 +987,12 @@
     });
     CORE.forEach((c) => {
       if (!byMint[c.mint]) addHold(c.mint, c.symbol, c.name, tokenLogo(c.mint, c.symbol), 0, owners[0] || { label: "Play", address: playWallet }, { core: true });
-      else byMint[c.mint].core = true;
+      else {
+        byMint[c.mint].core = true;
+        byMint[c.mint].symbol = c.symbol;
+        byMint[c.mint].name = c.name;
+        byMint[c.mint].logo = tokenLogo(c.mint, c.symbol, byMint[c.mint].logo);
+      }
     });
     if (playBagGbux) {
       addHold(GBUX_MINT, "GBUX", "GBUX", ART.gbux, Number(playBagGbux) || 0, { label: "Budz play", address: playWallet || "play-bag" }, { bag: playBagGbux });
@@ -944,8 +1004,19 @@
     box.innerHTML = rows.length ? rows.map(tokenRow).join("") : '<p class="empty">No tokens on these wallets yet.</p>';
     bindCoinList();
     const home = $("home-tokens");
-    if (home) home.innerHTML = rows.slice(0, 6).map(tokenRow).join("");
-    if (home) bindCopyChips(home);
+    if (home) {
+      home.innerHTML = rows.slice(0, 6).map(tokenRow).join("");
+      bindCopyChips(home);
+      home.querySelectorAll("[data-toggle]").forEach((b) => {
+        b.addEventListener("click", () => { const card = b.closest(".card"); if (card) card.classList.toggle("on"); });
+      });
+      home.querySelectorAll("[data-info]").forEach((b) => {
+        b.addEventListener("click", (e) => { e.stopPropagation(); openTokenInfo(b.dataset.info); });
+      });
+      home.querySelectorAll("[data-swap]").forEach((b) => {
+        b.addEventListener("click", (e) => { e.stopPropagation(); openTokenSwap(b.dataset.swap, b.dataset.dir || "in"); });
+      });
+    }
   }
   function renderTokenPreview(meta) {
     pendingToken = meta;
@@ -1159,13 +1230,16 @@
     document.querySelectorAll(".sheet").forEach((s) => { s.addEventListener("click", (e) => { if (e.target === s) showSheet(null); }); });
     if ($("act-recv")) $("act-recv").onclick = () => showSheet("sheet-recv");
     if ($("act-send")) $("act-send").onclick = () => showSheet("sheet-send");
-    if ($("act-swap")) $("act-swap").onclick = () => { location.href = TRADER; };
+    if ($("act-swap")) $("act-swap").onclick = () => openTokenSwap(USDC_MINT, "in");
     if ($("act-connect")) $("act-connect").onclick = () => showSheet("sheet-connect");
     if ($("act-add")) $("act-add").onclick = () => showSheet("sheet-connect");
     if ($("btn-login")) $("btn-login").href = loginHref();
     if ($("btn-logout")) $("btn-logout").onclick = signOut;
     if ($("set-logout")) $("set-logout").onclick = signOut;
     if ($("set-copy-gid")) $("set-copy-gid").onclick = () => copyAddr("gid");
+    document.querySelectorAll("#swap-dirs [data-dir]").forEach((b) => {
+      b.onclick = () => { swapDir = b.dataset.dir === "out" ? "out" : "in"; paintSwap(); };
+    });
     document.querySelectorAll("[data-copy]").forEach((b) => {
       b.onclick = () => copyAddr(b.dataset.copy);
     });

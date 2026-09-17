@@ -13,7 +13,7 @@ export function htmlPage(env) {
 <head>
 <meta charset="UTF-8" />
 <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover" />
-<meta name="gruda-build" content="2026-09-16-wallets-v1" />
+<meta name="gruda-build" content="2026-09-17-tokens-v1" />
 <title>Gruda Wallet</title>
 <link rel="icon" type="image/png" sizes="32x32" href="/favicon-32.png" />
 <link rel="icon" type="image/png" sizes="192x192" href="/icon-192.png" />
@@ -180,16 +180,18 @@ section{padding:8px 16px 0}
   <div class="panel on" id="panel-home">
     <section>
       <div class="hrow"><h2>Wallets</h2><button type="button" id="act-add">+ Add</button></div>
-      <div id="linked-list">
-        <div class="row"><div class="av"><img src="/media/sol.png" alt=""></div><div class="meta"><b>Wallet 1</b><span class="mono" id="w1">Not linked</span></div><div class="bal"><span>funding</span></div></div>
+      <div id="linked-list"></div>
+      <div id="trader-card">
+        <div class="row"><div class="av"><img src="/media/sol.png" alt=""></div><div class="meta"><b>Trader</b><span>Auto-trader</span></div><div class="bal"><b id="vault-sol">0.00</b><span>SOL</span></div></div>
       </div>
-      <div class="row"><div class="av"><img src="/media/sol.png" alt=""></div><div class="meta"><b>Trader</b><span>Auto-trader</span></div><div class="bal"><b id="vault-sol">0.00</b><span>SOL</span></div></div>
     </section>
     <section>
       <div class="hrow"><h2>Tokens</h2></div>
       <div id="home-tokens">
       <div class="row"><div class="av"><img src="/media/sol.png" alt="SOL"></div><div class="meta"><b>Solana</b><span>SOL</span></div><div class="bal"><b id="tok-sol">0.00</b></div></div>
-      <div class="row"><div class="av"><img src="/media/gbux.png" alt="GBUX"></div><div class="meta"><b>GBUX</b><span>Poker</span></div><div class="bal"><b id="tok-gbux">0</b></div></div>
+      <div class="row"><div class="av"><img src="/media/gbux.png" alt="GBUX"></div><div class="meta"><b>GBUX</b><span>Play / fee</span></div><div class="bal"><b id="tok-gbux">0</b></div></div>
+      <div class="row"><div class="av"><img src="/media/usdc.png" alt="USDC"></div><div class="meta"><b>USDC</b><span>USD Coin</span></div><div class="bal"><b>0</b></div></div>
+      <div class="row"><div class="av"><img src="/media/thc.png" alt="THC"></div><div class="meta"><b>THC</b><span>THC Labz</span></div><div class="bal"><b>0</b></div></div>
       </div>
     </section>
   </div>
@@ -258,9 +260,9 @@ section{padding:8px 16px 0}
       <div class="bal"><button type="button" class="tiny" id="set-copy-gid">Copy ID</button></div>
     </div>
     <div class="hrow"><h2>Addresses</h2></div>
-    <div class="row"><div class="meta"><b>Play <span class="pill">Primary</span></b><span class="mono" id="set-play">—</span></div><div class="bal"><button type="button" class="tiny" data-copy="play">Copy</button></div></div>
-    <div class="row"><div class="meta"><b>Linked</b><span class="mono" id="set-w1">None</span></div><div class="bal"><button type="button" class="tiny" data-copy="w1">Copy</button></div></div>
-    <div class="row"><div class="meta"><b>Trader</b><span class="mono" id="set-vault">Not enabled</span></div><div class="bal"><button type="button" class="tiny" data-copy="vault">Copy</button></div></div>
+    <div class="row"><div class="av"><img src="/media/play.png" alt=""></div><div class="meta"><b>Play <span class="pill">Primary</span></b><button type="button" class="copychip" data-copy="play" id="set-play">—</button></div></div>
+    <div class="row"><div class="av"><img src="/media/sol.png" alt=""></div><div class="meta"><b>Linked</b><button type="button" class="copychip" data-copy="w1" id="set-w1">None</button></div></div>
+    <div class="row"><div class="av"><img src="/media/sol.png" alt=""></div><div class="meta"><b>Trader</b><button type="button" class="copychip" data-copy="vault" id="set-vault">Not enabled</button></div></div>
     <button class="ghost" type="button" id="set-refresh">Refresh</button>
     <button class="ghost" type="button" id="set-logout">Sign out</button>
   </section></div>
@@ -318,7 +320,12 @@ section{padding:8px 16px 0}
   </div></div>
   <div class="sheet" id="sheet-swap"><div class="pad"><div class="grab"></div>
     <h3>Swap</h3>
-    <p class="mono" id="swap-mint"></p>
+    <p id="swap-title">SOL</p>
+    <div class="chips" id="swap-dirs">
+      <button type="button" class="chip on" data-dir="in">In · buy</button>
+      <button type="button" class="chip" data-dir="out">Out · sell</button>
+    </div>
+    <p class="hint" id="swap-hint">Spend SOL, get the token.</p>
     <a class="primary btn" id="swap-open" href="https://jup.ag" target="_blank" rel="noopener" style="display:block;text-align:center;text-decoration:none">Open Jupiter</a>
     <iframe id="swap-frame" title="Jupiter swap" sandbox="allow-scripts allow-same-origin allow-popups allow-forms" style="width:100%;height:360px;border:0;border-radius:14px;margin-top:10px;background:#0a0a12"></iframe>
     <button class="ghost" type="button" data-close>Close</button>
@@ -335,12 +342,14 @@ window.GRUDA = {
   idGw: ${JSON.stringify(idGw)},
   poker: ${JSON.stringify(poker)},
   trader: ${JSON.stringify(trader)},
-  build: "2026-09-16-wallets-v1",
+  build: "2026-09-17-tokens-v1",
   art: {
     sol: "/media/sol.png",
     gbux: "/media/gbux.png",
     id: "/media/grudge-id.png",
-    play: "/media/crossmint.png",
+    play: "/media/play.png",
+    thc: "/media/thc.png",
+    usdc: "/media/usdc.png",
     gbuxMint: "55TpSoMNxbfsNJ9U1dQoo9H3dRtDmjBZVMcKqvU2nray",
     wsol: "So11111111111111111111111111111111111111112"
   }
