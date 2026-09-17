@@ -886,64 +886,119 @@
     showPanel("coins");
     loadCoins();
   }
+  let nftFilter = "all";
+  let nftCache = [];
+  function classifyNft(n) {
+    const blob = [n.name, n.collectionName, n.collection, n.era, n.kind, n.project]
+      .filter(Boolean).join(" ").toLowerCase();
+    if (n.project && n.project !== "other") return { project: n.project, label: n.collectionName || n.project, access: Boolean(n.access) };
+    if (/nemesis|nexus card|season 0/.test(blob) || n.era === "nexus") return { project: "nemesis", label: "Nexus Nemesis", access: false };
+    if (/grudox|voxel/.test(blob) || n.era === "voxel") return { project: "voxel", label: "Voxel", access: false };
+    if (/armada|\bmech\b/.test(blob) || n.era === "armada") return { project: "armada", label: "Armada", access: false };
+    if (/island|find land/.test(blob) || n.kind === "island") return { project: "island", label: "Home island", access: false };
+    if (/warlord|grudge6/.test(blob) || n.era === "warlords") return { project: "warlords", label: "Warlords", access: false };
+    if (/grower/.test(blob)) return { project: "growerz", label: "THC Growerz", access: true };
+    if (/bad seed/.test(blob)) return { project: "badseeds", label: "Bad Seeds", access: true };
+    if (/kronic|thc labz|zalez/.test(blob)) return { project: "thc", label: "THC Labz", access: true };
+    return { project: n.project || "other", label: n.collectionName || "Other", access: Boolean(n.access) };
+  }
+  function nftGroup(p) {
+    if (p === "island") return "island";
+    if (p === "nemesis") return "nemesis";
+    if (p === "growerz" || p === "badseeds" || p === "thc") return "access";
+    if (p === "warlords" || p === "voxel" || p === "armada") return "characters";
+    return "other";
+  }
   function paintNfts(items, ownerAddr) {
     const grid = $("nft-grid");
     if (!grid) return;
-    if (ownerAddr && $("nft-empty")) {
-      $("nft-empty").textContent = ownerAddr ? "Play · " + short(ownerAddr) : "Heroes and islands from Foundry show here.";
+    nftCache = Array.isArray(items) ? items : [];
+    if ($("nft-empty")) {
+      $("nft-empty").textContent = ownerAddr
+        ? "Play · " + short(ownerAddr) + " · " + nftCache.length + " NFTs"
+        : "Play + linked wallets. Characters, islands, Nemesis, Growerz, Bad Seeds.";
     }
-    if (!items.length) {
-      grid.innerHTML = '<p class="empty" style="grid-column:1/-1">No heroes yet. Mint one in Foundry.</p>';
+    const shown = nftCache.filter((n) => {
+      const c = classifyNft(n);
+      n.project = c.project;
+      n.access = c.access;
+      n.collectionName = n.collectionName || c.label;
+      if (nftFilter === "all") return true;
+      return nftGroup(c.project) === nftFilter || c.project === nftFilter;
+    });
+    if (!shown.length) {
+      grid.innerHTML = '<p class="empty" style="grid-column:1/-1">' +
+        (nftCache.length ? "Nothing in this filter." : "No NFTs on Play or linked wallets yet.") +
+        "</p>";
       return;
     }
-    grid.innerHTML = items.map((n) => {
+    grid.innerHTML = shown.map((n) => {
       const href = n.mint ? "https://solscan.io/token/" + encodeURIComponent(n.mint) : "#";
       const img = n.imageUrl || n.image || "";
       const tag = n.compressed || n.kind === "cnft" ? "cNFT" : "NFT";
+      const c = classifyNft(n);
+      const bag = n.ownerKind === "linked" ? "linked" : "play";
       return '<a class="nftc" href="' + esc(href) + '" target="_blank" rel="noopener">' +
         (img ? '<img src="' + esc(img) + '" alt="" onerror="this.remove()">' : "") +
-        "<span>" + esc(n.name || "cNFT") + "</span>" +
-        '<span class="tag">' + tag + (n.source ? " · " + esc(n.source) : "") + "</span></a>";
+        "<span>" + esc(n.name || c.label) + "</span>" +
+        '<span class="tag">' + esc(c.label) + " · " + tag + " · " + bag + "</span></a>";
     }).join("");
+  }
+  async function dasNftsFor(addr) {
+    if (!addr || addr === HOUSE) return [];
+    const out = [];
+    for (const tokenType of ["compressedNft", "regularNft"]) {
+      try {
+        const page = await rpc("searchAssets", { ownerAddress: addr, tokenType: tokenType, page: 1, limit: 50 });
+        const assets = (page && page.items) || [];
+        assets.forEach((a) => {
+          const meta = (a.content && a.content.metadata) || {};
+          const img = (a.content && a.content.links && a.content.links.image) || "";
+          const collection = ((a.grouping || []).find((g) => g.group_key === "collection") || {}).group_value || "";
+          out.push({
+            mint: a.id || "",
+            name: meta.name || "NFT",
+            imageUrl: img,
+            compressed: Boolean(a.compression && a.compression.compressed),
+            kind: a.compression && a.compression.compressed ? "cnft" : "nft",
+            source: "das",
+            collection: collection,
+            collectionName: (meta.collection && meta.collection.name) || "",
+            ownerWallet: addr,
+            ownerKind: addr === playWallet ? "crossmint" : "linked",
+          });
+        });
+      } catch (e) {}
+    }
+    return out;
   }
   async function loadNfts() {
     const grid = $("nft-grid");
     if (!grid) return;
     if (!getTok()) {
       grid.innerHTML = "";
-      if ($("nft-empty")) $("nft-empty").textContent = "Sign in to sync cNFTs from your Crossmint play wallet.";
+      if ($("nft-empty")) $("nft-empty").textContent = "Sign in to sync NFTs from Play and linked wallets.";
       return;
     }
-    grid.innerHTML = '<p class="empty" style="grid-column:1/-1">Reading Crossmint play wallet…</p>';
+    grid.innerHTML = '<p class="empty" style="grid-column:1/-1">Reading Play + linked wallets…</p>';
+    let items = [];
+    let owner = playWallet;
     try {
       const r = await api("/api/wallet/nfts");
-      const items = (r.data && r.data.items) || [];
-      if (r.ok && (items.length || (r.data && r.data.crossmint))) {
-        paintNfts(items, (r.data && r.data.crossmint) || playWallet);
-        return;
-      }
+      items = (r.data && r.data.items) || [];
+      owner = (r.data && r.data.crossmint) || playWallet;
     } catch (e) {}
-    if (playWallet && playWallet !== HOUSE) {
-      try {
-        const page = await rpc("searchAssets", { ownerAddress: playWallet, tokenType: "compressedNft", page: 1, limit: 50 });
-        const assets = (page && page.items) || [];
-        const items = assets.map((a) => {
-          const meta = (a.content && a.content.metadata) || {};
-          const img = (a.content && a.content.links && a.content.links.image) || "";
-          return {
-            mint: a.id || "",
-            name: meta.name || "cNFT",
-            imageUrl: img,
-            compressed: true,
-            kind: "cnft",
-            source: "das",
-          };
-        });
-        paintNfts(items, playWallet);
-        return;
-      } catch (e) {}
+    if (!items.length) {
+      const addrs = listOwners().map((o) => o.address);
+      const bags = await Promise.all(addrs.map(dasNftsFor));
+      const seen = Object.create(null);
+      bags.flat().forEach((n) => {
+        if (!n.mint || seen[n.mint]) return;
+        seen[n.mint] = 1;
+        items.push(n);
+      });
     }
-    paintNfts([], playWallet);
+    paintNfts(items, owner);
   }
   function bindHandoff() {
     document.querySelectorAll("[data-handoff]").forEach((a) => {
@@ -1049,6 +1104,13 @@
         dappCat = b.dataset.cat || "all";
         document.querySelectorAll("[data-cat]").forEach((x) => x.classList.toggle("on", x === b));
         renderDapps();
+      };
+    });
+    document.querySelectorAll("[data-nft]").forEach((b) => {
+      b.onclick = () => {
+        nftFilter = b.dataset.nft || "all";
+        document.querySelectorAll("[data-nft]").forEach((x) => x.classList.toggle("on", x === b));
+        paintNfts(nftCache, playWallet);
       };
     });
     if ($("dapp-q")) $("dapp-q").addEventListener("input", () => { dappQuery = $("dapp-q").value || ""; renderDapps(); });

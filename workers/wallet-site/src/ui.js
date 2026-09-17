@@ -13,7 +13,7 @@ export function htmlPage(env) {
 <head>
 <meta charset="UTF-8" />
 <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover" />
-<meta name="gruda-build" content="2026-09-16-prod-v2" />
+<meta name="gruda-build" content="2026-09-16-nft-v1" />
 <title>Gruda Wallet</title>
 <link rel="icon" type="image/png" sizes="32x32" href="/favicon-32.png" />
 <link rel="icon" type="image/png" sizes="192x192" href="/icon-192.png" />
@@ -207,7 +207,14 @@ section{padding:8px 16px 0}
   <div class="panel" id="panel-nfts">
     <section>
       <div class="hrow"><h2>cNFTs</h2><button type="button" id="btn-nft-sync">Sync</button></div>
-      <p class="hint" id="nft-empty">Heroes and islands from Foundry show here.</p>
+      <p class="hint" id="nft-empty">Play + linked wallets. Characters, islands, Nemesis cards, Growerz, Bad Seeds.</p>
+      <div class="chips" id="nft-cats">
+        <button type="button" class="chip on" data-nft="all">All</button>
+        <button type="button" class="chip" data-nft="characters">Characters</button>
+        <button type="button" class="chip" data-nft="island">Islands</button>
+        <button type="button" class="chip" data-nft="nemesis">Nemesis</button>
+        <button type="button" class="chip" data-nft="access">Access</button>
+      </div>
       <p class="msg" id="nft-msg"></p>
       <a class="ghost btn cta" href="https://character.grudge-studio.com/?era=warlords" id="nft-foundry">Mint in Character Foundry</a>
       <div class="nftg" id="nft-grid"></div>
@@ -312,7 +319,7 @@ window.GRUDA = {
   idGw: ${JSON.stringify(idGw)},
   poker: ${JSON.stringify(poker)},
   trader: ${JSON.stringify(trader)},
-  build: "2026-09-16-prod-v2",
+  build: "2026-09-16-nft-v1",
   art: {
     sol: "/media/sol.png",
     gbux: "/media/gbux.png",
