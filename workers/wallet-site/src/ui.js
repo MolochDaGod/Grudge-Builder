@@ -19,7 +19,7 @@ export function htmlPage(env) {
 <head>
 <meta charset="UTF-8" />
 <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover" />
-<meta name="gruda-build" content="2026-09-16-art-v1" />
+<meta name="gruda-build" content="2026-09-16-set-v1" />
 <title>Gruda Wallet</title>
 <link rel="icon" type="image/png" sizes="32x32" href="/favicon-32.png" />
 <link rel="icon" type="image/png" sizes="192x192" href="/icon-192.png" />
@@ -153,7 +153,7 @@ section{padding:8px 16px 0}
   <div class="hero">
     <div class="net">Gruda · Solana mainnet</div>
     <div class="fig"><span id="fig-sol">0.00</span><small>SOL</small></div>
-    <div class="sub">Vault <span id="tr-sol">0.00</span> · bag GBUX <span id="gbux">0</span> · play <span id="play">0</span></div>
+    <div class="sub">Trader <span id="tr-sol">0.00</span> · Play <span id="play">0</span></div>
   </div>
   <div class="acts">
     <button type="button" id="act-recv"><span class="ic"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><path d="M12 4v12"/><path d="M7 12l5 5 5-5"/><path d="M5 20h14"/></svg></span>Receive</button>
@@ -168,22 +168,22 @@ section{padding:8px 16px 0}
       <div id="linked-list">
         <div class="row"><div class="av"><img src="/media/sol.png" alt=""></div><div class="meta"><b>Wallet 1</b><span class="mono" id="w1">Not linked</span></div><div class="bal"><span>funding</span></div></div>
       </div>
-      <div class="row"><div class="av"><img src="/media/sol.png" alt=""></div><div class="meta"><b>Trader vault</b><span>Engine key · not a browser wallet</span></div><div class="bal"><b id="vault-sol">0.00</b><span>SOL</span></div></div>
+      <div class="row"><div class="av"><img src="/media/sol.png" alt=""></div><div class="meta"><b>Trader</b><span>Auto-trader</span></div><div class="bal"><b id="vault-sol">0.00</b><span>SOL</span></div></div>
     </section>
     <section>
       <div class="hrow"><h2>Tokens</h2></div>
       <div class="row"><div class="av"><img src="/media/sol.png" alt="SOL"></div><div class="meta"><b>Solana</b><span>SOL</span></div><div class="bal"><b id="tok-sol">0.00</b></div></div>
-      <div class="row"><div class="av"><img src="/media/gbux.png" alt="GBUX"></div><div class="meta"><b>GBUX</b><span>Fleet bag · fee / play, not traded</span></div><div class="bal"><b id="tok-gbux">0</b></div></div>
+      <div class="row"><div class="av"><img src="/media/gbux.png" alt="GBUX"></div><div class="meta"><b>GBUX</b><span>Poker</span></div><div class="bal"><b id="tok-gbux">0</b></div></div>
     </section>
   </div>
   <div class="panel" id="panel-coins">
     <section>
       <div class="hrow"><h2>Coins</h2><button type="button" id="btn-add-token">+ Token</button></div>
-      <p class="hint">Paste a mint or search a ticker. Jupiter metadata + Solana RPC balances. Play is Crossmint. Wallet 1 is linked funding. Vault is the trader engine (SOL clips — not a collector wallet).</p>
+      <p class="hint">Search a ticker or paste a mint.</p>
       <div class="chips" id="coin-owners">
         <button type="button" class="chip on" data-owner="crossmint">Play</button>
         <button type="button" class="chip" data-owner="linked">Wallet 1</button>
-        <button type="button" class="chip" data-owner="vault">Vault</button>
+        <button type="button" class="chip" data-owner="vault">Trader</button>
       </div>
       <div class="addbar">
         <input class="input" id="coin-q" placeholder="Search JUP, BONK, or paste mint" autocomplete="off" />
@@ -197,7 +197,7 @@ section{padding:8px 16px 0}
   <div class="panel" id="panel-nfts">
     <section>
       <div class="hrow"><h2>cNFTs</h2><button type="button" id="btn-nft-sync">Sync</button></div>
-      <p class="hint" id="nft-empty">Hero and island cNFTs live on your Crossmint play wallet — never Phantom, never the trader vault.</p>
+      <p class="hint" id="nft-empty">Heroes and islands from Foundry show here.</p>
       <p class="msg" id="nft-msg"></p>
       <a class="ghost btn cta" href="https://character.grudge-studio.com/?era=warlords" id="nft-foundry">Mint in Character Foundry</a>
       <div class="nftg" id="nft-grid"></div>
@@ -225,11 +225,19 @@ section{padding:8px 16px 0}
       <div id="dapp-list"></div>
     </section>
   </div>
-  <div class="panel" id="panel-set"><section><div class="hrow"><h2>Settings</h2></div>
-    <p class="msg">Grudge ID is login. One Connect sheet links Phantom / Solflare / Backpack / any Wallet Standard SOL wallet into linked_wallets. The trader vault is never SIWS. Coins use Jupiter + Solana RPC. cNFTs sync from Crossmint play.</p>
-    <div class="row"><div class="meta"><b>Network</b><span id="set-net">Solana mainnet-beta</span></div></div>
-    <div class="row"><div class="meta"><b>RPC</b><span id="set-rpc">Jupiter meta · Solana RPC · Crossmint cNFTs</span></div></div>
-    <button class="ghost" type="button" id="set-refresh">Refresh balances</button>
+  <div class="panel" id="panel-set"><section>
+    <div class="hrow"><h2>Account</h2></div>
+    <div class="row">
+      <div class="av"><img src="/media/grudge-id.png" alt=""></div>
+      <div class="meta"><b id="set-name">Sign in</b><span class="mono" id="set-gid">—</span></div>
+      <div class="bal"><button type="button" class="tiny" id="set-copy-gid">Copy ID</button></div>
+    </div>
+    <div class="hrow"><h2>Addresses</h2></div>
+    <div class="row"><div class="meta"><b>Play</b><span class="mono" id="set-play">—</span></div><div class="bal"><button type="button" class="tiny" data-copy="play">Copy</button></div></div>
+    <div class="row"><div class="meta"><b>Wallet 1</b><span class="mono" id="set-w1">Not linked</span></div><div class="bal"><button type="button" class="tiny" data-copy="w1">Copy</button></div></div>
+    <div class="row"><div class="meta"><b>Trader</b><span class="mono" id="set-vault">Not enabled</span></div><div class="bal"><button type="button" class="tiny" data-copy="vault">Copy</button></div></div>
+    <button class="ghost" type="button" id="set-refresh">Refresh</button>
+    <button class="ghost" type="button" id="set-logout">Sign out</button>
   </section></div>
   <nav class="dock">
     <button class="on" type="button" data-dock="home">Home</button>
@@ -239,15 +247,15 @@ section{padding:8px 16px 0}
     <button type="button" data-dock="set">Set</button>
   </nav>
   <div class="sheet" id="sheet-connect"><div class="pad"><div class="grab"></div>
-    <h3>Connect a SOL wallet</h3>
-    <p>One system: Wallet Standard, then Phantom / Solflare / Backpack. Signs SIWS and writes Wallet 1 / 2 on this Grudge ID. Does not log you in, replace Crossmint, or touch the trader vault. House aUp3 is never listed.</p>
+    <h3>Connect a wallet</h3>
+    <p>Phantom, Solflare, Backpack, or another Solana wallet. Links as Wallet 1 on this account.</p>
     <div id="wallet-picker"></div>
     <p class="msg" id="connect-msg"></p>
     <button class="ghost" type="button" data-close>Cancel</button>
   </div></div>
   <div class="sheet" id="sheet-recv"><div class="pad"><div class="grab"></div>
-    <h3>Receive to trader vault</h3>
-    <p>Send SOL from Wallet 1 to this address. Keep 0.02 for fees. Buys need more than 0.03. Not house aUp3.</p>
+    <h3>Receive</h3>
+    <p>Send SOL here for the auto-trader. Leave a little for fees.</p>
     <div class="addrbox" id="vault-addr">Sign in → Enable trader</div>
     <button class="primary" type="button" id="btn-enroll">Enable trader</button>
     <button class="ghost" type="button" id="btn-copy-vault">Copy address</button>
@@ -257,7 +265,7 @@ section{padding:8px 16px 0}
   </div></div>
   <div class="sheet" id="sheet-send"><div class="pad"><div class="grab"></div>
     <h3>Send</h3>
-    <p>Play GBUX stays on the fleet bag / poker ledger. On-chain GBUX is fee-only and is forwarded to the Grudge dev wallet.</p>
+    <p>Send GBUX to Poker.</p>
     <label>Amount GBUX</label>
     <input class="input" id="send-amt" type="number" min="1" value="10" />
     <button class="primary" type="button" id="btn-play">Send to Poker play</button>
@@ -266,8 +274,8 @@ section{padding:8px 16px 0}
     <button class="ghost" type="button" data-close>Close</button>
   </div></div>
   <div class="sheet" id="sheet-token"><div class="pad"><div class="grab"></div>
-    <h3>Add a Solana token</h3>
-    <p>Search a ticker or paste a mint. Results come from Jupiter. Balance is read on Play / Wallet 1 / Vault.</p>
+    <h3>Add a token</h3>
+    <p>Search a ticker or paste a mint.</p>
     <input class="input" id="token-q" placeholder="JUP, BONK, or mint address" autocomplete="off" />
     <button class="primary" type="button" id="btn-token-lookup">Search</button>
     <div id="token-suggest" class="suggest" hidden></div>
@@ -282,7 +290,7 @@ window.GRUDA = {
   idGw: ${JSON.stringify(idGw)},
   poker: ${JSON.stringify(poker)},
   trader: ${JSON.stringify(trader)},
-  build: "2026-09-16-art-v1",
+  build: "2026-09-16-set-v1",
   art: {
     sol: "/media/sol.png",
     gbux: "/media/gbux.png",

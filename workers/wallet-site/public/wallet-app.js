@@ -70,6 +70,7 @@
   let vaultPubkey = "";
   let walletType = "";
   let playWallet = "";
+  let addrs = { gid: "", play: "", w1: "", vault: "" };
   let coinOwner = "crossmint";
   let dappCat = "all";
   let dappQuery = "";
@@ -366,7 +367,7 @@
       });
     }
     if (walletType === "crossmint" && playAddr && !rows.some((w) => (w.walletAddress || w.address) === playAddr)) {
-      html += '<div class="row">' + avImg(ART.play) + '<div class="meta"><b>Play wallet</b><span class="mono">' + short(playAddr) + " · Crossmint</span></div><div class=\"bal\"><span>custodial</span></div></div>";
+      html += '<div class="row">' + avImg(ART.play) + '<div class="meta"><b>Play</b><span class="mono">' + short(playAddr) + '</span></div><div class="bal"><span>game</span></div></div>';
     }
     box.innerHTML = html;
     box.querySelectorAll("[data-primary]").forEach((b) => {
@@ -388,14 +389,47 @@
       });
     });
   }
+  function fillSettings() {
+    setText("set-name", ($("name") && $("name").textContent) || "Sign in");
+    const gid = ($("gid") && $("gid").textContent) || "—";
+    setText("set-gid", gid === "Grudge ID" ? "—" : gid);
+    addrs.gid = gid && gid !== "Grudge ID" && gid !== "—" ? gid : "";
+    setText("set-play", playWallet ? short(playWallet) : "—");
+    addrs.play = playWallet || "";
+    const primary = linkedCache.find((w) => w.isPrimary) || linkedCache[0];
+    const w1 = (primary && (primary.walletAddress || primary.address)) || "";
+    setText("set-w1", w1 ? short(w1) : "Not linked");
+    addrs.w1 = w1;
+    setText("set-vault", vaultPubkey ? short(vaultPubkey) : "Not enabled");
+    addrs.vault = vaultPubkey || "";
+    if ($("set-logout")) $("set-logout").hidden = !getTok();
+  }
+  async function copyAddr(key) {
+    const v = addrs[key] || "";
+    if (!v) { toast("Nothing to copy", false); return; }
+    try { await navigator.clipboard.writeText(v); toast("Copied", true); }
+    catch (e) { toast(v, true); }
+  }
+  function signOut() {
+    KEYS.forEach((k) => { try { localStorage.removeItem(k); } catch (e) {} });
+    try {
+      document.cookie = "grudge_auth_token=; path=/; max-age=0; Domain=.grudge-studio.com; SameSite=Lax";
+      document.cookie = "sso_token=; path=/; max-age=0; Domain=.grudge-studio.com; SameSite=Lax";
+    } catch (e) {}
+    location.reload();
+  }
   async function refresh() {
     const tok = getTok();
     if ($("btn-logout")) $("btn-logout").hidden = !tok;
+    if ($("set-logout")) $("set-logout").hidden = !tok;
     if (!tok) {
       setText("name", "Sign in");
       setText("gid", "Grudge ID");
       linkedCache = [];
+      playWallet = "";
+      vaultPubkey = "";
       renderLinked([], "");
+      fillSettings();
       return;
     }
     try {
@@ -433,6 +467,7 @@
         if ($("btn-solscan")) $("btn-solscan").href = "https://solscan.io/account/" + pk;
       }
     } catch (e) {}
+    fillSettings();
   }
   function readWatch() {
     try {
@@ -742,10 +777,10 @@
     const grid = $("nft-grid");
     if (!grid) return;
     if (ownerAddr && $("nft-empty")) {
-      $("nft-empty").textContent = "Play wallet " + short(ownerAddr) + " · Crossmint custodial. Not Wallet 1, not the trader vault.";
+      $("nft-empty").textContent = ownerAddr ? "Play · " + short(ownerAddr) : "Heroes and islands from Foundry show here.";
     }
     if (!items.length) {
-      grid.innerHTML = '<p class="empty" style="grid-column:1/-1">No cNFTs on this play wallet yet. Mint a hero in Character Foundry — it lands here.</p>';
+      grid.innerHTML = '<p class="empty" style="grid-column:1/-1">No heroes yet. Mint one in Foundry.</p>';
       return;
     }
     grid.innerHTML = items.map((n) => {
@@ -855,14 +890,12 @@
     if ($("act-swap")) $("act-swap").onclick = () => { location.href = TRADER; };
     if ($("act-connect")) $("act-connect").onclick = () => showSheet("sheet-connect");
     if ($("act-add")) $("act-add").onclick = () => showSheet("sheet-connect");
-    if ($("btn-logout")) $("btn-logout").onclick = () => {
-      KEYS.forEach((k) => { try { localStorage.removeItem(k); } catch (e) {} });
-      try {
-        document.cookie = "grudge_auth_token=; path=/; max-age=0; Domain=.grudge-studio.com; SameSite=Lax";
-        document.cookie = "sso_token=; path=/; max-age=0; Domain=.grudge-studio.com; SameSite=Lax";
-      } catch (e) {}
-      location.reload();
-    };
+    if ($("btn-logout")) $("btn-logout").onclick = signOut;
+    if ($("set-logout")) $("set-logout").onclick = signOut;
+    if ($("set-copy-gid")) $("set-copy-gid").onclick = () => copyAddr("gid");
+    document.querySelectorAll("[data-copy]").forEach((b) => {
+      b.onclick = () => copyAddr(b.dataset.copy);
+    });
     if ($("set-refresh")) $("set-refresh").onclick = () => refresh();
     if ($("btn-copy-vault")) $("btn-copy-vault").onclick = async () => {
       const v = ($("vault-addr") && $("vault-addr").textContent.trim()) || "";
@@ -923,10 +956,10 @@
       });
     }
     if ($("btn-nft-sync")) $("btn-nft-sync").onclick = async () => {
-      note("nft-msg", "Syncing Crossmint…");
+      note("nft-msg", "Syncing…");
       try {
         const r = await api("/api/wallet/nfts/sync", { method: "POST", body: "{}" });
-        note("nft-msg", r.ok ? "Synced " + (((r.data && r.data.items) || []).length) + " cNFTs" : (r.data && r.data.error) || "Sync failed", r.ok);
+        note("nft-msg", r.ok ? "Synced " + (((r.data && r.data.items) || []).length) : (r.data && r.data.error) || "Sync failed", r.ok);
         await loadNfts();
       } catch (e) { note("nft-msg", e.message || String(e), false); }
     };
