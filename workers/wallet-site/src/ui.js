@@ -1,1022 +1,387 @@
-﻿/**
- * Production wallet.grudge-studio.com UI — fleet bag, play fund, games, reconnect.
- * Images from live CDN hosts that return real image/* (not HTML shells).
- */
+/** Production wallet.grudge-studio.com UI — coins RPC, Crossmint cNFTs, app store. */
 export function htmlPage(env) {
   const railway = env.RAILWAY_API_ORIGIN || "https://grudge-api-production-0d46.up.railway.app";
   const idGw = env.ID_GATEWAY_ORIGIN || "https://id.grudge-studio.com";
-  const client = env.CLIENT_ORIGIN || "https://client.grudge-studio.com";
-  const portal = env.PORTAL_ORIGIN || "https://grudge-studio.com";
-  const assets = env.ASSETS_CDN || "https://assets.grudge-studio.com";
   const poker = env.POKER_ORIGIN || "https://poker.grudge-studio.com";
   const trader = env.TRADER_ORIGIN || "https://trader.grudge-studio.com";
   const logo = idGw + "/grudge-id-logo.png";
-  const gbuxCoin = poker + "/media/gbux-coin.png";
-  const art = {
-    trader: trader + "/art/fabledgrudge.jpeg",
-    pokerFelt: poker + "/media/felt-budb-green.jpg",
-    pokerOg: poker + "/media/og-image.jpg",
-    warlords: client + "/opengraph.jpg",
-    foundry: "https://character.grudge-studio.com/opengraph.jpg",
-    open: "https://open.grudge-studio.com/opengraph.jpg",
-    grudox: "https://grudox.grudge-studio.com/opengraph.jpg",
-    mine: "https://mineloader.grudge-studio.com/opengraph.jpg",
-    forge: "https://forge.grudge-studio.com/opengraph.jpg",
-    portal: portal + "/opengraph.jpg",
-  };
+  // Relative /login so preview and production both bounce through this origin's callback.
+  const login = "/login";
 
   return `<!DOCTYPE html>
 <html lang="en">
 <head>
 <meta charset="UTF-8" />
-<meta name="viewport" content="width=device-width, initial-scale=1.0" />
-<title>Grudge Studio Wallet</title>
-<meta name="description" content="Grudge Studio wallet — one Grudge ID, fleet bag GBUX, send to games." />
-<meta name="theme-color" content="#d4af37" />
-<meta name="mobile-web-app-capable" content="yes" />
-<meta name="apple-mobile-web-app-capable" content="yes" />
-<meta name="apple-mobile-web-app-title" content="Gruda Wallet" />
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover" />
+<meta name="gruda-build" content="2026-09-17-dex-v1" />
+<title>Gruda Wallet</title>
+<link rel="icon" type="image/png" sizes="32x32" href="/favicon-32.png" />
+<link rel="icon" type="image/png" sizes="192x192" href="/icon-192.png" />
+<link rel="apple-touch-icon" href="/apple-touch-icon.png" />
 <link rel="manifest" href="/manifest.webmanifest" />
-<link rel="icon" href="${logo}" />
-<link rel="apple-touch-icon" href="${logo}" />
 <link rel="preconnect" href="https://fonts.googleapis.com" />
-<link href="https://fonts.googleapis.com/css2?family=Cinzel:wght@600;700&family=Jost:wght@400;500;600;700&display=swap" rel="stylesheet" />
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
+<link href="https://fonts.googleapis.com/css2?family=IBM+Plex+Mono:wght@400;500&family=Sora:wght@400;500;600;700&display=swap" rel="stylesheet" />
 <style>
-:root{--bg:#07070c;--panel:rgba(18,18,26,.92);--border:rgba(212,175,55,.28);--gold:#d4af37;--gold2:#f3d9a4;--text:#f4f4f5;--dim:#a1a1aa;--ok:#22c55e;--err:#ef4444;--purple:#a855f7;--cyan:#22d3ee}
+:root{--bg:#07070b;--card:#12121a;--line:rgba(255,255,255,.08);--gold:#e0c36a;--gold2:#f3e0a8;--muted:#8b8b96;--text:#f5f5f7;--ok:#3ddeb0;--err:#ff6b7a;--safe:env(safe-area-inset-bottom,0px)}
 *{box-sizing:border-box;margin:0;padding:0}
-body{min-height:100vh;font-family:Jost,system-ui,sans-serif;color:var(--text);
-background:#07070c;display:flex;flex-direction:column;align-items:center;padding:0 0 72px;position:relative}
-.bg{position:fixed;inset:0;z-index:0;background:
-radial-gradient(ellipse 70% 45% at 15% 0%,rgba(168,85,247,.18),transparent 55%),
-radial-gradient(ellipse 60% 40% at 90% 10%,rgba(212,175,55,.12),transparent 50%),
-linear-gradient(180deg,#0b0b14,#07070c);pointer-events:none}
-.bg2{position:fixed;inset:0;z-index:0;background:linear-gradient(180deg,rgba(7,7,12,.15),rgba(7,7,12,.55) 70%,#07070c);pointer-events:none}
-.wrap{position:relative;z-index:1;width:100%;max-width:920px}
-.nav{display:flex;justify-content:space-between;align-items:center;gap:12px;flex-wrap:wrap;margin-bottom:18px}
-.brand{display:flex;align-items:center;gap:10px;text-decoration:none;color:var(--gold);font-family:Cinzel,serif;font-size:1.05rem}
-.brand img{width:36px;height:36px;border-radius:8px;object-fit:cover;border:1px solid var(--border)}
-.links{display:flex;gap:6px;flex-wrap:wrap}
-.links a{color:var(--dim);text-decoration:none;font-size:.7rem;letter-spacing:.06em;text-transform:uppercase;padding:7px 10px;border-radius:999px;border:1px solid transparent}
-.links a:hover{color:var(--gold2);border-color:rgba(212,175,55,.35)}
-.hero{border-radius:18px;overflow:hidden;border:1px solid var(--border);margin-bottom:16px;position:relative;min-height:120px}
-.hero img{width:100%;height:140px;object-fit:cover;display:block}
-.hero .cap{position:relative;min-height:120px;background:linear-gradient(120deg,rgba(18,12,28,.95),rgba(12,14,24,.72));display:flex;flex-direction:column;justify-content:center;padding:20px 22px}
-.hero h1{font-family:Cinzel,serif;color:var(--gold2);font-size:1.55rem;margin-bottom:4px}
-.hero p{color:var(--dim);font-size:.88rem;max-width:420px;line-height:1.45}
-.grid{display:grid;grid-template-columns:1fr 1fr;gap:14px}
-@media(max-width:720px){.grid{grid-template-columns:1fr}}
-.card{background:var(--panel);border:1px solid var(--border);border-radius:16px;padding:18px 16px;backdrop-filter:blur(12px);box-shadow:0 16px 40px rgba(0,0,0,.4)}
-.card h2{font-family:Cinzel,serif;color:var(--gold2);font-size:1rem;margin-bottom:12px;display:flex;align-items:center;gap:8px}
-.card h2 img{width:22px;height:22px}
-.row{display:flex;justify-content:space-between;gap:10px;padding:8px 0;border-bottom:1px solid rgba(255,255,255,.06);font-size:.88rem}
-.row:last-child{border-bottom:none}
-.k{color:var(--dim)}.v{font-weight:600;text-align:right;word-break:break-all}
-.addr{font-family:ui-monospace,monospace;font-size:.72rem;color:#c4b5fd;background:#0a0a12;border:1px solid rgba(168,85,247,.3);border-radius:10px;padding:10px;margin-top:10px;word-break:break-all;display:none}
-.btns{display:flex;flex-wrap:wrap;gap:8px;margin-top:12px}
-button,.btn{appearance:none;border:none;cursor:pointer;font-family:inherit;font-weight:600;font-size:.82rem;padding:10px 14px;border-radius:10px;text-decoration:none;display:inline-flex;align-items:center;gap:6px;color:inherit}
-button.primary,.btn.primary{background:linear-gradient(180deg,#e0c05a,#b8922a);color:#1a1405}
-button.ghost,.btn.ghost{background:transparent;color:var(--gold2);border:1px solid rgba(212,175,55,.4)}
-button.cyan{background:linear-gradient(180deg,#22d3ee,#0891b2);color:#042f2e;border:none}
-button:disabled{opacity:.45;cursor:not-allowed}
-.msg{margin-top:10px;font-size:.8rem;color:var(--dim);min-height:1.1em}
-.msg.err{color:#fca5a5}.msg.ok{color:#86efac}
-.input{width:100%;background:#0a0a12;border:1px solid rgba(255,255,255,.1);border-radius:10px;padding:10px 12px;color:var(--text);font:inherit;margin:6px 0 10px}
-.gamess{display:grid;grid-template-columns:repeat(auto-fill,minmax(140px,1fr));gap:10px}
-.game{display:flex;flex-direction:column;gap:6px;padding:12px;border-radius:12px;border:1px solid rgba(255,255,255,.08);background:rgba(0,0,0,.35);text-decoration:none;color:var(--text);transition:border .15s,transform .15s}
-.game:hover{border-color:rgba(212,175,55,.45);transform:translateY(-2px)}
-.game img{width:100%;height:88px;object-fit:cover;object-position:center;background:#0a0a12;border-radius:8px;border:1px solid rgba(212,175,55,.15)}
-.tok img.coin{border-radius:50%;object-fit:contain;background:transparent;mix-blend-mode:multiply;filter:contrast(1.15)}
-.game strong{font-size:.88rem;color:var(--gold2)}
-.game span{font-size:.72rem;color:var(--dim);line-height:1.35}
-.badge{display:inline-flex;font-size:.65rem;letter-spacing:.08em;text-transform:uppercase;padding:3px 8px;border-radius:999px;border:1px solid rgba(34,197,94,.35);color:#86efac;background:rgba(34,197,94,.08);margin-bottom:8px}
-.foot{margin-top:22px;font-size:.65rem;color:#52525b;letter-spacing:.08em;text-transform:uppercase;text-align:center}
-.tabs{display:flex;gap:6px;margin-bottom:12px;flex-wrap:wrap}
-.tabs button{background:rgba(0,0,0,.35);border:1px solid rgba(255,255,255,.08);color:var(--dim);padding:7px 12px;border-radius:999px;font-size:.75rem}
-.tabs button.on{border-color:var(--gold);color:var(--gold2)}
-.panel{display:none}.panel.on{display:block}
-.legal-back{position:fixed;inset:0;background:rgba(0,0,0,.72);z-index:40;display:none;align-items:center;justify-content:center;padding:16px}
-.legal-back.on{display:flex}
-.legal-card{max-width:560px;max-height:80vh;overflow:auto;background:#12121a;border:1px solid rgba(212,175,55,.35);border-radius:14px;padding:20px 22px}
-.legal-card h3{font-family:Cinzel,serif;color:var(--gold);margin-bottom:10px}
-.legal-card p,.legal-card li{font-size:.82rem;color:var(--dim);line-height:1.5;margin:0 0 8px}
-.shell{max-width:430px;margin:0 auto;padding:12px 14px 24px}
-.w-head{display:flex;align-items:center;gap:10px;padding:8px 0 4px}
-.acct{flex:1;display:flex;align-items:center;gap:8px;background:rgba(255,255,255,.04);border:1px solid var(--border);border-radius:999px;padding:6px 10px 6px 6px;min-width:0}
-.acct img{width:28px;height:28px;border-radius:50%}
-.acct b{font-size:.78rem;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
-.acct span{font-size:.65rem;color:var(--dim);display:block}
-.hero-bal{text-align:center;padding:22px 8px 8px}
-.hero-bal .sym{font-size:.72rem;letter-spacing:.14em;text-transform:uppercase;color:var(--gold);margin-bottom:4px}
-.hero-bal .fig{font-size:2.35rem;font-weight:700;letter-spacing:-.03em;line-height:1.1}
-.hero-bal .sub{color:var(--dim);font-size:.82rem;margin-top:6px}
-.act{display:grid;grid-template-columns:repeat(4,1fr);gap:8px;margin:16px 0}
-.act a,.act button{flex-direction:column;justify-content:center;gap:4px;padding:12px 6px;border-radius:14px;background:rgba(255,255,255,.05);border:1px solid rgba(255,255,255,.08);font-size:.68rem;color:var(--gold2);text-align:center}
-.act .ic{font-size:1.15rem}
-.dock{position:fixed;left:0;right:0;bottom:0;z-index:20;display:flex;justify-content:center;gap:0;background:rgba(10,10,16,.94);border-top:1px solid var(--border);padding:8px 12px calc(8px + env(safe-area-inset-bottom))}
-.dock button{flex:1;max-width:120px;background:transparent;border:0;color:var(--dim);font-size:.72rem;padding:8px}
+html,body{min-height:100%;background:#050508;color:var(--text);font-family:Sora,system-ui,sans-serif}
+button,a.btn{font-family:inherit;cursor:pointer}
+.mono{font-family:"IBM Plex Mono",ui-monospace,monospace}
+.stage{min-height:100vh;display:flex;justify-content:center;background:radial-gradient(900px 420px at 50% -10%,rgba(168,85,247,.16),transparent 55%),#050508}
+.app{width:100%;max-width:420px;min-height:100vh;background:linear-gradient(180deg,#12101c 0%,var(--bg) 28%);position:relative;padding-bottom:calc(76px + var(--safe))}
+@media(min-width:720px){.app{min-height:820px;margin:28px 0;border-radius:28px;border:1px solid rgba(224,195,106,.18);box-shadow:0 30px 80px #000;overflow:hidden}}
+header{display:flex;align-items:center;gap:10px;padding:14px 16px 8px}
+.ident{flex:1;min-width:0;display:flex;align-items:center;gap:10px;background:rgba(255,255,255,.04);border:1px solid var(--line);border-radius:999px;padding:5px 12px 5px 5px}
+.ident img{width:28px;height:28px;border-radius:50%;flex-shrink:0;object-fit:cover;background:#0a0a12}
+.ident .who{min-width:0}
+.ident b,.ident span{display:block;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
+.ident b{font-size:12px}.ident span{font-size:11px;color:var(--muted)}
+.ico{width:36px;height:36px;flex-shrink:0;border-radius:50%;border:1px solid var(--line);background:rgba(255,255,255,.04);color:var(--gold2);display:grid;place-items:center;text-decoration:none;font-size:11px;font-weight:700}
+.hero{text-align:center;padding:18px 20px 8px}
+.net{font-size:11px;letter-spacing:.16em;text-transform:uppercase;color:var(--gold);margin-bottom:10px}
+.fig{font-size:40px;font-weight:700;letter-spacing:-.04em;font-variant-numeric:tabular-nums}
+.fig small{font-size:16px;color:var(--muted);font-weight:500;margin-left:4px}
+.sub{margin-top:8px;font-size:12px;color:var(--muted);line-height:1.4}
+.acts{display:grid;grid-template-columns:repeat(4,1fr);gap:8px;padding:16px 16px 8px}
+.acts button{border:1px solid var(--line);background:var(--card);color:var(--gold2);border-radius:16px;padding:12px 4px 10px;font-size:11px;font-weight:600}
+.acts .ic{display:grid;place-items:center;height:18px;margin-bottom:6px;color:var(--gold)}
+.acts .ic svg{width:18px;height:18px;display:block}
+section{padding:8px 16px 0}
+.hrow{display:flex;justify-content:space-between;align-items:baseline;margin:12px 0 8px}
+.hrow h2{font-size:13px;font-weight:600;letter-spacing:.04em;text-transform:uppercase;color:var(--muted)}
+.hrow button{background:none;border:0;color:var(--gold);font-size:12px;font-weight:600}
+.row{display:flex;align-items:center;gap:12px;padding:12px;background:linear-gradient(180deg,rgba(255,255,255,.05),rgba(255,255,255,.02));box-shadow:0 0 0 1px rgba(224,195,106,.14),0 10px 24px rgba(0,0,0,.35);border-radius:18px;margin-bottom:8px}
+.av{width:36px;height:36px;border-radius:50%;display:grid;place-items:center;flex-shrink:0;background:#14141c;color:var(--gold);font-size:13px;font-weight:700;overflow:hidden;box-shadow:0 0 0 1px rgba(224,195,106,.35)}
+.av img{width:100%;height:100%;object-fit:contain;background:#0a0a12;outline:1px solid rgba(255,255,255,.08);outline-offset:-1px}
+.card{background:linear-gradient(180deg,rgba(255,255,255,.06),rgba(18,18,26,.92));box-shadow:0 0 0 1px rgba(224,195,106,.16),0 12px 28px rgba(0,0,0,.4);border-radius:18px;margin-bottom:10px;overflow:hidden}
+.card-hit{display:flex;align-items:center;gap:12px;padding:12px;width:100%;background:none;border:0;color:inherit;text-align:left;cursor:pointer;font:inherit}
+.card.on .drop{display:block}
+.drop{display:none;background:rgba(0,0,0,.38);border-top:1px solid rgba(224,195,106,.12);padding:6px}
+.hold{display:flex;width:100%;align-items:center;gap:10px;padding:10px;background:rgba(255,255,255,.03);border:0;border-radius:12px;color:var(--text);margin-bottom:6px;font:inherit;cursor:pointer;text-align:left}
+.hold:last-child{margin-bottom:0}
+.copychip{display:inline-block;margin-top:4px;background:rgba(224,195,106,.1);border:1px solid rgba(224,195,106,.28);color:var(--gold2);border-radius:999px;padding:3px 8px;font-family:"IBM Plex Mono",ui-monospace,monospace;font-size:11px;cursor:pointer}
+.acts button{border:0;background:linear-gradient(180deg,#1c1a24,#101018);color:var(--gold2);border-radius:16px;padding:12px 4px 10px;font-size:11px;font-weight:600;box-shadow:0 0 0 1px rgba(224,195,106,.22),0 8px 18px rgba(0,0,0,.35)}
+.primary{width:100%;border:0;border-radius:14px;padding:12px;background:linear-gradient(180deg,#e8d07a,#b8922a);color:#1a1405;font-weight:700;box-shadow:0 8px 18px rgba(184,146,42,.28)}
+.ghost{width:100%;margin-top:8px;border-radius:14px;padding:12px;background:transparent;color:var(--gold2);border:0;box-shadow:0 0 0 1px rgba(224,195,106,.2);font-weight:600}
+.chev{width:12px;height:12px;margin-left:6px;opacity:.7;transition:transform .15s ease}
+.tok-acts{display:flex;gap:10px;padding:4px 10px 8px;justify-content:flex-end}
+.tok-acts .tiny{margin:0}
+.swapbox{padding:8px 8px 12px}
+.sw-row{display:flex;align-items:center;gap:8px;background:#0a0a12;border-radius:12px;padding:10px;margin:6px 0;box-shadow:0 0 0 1px rgba(224,195,106,.16)}
+.sw-row img{width:28px;height:28px;border-radius:8px;background:#111}
+.sw-row input{flex:1;min-width:0;background:transparent;border:0;color:var(--text);font:inherit;font-size:18px;font-weight:700}
+.sw-row b{flex:1;font-size:18px}
+.sw-row span{font-size:12px;color:var(--muted);font-weight:600}
+.sw-go{margin-top:8px}
+.tok-head{display:flex;align-items:center;gap:10px;margin-bottom:8px}
+.tok-head .meta b{font-size:18px}
+.tok-price{margin-left:auto;text-align:right}
+.tok-price b{display:block;font-size:16px}
+.tok-price span{font-size:11px;color:var(--muted)}
+.tok-tabs{display:flex;gap:4px;margin:8px 0 10px}
+.tok-tabs button{flex:1;border:0;border-radius:10px;padding:8px 4px;background:var(--card);color:var(--muted);font-weight:700;font-size:12px;box-shadow:0 0 0 1px var(--line)}
+.tok-tabs button.on{color:#1a1405;background:linear-gradient(180deg,#e8d07a,#b8922a);box-shadow:none}
+.chartframe{width:100%;height:280px;border:0;border-radius:12px;background:#0a0a12}
+.statg{display:grid;grid-template-columns:1fr 1fr;gap:8px;margin:8px 0}
+.statg div{background:#0a0a12;border-radius:12px;padding:10px;box-shadow:0 0 0 1px var(--line)}
+.statg b{display:block;font-size:14px}
+.statg span{font-size:10px;color:var(--muted);letter-spacing:.06em;text-transform:uppercase}
+.use-row{display:flex;align-items:center;gap:10px;padding:10px;border-radius:12px;background:var(--card);border:1px solid var(--line);text-decoration:none;color:var(--text);margin-bottom:8px}
+.use-row b{display:block}
+.use-row span{font-size:11px;color:var(--muted)}
+.copymint{width:100%;text-align:left;font-family:"IBM Plex Mono",monospace;font-size:11px;word-break:break-all;background:#0a0a12;border:0;color:var(--gold2);border-radius:10px;padding:10px;margin:6px 0}
+.meta{flex:1;min-width:0}
+.meta b,.meta span{display:block;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
+.meta b{font-size:14px}.meta span{font-size:11px;color:var(--muted)}
+.bal{text-align:right;flex-shrink:0;font-variant-numeric:tabular-nums}
+.bal b{display:block;font-size:14px}.bal span{font-size:11px;color:var(--muted)}
+.pill{display:inline-block;margin-left:6px;font-size:9px;letter-spacing:.08em;text-transform:uppercase;color:var(--ok);border:1px solid rgba(61,222,176,.35);border-radius:999px;padding:1px 6px}
+.tiny{display:block;margin:2px 0 0 auto;background:none;border:0;color:var(--gold);font-size:10px;font-weight:600;padding:0}
+.dock{position:absolute;left:0;right:0;bottom:0;display:flex;justify-content:space-around;padding:8px 8px calc(8px + var(--safe));background:rgba(10,10,16,.94);border-top:1px solid var(--line)}
+.dock button{flex:1;background:none;border:0;color:var(--muted);font-size:10px;letter-spacing:.04em;text-transform:uppercase;padding:6px}
 .dock button.on{color:var(--gold2)}
-.dock-panel{display:none}.dock-panel.on{display:block}
-.tok{display:flex;align-items:center;gap:10px;padding:12px;border-radius:14px;background:rgba(255,255,255,.04);border:1px solid rgba(255,255,255,.07);margin:8px 0}
-.tok img{width:36px;height:36px;border-radius:50%}
-.tok .meta{flex:1;min-width:0}
-.tok .meta b{display:block;font-size:.88rem}
-.tok .meta span{font-size:.7rem;color:var(--dim)}
-.tok .bal{text-align:right;font-weight:700}
-.store{display:grid;grid-template-columns:repeat(2,1fr);gap:10px}
-.fund{border:1px solid rgba(212,175,55,.4);background:rgba(212,175,55,.08);border-radius:16px;padding:14px;margin:8px 0 14px}
-.fund h3{font-family:Cinzel,serif;color:var(--gold);font-size:1rem;margin:0 0 6px}
-.fund .big{font-family:ui-monospace,monospace;font-size:.72rem;word-break:break-all;background:#000;padding:10px;border-radius:8px;margin:8px 0}
-.nftg{display:grid;grid-template-columns:repeat(3,1fr);gap:8px}
-.nftg a{display:block;background:#0a0a12;border-radius:10px;overflow:hidden;border:1px solid rgba(255,255,255,.08);text-decoration:none;color:var(--text)}
-.nftg img{width:100%;aspect-ratio:1;object-fit:cover;display:block}
-.nftg span{display:block;font-size:.62rem;padding:4px 6px;color:var(--dim);white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
-.set-row{display:flex;justify-content:space-between;gap:8px;padding:10px 0;border-bottom:1px solid rgba(255,255,255,.06);font-size:.8rem}
-.set-row b{color:var(--dim);font-weight:500}
-.dock button{font-size:.62rem}
+.panel{display:none}.panel.on{display:block}
+.sheet{display:none;position:absolute;inset:0;z-index:8;background:rgba(0,0,0,.55);align-items:flex-end}
+.sheet.on{display:flex}
+.sheet .pad{width:100%;background:#14141c;border-top:1px solid rgba(224,195,106,.25);border-radius:22px 22px 0 0;padding:16px 16px calc(20px + var(--safe));max-height:92%;overflow:auto}
+.grab{width:36px;height:4px;border-radius:99px;background:#333;margin:0 auto 14px}
+.sheet h3{font-size:16px;margin-bottom:6px}
+.sheet p,.msg{font-size:12px;color:var(--muted);line-height:1.45;margin-bottom:10px}
+.msg.ok{color:var(--ok)}.msg.err{color:var(--err)}
+.prov{display:flex;width:100%;align-items:center;gap:12px;background:var(--card);border:1px solid var(--line);border-radius:14px;padding:12px;color:var(--text);margin-bottom:8px;font-size:14px;font-weight:600;text-align:left}
+.prov img{width:28px;height:28px;border-radius:8px;object-fit:contain;background:#0a0a12;flex-shrink:0}
+.prov .sub{margin:0;font-size:11px;font-weight:500;color:var(--muted)}
+.prov.install{opacity:.92;font-weight:500}
+.pick-label{font-size:11px;letter-spacing:.08em;text-transform:uppercase;color:var(--muted);margin:8px 0 6px}
+.install-more{margin:10px 0;border-radius:14px;background:rgba(255,255,255,.03);box-shadow:0 0 0 1px var(--line)}
+.install-more>summary{list-style:none;cursor:pointer;padding:12px 14px;font-weight:600;color:var(--gold2)}
+.install-more>summary::-webkit-details-marker{display:none}
+.install-more[open]>summary{border-bottom:1px solid var(--line)}
+.install-more .pad-in{padding:10px}
+.addrbox{font-family:"IBM Plex Mono",monospace;font-size:12px;word-break:break-all;background:#000;border-radius:12px;padding:12px;margin:8px 0 12px}
+.primary{width:100%;border:0;border-radius:14px;padding:12px;background:linear-gradient(180deg,#e8d07a,#b8922a);color:#1a1405;font-weight:700}
+.ghost{width:100%;margin-top:8px;border-radius:14px;padding:12px;background:transparent;color:var(--gold2);border:1px solid var(--line);font-weight:600}
+.input{width:100%;background:#0a0a12;border:1px solid rgba(255,255,255,.1);border-radius:10px;padding:10px 12px;color:var(--text);font:inherit;margin:6px 0}
+.chips{display:flex;gap:6px;flex-wrap:wrap;margin:0 0 10px}
+.chip{border:1px solid var(--line);background:var(--card);color:var(--muted);border-radius:999px;padding:6px 10px;font-size:11px;font-weight:600}
+.chip.on{color:#1a1405;background:linear-gradient(180deg,#e8d07a,#b8922a);border-color:transparent}
+.addbar{display:flex;gap:8px;margin:4px 0 10px}
+.addbar .input{margin:0;flex:1}
+.addbar button{flex-shrink:0;border:0;border-radius:10px;padding:0 14px;background:linear-gradient(180deg,#e8d07a,#b8922a);color:#1a1405;font-weight:700;font-size:12px}
+.hint{font-size:11px;color:var(--muted);line-height:1.4;margin-bottom:10px}
+.nftg{display:grid;grid-template-columns:repeat(3,1fr);gap:8px;padding-bottom:12px}
+.nftc{display:block;background:#0a0a12;border-radius:12px;overflow:hidden;border:1px solid var(--line);text-decoration:none;color:var(--text)}
+.nftc img{width:100%;aspect-ratio:1;object-fit:cover;display:block;background:#16161f}
+.nftc span{display:block;font-size:10px;padding:6px 7px 8px;color:var(--muted);white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+.feat{display:block;position:relative;border-radius:18px;overflow:hidden;margin-bottom:12px;text-decoration:none;color:#fff;min-height:148px;background:#16161f}
+.feat img{width:100%;height:148px;object-fit:cover;display:block}
+.feat .cap{position:absolute;left:0;right:0;bottom:0;padding:14px;background:linear-gradient(transparent,rgba(0,0,0,.85))}
+.feat strong{display:block;font-size:16px}
+.feat em{display:block;font-style:normal;font-size:11px;color:rgba(255,255,255,.75);margin-top:2px}
+.feat .get{position:absolute;top:12px;right:12px}
+.appc{display:flex;align-items:center;gap:12px;padding:10px;border-radius:16px;background:var(--card);border:1px solid var(--line);text-decoration:none;color:var(--text);margin-bottom:8px}
+.appc img{width:56px;height:56px;border-radius:14px;object-fit:cover;background:#16161f;flex-shrink:0}
+.appc .meta{flex:1;min-width:0}
+.appc .get{margin-left:auto;flex-shrink:0}
+.get{border:0;border-radius:999px;padding:6px 12px;background:rgba(224,195,106,.16);color:var(--gold2);font-size:11px;font-weight:700;text-decoration:none}
+.search{width:100%;background:rgba(255,255,255,.05);border:1px solid var(--line);border-radius:12px;padding:10px 12px;color:var(--text);font:inherit;margin-bottom:10px}
+.preview{display:flex;align-items:center;gap:12px;padding:12px;background:#0a0a12;border-radius:14px;margin:8px 0}
+.empty{font-size:12px;color:var(--muted);line-height:1.45;padding:8px 0 16px}
+.suggest{background:var(--card);border:1px solid var(--line);border-radius:14px;margin:0 0 10px;overflow:hidden}
+.suggest button{display:flex;width:100%;align-items:center;gap:10px;padding:10px 12px;background:none;border:0;border-bottom:1px solid var(--line);color:var(--text);text-align:left;font:inherit}
+.suggest button:last-child{border-bottom:0}
+.suggest .av{width:32px;height:32px}
+.suggest .mint{font-size:10px;color:var(--muted)}
+.store-head{display:flex;justify-content:space-between;align-items:flex-end;padding:4px 0 10px}
+.store-head h2{font-size:26px;letter-spacing:-.04em;text-transform:none;color:var(--text);font-weight:700}
+.today{font-size:11px;letter-spacing:.14em;text-transform:uppercase;color:var(--gold);font-weight:600}
+.story{display:block;position:relative;border-radius:22px;overflow:hidden;margin-bottom:16px;text-decoration:none;color:#fff;min-height:210px;background:#16161f}
+.story img{width:100%;height:210px;object-fit:cover;display:block}
+.story .cap{position:absolute;left:0;right:0;bottom:0;padding:16px;background:linear-gradient(transparent,rgba(0,0,0,.88))}
+.story small{display:block;font-size:10px;letter-spacing:.14em;text-transform:uppercase;color:var(--gold);margin-bottom:4px}
+.story strong{display:block;font-size:20px;letter-spacing:-.03em}
+.story em{display:block;font-style:normal;font-size:12px;color:rgba(255,255,255,.78);margin:4px 0 10px}
+.story .get{position:absolute;top:14px;right:14px}
+.hscroll{display:flex;gap:12px;overflow-x:auto;padding:0 0 12px;scroll-snap-type:x mandatory;-webkit-overflow-scrolling:touch}
+.hscroll::-webkit-scrollbar{display:none}
+.iconapp{flex:0 0 108px;scroll-snap-align:start;text-decoration:none;color:var(--text);text-align:center}
+.iconapp img{width:72px;height:72px;border-radius:18px;object-fit:cover;display:block;margin:0 auto 8px;background:#16161f;border:1px solid var(--line)}
+.iconapp b{display:block;font-size:11px;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+.iconapp span{display:block;font-size:10px;color:var(--muted);white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+.iconapp .get{display:inline-block;margin-top:6px}
+.appc .dev{display:block;font-size:10px;color:var(--muted);margin-top:2px}
+.get{border:0;border-radius:999px;padding:6px 14px;background:rgba(224,195,106,.18);color:var(--gold2);font-size:11px;font-weight:700;text-decoration:none;letter-spacing:.04em}
+.cta{display:block;text-align:center;text-decoration:none;margin:8px 0 12px}
+.nftc .tag{display:block;font-size:9px;letter-spacing:.08em;text-transform:uppercase;color:var(--gold);padding:0 7px 6px}
 </style>
 </head>
 <body>
-<div class="bg" aria-hidden="true"></div>
-<div class="bg2" aria-hidden="true"></div>
-<div class="wrap shell">
-  <header class="w-head">
-    <div class="acct">
-      <img src="${logo}" alt="" width="28" height="28" />
-      <div style="min-width:0">
-        <b id="sess">loading…</b>
-        <span id="gid">Grudge ID —</span>
+<div class="stage"><div class="app">
+  <header>
+    <div class="ident">
+      <img src="/media/grudge-id.png" alt="Grudge ID" width="28" height="28" />
+      <div class="who">
+        <b id="name">Sign in</b>
+        <span class="mono" id="gid">Grudge ID</span>
       </div>
     </div>
-    <button class="cyan" type="button" id="btn-siws">Connect Phantom</button>
-    <a class="btn ghost" id="btn-login" href="${idGw}/login?redirect_uri=${encodeURIComponent("https://wallet.grudge-studio.com/")}&app=wallet&origin=${encodeURIComponent("https://wallet.grudge-studio.com")}">Grudge ID</a>
-    <button class="ghost" type="button" id="btn-logout" style="display:none">Out</button>
-    <button class="ghost" type="button" id="btn-install" style="display:none">Install</button>
+    <a class="ico" id="btn-login" href="${login}" title="Grudge ID">ID</a>
+    <button class="ico" type="button" id="btn-logout" title="Sign out" hidden>✕</button>
   </header>
-
-  <div class="hero-bal">
-    <div class="sym">Gruda Wallet · mainnet</div>
-    <div class="fig"><span id="gbux">—</span></div>
-    <div class="sub">GBUX bag · play <span id="play">—</span></div>
-    <div class="sub">Trader vault <span id="tr-sol">—</span> · spendable <span id="tr-spend">—</span></div>
-    <div class="badge" id="edge-badge">Solana</div>
+  <div class="hero">
+    <div class="net">Gruda · Solana mainnet</div>
+    <div class="fig"><span id="fig-sol">0.00</span><small>SOL</small></div>
+    <div class="sub">Trader <span id="tr-sol">0.00</span> · Play <span id="play">0</span></div>
   </div>
-
-  <div class="act">
-    <button type="button" id="btn-tr-copy"><span class="ic">↓</span>Receive</button>
-    <button type="button" id="btn-go-send"><span class="ic">↑</span>Send</button>
-    <button type="button" id="btn-go-swap"><span class="ic">⇄</span>Swap</button>
-    <button type="button" id="btn-go-connect"><span class="ic">◎</span>Connect</button>
+  <div class="acts">
+    <button type="button" id="act-recv"><span class="ic"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><path d="M12 4v12"/><path d="M7 12l5 5 5-5"/><path d="M5 20h14"/></svg></span>Receive</button>
+    <button type="button" id="act-send"><span class="ic"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><path d="M12 20V8"/><path d="M7 12l5-5 5 5"/><path d="M5 4h14"/></svg></span>Send</button>
+    <button type="button" id="act-swap"><span class="ic"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><path d="M7 7h11l-3-3"/><path d="M17 17H6l3 3"/></svg></span>Swap</button>
+    <button type="button" id="act-connect"><span class="ic"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><rect x="3" y="6" width="18" height="12" rx="2"/><path d="M3 10h18"/></svg></span>Wallets</button>
   </div>
-  <p class="msg" id="msg"></p>
-
-  <div class="dock-panel on" id="dock-assets">
-    <div class="fund" id="fund-card">
-      <h3>Enable + Receive (your vault)</h3>
-      <p style="font-size:.78rem;color:var(--dim);line-height:1.45;margin:0">House aUp3 is admin only. Tap Enable, then send SOL from Phantom to <b>this</b> address. Keep 0.02 SOL for fees.</p>
-      <div class="big" id="tr-vault-full">Sign in → Enable trader</div>
-      <div class="btns">
-        <button class="primary" type="button" id="btn-tr-enroll" disabled>Enable trader</button>
-        <button class="cyan" type="button" id="btn-tr-copy">Copy receive</button>
-        <a class="btn ghost" id="btn-tr-scan" href="#" target="_blank" rel="noopener">Solscan</a>
+  <p class="msg" id="toast"></p>
+  <div class="panel on" id="panel-home">
+    <section>
+      <div class="hrow"><h2>Wallets</h2><button type="button" id="act-add">+ Add</button></div>
+      <div id="linked-list"></div>
+      <div id="trader-card">
+        <div class="row"><div class="av"><img src="/media/sol.png" alt=""></div><div class="meta"><b>Trader</b><span>Auto-trader</span></div><div class="bal"><b id="vault-sol">0.00</b><span>SOL</span></div></div>
       </div>
-      <label class="k" style="font-size:.75rem">Then record the SOL you sent</label>
-      <input class="input" id="tr-from" placeholder="Your Phantom address" />
-      <input class="input" id="tr-amt" type="number" min="0" step="0.01" value="0.05" />
-      <div class="btns">
-        <button class="cyan" type="button" id="btn-tr-dep" disabled>Record deposit</button>
-        <button class="ghost" type="button" id="btn-tr-wd" disabled>Withdraw</button>
+    </section>
+    <section>
+      <div class="hrow"><h2>THC Labz</h2><a href="https://growerz.thc-labz.xyz" style="color:var(--gold);font-size:12px;font-weight:600;text-decoration:none">Hub</a></div>
+      <p class="hint" id="thc-hint">Connect Phantom on this Grudge ID. Play matches that wallet on Railway — not a second bag.</p>
+      <div id="thc-card" class="card">
+        <div class="row"><div class="av"><img src="/media/thc.png" alt=""></div><div class="meta"><b id="thc-status">Not linked</b><span id="thc-wallet">—</span></div><div class="bal"><b id="thc-budz">—</b><span>$BUDZ</span></div></div>
+        <div class="row"><div class="meta"><b>Growhouse</b><span id="thc-gh">Connect wallet</span></div><div class="bal"><b id="thc-plants">—</b><span>plants</span></div></div>
+        <div class="row"><div class="meta"><b>Clash cards</b><span id="thc-idmatch">Grudge ID vs THC row</span></div><div class="bal"><b id="thc-cards">—</b></div></div>
       </div>
-      <p class="msg" id="tr-msg"></p>
-    </div>
-    <div class="tok"><img class="coin" src="${gbuxCoin}" alt="GBUX coin" /><div class="meta"><b>GBUX</b><span>coin · bag · Crossmint</span></div><div class="bal" id="tok-gbux">—</div></div>
-    <div class="tok"><img src="${logo}" alt="" /><div class="meta"><b>SOL vault</b><span id="tr-vault">your trader vault</span></div><div class="bal" id="tok-sol">—</div></div>
-    <span id="cmint" hidden></span><span id="net" hidden></span><span id="mint" hidden></span>
-    <div class="addr" id="addr"></div>
-    <p style="font-size:.72rem;color:var(--dim);margin:8px 0">Keep 0.02 SOL in the trader vault. Close fee 0.005 SOL → GBUX; TP +5%.</p>
-    <div class="row"><span class="k">Enrolled</span><span class="v" id="tr-enroll">—</span></div>
-    <div id="w-linked">Sign in to list linked Phantom accounts.</div>
-    <div class="row"><span class="k">Crossmint</span><span class="v" id="w-cm">—</span></div>
-    <div id="w-detect" class="btns"></div>
-    <div class="btns">
-      <button class="cyan" type="button" id="btn-link-ph" disabled>Phantom</button>
-      <button class="ghost" type="button" id="btn-link-sf" disabled>Solflare</button>
-      <button class="ghost" type="button" id="btn-link-bp" disabled>Backpack</button>
-      <a class="btn ghost" id="btn-open-phantom" href="#" style="display:none">Open in Phantom</a>
-      <button class="ghost" type="button" id="btn-create-wallet" style="display:none">Create Gruda</button>
-      <button class="primary" type="button" id="btn-refresh">Refresh</button>
-    </div>
-    <p class="msg" id="w-msg"></p>
-  </div>
-
-  <div class="dock-panel" id="dock-dapps">
-    <p style="font-size:.8rem;color:var(--dim);margin:0 0 10px">Dapp store · opens with your Grudge ID session</p>
-    <div class="store gamess" id="games"></div>
-    <div id="hero-list" style="font-size:.75rem;color:var(--dim);margin-top:12px"></div>
-    <div class="btns">
-      <a class="btn primary" id="btn-trader" href="${trader}">Trader</a>
-      <a class="btn ghost" id="btn-phantom" href="${poker}/wallet">Poker wallet</a>
-    </div>
-  </div>
-
-  <div class="dock-panel" id="dock-coins">
-    <p style="font-size:.78rem;color:var(--dim)">Coins on <b>your</b> trader vault (Helius RPC). GBUX bag is Crossmint.</p>
-    <div id="coin-list"><p class="empty">Enable trader to load coins.</p></div>
-  </div>
-
-  <div class="dock-panel" id="dock-nfts">
-    <p style="font-size:.78rem;color:var(--dim)">cNFTs and NFTs on your trader vault (DAS / Helius).</p>
-    <div class="nftg" id="nft-grid"><p class="empty" style="grid-column:1/-1">None yet — they appear after mint or transfer to your Receive address.</p></div>
-  </div>
-
-  <div class="dock-panel" id="dock-activity">
-    <p style="font-size:.8rem;color:var(--dim);line-height:1.45">Bag tools: fund Poker play GBUX, swap Crossmint SOL↔GBUX. Trader SOL is on Assets → Enable + Receive.</p>
-    <div class="tabs">
-      <button type="button" class="on" data-tab="play">Play ledger</button>
-      <button type="button" data-tab="swap">Swap bag</button>
-    </div>
-    <div class="panel on" id="tab-play">
-      <input class="input" id="play-amt" type="number" min="1" step="1" value="100" />
-      <button class="cyan" type="button" id="btn-fund-play" disabled>Send GBUX to Poker play</button>
-    </div>
-    <div class="panel" id="tab-swap">
-      <select class="input" id="swap-dir">
-        <option value="sol-to-gbux">SOL → GBUX</option>
-        <option value="gbux-to-sol">GBUX → SOL</option>
-      </select>
-      <input class="input" id="swap-amt" type="number" min="0" step="any" value="0.1" />
-      <div class="btns">
-        <button class="ghost" type="button" id="btn-quote" disabled>Quote</button>
-        <button class="primary" type="button" id="btn-swap" disabled>Swap</button>
+    </section>
+    <section>
+      <div class="hrow"><h2>Tokens</h2></div>
+      <div id="home-tokens">
+      <div class="row"><div class="av"><img src="/media/sol.png" alt="SOL"></div><div class="meta"><b>Solana</b><span>SOL</span></div><div class="bal"><b id="tok-sol">0.00</b></div></div>
+      <div class="row"><div class="av"><img src="/media/gbux.png" alt="GBUX"></div><div class="meta"><b>GBUX</b><span>Play / fee</span></div><div class="bal"><b id="tok-gbux">0</b></div></div>
+      <div class="row"><div class="av"><img src="/media/usdc.png" alt="USDC"></div><div class="meta"><b>USDC</b><span>USD Coin</span></div><div class="bal"><b>0</b></div></div>
+      <div class="row"><div class="av"><img src="/media/thc.png" alt="THC"></div><div class="meta"><b>THC</b><span>THC Labz</span></div><div class="bal"><b>0</b></div></div>
       </div>
-      <pre id="swap-out" style="font-size:.7rem;color:var(--dim);margin-top:8px;white-space:pre-wrap;max-height:100px;overflow:auto"></pre>
-    </div>
-    <p class="msg" id="tx-msg"></p>
+    </section>
   </div>
-
-  <div class="dock-panel" id="dock-set">
-    <div class="set-row"><span>Network</span><b id="set-net">Solana mainnet-beta</b></div>
-    <div class="set-row"><span>RPC</span><b id="set-rpc">Helius + public fallback</b></div>
-    <div class="set-row"><span>Explorer</span><b>solscan.io</b></div>
-    <div class="set-row"><span>House vault</span><b>aUp3… admin only</b></div>
-    <div class="set-row"><span>Your vault</span><b id="set-vault">Enable first</b></div>
-    <div class="btns" style="margin-top:12px">
-      <button type="button" id="btn-privacy">Privacy</button>
-      <button type="button" id="btn-tos">Terms</button>
-      <a class="btn ghost" href="https://solscan.io">Solscan</a>
-    </div>
+  <div class="panel" id="panel-coins">
+    <section>
+      <div class="hrow"><h2>Coins</h2><button type="button" id="btn-add-token">+ Token</button></div>
+      <p class="hint">Search a ticker or paste a mint.</p>
+      <div class="chips" id="coin-owners">
+        <button type="button" class="chip on" data-owner="all">All</button>
+        <button type="button" class="chip" data-owner="play">Play</button>
+        <button type="button" class="chip" data-owner="linked">Linked</button>
+        <button type="button" class="chip" data-owner="trader">Trader</button>
+      </div>
+      <div class="addbar">
+        <input class="input" id="coin-q" placeholder="Search JUP, BONK, or paste mint" autocomplete="off" />
+        <button type="button" id="btn-lookup">Add</button>
+      </div>
+      <div id="coin-suggest" class="suggest" hidden></div>
+      <p class="msg" id="coin-msg"></p>
+      <div id="coin-list"><p class="empty">Sign in to load SOL + GBUX, then add any Solana token.</p></div>
+    </section>
   </div>
-
-  <nav class="dock" aria-label="Wallet sections">
-    <button type="button" class="on" data-dock="assets">Home</button>
+  <div class="panel" id="panel-nfts">
+    <section>
+      <div class="hrow"><h2>cNFTs</h2><button type="button" id="btn-nft-sync">Sync</button></div>
+      <p class="hint" id="nft-empty">Play + linked wallets. Characters, islands, Nemesis cards, Growerz, Bad Seeds.</p>
+      <div class="chips" id="nft-cats">
+        <button type="button" class="chip on" data-nft="all">All</button>
+        <button type="button" class="chip" data-nft="characters">Characters</button>
+        <button type="button" class="chip" data-nft="island">Islands</button>
+        <button type="button" class="chip" data-nft="nemesis">Nemesis</button>
+        <button type="button" class="chip" data-nft="access">Access</button>
+      </div>
+      <p class="msg" id="nft-msg"></p>
+      <a class="ghost btn cta" href="https://character.grudge-studio.com/?era=warlords" id="nft-foundry">Mint in Character Foundry</a>
+      <div class="nftg" id="nft-grid"></div>
+    </section>
+  </div>
+  <div class="panel" id="panel-dapps">
+    <section>
+      <div class="store-head">
+        <div>
+          <div class="today" id="store-today">Today</div>
+          <h2>App Store</h2>
+        </div>
+      </div>
+      <input class="search" id="dapp-q" placeholder="Search games, desk, studio" />
+      <div class="chips" id="dapp-cats">
+        <button type="button" class="chip on" data-cat="all">All</button>
+        <button type="button" class="chip" data-cat="Play">Play</button>
+        <button type="button" class="chip" data-cat="Desk">Desk</button>
+        <button type="button" class="chip" data-cat="Studio">Studio</button>
+      </div>
+      <div id="dapp-feat"></div>
+      <div class="hrow" id="must-head"><h2>Must play</h2></div>
+      <div class="hscroll" id="dapp-must"></div>
+      <div class="hrow"><h2>From Grudge Studio</h2></div>
+      <div id="dapp-list"></div>
+    </section>
+  </div>
+  <div class="panel" id="panel-set"><section>
+    <div class="hrow"><h2>Account</h2></div>
+    <div class="row">
+      <div class="av"><img src="/media/grudge-id.png" alt=""></div>
+      <div class="meta"><b id="set-name">Sign in</b><span class="mono" id="set-gid">—</span></div>
+      <div class="bal"><button type="button" class="tiny" id="set-copy-gid">Copy ID</button></div>
+    </div>
+    <div class="hrow"><h2>Addresses</h2></div>
+    <div class="row"><div class="av"><img src="/media/play.png" alt=""></div><div class="meta"><b>Play <span class="pill">Primary</span></b><button type="button" class="copychip" data-copy="play" id="set-play">—</button></div></div>
+    <div class="row"><div class="av"><img src="/media/sol.png" alt=""></div><div class="meta"><b>Linked</b><button type="button" class="copychip" data-copy="w1" id="set-w1">None</button></div></div>
+    <div class="row"><div class="av"><img src="/media/sol.png" alt=""></div><div class="meta"><b>Trader</b><button type="button" class="copychip" data-copy="vault" id="set-vault">Not enabled</button></div></div>
+    <button class="ghost" type="button" id="set-refresh">Refresh</button>
+    <button class="ghost" type="button" id="set-logout">Sign out</button>
+  </section></div>
+  <nav class="dock">
+    <button class="on" type="button" data-dock="home">Home</button>
     <button type="button" data-dock="coins">Coins</button>
     <button type="button" data-dock="nfts">cNFTs</button>
     <button type="button" data-dock="dapps">Dapps</button>
     <button type="button" data-dock="set">Set</button>
   </nav>
-  <p class="foot">Gruda Wallet · Set for Privacy / Terms</p>
-</div>
-<div class="legal-back" id="legal-back" hidden>
-  <div class="legal-card">
-    <h3 id="legal-title">Privacy</h3>
-    <div id="legal-body"></div>
-    <button class="primary" type="button" id="legal-close">Close</button>
-  </div>
-</div>
+  <div class="sheet" id="sheet-connect"><div class="pad"><div class="grab"></div>
+    <h3>Connect a wallet</h3>
+    <p>Any Solana wallet. Installed ones first. Play stays the primary address.</p>
+    <div class="pick-label">On this device</div>
+    <div id="wallet-installed"></div>
+    <details class="install-more" id="wallet-install-wrap">
+      <summary>Install a wallet</summary>
+      <div class="pad-in">
+        <p class="hint">Easiest to set up, then the rest.</p>
+        <div id="wallet-install"></div>
+      </div>
+    </details>
+    <p class="msg" id="connect-msg"></p>
+    <button class="ghost" type="button" data-close>Cancel</button>
+  </div></div>
+  <div class="sheet" id="sheet-recv"><div class="pad"><div class="grab"></div>
+    <h3>Receive</h3>
+    <p>Send SOL here for the auto-trader. Leave a little for fees.</p>
+    <div class="addrbox" id="vault-addr">Sign in → Enable trader</div>
+    <button class="primary" type="button" id="btn-enroll">Enable trader</button>
+    <button class="ghost" type="button" id="btn-copy-vault">Copy address</button>
+    <a class="ghost btn" id="btn-solscan" href="#" target="_blank" rel="noopener" style="display:block;text-align:center;text-decoration:none">Solscan</a>
+    <p class="msg" id="recv-msg"></p>
+    <button class="ghost" type="button" data-close>Close</button>
+  </div></div>
+  <div class="sheet" id="sheet-send"><div class="pad"><div class="grab"></div>
+    <h3>Send</h3>
+    <p>Send GBUX to Poker.</p>
+    <label>Amount GBUX</label>
+    <input class="input" id="send-amt" type="number" min="1" value="10" />
+    <button class="primary" type="button" id="btn-play">Send to Poker play</button>
+    <a class="ghost btn" href="${poker}/wallet" style="display:block;text-align:center;text-decoration:none;margin-top:8px">Open poker wallet</a>
+    <p class="msg" id="send-msg"></p>
+    <button class="ghost" type="button" data-close>Close</button>
+  </div></div>
+  <div class="sheet" id="sheet-token"><div class="pad"><div class="grab"></div>
+    <h3>Add a token</h3>
+    <p>Search a ticker or paste a mint.</p>
+    <input class="input" id="token-q" placeholder="JUP, BONK, or mint address" autocomplete="off" />
+    <button class="primary" type="button" id="btn-token-lookup">Search</button>
+    <div id="token-suggest" class="suggest" hidden></div>
+    <div id="token-preview"></div>
+    <p class="msg" id="token-msg"></p>
+    <button class="ghost" type="button" data-close>Cancel</button>
+  </div></div>
+  <div class="sheet" id="sheet-swap"><div class="pad"><div class="grab"></div>
+    <h3>Swap</h3>
+    <p class="hint">In this wallet. Quote from Jupiter, sign from the bag that holds it.</p>
+    <div id="sheet-swap-box" class="swapbox"></div>
+    <button class="ghost" type="button" data-close>Close</button>
+  </div></div>
+  <div class="sheet" id="sheet-info"><div class="pad"><div class="grab"></div>
+    <div id="tok-page"></div>
+    <button class="ghost" type="button" data-close>Close</button>
+  </div></div>
+</div></div>
 <script>
-const RAILWAY = ${JSON.stringify(railway)};
-const ID_GW = ${JSON.stringify(idGw)};
-const POKER = ${JSON.stringify(poker)};
-const TRADER = ${JSON.stringify(trader)};
-const FLEET_KEYS = ['grudge.open.token','grudge_auth_token','grudge_session_token','grudge.token','sso_token','grudge_token','access_token'];
-const $ = (id) => document.getElementById(id);
-let signedIn = false;
-let walletAddr = '';
-
-const GAMES = [
-  { name: 'Auto-trader', desc: 'SOL desk · rotating capital', href: TRADER, img: '${art.trader}' },
-  { name: 'Poker wallet', desc: 'BUDB play · fund · sit', href: POKER + '/wallet', img: '${art.pokerFelt}' },
-  { name: 'BUDB Poker', desc: 'Holdem · slots · BJ', href: POKER + '/lobby', img: '${art.pokerOg}' },
-  { name: 'Warlords play', desc: 'Client · home island', href: '${client}/home', img: '${art.warlords}' },
-  { name: 'Character Foundry', desc: 'Create · 4 slots', href: 'https://character.grudge-studio.com/?era=warlords', img: '${art.foundry}' },
-  { name: 'Grudge Open', desc: 'Danger · library', href: 'https://open.grudge-studio.com', img: '${art.open}' },
-  { name: 'GRUDOX', desc: 'Arcade cabinets', href: 'https://grudox.grudge-studio.com', img: '${art.grudox}' },
-  { name: 'Mine-Loader', desc: 'Voxel realms', href: 'https://mineloader.grudge-studio.com', img: '${art.mine}' },
-  { name: 'Forge', desc: 'Map / scene editor', href: 'https://forge.grudge-studio.com', img: '${art.forge}' },
-  { name: 'Studio portal', desc: 'grudge-studio.com', href: '${portal}', img: '${art.portal}' },
-];
-
-function storeFleetToken(token, meta) {
-  if (!token) return;
-  try {
-    FLEET_KEYS.forEach((k) => localStorage.setItem(k, token));
-    if (meta && meta.grudgeId) {
-      localStorage.setItem('grudge_id', meta.grudgeId);
-      localStorage.setItem('grudge_account_id', meta.grudgeId);
-    }
-    if (meta && meta.username) localStorage.setItem('grudge_username', meta.username);
-    document.cookie = 'sso_token=' + encodeURIComponent(token) + '; Path=/; Secure; SameSite=Lax; Max-Age=604800; Domain=.grudge-studio.com';
-  } catch {}
-}
-function getAuthToken() {
-  try {
-    for (const k of FLEET_KEYS) {
-      const v = localStorage.getItem(k); if (v && v.trim()) return v.trim();
-    }
-    const m = document.cookie.match(/(?:^|; )sso_token=([^;]+)/);
-    if (m) return decodeURIComponent(m[1]);
-  } catch {}
-  return '';
-}
-function clearFleetAuth() {
-  try {
-    FLEET_KEYS.forEach((k) => localStorage.removeItem(k));
-    ['grudge_id','grudge_account_id','grudge_user_id','grudge_username'].forEach((k) => localStorage.removeItem(k));
-  } catch {}
-}
-function consumeAuthFromUrl() {
-  const u = new URL(location.href);
-  const hash = new URLSearchParams((u.hash || '').replace(/^#/, ''));
-  const sp = u.searchParams;
-  const session = sp.get('sso_token') || sp.get('token') || hash.get('sso_token') || hash.get('token') || '';
-  const launch = sp.get('grudge_token') || hash.get('grudge_token') || '';
-  const grudgeId = sp.get('grudgeId') || sp.get('grudge_id') || hash.get('grudgeId') || '';
-  const username = sp.get('username') || sp.get('grudge_username') || hash.get('username') || '';
-  const primary = session || launch;
-  if (primary) {
-    storeFleetToken(primary, { grudgeId, username });
-    if (launch && launch !== session) try { localStorage.setItem('grudge_launch_token', launch); } catch {}
-  }
-  ['sso_token','token','grudge_token','grudgeId','grudge_id','username','grudge_username','gid'].forEach((k) => { sp.delete(k); hash.delete(k); });
-  history.replaceState(null, '', u.pathname + (sp.toString() ? '?' + sp : '') + (hash.toString() ? '#' + hash : ''));
-  return !!primary;
-}
-async function api(path, opts = {}) {
-  const headers = Object.assign({ Accept: 'application/json' }, opts.headers || {});
-  const tok = getAuthToken();
-  if (tok) headers.Authorization = 'Bearer ' + tok;
-  const urls = [path, RAILWAY + path];
-  let lastErr;
-  for (const url of urls) {
-    try {
-      const r = await fetch(url, { ...opts, headers, credentials: 'include' });
-      const text = await r.text();
-      let data = null;
-      try { data = text ? JSON.parse(text) : null; } catch { data = { raw: text }; }
-      return { ok: r.ok, status: r.status, data };
-    } catch (e) { lastErr = e; }
-  }
-  throw lastErr || new Error('fetch failed');
-}
-async function bridgeIfNeeded() {
-  const tok = getAuthToken();
-  if (!tok) return false;
-  const me = await api('/api/auth/me');
-  if (me.ok && me.data) {
-    storeFleetToken(me.data.token || me.data.sessionToken || tok, {
-      grudgeId: me.data.grudgeId || me.data.id || '',
-      username: me.data.username || me.data.displayName || '',
-    });
-    return true;
-  }
-  let launch = tok;
-  try { launch = localStorage.getItem('grudge_launch_token') || tok; } catch {}
-  const br = await api('/api/auth/grudge-bridge', {
-    method: 'POST', headers: { 'Content-Type': 'application/json' },
-    body: JSON.stringify({ token: launch, audience: location.origin }),
-  });
-  if (br.ok && br.data) {
-    const t = br.data.sessionToken || br.data.token || br.data.access_token;
-    if (t) {
-      storeFleetToken(t, { grudgeId: br.data.grudgeId || '', username: br.data.username || '' });
-      return true;
-    }
-  }
-  const claim = await api('/api/auth/session/claim', { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: '{}' });
-  if (claim.ok && claim.data) {
-    const t = claim.data.sessionToken || claim.data.token;
-    if (t) {
-      storeFleetToken(t, { grudgeId: claim.data.grudgeId || '', username: claim.data.username || '' });
-      return true;
-    }
-  }
-  return false;
-}
-function handoffUrl(base) {
-  const tok = getAuthToken();
-  if (!tok) return base;
-  try {
-    const u = new URL(base, location.origin);
-    u.hash = 'sso_token=' + encodeURIComponent(tok);
-    const gid = localStorage.getItem('grudge_id') || '';
-    const name = localStorage.getItem('grudge_username') || '';
-    if (gid) { u.searchParams.set('grudge_id', gid); u.searchParams.set('grudgeId', gid); }
-    if (name) { u.searchParams.set('username', name); }
-    const maxAge = 7 * 24 * 60 * 60;
-    document.cookie = 'grudge_auth_token=' + encodeURIComponent(tok) + '; path=/; max-age=' + maxAge + '; Domain=.grudge-studio.com; SameSite=Lax; Secure';
-    document.cookie = 'sso_token=' + encodeURIComponent(tok) + '; path=/; max-age=' + maxAge + '; Domain=.grudge-studio.com; SameSite=Lax; Secure';
-    return u.toString();
-  } catch { return base; }
-}
-function setAuthedUi(on) {
-  signedIn = on;
-  const login = $('btn-login');
-  const logout = $('btn-logout');
-  if (login) login.style.display = on ? 'none' : '';
-  if (logout) logout.style.display = on ? '' : 'none';
-  const siwsBtn = $('btn-siws');
-  if (siwsBtn) siwsBtn.textContent = on ? 'Link Phantom' : 'Connect Phantom';
-  $('btn-fund-play').disabled = !on;
-  $('btn-quote').disabled = !on;
-  $('btn-swap').disabled = !on;
-  const lp = $('btn-link-ph');
-  const ls = $('btn-link-sf');
-  if (lp) lp.disabled = !on;
-  if (ls) ls.disabled = !on;
-  const lb = $('btn-link-bp');
-  if (lb) lb.disabled = !on;
-  paintDetectedWallets();
-}
-function b58encode(bytes) {
-  const A = '123456789ABCDEFGHJKLMNPQRSTUVWXYZabcdefghijkmnopqrstuvwxyz';
-  const u8 = bytes instanceof Uint8Array ? bytes : new Uint8Array(bytes);
-  let zeros = 0;
-  while (zeros < u8.length && u8[zeros] === 0) zeros++;
-  const size = ((u8.length - zeros) * 138 / 100 + 1) | 0;
-  const b = new Uint8Array(size);
-  let length = 0;
-  for (let i = zeros; i < u8.length; i++) {
-    let carry = u8[i];
-    let j = size - 1;
-    for (; j >= 0 && (carry || (size - 1 - j) < length); j--) {
-      carry += 256 * b[j];
-      b[j] = carry % 58;
-      carry = (carry / 58) | 0;
-    }
-    length = size - 1 - j;
-  }
-  let it = size - length;
-  while (it < size && b[it] === 0) it++;
-  let s = '1'.repeat(zeros);
-  for (; it < size; it++) s += A[b[it]];
-  return s;
-}
-
-/** Poker SSOT: docs/PHANTOM_EMBEDDED_SSOT.md · client/src/lib/solana-wallets.ts
- * Prefer window.phantom.solana (not hijackable window.solana). No auto-connect. */
-function getInjectedProvider(id) {
-  if (id === 'phantom') return (window.phantom && window.phantom.solana) || (window.solana && window.solana.isPhantom ? window.solana : null);
-  if (id === 'solflare') return window.solflare || (window.solana && window.solana.isSolflare ? window.solana : null);
-  if (id === 'backpack') return window.backpack || null;
-  if (window.solana && !window.solana.isPhantom && !window.solana.isSolflare) return window.solana;
-  return null;
-}
-function detectInjected() {
-  return [
-    { id: 'phantom', name: 'Phantom', install: 'https://phantom.app' },
-    { id: 'solflare', name: 'Solflare', install: 'https://solflare.com' },
-    { id: 'backpack', name: 'Backpack', install: 'https://backpack.app' },
-  ].map((w) => Object.assign(w, { available: Boolean(getInjectedProvider(w.id)) }));
-}
-function paintDetectedWallets() {
-  const box = $('w-detect');
-  if (!box) return;
-  const list = detectInjected();
-  const mobile = /Android|iPhone|iPad|iPod|Mobile/i.test(navigator.userAgent);
-  const inPhantom = /Phantom/i.test(navigator.userAgent) || Boolean(window.phantom && window.phantom.solana);
-  box.innerHTML = list.map((w) => {
-    if (w.available) return '<span class="v" style="font-size:.75rem">' + w.name + ' ready</span>';
-    return '<a class="btn ghost" href="' + w.install + '" target="_blank" rel="noopener">' + w.name + ' install</a>';
-  }).join('');
-  const openPh = $('btn-open-phantom');
-  if (openPh && mobile && !inPhantom) {
-    openPh.style.display = '';
-    openPh.href = 'https://phantom.app/ul/browse/' + encodeURIComponent(location.href);
-  }
-}
-
-async function siwsLogin() {
-  const msg = $('msg') || $('w-msg');
-  const w = getInjectedProvider('phantom') || getInjectedProvider('solflare') || getInjectedProvider('backpack');
-  const name = getInjectedProvider('phantom') ? 'phantom' : getInjectedProvider('solflare') ? 'solflare' : 'backpack';
-  if (!w) {
-    if (msg) { msg.className = 'msg err'; msg.textContent = 'Install Phantom, Solflare, or Backpack.'; }
-    window.open('https://phantom.app/', '_blank');
-    return;
-  }
-  if (msg) { msg.className = 'msg'; msg.textContent = 'Approve SIWS in ' + name + '...'; }
-  const resp = await w.connect({ onlyIfTrusted: false });
-  const address = String((resp && resp.publicKey && resp.publicKey.toString()) || (w.publicKey && w.publicKey.toString()) || '');
-  if (!address) throw new Error('no public key');
-  const ch = await api('/api/auth/phantom/nonce', {
-    method: 'POST',
-    headers: { 'Content-Type': 'application/json' },
-    body: JSON.stringify({ address, origin: location.origin }),
-  });
-  if (!ch.ok || !(ch.data && (ch.data.message || ch.data.siws))) {
-    throw new Error((ch.data && ch.data.error) || 'SIWS challenge failed');
-  }
-  const challenge = ch.data;
-  let message = challenge.message;
-  let signature;
-  let addr = address;
-  if (typeof w.signIn === 'function' && challenge.siws && challenge.siws.nonce) {
-    const out = await w.signIn(challenge.siws);
-    const signed = out.signedMessage || out.signed_message || message;
-    message = typeof signed === 'string' ? signed : new TextDecoder().decode(signed);
-    signature = typeof out.signature === 'string' ? out.signature : b58encode(out.signature);
-    addr = String((out.address && out.address.toString && out.address.toString()) || (out.account && out.account.address) || address);
-  } else {
-    const encoded = new TextEncoder().encode(message);
-    const signed = await w.signMessage(encoded, 'utf8');
-    signature = typeof signed === 'string' ? signed : b58encode(signed.signature || signed);
-  }
-  const verified = await api('/api/auth/phantom/verify', {
-    method: 'POST',
-    headers: { 'Content-Type': 'application/json' },
-    body: JSON.stringify({ address: addr, nonce: challenge.nonce, message, signature, provider: name }),
-  });
-  const body = verified.data || {};
-  const tok = body.token || body.sessionToken || body.sso_token;
-  if (!verified.ok && !body.success && !tok) throw new Error(body.error || 'SIWS verify failed');
-  if (tok) {
-    storeFleetToken(tok, { grudgeId: body.grudgeId || body.grudge_id || '', username: body.username || '' });
-  }
-  if (msg) { msg.className = 'msg ok'; msg.textContent = body.linked ? 'Wallet linked to Grudge ID' : 'Signed in with ' + name; }
-  await load();
-  await loadTraderCash();
-  await loadLinkedWallets();
-}
-
-async function connectAndLink(kind) {
-  const msg = $('w-msg');
-  msg.className = 'msg';
-  msg.textContent = 'Connecting ' + kind + '…';
-  const p = getInjectedProvider(kind);
-  if (!p) {
-    msg.className = 'msg err';
-    const install = kind === 'solflare' ? 'https://solflare.com' : kind === 'backpack' ? 'https://backpack.app' : 'https://phantom.app';
-    msg.innerHTML = kind + ' not injected. <a href="' + install + '" target="_blank" rel="noopener">Install</a> or Open in Phantom on mobile.';
-    return;
-  }
-  const resp = await p.connect({ onlyIfTrusted: false });
-  const walletAddress = (resp && resp.publicKey && resp.publicKey.toString()) || (p.publicKey && p.publicKey.toString()) || '';
-  if (!walletAddress) throw new Error('Wallet did not return a public key');
-  const ch = await api('/api/wallet/link/challenge', {
-    method: 'POST',
-    headers: { 'Content-Type': 'application/json' },
-    body: JSON.stringify({ walletAddress, origin: location.origin }),
-  });
-  if (!ch.ok) throw new Error(ch.data && ch.data.error || 'challenge failed');
-  const encoded = new TextEncoder().encode(ch.data.message);
-  const signed = await p.signMessage(encoded, 'utf8');
-  const sigBytes = signed.signature || signed;
-  const signature = b58encode(sigBytes);
-  const conf = await api('/api/wallet/link/confirm', {
-    method: 'POST',
-    headers: { 'Content-Type': 'application/json' },
-    body: JSON.stringify({ walletAddress, message: ch.data.message, signature, provider: kind }),
-  });
-  if (!conf.ok) throw new Error(conf.data && conf.data.error || 'confirm failed');
-  msg.className = 'msg ok';
-  msg.textContent = 'Linked ' + walletAddress.slice(0, 8) + '… (does not replace Crossmint)';
-  if ($('tr-from') && !$('tr-from').value) $('tr-from').value = walletAddress;
-  await loadLinkedWallets();
-}
-
-async function loadLinkedWallets() {
-  const box = $('w-linked');
-  const cm = $('w-cm');
-  if (cm) cm.textContent = walletAddr ? walletAddr.slice(0, 8) + '…' : 'none';
-  if (!getAuthToken()) {
-    box.textContent = 'Sign in to list linked wallets.';
-    return;
-  }
-  const r = await api('/api/wallet/linked');
-  const list = (r.data && (r.data.linkedWallets || r.data.wallets)) || [];
-  if (!r.ok) {
-    box.textContent = (r.data && r.data.error) || 'Could not load linked wallets.';
-    return;
-  }
-  if (!list.length) {
-    box.textContent = 'No Phantom/Solflare linked yet. Connect below — Crossmint stays the Gruda game wallet.';
-    return;
-  }
-  box.innerHTML = list.map((w) => {
-    const a = w.walletAddress || w.address || '';
-    const prov = w.provider || w.walletType || 'linked';
-    return '<div class="row"><span class="k">' + prov + '</span><span class="v" title="' + a + '">' + (a ? a.slice(0, 6) + '…' + a.slice(-4) : '—') + '</span></div>';
-  }).join('');
-  const first = list[0] && (list[0].walletAddress || list[0].address);
-  if (first && $('tr-from') && !$('tr-from').value) $('tr-from').value = first;
-}
-
-function renderGames() {
-  $('games').innerHTML = GAMES.map((g) =>
-    '<a class="game" href="' + g.href + '" data-handoff="1"><img src="' + g.img + '" alt="" onerror="this.remove()"><strong>' + g.name + '</strong><span>' + g.desc + '</span></a>'
-  ).join('');
-  $('games').querySelectorAll('a[data-handoff]').forEach((a) => {
-    a.addEventListener('click', (e) => {
-      e.preventDefault();
-      location.href = handoffUrl(a.getAttribute('href'));
-    });
-  });
-}
-async function loadPlayBalance(addr) {
-  if (!addr || addr.length < 32) { $('play').textContent = '—'; return; }
-  try {
-    const r = await fetch(POKER + '/api/wallet/scopes?wallet=' + encodeURIComponent(addr));
-    const j = await r.json();
-    const play = j.playWallet?.balance ?? j.unified?.playGbux ?? 0;
-    $('play').textContent = Number(play).toLocaleString() + ' play';
-  } catch {
-    $('play').textContent = '—';
-  }
-}
-async function load() {
-  if ($('sess')) $('sess').textContent = 'loading…';
-  $('msg').textContent = '';
-  $('msg').className = 'msg';
-  $('hero-list').textContent = '';
-  try {
-    consumeAuthFromUrl();
-    await bridgeIfNeeded();
-    const cfg = await api('/api/wallet/config');
-    if (cfg.ok && cfg.data) {
-      $('net').textContent = cfg.data.network || 'mainnet-beta';
-      const m = cfg.data.gbuxMint || '';
-      $('mint').textContent = m ? m.slice(0, 6) + '…' + m.slice(-4) : '—';
-    }
-    const me = await api('/api/auth/me');
-    if (!me.ok) {
-      setAuthedUi(false);
-      $('sess').textContent = 'signed out';
-      $('gid').textContent = '—';
-      $('gbux').textContent = '—';
-      $('play').textContent = '—';
-      $('cmint').textContent = '—';
-      $('addr').style.display = 'none';
-      $('btn-create-wallet').style.display = 'none';
-      if (me.status === 401) $('msg').textContent = 'Sign in with Grudge ID to manage bag & fund play.';
-      return;
-    }
-    const profile = me.data || {};
-    const name = profile.displayName || profile.username || profile.name || 'Player';
-    const grudgeId = profile.grudgeId || profile.grudge_id || localStorage.getItem('grudge_id') || '—';
-    setAuthedUi(true);
-    $('sess').textContent = 'signed in · ' + name;
-    $('gid').textContent = grudgeId;
-    storeFleetToken(getAuthToken(), { grudgeId, username: name });
-
-    const st = await api('/api/wallet/status');
-    if (st.ok && st.data) {
-      const bag = Number(st.data.gbuxBalance ?? 0).toLocaleString();
-    $('gbux').textContent = bag;
-    if ($('tok-gbux')) $('tok-gbux').textContent = bag;
-      if (st.data.hasWallet && st.data.walletAddress) {
-        walletAddr = st.data.walletAddress;
-        $('cmint').textContent = (st.data.walletType || 'crossmint') + ' · exists';
-        $('addr').style.display = 'block';
-        $('addr').textContent = walletAddr;
-        $('btn-create-wallet').style.display = 'none';
-        await loadPlayBalance(walletAddr);
-      } else {
-        $('cmint').textContent = 'none — create only if missing';
-        $('btn-create-wallet').style.display = '';
-      }
-    }
-    const ov = await api('/api/wallet/overview');
-    if (ov.ok && ov.data) {
-      const bag2 = Number(ov.data.gbuxBalance ?? $('gbux').textContent.replace(/,/g,'') ?? 0).toLocaleString();
-      $('gbux').textContent = bag2;
-      if ($('tok-gbux')) $('tok-gbux').textContent = bag2;
-      const linked = ov.data.primaryWallet || ov.data.linkedWallets?.[0]?.walletAddress || '';
-      if (!walletAddr && linked) {
-        walletAddr = linked;
-        $('addr').style.display = 'block';
-        $('addr').textContent = walletAddr;
-        await loadPlayBalance(walletAddr);
-      }
-    }
-
-    const ch = await api('/api/characters?era=warlords');
-    if (ch.ok && ch.data) {
-      const list = Array.isArray(ch.data) ? ch.data : (ch.data.characters || []);
-      if (list.length) {
-        $('hero-list').innerHTML = '<ul style="margin:0 0 0 16px">' + list.map((h) => {
-          const n = h.name || 'Hero';
-          const race = h.raceId || h.race || '?';
-          const cls = h.classId || h.class || '?';
-          return '<li>' + n + ' · ' + race + '/' + cls + '</li>';
-        }).join('') + '</ul>';
-      } else $('hero-list').textContent = 'No heroes yet — open Foundry.';
-    }
-    try {
-      const maxAge = 7 * 24 * 60 * 60;
-      const tok = getAuthToken();
-      if (tok) {
-        document.cookie = 'grudge_auth_token=' + encodeURIComponent(tok) + '; path=/; max-age=' + maxAge + '; Domain=.grudge-studio.com; SameSite=Lax; Secure';
-        document.cookie = 'sso_token=' + encodeURIComponent(tok) + '; path=/; max-age=' + maxAge + '; Domain=.grudge-studio.com; SameSite=Lax; Secure';
-      }
-    } catch {}
-    loadTraderCash();
-    loadLinkedWallets();
-  } catch (e) {
-    $('msg').textContent = 'Error: ' + (e && e.message ? e.message : e);
-    $('msg').className = 'msg err';
-  }
-}
-
-document.querySelectorAll('[data-dock]').forEach((b) => {
-  b.onclick = () => {
-    document.querySelectorAll('[data-dock]').forEach((x) => x.classList.remove('on'));
-    document.querySelectorAll('.dock-panel').forEach((p) => p.classList.remove('on'));
-    b.classList.add('on');
-    const pan = $('dock-' + b.dataset.dock);
-    if (pan) pan.classList.add('on');
-  };
-});
-function showDock(name) {
-  const b = document.querySelector('[data-dock="' + name + '"]');
-  if (b) b.click();
-}
-if ($('btn-go-send')) $('btn-go-send').onclick = () => showDock('assets');
-if ($('btn-go-swap')) $('btn-go-swap').onclick = () => { showDock('activity'); const t = document.querySelector('[data-tab="swap"]'); if (t) t.click(); };
-if ($('btn-go-connect')) $('btn-go-connect').onclick = () => showDock('assets');
-if ($('btn-tr-copy')) {
-  const prev = $('btn-tr-copy').onclick;
-  $('btn-tr-copy').addEventListener('click', () => showDock('assets'));
-}
-
-document.querySelectorAll('.tabs button').forEach((b) => {
-  b.onclick = () => {
-    document.querySelectorAll('.tabs button').forEach((x) => x.classList.remove('on'));
-    b.classList.add('on');
-    document.querySelectorAll('.panel').forEach((p) => p.classList.remove('on'));
-    $('tab-' + b.dataset.tab).classList.add('on');
-  };
-});
-$('btn-refresh').onclick = () => { load(); loadTraderCash(); loadLinkedWallets(); };
-$('btn-link-ph').onclick = () => connectAndLink('phantom').catch((e) => { $('w-msg').className = 'msg err'; $('w-msg').textContent = e.message || String(e); });
-$('btn-link-sf').onclick = () => connectAndLink('solflare').catch((e) => { $('w-msg').className = 'msg err'; $('w-msg').textContent = e.message || String(e); });
-if ($('btn-link-bp')) $('btn-link-bp').onclick = () => connectAndLink('backpack').catch((e) => { $('w-msg').className = 'msg err'; $('w-msg').textContent = e.message || String(e); });
-if ($('btn-siws')) {
-  $('btn-siws').onclick = () => siwsLogin().catch((e) => {
-    const m = $('msg') || $('w-msg');
-    if (m) { m.className = 'msg err'; m.textContent = e.message || String(e); }
-  });
-}
-if ($('btn-login') && $('btn-login').tagName === 'BUTTON') {
-  $('btn-login').onclick = () => {
-    const redir = encodeURIComponent(location.origin + '/');
-    location.href = ID_GW + '/login?redirect_uri=' + redir + '&return=' + redir + '&origin=' + encodeURIComponent(location.origin) + '&app=grudge-wallet';
-  };
-}
-$('btn-logout').onclick = () => {
-  clearFleetAuth();
-  try {
-    document.cookie = 'grudge_auth_token=; path=/; max-age=0; Domain=.grudge-studio.com; SameSite=Lax';
-    document.cookie = 'sso_token=; path=/; max-age=0; Domain=.grudge-studio.com; SameSite=Lax';
-  } catch {}
-  location.reload();
-};
-$('btn-phantom').onclick = (e) => {
-  e.preventDefault();
-  location.href = handoffUrl(POKER + '/wallet');
-};
-$('btn-trader').onclick = (e) => {
-  e.preventDefault();
-  location.href = handoffUrl(TRADER);
-};
-$('btn-create-wallet').onclick = async () => {
-  $('msg').className = 'msg';
-  $('msg').textContent = 'Checking Railway wallet…';
-  try {
-    const st = await api('/api/wallet/status');
-    if (st.ok && st.data && st.data.hasWallet && st.data.walletAddress) {
-      $('msg').textContent = 'Wallet already exists.';
-      $('msg').className = 'msg ok';
-      await load();
-      return;
-    }
-    const me = await api('/api/auth/me');
-    const email = me.data?.email || me.data?.user_email || '';
-    if (!email) {
-      $('msg').textContent = 'Grudge ID needs an email before Crossmint mint.';
-      $('msg').className = 'msg err';
-      return;
-    }
-    const r = await api('/api/wallet/create', {
-      method: 'POST',
-      headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify({ email }),
-    });
-    if (!r.ok) throw new Error(r.data?.error || 'Create failed');
-    $('msg').textContent = r.data?.message || 'Wallet ready';
-    $('msg').className = 'msg ok';
-    await load();
-  } catch (e) {
-    $('msg').textContent = e.message || String(e);
-    $('msg').className = 'msg err';
+window.GRUDA = {
+  railway: ${JSON.stringify(railway)},
+  idGw: ${JSON.stringify(idGw)},
+  poker: ${JSON.stringify(poker)},
+  trader: ${JSON.stringify(trader)},
+  build: "2026-09-17-dex-v1",
+  art: {
+    sol: "/media/sol.png",
+    gbux: "/media/gbux.png",
+    id: "/media/grudge-id.png",
+    play: "/media/play.png",
+    thc: "/media/thc.png",
+    usdc: "/media/usdc.png",
+    gbuxMint: "55TpSoMNxbfsNJ9U1dQoo9H3dRtDmjBZVMcKqvU2nray",
+    wsol: "So11111111111111111111111111111111111111112"
   }
 };
-$('btn-fund-play').onclick = async () => {
-  const amount = Math.floor(parseFloat($('play-amt').value) || 0);
-  $('tx-msg').className = 'msg';
-  if (amount < 1) { $('tx-msg').textContent = 'Enter GBUX ≥ 1'; $('tx-msg').className = 'msg err'; return; }
-  $('btn-fund-play').disabled = true;
-  $('tx-msg').textContent = 'Moving fleet bag → play…';
-  try {
-    const r = await api('/api/wallet/transfer-to-play', {
-      method: 'POST',
-      headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify({ amount, game: 'poker', walletAddress: walletAddr || $('tr-from') && $('tr-from').value || undefined }),
-    });
-    if (!r.ok) throw new Error(r.data?.error || 'Transfer failed');
-    $('tx-msg').textContent = 'Funded play +' + amount + ' · bag ' + (r.data.gbuxBalance ?? '—') + ' · play ' + (r.data.play?.playGbux ?? '—');
-    $('tx-msg').className = 'msg ok';
-    await load();
-  } catch (e) {
-    $('tx-msg').textContent = e.message || String(e);
-    $('tx-msg').className = 'msg err';
-  } finally {
-    $('btn-fund-play').disabled = !signedIn;
-  }
-};
-$('btn-quote').onclick = async () => {
-  const amount = parseFloat($('swap-amt').value);
-  const direction = $('swap-dir').value;
-  const r = await api('/api/exchange/quote', {
-    method: 'POST', headers: { 'Content-Type': 'application/json' },
-    body: JSON.stringify({ amount, direction }),
-  });
-  $('swap-out').textContent = JSON.stringify(r.data, null, 2);
-};
-$('btn-swap').onclick = async () => {
-  const amount = parseFloat($('swap-amt').value);
-  const direction = $('swap-dir').value;
-  $('tx-msg').textContent = 'Swapping…';
-  const r = await api('/api/exchange/swap', {
-    method: 'POST', headers: { 'Content-Type': 'application/json' },
-    body: JSON.stringify({ amount, direction }),
-  });
-  if (!r.ok) {
-    $('tx-msg').textContent = r.data?.error || r.data?.message || 'Swap failed';
-    $('tx-msg').className = 'msg err';
-  } else {
-    $('tx-msg').textContent = r.data?.message || 'Swap ok';
-    $('tx-msg').className = 'msg ok';
-    await load();
-  }
-  $('swap-out').textContent = JSON.stringify(r.data, null, 2);
-};
-
-const PRIVACY_HTML = '<p>Grudge Studio Wallet (wallet.grudge-studio.com) is the fleet bag for your Grudge ID. We store session tokens in the browser, account identity on Railway (grudge_id), Crossmint game-wallet addresses, and the auto-trader cash ledger (deposits/withdrawals/NAV) keyed by grudge_id. We do not sell personal data. On-chain SOL and token balances are public. Admin identities (grudachain / molochdadev) can halt the desk and flatten the house vault. Do not send funds you cannot lose. Contact: existing Grudge ID support paths.</p><p>Cookies: sso_token / Grudge ID session on .grudge-studio.com. No third-party ads. Analytics: none beyond host logs.</p>';
-const TOS_HTML = '<p>The auto-trader is experimental. Enable mints <b>your</b> trade vault. You send SOL to that address. Buys, sells, and fees spend your vault. Keep more than 0.03 SOL there (0.02 fees + 0.01 lottery) or new clips skip. Close fee: 0.005 SOL of proceeds swapped to GBUX; take-profit also takes 5%. Remaining SOL stays on your vault. Withdrawals only to a wallet that deposited or is linked on Grudge ID. Not financial advice. Markets can go to zero. Enabling the trader opts you into this ledger. Privacy and these terms apply to the installed PWA the same as the site.</p>';
-
-function openLegal(title, html) {
-  $('legal-title').textContent = title;
-  $('legal-body').innerHTML = html;
-  const back = $('legal-back');
-  back.hidden = false;
-  back.classList.add('on');
-}
-$('btn-privacy').onclick = () => openLegal('Privacy', PRIVACY_HTML);
-$('btn-tos').onclick = () => openLegal('Terms of service', TOS_HTML);
-$('legal-close').onclick = () => { $('legal-back').hidden = true; $('legal-back').classList.remove('on'); };
-$('legal-back').onclick = (e) => { if (e.target === $('legal-back')) { $('legal-back').hidden = true; $('legal-back').classList.remove('on'); } };
-
-async function traderApi(path, opt) {
-  const tok = getAuthToken();
-  const headers = { Accept: 'application/json', ...(opt && opt.headers || {}) };
-  if (tok) headers.Authorization = 'Bearer ' + tok;
-  if (opt && opt.body && !headers['Content-Type']) headers['Content-Type'] = 'application/json';
-  const r = await fetch(TRADER + path, { ...opt, headers });
-  const data = await r.json().catch(() => ({}));
-  return { ok: r.ok, status: r.status, data };
-}
-
-async function loadHoldings() {
-  const coins = $('coin-list');
-  const nfts = $('nft-grid');
-  if (!getAuthToken()) return;
-  const r = await traderApi('/api/gruda/holdings');
-  const d = r.data || {};
-  if ($('set-rpc') && d.rpc) $('set-rpc').textContent = d.rpc;
-  if ($('set-net') && d.network) $('set-net').textContent = 'Solana ' + d.network;
-  if (coins) {
-    const rows = [];
-    if (d.sol != null) rows.push('<div class="tok"><div class="meta"><b>SOL</b><span>your trader vault</span></div><div class="bal">' + Number(d.sol).toFixed(4) + '</div></div>');
-    (d.tokens || []).forEach((t) => {
-      const name = t.mint === '55TpSoMNxbfsNJ9U1dQoo9H3dRtDmjBZVMcKqvU2nray' ? 'GBUX' : (t.mint || '').slice(0, 6) + '…';
-      rows.push('<div class="tok"><div class="meta"><b>' + name + '</b><span>' + (t.mint || '') + '</span></div><div class="bal">' + t.uiAmount + '</div></div>');
-    });
-    coins.innerHTML = rows.length ? rows.join('') : '<p class="empty">No coins on your vault yet.</p>';
-  }
-  if (nfts) {
-    const items = d.nfts || [];
-    nfts.innerHTML = items.length
-      ? items.map((n) => '<a href="https://solscan.io/token/' + n.id + '" target="_blank" rel="noopener"><img src="' + (n.image || '/icon.svg') + '" alt="" onerror="this.remove()"><span>' + (n.compressed ? 'cNFT · ' : '') + (n.name || 'nft') + '</span></a>').join('')
-      : '<p class="empty" style="grid-column:1/-1">No cNFTs on this vault yet.</p>';
-  }
-}
-
-async function loadTraderCash() {
-  const msg = $('tr-msg');
-  try {
-    const ready = await fetch(TRADER + '/live-ready', { cache: 'no-store' }).then((r) => r.json());
-    const gw = await traderApi('/api/gruda/wallet');
-    const pk = (gw.data && gw.data.tradingPubkey) || '';
-    $('tr-vault').textContent = pk ? pk.slice(0, 8) + '…' + pk.slice(-4) : 'Enable trader first';
-    const tsol = gw.data && gw.data.tradingSol != null ? gw.data.tradingSol : ready.sol;
-    $('tr-sol').textContent = tsol != null ? Number(tsol).toFixed(4) + ' SOL' : '—';
-    if ($('tok-sol')) $('tok-sol').textContent = $('tr-sol').textContent;
-    if (pk) {
-      $('tr-vault-full').textContent = pk;
-      const scan = $('btn-tr-scan');
-      if (scan) scan.href = 'https://solscan.io/account/' + pk;
-      if ($('set-vault')) $('set-vault').textContent = pk.slice(0, 8) + '…';
-    }
-    $('btn-tr-copy').onclick = () => {
-      showDock('assets');
-      if (pk) {
-        navigator.clipboard.writeText(pk);
-        if ($('tr-msg')) { $('tr-msg').className = 'msg ok'; $('tr-msg').textContent = 'Receive address copied. Send SOL from Phantom to it, then Record deposit.'; }
-      } else if ($('tr-msg')) { $('tr-msg').className = 'msg err'; $('tr-msg').textContent = 'Enable trader first to mint YOUR vault.'; }
-    };
-    loadHoldings();
-    const port = await traderApi('/api/portfolio');
-    $('tr-enroll').textContent = gw.data && gw.data.enrolled ? 'yes' : 'no';
-    const spend = gw.data && gw.data.spendableSol != null ? gw.data.spendableSol : port.data && port.data.availableSol;
-    $('tr-spend').textContent = spend != null ? Number(spend).toFixed(4) + ' SOL' : '—';
-    const on = Boolean(getAuthToken());
-    $('btn-tr-dep').disabled = !on;
-    $('btn-tr-wd').disabled = !on;
-    $('btn-tr-enroll').disabled = !on;
-    if (gw.data && gw.data.walletAddress && !$('tr-from').value) $('tr-from').value = gw.data.walletAddress;
-    else if (port.data && port.data.sourceWallets && port.data.sourceWallets[0] && !$('tr-from').value) $('tr-from').value = port.data.sourceWallets[0];
-  } catch (e) {
-    if (msg) { msg.textContent = e.message || String(e); msg.className = 'msg err'; }
-  }
-}
-
-$('btn-tr-enroll').onclick = async () => {
-  $('tr-msg').className = 'msg';
-  $('tr-msg').textContent = 'Enabling…';
-  const r = await traderApi('/api/gruda/enable', { method: 'POST', body: '{}' });
-  $('tr-msg').textContent = r.ok ? 'Enrolled. Deposit SOL to the vault, then Record deposit.' : (r.data.error || 'Enable failed');
-  $('tr-msg').className = r.ok ? 'msg ok' : 'msg err';
-  await loadTraderCash();
-};
-$('btn-tr-dep').onclick = async () => {
-  const sourceWallet = $('tr-from').value.trim();
-  const amountSol = parseFloat($('tr-amt').value);
-  $('tr-msg').textContent = 'Recording deposit…';
-  const r = await traderApi('/api/ledger/deposit', {
-    method: 'POST',
-    body: JSON.stringify({ sourceWallet, amountSol }),
-  });
-  $('tr-msg').textContent = r.ok ? 'Deposit recorded. Keep 0.02 SOL in the vault for fees.' : (r.data.error || 'Deposit failed');
-  $('tr-msg').className = r.ok ? 'msg ok' : 'msg err';
-  await loadTraderCash();
-};
-$('btn-tr-wd').onclick = async () => {
-  const sourceWallet = $('tr-from').value.trim();
-  const amountSol = parseFloat($('tr-amt').value);
-  $('tr-msg').textContent = 'Withdrawing…';
-  const r = await traderApi('/api/ledger/withdraw', {
-    method: 'POST',
-    body: JSON.stringify({ sourceWallet, amountSol }),
-  });
-  $('tr-msg').textContent = r.ok ? ('Sent ' + (r.data.paid || amountSol) + ' SOL') : (r.data.error || 'Withdraw failed');
-  $('tr-msg').className = r.ok ? 'msg ok' : 'msg err';
-  await loadTraderCash();
-};
-
-renderGames();
-paintDetectedWallets();
-load();
-loadTraderCash();
-if ('serviceWorker' in navigator) {
-  navigator.serviceWorker.register('/sw.js').catch(() => {});
-}
-let deferredInstall = null;
-window.addEventListener('beforeinstallprompt', (e) => {
-  e.preventDefault();
-  deferredInstall = e;
-  const b = $('btn-install');
-  if (b) b.style.display = '';
-});
-const installBtn = $('btn-install');
-if (installBtn) {
-  installBtn.onclick = async () => {
-    if (!deferredInstall) return;
-    deferredInstall.prompt();
-    await deferredInstall.userChoice.catch(() => {});
-    deferredInstall = null;
-    installBtn.style.display = 'none';
-  };
-}
 </script>
+<script src="/wallet-app.js" defer></script>
 </body>
 </html>`;
 }

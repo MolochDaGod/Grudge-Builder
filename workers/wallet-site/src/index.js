@@ -7,6 +7,7 @@
  * - /health for uptime monitors
  */
 import { htmlPage } from "./ui.js";
+import { WALLET_APP_JS } from "./wallet-app-src.js";
 
 const CORS_ALLOW = [
   "https://wallet.grudge-studio.com",
@@ -184,6 +185,30 @@ export default {
           ...cors,
         },
       });
+    }
+
+    if (url.pathname === "/wallet-app.js") {
+      return new Response(WALLET_APP_JS, {
+        status: 200,
+        headers: {
+          "Content-Type": "text/javascript; charset=utf-8",
+          "Cache-Control": "no-store",
+          ...cors,
+        },
+      });
+    }
+
+    const media = {
+      "/media/sol.png": "https://raw.githubusercontent.com/solana-labs/token-list/main/assets/mainnet/So11111111111111111111111111111111111111112/logo.png",
+      "/media/gbux.png": `${env.POKER_ORIGIN || "https://poker.grudge-studio.com"}/media/gbux-coin.png`,
+      "/media/thc.png": "https://growerz.thc-labz.xyz/logo192.png",
+      "/media/grudge-id.png": `${idGw}/grudge-id-logo.png`,
+      "/media/play.png": "https://character.grudge-studio.com/opengraph.jpg",
+      "/media/usdc.png": "https://raw.githubusercontent.com/solana-labs/token-list/main/assets/mainnet/EPjFWdd5AufqSSqeM2qN1xzybapC8G4wEGGkZwyTDt1v/logo.png",
+      "/media/crossmint.png": "https://www.crossmint.com/assets/crossmint/logo.png",
+    };
+    if (media[url.pathname]) {
+      return Response.redirect(media[url.pathname], 302);
     }
 
     if (url.pathname === "/icon.svg") {
