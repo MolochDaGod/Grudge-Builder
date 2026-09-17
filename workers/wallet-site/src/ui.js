@@ -5,21 +5,15 @@ export function htmlPage(env) {
   const poker = env.POKER_ORIGIN || "https://poker.grudge-studio.com";
   const trader = env.TRADER_ORIGIN || "https://trader.grudge-studio.com";
   const logo = idGw + "/grudge-id-logo.png";
-  const login =
-    idGw +
-    "/login?redirect_uri=" +
-    encodeURIComponent("https://wallet.grudge-studio.com/auth/callback") +
-    "&return=" +
-    encodeURIComponent("https://wallet.grudge-studio.com/auth/callback") +
-    "&app=wallet&origin=" +
-    encodeURIComponent("https://wallet.grudge-studio.com");
+  // Relative /login so preview and production both bounce through this origin's callback.
+  const login = "/login";
 
   return `<!DOCTYPE html>
 <html lang="en">
 <head>
 <meta charset="UTF-8" />
 <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover" />
-<meta name="gruda-build" content="2026-09-16-set-v1" />
+<meta name="gruda-build" content="2026-09-16-sso-v1" />
 <title>Gruda Wallet</title>
 <link rel="icon" type="image/png" sizes="32x32" href="/favicon-32.png" />
 <link rel="icon" type="image/png" sizes="192x192" href="/icon-192.png" />
@@ -57,9 +51,21 @@ section{padding:8px 16px 0}
 .hrow{display:flex;justify-content:space-between;align-items:baseline;margin:12px 0 8px}
 .hrow h2{font-size:13px;font-weight:600;letter-spacing:.04em;text-transform:uppercase;color:var(--muted)}
 .hrow button{background:none;border:0;color:var(--gold);font-size:12px;font-weight:600}
-.row{display:flex;align-items:center;gap:12px;padding:12px;background:var(--card);border:1px solid var(--line);border-radius:16px;margin-bottom:8px}
-.av{width:36px;height:36px;border-radius:50%;display:grid;place-items:center;flex-shrink:0;background:#14141c;color:var(--gold);font-size:13px;font-weight:700;overflow:hidden}
-.av img{width:100%;height:100%;object-fit:contain;background:#0a0a12}
+.row{display:flex;align-items:center;gap:12px;padding:12px;background:linear-gradient(180deg,rgba(255,255,255,.05),rgba(255,255,255,.02));box-shadow:0 0 0 1px rgba(224,195,106,.14),0 10px 24px rgba(0,0,0,.35);border-radius:18px;margin-bottom:8px}
+.av{width:36px;height:36px;border-radius:50%;display:grid;place-items:center;flex-shrink:0;background:#14141c;color:var(--gold);font-size:13px;font-weight:700;overflow:hidden;box-shadow:0 0 0 1px rgba(224,195,106,.35)}
+.av img{width:100%;height:100%;object-fit:contain;background:#0a0a12;outline:1px solid rgba(255,255,255,.08);outline-offset:-1px}
+.card{background:linear-gradient(180deg,rgba(255,255,255,.06),rgba(18,18,26,.92));box-shadow:0 0 0 1px rgba(224,195,106,.16),0 12px 28px rgba(0,0,0,.4);border-radius:18px;margin-bottom:10px;overflow:hidden}
+.card-hit{display:flex;align-items:center;gap:12px;padding:12px;width:100%;background:none;border:0;color:inherit;text-align:left;cursor:pointer;font:inherit}
+.card.on .drop{display:block}
+.drop{display:none;background:rgba(0,0,0,.38);border-top:1px solid rgba(224,195,106,.12);padding:6px}
+.hold{display:flex;width:100%;align-items:center;gap:10px;padding:10px;background:rgba(255,255,255,.03);border:0;border-radius:12px;color:var(--text);margin-bottom:6px;font:inherit;cursor:pointer;text-align:left}
+.hold:last-child{margin-bottom:0}
+.copychip{display:inline-block;margin-top:4px;background:rgba(224,195,106,.1);border:1px solid rgba(224,195,106,.28);color:var(--gold2);border-radius:999px;padding:3px 8px;font-family:"IBM Plex Mono",ui-monospace,monospace;font-size:11px;cursor:pointer}
+.acts button{border:0;background:linear-gradient(180deg,#1c1a24,#101018);color:var(--gold2);border-radius:16px;padding:12px 4px 10px;font-size:11px;font-weight:600;box-shadow:0 0 0 1px rgba(224,195,106,.22),0 8px 18px rgba(0,0,0,.35)}
+.primary{width:100%;border:0;border-radius:14px;padding:12px;background:linear-gradient(180deg,#e8d07a,#b8922a);color:#1a1405;font-weight:700;box-shadow:0 8px 18px rgba(184,146,42,.28)}
+.ghost{width:100%;margin-top:8px;border-radius:14px;padding:12px;background:transparent;color:var(--gold2);border:0;box-shadow:0 0 0 1px rgba(224,195,106,.2);font-weight:600}
+.chev{width:12px;height:12px;margin-left:6px;opacity:.7;transition:transform .15s ease}
+.card.on .chev{transform:rotate(180deg)}
 .meta{flex:1;min-width:0}
 .meta b,.meta span{display:block;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
 .meta b{font-size:14px}.meta span{font-size:11px;color:var(--muted)}
@@ -172,8 +178,10 @@ section{padding:8px 16px 0}
     </section>
     <section>
       <div class="hrow"><h2>Tokens</h2></div>
+      <div id="home-tokens">
       <div class="row"><div class="av"><img src="/media/sol.png" alt="SOL"></div><div class="meta"><b>Solana</b><span>SOL</span></div><div class="bal"><b id="tok-sol">0.00</b></div></div>
       <div class="row"><div class="av"><img src="/media/gbux.png" alt="GBUX"></div><div class="meta"><b>GBUX</b><span>Poker</span></div><div class="bal"><b id="tok-gbux">0</b></div></div>
+      </div>
     </section>
   </div>
   <div class="panel" id="panel-coins">
@@ -181,9 +189,10 @@ section{padding:8px 16px 0}
       <div class="hrow"><h2>Coins</h2><button type="button" id="btn-add-token">+ Token</button></div>
       <p class="hint">Search a ticker or paste a mint.</p>
       <div class="chips" id="coin-owners">
-        <button type="button" class="chip on" data-owner="crossmint">Play</button>
-        <button type="button" class="chip" data-owner="linked">Wallet 1</button>
-        <button type="button" class="chip" data-owner="vault">Trader</button>
+        <button type="button" class="chip on" data-owner="all">All</button>
+        <button type="button" class="chip" data-owner="play">Play</button>
+        <button type="button" class="chip" data-owner="linked">Linked</button>
+        <button type="button" class="chip" data-owner="trader">Trader</button>
       </div>
       <div class="addbar">
         <input class="input" id="coin-q" placeholder="Search JUP, BONK, or paste mint" autocomplete="off" />
@@ -233,8 +242,8 @@ section{padding:8px 16px 0}
       <div class="bal"><button type="button" class="tiny" id="set-copy-gid">Copy ID</button></div>
     </div>
     <div class="hrow"><h2>Addresses</h2></div>
-    <div class="row"><div class="meta"><b>Play</b><span class="mono" id="set-play">—</span></div><div class="bal"><button type="button" class="tiny" data-copy="play">Copy</button></div></div>
-    <div class="row"><div class="meta"><b>Wallet 1</b><span class="mono" id="set-w1">Not linked</span></div><div class="bal"><button type="button" class="tiny" data-copy="w1">Copy</button></div></div>
+    <div class="row"><div class="meta"><b>Play <span class="pill">Primary</span></b><span class="mono" id="set-play">—</span></div><div class="bal"><button type="button" class="tiny" data-copy="play">Copy</button></div></div>
+    <div class="row"><div class="meta"><b>Linked</b><span class="mono" id="set-w1">None</span></div><div class="bal"><button type="button" class="tiny" data-copy="w1">Copy</button></div></div>
     <div class="row"><div class="meta"><b>Trader</b><span class="mono" id="set-vault">Not enabled</span></div><div class="bal"><button type="button" class="tiny" data-copy="vault">Copy</button></div></div>
     <button class="ghost" type="button" id="set-refresh">Refresh</button>
     <button class="ghost" type="button" id="set-logout">Sign out</button>
@@ -248,7 +257,7 @@ section{padding:8px 16px 0}
   </nav>
   <div class="sheet" id="sheet-connect"><div class="pad"><div class="grab"></div>
     <h3>Connect a wallet</h3>
-    <p>Phantom, Solflare, Backpack, or another Solana wallet. Links as Wallet 1 on this account.</p>
+    <p>Phantom, Solflare, Backpack, or another Solana wallet. Links to this Grudge ID. Play stays the primary address.</p>
     <div id="wallet-picker"></div>
     <p class="msg" id="connect-msg"></p>
     <button class="ghost" type="button" data-close>Cancel</button>
@@ -290,7 +299,7 @@ window.GRUDA = {
   idGw: ${JSON.stringify(idGw)},
   poker: ${JSON.stringify(poker)},
   trader: ${JSON.stringify(trader)},
-  build: "2026-09-16-set-v1",
+  build: "2026-09-16-sso-v1",
   art: {
     sol: "/media/sol.png",
     gbux: "/media/gbux.png",

@@ -76,6 +76,9 @@ export const GRUDGE_REGEX_ORIGINS: RegExp[] = [
   /\.github\.io$/,
   /\.netlify\.app$/,
   /\.netlify\.live$/,
+
+  // Grok App Builder live preview — Bearer SSO test, never cookie Domain
+  /\.grok-sandbox\.com$/,
 ];
 
 // ── Combined list for cors() middleware ────────────────────────────────────────

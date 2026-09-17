@@ -71,7 +71,7 @@
   let walletType = "";
   let playWallet = "";
   let addrs = { gid: "", play: "", w1: "", vault: "" };
-  let coinOwner = "crossmint";
+  let coinOwner = "all";
   let dappCat = "all";
   let dappQuery = "";
   let dappCatalog = DAPPS_FALLBACK.slice();
@@ -101,8 +101,12 @@
     } catch (e) {}
     try {
       const maxAge = 604800;
-      document.cookie = "grudge_auth_token=" + encodeURIComponent(token) + "; path=/; max-age=" + maxAge + "; Domain=.grudge-studio.com; SameSite=Lax; Secure";
-      document.cookie = "sso_token=" + encodeURIComponent(token) + "; path=/; max-age=" + maxAge + "; Domain=.grudge-studio.com; SameSite=Lax; Secure";
+      const h = location.hostname;
+      const studio = h === "grudge-studio.com" || h.endsWith(".grudge-studio.com") || h === "grudge.studio" || h.endsWith(".grudge.studio");
+      const domain = studio ? "; Domain=.grudge-studio.com" : "";
+      const secure = location.protocol === "https:" ? "; Secure" : "";
+      document.cookie = "grudge_auth_token=" + encodeURIComponent(token) + "; path=/; max-age=" + maxAge + domain + "; SameSite=Lax" + secure;
+      document.cookie = "sso_token=" + encodeURIComponent(token) + "; path=/; max-age=" + maxAge + domain + "; SameSite=Lax" + secure;
     } catch (e) {}
   }
   function captureAuthFromUrl() {
@@ -169,14 +173,20 @@
     for (; it < size; it++) s += ALPH[b[it]];
     return s;
   }
+  function clip7(a) {
+    const s = String(a || "");
+    return s.length > 7 ? s.slice(0, 7) + "\u2026" : (s || "\u2014");
+  }
   function short(a) {
     const s = String(a || "");
     return s.length > 10 ? s.slice(0, 4) + "\u2026" + s.slice(-4) : s || "\u2014";
   }
   function loginHref() {
-    return ID_GW + "/login?redirect_uri=" + encodeURIComponent("https://wallet.grudge-studio.com/auth/callback") +
-      "&return=" + encodeURIComponent("https://wallet.grudge-studio.com/auth/callback") +
-      "&app=wallet&origin=" + encodeURIComponent("https://wallet.grudge-studio.com");
+    const dest = location.origin + "/auth/callback";
+    return ID_GW + "/login?redirect_uri=" + encodeURIComponent(dest) +
+      "&return=" + encodeURIComponent(dest) +
+      "&origin=" + encodeURIComponent(location.origin) +
+      "&app=wallet&scope=identity";
   }
   function showSheet(id) {
     document.querySelectorAll(".sheet").forEach((s) => s.classList.remove("on"));
@@ -342,50 +352,85 @@
       note("connect-msg", e.message || String(e), false);
     }
   }
+  function walletCard(opts) {
+    const addr = opts.address || "";
+    const copyBtn = addr
+      ? '<button type="button" class="copychip" data-copyaddr="' + esc(addr) + '" title="Copy">' + esc(clip7(addr)) + "</button>"
+      : '<span class="mono">—</span>';
+    const extra = opts.actions || "";
+    return '<article class="card">' +
+      '<div class="card-hit">' +
+        avImg(opts.icon) +
+        '<div class="meta"><b>' + opts.title + (opts.pill || "") + "</b>" + copyBtn + "</div>" +
+        '<div class="bal">' + (opts.right || "") + extra + "</div>" +
+      "</div></article>";
+  }
+  function bindCopyChips(root) {
+    if (!root) return;
+    root.querySelectorAll("[data-copyaddr]").forEach((b) => {
+      b.addEventListener("click", async (e) => {
+        e.preventDefault();
+        e.stopPropagation();
+        const v = b.getAttribute("data-copyaddr") || "";
+        if (!v) return;
+        try { await navigator.clipboard.writeText(v); toast("Copied " + clip7(v), true); }
+        catch (err) { toast(v, true); }
+      });
+    });
+  }
   function renderLinked(list, playAddr) {
     const box = $("linked-list");
     if (!box) return;
     const rows = Array.isArray(list) ? list.slice() : [];
-    rows.sort((a, b) => Number(b.isPrimary) - Number(a.isPrimary));
     let html = "";
+    if (playAddr) {
+      html += walletCard({
+        icon: ART.play,
+        title: "Play",
+        pill: ' <span class="pill">Primary</span>',
+        address: playAddr,
+        right: "<span>Crossmint</span>",
+      });
+    } else {
+      html += walletCard({
+        icon: ART.play,
+        title: "Play",
+        pill: ' <span class="pill">Primary</span>',
+        address: "",
+        right: "<span>sign in</span>",
+      });
+    }
     if (!rows.length) {
-      html += '<div class="row">' + avImg(WALLET_GLYPH) + '<div class="meta"><b>Wallet 1</b><span class="mono">Not linked</span></div><div class="bal"><span>funding</span></div></div>';
+      html += walletCard({
+        icon: WALLET_GLYPH,
+        title: "Linked",
+        address: "",
+        right: "<span>none</span>",
+      });
     } else {
       rows.forEach((w, i) => {
         const addr = w.walletAddress || w.address || "";
-        const n = i + 1;
-        const pill = w.isPrimary ? ' <span class="pill">Primary</span>' : "";
         const prov = String(w.provider || w.label || "wallet");
         const icon = providerIcons[String(prov).toLowerCase()] || WALLET_GLYPH;
-        html += '<div class="row">' +
-          avImg(icon) +
-          '<div class="meta"><b>Wallet ' + n + pill + '</b><span class="mono">' + short(addr) + " · " + prov + "</span></div>" +
-          '<div class="bal">' +
-            (w.isPrimary ? "<span>funding</span>" : '<button type="button" class="tiny" data-primary="' + addr + '">Primary</button>') +
-            '<button type="button" class="tiny" data-unlink="' + addr + '">Unlink</button>' +
-          "</div></div>";
+        html += walletCard({
+          icon: icon,
+          title: "Linked " + (i + 1),
+          address: addr,
+          right: "<span>" + esc(prov) + "</span>",
+          actions: '<button type="button" class="tiny" data-unlink="' + esc(addr) + '">Unlink</button>',
+        });
       });
-    }
-    if (walletType === "crossmint" && playAddr && !rows.some((w) => (w.walletAddress || w.address) === playAddr)) {
-      html += '<div class="row">' + avImg(ART.play) + '<div class="meta"><b>Play</b><span class="mono">' + short(playAddr) + '</span></div><div class="bal"><span>game</span></div></div>';
     }
     box.innerHTML = html;
-    box.querySelectorAll("[data-primary]").forEach((b) => {
-      b.addEventListener("click", async () => {
-        try {
-          const r = await api("/api/wallet/primary", { method: "POST", body: JSON.stringify({ walletAddress: b.dataset.primary }) });
-          toast(r.ok ? "Primary updated" : (r.data && r.data.error) || "Could not set primary", r.ok);
-          await refresh();
-        } catch (e) { toast(e.message || String(e), false); }
-      });
-    });
+    bindCopyChips(box);
     box.querySelectorAll("[data-unlink]").forEach((b) => {
-      b.addEventListener("click", async () => {
+      b.addEventListener("click", async (e) => {
+        e.stopPropagation();
         try {
           const r = await api("/api/wallet/linked/" + encodeURIComponent(b.dataset.unlink), { method: "DELETE" });
           toast(r.ok ? "Unlinked" : (r.data && r.data.error) || "Could not unlink", r.ok);
           await refresh();
-        } catch (e) { toast(e.message || String(e), false); }
+        } catch (err) { toast(err.message || String(err), false); }
       });
     });
   }
@@ -394,13 +439,12 @@
     const gid = ($("gid") && $("gid").textContent) || "—";
     setText("set-gid", gid === "Grudge ID" ? "—" : gid);
     addrs.gid = gid && gid !== "Grudge ID" && gid !== "—" ? gid : "";
-    setText("set-play", playWallet ? short(playWallet) : "—");
+    setText("set-play", playWallet ? clip7(playWallet) : "—");
     addrs.play = playWallet || "";
-    const primary = linkedCache.find((w) => w.isPrimary) || linkedCache[0];
-    const w1 = (primary && (primary.walletAddress || primary.address)) || "";
-    setText("set-w1", w1 ? short(w1) : "Not linked");
-    addrs.w1 = w1;
-    setText("set-vault", vaultPubkey ? short(vaultPubkey) : "Not enabled");
+    const linked = (linkedCache[0] && (linkedCache[0].walletAddress || linkedCache[0].address)) || "";
+    setText("set-w1", linked ? clip7(linked) : "None");
+    addrs.w1 = linked;
+    setText("set-vault", vaultPubkey ? clip7(vaultPubkey) : "Not enabled");
     addrs.vault = vaultPubkey || "";
     if ($("set-logout")) $("set-logout").hidden = !getTok();
   }
@@ -446,20 +490,25 @@
       const ov = await api("/api/wallet/overview");
       const o = ov.data || {};
       linkedCache = o.linkedWallets || [];
-      walletType = o.walletType || "";
-      const play = o.primaryWallet || o.custodialWallet || "";
-      playWallet = play;
-      renderLinked(linkedCache, play);
-      const primary = linkedCache.find((w) => w.isPrimary) || linkedCache[0];
-      const addr = (primary && (primary.walletAddress || primary.address)) || "";
-      if (addr) setText("w1", short(addr));
+      walletType = o.walletType || "crossmint";
+      playWallet = o.primaryWallet || o.custodialWallet || o.walletAddress || "";
+      if (!playWallet) {
+        try {
+          const st = await api("/api/wallet/status");
+          if (st.data && st.data.walletAddress) {
+            playWallet = st.data.walletAddress;
+            walletType = st.data.walletType || walletType;
+          }
+        } catch (e2) {}
+      }
+      renderLinked(linkedCache, playWallet);
       if ($("play") && o.playGbux != null) setText("play", o.playGbux);
     } catch (e) {}
     try {
       const h = await traderApi("/api/gruda/holdings");
       const d = h.data || {};
       const sol = d.sol != null ? Number(d.sol).toFixed(4) : "0.00";
-      ["fig-sol", "tr-sol", "vault-sol", "tok-sol"].forEach((id) => setText(id, sol));
+      ["tr-sol", "vault-sol"].forEach((id) => setText(id, sol));
       const pk = d.vault || d.tradingPubkey || d.publicKey;
       if (pk) {
         vaultPubkey = pk;
@@ -468,6 +517,7 @@
       }
     } catch (e) {}
     fillSettings();
+    loadCoins();
   }
   function readWatch() {
     try {
@@ -611,25 +661,77 @@
       }
     }, 280);
   }
+  function listOwners() {
+    const out = [];
+    if (playWallet && playWallet !== HOUSE) out.push({ id: "play", label: "Play", address: playWallet });
+    (linkedCache || []).forEach((w, i) => {
+      const addr = w.walletAddress || w.address || "";
+      if (!addr || addr === HOUSE || addr === playWallet) return;
+      out.push({ id: "linked", label: w.provider || w.label || ("Linked " + (i + 1)), address: addr });
+    });
+    if (vaultPubkey && vaultPubkey !== HOUSE) out.push({ id: "trader", label: "Trader", address: vaultPubkey });
+    return out;
+  }
+  async function rpcBag(address) {
+    const bag = { sol: 0, tokens: {} };
+    if (!address || address === HOUSE) return bag;
+    try {
+      const solLamports = await rpc("getBalance", [address]);
+      bag.sol = (solLamports && solLamports.value != null ? solLamports.value : Number(solLamports || 0)) / 1e9;
+    } catch (e) {}
+    try {
+      const parsed = await rpc("getTokenAccountsByOwner", [
+        address,
+        { programId: "TokenkegQfeZyiNwAJbNbGKPFXCWuBvf9Ss623VQ5DA" },
+        { encoding: "jsonParsed" },
+      ]);
+      const accs = (parsed && parsed.value) || [];
+      for (const a of accs) {
+        const info = a.account && a.account.data && a.account.data.parsed && a.account.data.parsed.info;
+        if (!info || !info.mint) continue;
+        const tok = info.tokenAmount || {};
+        bag.tokens[info.mint] = Number(tok.uiAmount || 0);
+      }
+    } catch (e) {}
+    return bag;
+  }
   function tokenRow(t) {
     const mint = t.mint || "";
     const logo = tokenLogo(mint, t.symbol, t.logo || t.logoUrl || t.image);
-    const av = avImg(logo);
-    const note = t.feeOnly ? "fee / play · not traded" : (t.watched ? "watched · " + short(mint) : short(mint === "SOL" || mint === WSOL ? "native" : mint));
-    const extra = t.bag != null ? '<span>bag ' + fmtAmt(t.bag) + "</span>" : "";
+    const holds = Array.isArray(t.holds) ? t.holds.filter((h) => Number(h.amount) !== 0 || t.watched) : [];
+    const drop = holds.map((h) =>
+      '<button type="button" class="hold" data-copyaddr="' + esc(h.address) + '">' +
+        '<span class="copychip">' + esc(clip7(h.address)) + "</span>" +
+        "<span>" + esc(h.label) + "</span>" +
+        "<b style=\"margin-left:auto\">" + fmtAmt(h.amount) + "</b></button>"
+    ).join("");
+    const chev = holds.length > 1 ? '<svg class="chev" viewBox="0 0 12 12"><path d="M2 4l4 4 4-4" fill="none" stroke="currentColor" stroke-width="1.6"/></svg>' : "";
     const remove = t.watched ? '<button type="button" class="tiny" data-unwatch="' + esc(mint) + '">Remove</button>' : "";
-    return '<div class="row" data-mint="' + esc(mint) + '">' + av +
-      '<div class="meta"><b>' + esc(t.symbol || t.name || "Token") + (t.feeOnly ? ' <span class="pill">fee</span>' : "") + "</b><span>" + esc(note) + "</span></div>" +
-      '<div class="bal"><b>' + fmtAmt(t.uiAmount) + "</b>" + extra + remove + "</div></div>";
+    return '<article class="card tok" data-mint="' + esc(mint) + '">' +
+      '<button type="button" class="card-hit" data-toggle="1">' +
+        avImg(logo) +
+        '<div class="meta"><b>' + esc(t.symbol || t.name || "Token") + "</b><span>" + (holds.length > 1 ? holds.length + " wallets" : (holds[0] ? holds[0].label : "Play")) + "</span></div>" +
+        '<div class="bal"><b>' + fmtAmt(t.uiAmount) + "</b>" + chev + remove + "</div>" +
+      "</button>" +
+      (drop ? '<div class="drop">' + drop + "</div>" : "") +
+      "</article>";
   }
   function bindCoinList() {
     const box = $("coin-list");
     if (!box) return;
+    bindCopyChips(box);
+    box.querySelectorAll("[data-toggle]").forEach((b) => {
+      b.addEventListener("click", () => {
+        const card = b.closest(".card");
+        if (card) card.classList.toggle("on");
+      });
+    });
     box.querySelectorAll("[data-unwatch]").forEach((b) => {
-      b.addEventListener("click", async () => {
+      b.addEventListener("click", async (e) => {
+        e.stopPropagation();
         const mint = b.dataset.unwatch;
         writeWatch(readWatch().filter((m) => m !== mint));
-        try { await api("/api/wallet/tokens/" + encodeURIComponent(mint), { method: "DELETE" }); } catch (e) {}
+        try { await api("/api/wallet/tokens/" + encodeURIComponent(mint), { method: "DELETE" }); } catch (err) {}
         loadCoins();
       });
     });
@@ -642,93 +744,47 @@
       box.innerHTML = '<p class="empty">Sign in with Grudge ID to load balances, then add any Solana mint.</p>';
       return;
     }
-    box.innerHTML = '<p class="empty">Reading Solana RPC…</p>';
-    try {
-      const qs = "?owner=" + encodeURIComponent(coinOwner) +
-        (watch.length ? "&watch=" + encodeURIComponent(watch.join(",")) : "") +
-        (vaultPubkey ? "&vault=" + encodeURIComponent(vaultPubkey) : "");
-      const r = await api("/api/wallet/tokens" + qs);
-      if (r.ok && r.data && Array.isArray(r.data.items) && r.data.items.length) {
-        if (r.data.rpc && $("set-rpc")) $("set-rpc").textContent = (r.data.rpc === "helius" ? "Helius" : "Solana RPC") + " · " + (r.data.label || coinOwner);
-        box.innerHTML = r.data.items.map(tokenRow).join("");
-        bindCoinList();
-        return;
-      }
-    } catch (e) {}
-    if (coinOwner === "vault") {
-      try {
-        const h = await traderApi("/api/gruda/holdings");
-        const d = h.data || {};
-        const rows = [];
-        rows.push({ mint: "SOL", symbol: "SOL", name: "Solana", uiAmount: d.sol || 0, native: true });
-        (d.tokens || []).forEach((t) => {
-          const gbux = t.mint === GBUX_MINT;
-          rows.push({ mint: t.mint, symbol: gbux ? "GBUX" : (t.symbol || short(t.mint)), name: t.name || t.mint, uiAmount: t.uiAmount, feeOnly: gbux });
-        });
-        watch.forEach((m) => { if (!rows.some((x) => x.mint === m)) rows.push({ mint: m, symbol: short(m), uiAmount: 0, watched: true }); });
-        box.innerHTML = rows.map(tokenRow).join("");
-        bindCoinList();
-        return;
-      } catch (e) {}
+    box.innerHTML = '<p class="empty">Reading wallets…</p>';
+    const owners = listOwners().filter((o) => coinOwner === "all" || o.id === coinOwner);
+    if (!owners.length) {
+      box.innerHTML = '<p class="empty">No Play wallet yet. Sign in — Crossmint is created with your Grudge ID.</p>';
+      return;
     }
-    const ownerAddr = coinOwner === "linked"
-      ? ((linkedCache.find((w) => w.isPrimary) || linkedCache[0] || {}).walletAddress || "")
-      : coinOwner === "vault" ? vaultPubkey : playWallet;
-    if (ownerAddr && ownerAddr !== HOUSE) {
-      try {
-        const page = await rpc("searchAssets", { ownerAddress: ownerAddr, tokenType: "fungible", page: 1, limit: 50 });
-        const assets = (page && page.items) || [];
-        const rows = [{ mint: "SOL", symbol: "SOL", name: "Solana", uiAmount: 0, native: true }];
-        assets.forEach((a) => {
-          const mint = a.id || "";
-          const info = a.token_info || {};
-          const meta = (a.content && a.content.metadata) || {};
-          const logo = (a.content && a.content.links && a.content.links.image) || "";
-          rows.push({
-            mint: mint,
-            symbol: info.symbol || meta.symbol || short(mint),
-            name: meta.name || info.symbol || "Token",
-            logo: logo,
-            uiAmount: info.ui_amount || 0,
-            feeOnly: mint === GBUX_MINT,
-            watched: watch.includes(mint),
-          });
-        });
-        watch.forEach((m) => { if (!rows.some((x) => x.mint === m)) rows.push({ mint: m, symbol: short(m), uiAmount: 0, watched: true }); });
-        box.innerHTML = rows.map(tokenRow).join("");
-        bindCoinList();
-        return;
-      } catch (e) {}
-      try {
-        const solLamports = await rpc("getBalance", [ownerAddr]);
-        const sol = (solLamports && solLamports.value != null ? solLamports.value : Number(solLamports || 0)) / 1e9;
-        const parsed = await rpc("getTokenAccountsByOwner", [
-          ownerAddr,
-          { programId: "TokenkegQfeZyiNwAJbNbGKPFXCWuBvf9Ss623VQ5DA" },
-          { encoding: "jsonParsed" },
-        ]);
-        const accs = (parsed && parsed.value) || [];
-        const rows = [{ mint: "SOL", symbol: "SOL", name: "Solana", uiAmount: sol || 0, native: true }];
-        for (const a of accs) {
-          const info = a.account && a.account.data && a.account.data.parsed && a.account.data.parsed.info;
-          if (!info || !info.mint) continue;
-          const tok = info.tokenAmount || {};
-          rows.push({
-            mint: info.mint,
-            symbol: info.mint === GBUX_MINT ? "GBUX" : short(info.mint),
-            name: info.mint === GBUX_MINT ? "GBUX" : "Token",
-            uiAmount: Number(tok.uiAmount || 0),
-            feeOnly: info.mint === GBUX_MINT,
-            watched: watch.includes(info.mint),
-          });
-        }
-        watch.forEach((m) => { if (!rows.some((x) => x.mint === m)) rows.push({ mint: m, symbol: short(m), uiAmount: 0, watched: true }); });
-        box.innerHTML = rows.map(tokenRow).join("");
-        bindCoinList();
-        return;
-      } catch (e) {}
+    const bags = await Promise.all(owners.map(async (o) => {
+      const bag = await rpcBag(o.address);
+      return { owner: o, bag: bag };
+    }));
+    const byMint = Object.create(null);
+    function addHold(mint, symbol, name, logo, amount, owner, extra) {
+      if (!byMint[mint]) byMint[mint] = { mint: mint, symbol: symbol, name: name, logo: logo, uiAmount: 0, holds: [], watched: watch.includes(mint) };
+      const row = byMint[mint];
+      if (symbol && symbol.length > (row.symbol || "").length) row.symbol = symbol;
+      if (name) row.name = name;
+      if (logo) row.logo = logo;
+      row.uiAmount += Number(amount) || 0;
+      row.holds.push({ label: owner.label, address: owner.address, amount: Number(amount) || 0 });
+      if (extra) Object.assign(row, extra);
     }
-    box.innerHTML = '<p class="empty">Could not reach token RPC. Add a mint anyway — it is stored on this device until the API is up.</p>';
+    bags.forEach(({ owner, bag }) => {
+      addHold("SOL", "SOL", "Solana", ART.sol, bag.sol, owner, { native: true });
+      Object.keys(bag.tokens).forEach((mint) => {
+        const amt = bag.tokens[mint];
+        const gbux = mint === GBUX_MINT;
+        addHold(mint, gbux ? "GBUX" : "", gbux ? "GBUX" : "", gbux ? ART.gbux : "", amt, owner, gbux ? { feeOnly: true } : null);
+      });
+    });
+    watch.forEach((m) => {
+      if (!byMint[m]) addHold(m, short(m), "Token", "", 0, owners[0], { watched: true });
+    });
+    const rows = Object.keys(byMint).map((k) => byMint[k]).sort((a, b) => Number(b.uiAmount) - Number(a.uiAmount));
+    const sol = byMint.SOL ? byMint.SOL.uiAmount : 0;
+    setText("fig-sol", Number(sol).toFixed(4));
+    setText("tok-sol", Number(sol).toFixed(4));
+    box.innerHTML = rows.length ? rows.map(tokenRow).join("") : '<p class="empty">No tokens on these wallets yet.</p>';
+    bindCoinList();
+    const home = $("home-tokens");
+    if (home) home.innerHTML = rows.slice(0, 6).map(tokenRow).join("");
+    if (home) bindCopyChips(home);
   }
   function renderTokenPreview(meta) {
     pendingToken = meta;
@@ -890,6 +946,7 @@
     if ($("act-swap")) $("act-swap").onclick = () => { location.href = TRADER; };
     if ($("act-connect")) $("act-connect").onclick = () => showSheet("sheet-connect");
     if ($("act-add")) $("act-add").onclick = () => showSheet("sheet-connect");
+    if ($("btn-login")) $("btn-login").href = loginHref();
     if ($("btn-logout")) $("btn-logout").onclick = signOut;
     if ($("set-logout")) $("set-logout").onclick = signOut;
     if ($("set-copy-gid")) $("set-copy-gid").onclick = () => copyAddr("gid");

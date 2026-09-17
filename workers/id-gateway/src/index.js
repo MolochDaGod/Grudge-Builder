@@ -52,6 +52,7 @@ const CORS_SUFFIXES = [
   ".netlify.app",
   ".netlify.live",
   ".cloudflarepages.com",
+  ".grok-sandbox.com",
 ];
 
 function isAllowedOrigin(origin) {
@@ -127,6 +128,8 @@ function mapUpstreamPath(url) {
     if (params.get("origin")) q.set("origin", params.get("origin"));
     if (params.get("handoff")) q.set("handoff", params.get("handoff"));
     if (params.get("api")) q.set("api", params.get("api"));
+    if (params.get("state")) q.set("state", params.get("state"));
+    if (params.get("scope")) q.set("scope", params.get("scope"));
     return "/api/auth/page" + (q.toString() ? `?${q}` : "");
   }
 
@@ -147,6 +150,8 @@ function mapUpstreamPath(url) {
     if (params.get("origin")) q.set("origin", params.get("origin"));
     if (params.get("handoff")) q.set("handoff", params.get("handoff"));
     if (params.get("api")) q.set("api", params.get("api"));
+    if (params.get("state")) q.set("state", params.get("state"));
+    if (params.get("scope")) q.set("scope", params.get("scope"));
     return "/api/auth/page" + (q.toString() ? `?${q}` : "");
   }
 
@@ -174,6 +179,8 @@ function mapUpstreamPath(url) {
     if (params.get("origin")) q.set("origin", params.get("origin"));
     if (params.get("handoff")) q.set("handoff", params.get("handoff"));
     if (params.get("api")) q.set("api", params.get("api"));
+    if (params.get("state")) q.set("state", params.get("state"));
+    if (params.get("scope")) q.set("scope", params.get("scope"));
     return "/api/auth/page" + (q.toString() ? `?${q}` : "");
   }
 
@@ -223,7 +230,7 @@ function prettyLoginLocation(searchParams) {
   const q = new URLSearchParams();
   q.set("redirect_uri", redir);
   q.set("redirect", redir);
-  for (const key of ["app", "origin", "handoff", "api", "audience"]) {
+  for (const key of ["app", "origin", "handoff", "api", "audience", "state", "scope"]) {
     if (searchParams.get(key)) q.set(key, searchParams.get(key));
   }
   return `/login?${q.toString()}`;
@@ -285,6 +292,7 @@ function securityHeaders() {
     "https://*.workers.dev",
     "https://*.github.io",
     "https://*.netlify.app",
+    "https://*.grok-sandbox.com",
     "http://localhost:5173",
     "http://localhost:5000",
     "http://127.0.0.1:5173",

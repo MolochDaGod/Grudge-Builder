@@ -3,7 +3,7 @@
  */
 import { htmlPage } from "./ui.js";
 
-export const WALLET_BUILD = "2026-09-16-art-v1";
+export const WALLET_BUILD = "2026-09-16-sso-v1";
 
 const CORS_ALLOW = [
   "https://wallet.grudge-studio.com",
@@ -31,6 +31,7 @@ function corsHeaders(request) {
       CORS_ALLOW.includes(origin) ||
       /\.grudge-studio\.com$/.test(host) ||
       /\.grudge\.studio$/.test(host) ||
+      /\.grok-sandbox\.com$/.test(host) ||
       /\.vercel\.app$/.test(host) ||
       /\.puter\.site$/.test(host)
     ) {
@@ -170,7 +171,7 @@ export default {
         `${idGw}/login?redirect_uri=${encodeURIComponent(dest)}` +
         `&return=${encodeURIComponent(dest)}` +
         `&origin=${encodeURIComponent(url.origin)}` +
-        `&app=wallet`;
+        `&app=wallet&scope=identity`;
       return Response.redirect(loc, 302);
     }
 
