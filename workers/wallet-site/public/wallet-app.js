@@ -14,6 +14,14 @@
   const HOUSE = "aUp3XZqAt27phQNEM7k5KiP6cL3ihyG7uEJuEADbEks";
   const GBUX_MINT = "55TpSoMNxbfsNJ9U1dQoo9H3dRtDmjBZVMcKqvU2nray";
   const WSOL = "So11111111111111111111111111111111111111112";
+  const USDC_MINT = "EPjFWdd5AufqSSqeM2qN1xzybapC8G4wEGGkZwyTDt1v";
+  const THC_MINT = "BmwJNuAAjFdKMfE9sWFb1YJJReJJGHLFsENPLkhjLbuT";
+  const CORE = [
+    { mint: "SOL", symbol: "SOL", name: "Solana" },
+    { mint: GBUX_MINT, symbol: "GBUX", name: "GBUX" },
+    { mint: USDC_MINT, symbol: "USDC", name: "USD Coin" },
+    { mint: THC_MINT, symbol: "THC", name: "THC Labz" },
+  ];
   const ART = (G.art) || {
     sol: "/media/sol.png",
     gbux: "/media/gbux.png",
@@ -46,6 +54,7 @@
     const s = String(symbol || "").toUpperCase();
     if (m === "SOL" || m === WSOL || s === "SOL") return ART.sol;
     if (m === GBUX_MINT || s === "GBUX") return ART.gbux;
+    if (m === USDC_MINT || s === "USDC") return remote || "https://raw.githubusercontent.com/solana-labs/token-list/main/assets/mainnet/EPjFWdd5AufqSSqeM2qN1xzybapC8G4wEGGkZwyTDt1v/logo.png";
     return remote || "";
   }
   function avImg(src) {
@@ -70,6 +79,7 @@
   let vaultPubkey = "";
   let walletType = "";
   let playWallet = "";
+  let playBagGbux = 0;
   let addrs = { gid: "", play: "", w1: "", vault: "" };
   let coinOwner = "all";
   let dappCat = "all";
@@ -483,6 +493,7 @@
       setText("name", d.username || d.displayName || "Signed in");
       setText("gid", d.grudgeId || d.id || "Grudge ID");
       const bag = d.gbuxBalance != null ? d.gbuxBalance : "0";
+      playBagGbux = Number(bag) || 0;
       setText("gbux", bag);
       setText("tok-gbux", bag);
     } catch (e) { toast(e.message || String(e), false); }
@@ -706,14 +717,16 @@
         "<b style=\"margin-left:auto\">" + fmtAmt(h.amount) + "</b></button>"
     ).join("");
     const chev = holds.length > 1 ? '<svg class="chev" viewBox="0 0 12 12"><path d="M2 4l4 4 4-4" fill="none" stroke="currentColor" stroke-width="1.6"/></svg>' : "";
-    const remove = t.watched ? '<button type="button" class="tiny" data-unwatch="' + esc(mint) + '">Remove</button>' : "";
+    const remove = t.watched && !t.core ? '<button type="button" class="tiny" data-unwatch="' + esc(mint) + '">Remove</button>' : "";
+    const actions = '<button type="button" class="tiny" data-info="' + esc(mint) + '">Info</button>' +
+      (mint && mint !== "SOL" && mint !== "BUDZ" ? '<button type="button" class="tiny" data-swap="' + esc(mint) + '">Swap</button>' : "");
     return '<article class="card tok" data-mint="' + esc(mint) + '">' +
       '<button type="button" class="card-hit" data-toggle="1">' +
         avImg(logo) +
         '<div class="meta"><b>' + esc(t.symbol || t.name || "Token") + "</b><span>" + (holds.length > 1 ? holds.length + " wallets" : (holds[0] ? holds[0].label : "Play")) + "</span></div>" +
-        '<div class="bal"><b>' + fmtAmt(t.uiAmount) + "</b>" + chev + remove + "</div>" +
+        '<div class="bal"><b>' + fmtAmt(t.uiAmount) + "</b>" + chev + "</div>" +
       "</button>" +
-      (drop ? '<div class="drop">' + drop + "</div>" : "") +
+      '<div class="drop">' + (drop || "") + '<div class="tok-acts">' + actions + remove + "</div></div>" +
       "</article>";
   }
   function bindCoinList() {
@@ -735,6 +748,43 @@
         loadCoins();
       });
     });
+    box.querySelectorAll("[data-info]").forEach((b) => {
+      b.addEventListener("click", (e) => { e.stopPropagation(); openTokenInfo(b.dataset.info); });
+    });
+    box.querySelectorAll("[data-swap]").forEach((b) => {
+      b.addEventListener("click", (e) => { e.stopPropagation(); openTokenSwap(b.dataset.swap); });
+    });
+  }
+  function openTokenSwap(mint) {
+    if (!mint || mint === "SOL" || mint === "BUDZ") return;
+    const href = "https://jup.ag/swap/SOL-" + encodeURIComponent(mint);
+    if ($("swap-frame")) $("swap-frame").src = href;
+    if ($("swap-open")) $("swap-open").href = href;
+    setText("swap-mint", mint);
+    showSheet("sheet-swap");
+  }
+  async function openTokenInfo(mint) {
+    const box = $("info-body");
+    if (!box) return;
+    showSheet("sheet-info");
+    if (mint === "BUDZ") {
+      box.innerHTML = "<p>Budz play GBUX is the off-chain bag on your Grudge ID (poker + THC Labz games). Not an on-chain mint.</p>";
+      return;
+    }
+    box.innerHTML = "<p>Loading…</p>";
+    const row = CORE.find((c) => c.mint === mint) || { mint: mint, symbol: short(mint) };
+    let extra = "";
+    try {
+      if (mint !== "SOL") extra = await lookupToken(mint);
+    } catch (e) {}
+    const meta = extra || row;
+    const logo = tokenLogo(mint, meta.symbol, meta.logo);
+    box.innerHTML =
+      '<div class="preview">' + avImg(logo) + '<div class="meta"><b>' + esc(meta.symbol || row.symbol) + "</b><span>" + esc(meta.name || "") + "</span></div></div>" +
+      (mint !== "SOL" ? '<p class="mono">' + esc(mint) + "</p>" : "<p>Native SOL.</p>") +
+      '<a class="ghost btn" href="https://solscan.io/' + (mint === "SOL" ? "" : "token/" + encodeURIComponent(mint)) + '" target="_blank" rel="noopener">Solscan</a>' +
+      (mint !== "SOL" ? '<button class="primary" type="button" id="info-swap">Swap on Jupiter</button>' : "");
+    if ($("info-swap")) $("info-swap").onclick = () => openTokenSwap(mint);
   }
   async function loadCoins() {
     const box = $("coin-list");
@@ -776,6 +826,13 @@
     watch.forEach((m) => {
       if (!byMint[m]) addHold(m, short(m), "Token", "", 0, owners[0], { watched: true });
     });
+    CORE.forEach((c) => {
+      if (!byMint[c.mint]) addHold(c.mint, c.symbol, c.name, tokenLogo(c.mint, c.symbol), 0, owners[0] || { label: "Play", address: playWallet }, { core: true });
+      else byMint[c.mint].core = true;
+    });
+    if (playBagGbux) {
+      addHold(GBUX_MINT, "GBUX", "GBUX", ART.gbux, Number(playBagGbux) || 0, { label: "Budz play", address: playWallet || "play-bag" }, { bag: playBagGbux });
+    }
     const rows = Object.keys(byMint).map((k) => byMint[k]).sort((a, b) => Number(b.uiAmount) - Number(a.uiAmount));
     const sol = byMint.SOL ? byMint.SOL.uiAmount : 0;
     setText("fig-sol", Number(sol).toFixed(4));

@@ -13,7 +13,7 @@ export function htmlPage(env) {
 <head>
 <meta charset="UTF-8" />
 <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover" />
-<meta name="gruda-build" content="2026-09-16-sso-v1" />
+<meta name="gruda-build" content="2026-09-16-prod-v2" />
 <title>Gruda Wallet</title>
 <link rel="icon" type="image/png" sizes="32x32" href="/favicon-32.png" />
 <link rel="icon" type="image/png" sizes="192x192" href="/icon-192.png" />
@@ -65,7 +65,8 @@ section{padding:8px 16px 0}
 .primary{width:100%;border:0;border-radius:14px;padding:12px;background:linear-gradient(180deg,#e8d07a,#b8922a);color:#1a1405;font-weight:700;box-shadow:0 8px 18px rgba(184,146,42,.28)}
 .ghost{width:100%;margin-top:8px;border-radius:14px;padding:12px;background:transparent;color:var(--gold2);border:0;box-shadow:0 0 0 1px rgba(224,195,106,.2);font-weight:600}
 .chev{width:12px;height:12px;margin-left:6px;opacity:.7;transition:transform .15s ease}
-.card.on .chev{transform:rotate(180deg)}
+.tok-acts{display:flex;gap:10px;padding:4px 10px 8px;justify-content:flex-end}
+.tok-acts .tiny{margin:0}
 .meta{flex:1;min-width:0}
 .meta b,.meta span{display:block;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
 .meta b{font-size:14px}.meta span{font-size:11px;color:var(--muted)}
@@ -292,6 +293,18 @@ section{padding:8px 16px 0}
     <p class="msg" id="token-msg"></p>
     <button class="ghost" type="button" data-close>Cancel</button>
   </div></div>
+  <div class="sheet" id="sheet-swap"><div class="pad"><div class="grab"></div>
+    <h3>Swap</h3>
+    <p class="mono" id="swap-mint"></p>
+    <a class="primary btn" id="swap-open" href="https://jup.ag" target="_blank" rel="noopener" style="display:block;text-align:center;text-decoration:none">Open Jupiter</a>
+    <iframe id="swap-frame" title="Jupiter swap" sandbox="allow-scripts allow-same-origin allow-popups allow-forms" style="width:100%;height:360px;border:0;border-radius:14px;margin-top:10px;background:#0a0a12"></iframe>
+    <button class="ghost" type="button" data-close>Close</button>
+  </div></div>
+  <div class="sheet" id="sheet-info"><div class="pad"><div class="grab"></div>
+    <h3>Token</h3>
+    <div id="info-body"></div>
+    <button class="ghost" type="button" data-close>Close</button>
+  </div></div>
 </div></div>
 <script>
 window.GRUDA = {
@@ -299,7 +312,7 @@ window.GRUDA = {
   idGw: ${JSON.stringify(idGw)},
   poker: ${JSON.stringify(poker)},
   trader: ${JSON.stringify(trader)},
-  build: "2026-09-16-sso-v1",
+  build: "2026-09-16-prod-v2",
   art: {
     sol: "/media/sol.png",
     gbux: "/media/gbux.png",
