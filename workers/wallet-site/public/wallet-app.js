@@ -850,27 +850,39 @@
     ).join("");
     const chev = holds.length > 1 ? '<svg class="chev" viewBox="0 0 12 12"><path d="M2 4l4 4 4-4" fill="none" stroke="currentColor" stroke-width="1.6"/></svg>' : "";
     const remove = t.watched && !t.core ? '<button type="button" class="tiny" data-unwatch="' + esc(mint) + '">Remove</button>' : "";
-    const actions = '<button type="button" class="tiny" data-info="' + esc(mint) + '">Info</button>' +
+    const actions = '<button type="button" class="tiny" data-info="' + esc(mint) + '">Open</button>' +
       '<button type="button" class="tiny" data-swap="' + esc(mint) + '" data-dir="in">In</button>' +
       '<button type="button" class="tiny" data-swap="' + esc(mint) + '" data-dir="out">Out</button>';
     return '<article class="card tok" data-mint="' + esc(mint) + '">' +
-      '<button type="button" class="card-hit" data-toggle="1">' +
+      '<button type="button" class="card-hit" data-open="' + esc(mint) + '">' +
         avImg(logo) +
         '<div class="meta"><b>' + esc(t.symbol || t.name || "Token") + "</b><span>" + (holds.length > 1 ? holds.length + " wallets" : (holds[0] ? holds[0].label : "Play")) + "</span></div>" +
-        '<div class="bal"><b>' + fmtAmt(t.uiAmount) + "</b>" + chev + "</div>" +
+        '<div class="bal"><b>' + fmtAmt(t.uiAmount) + "</b>" + (holds.length > 1 ? '<span class="chev-hit" data-toggle="1">' + chev + "</span>" : chev) + "</div>" +
       "</button>" +
       '<div class="drop">' + (drop || "") + '<div class="tok-acts">' + actions + remove + "</div>" +
       '<div class="swapbox" data-swapbox="' + esc(mint) + '" hidden></div></div>' +
       "</article>";
   }
   function bindCoinList() {
-    const box = $("coin-list");
+    bindTokenRoot($("coin-list"));
+  }
+  function bindCoinListHome(root) {
+    bindTokenRoot(root);
+  }
+  function bindTokenRoot(box) {
     if (!box) return;
     bindCopyChips(box);
     box.querySelectorAll("[data-toggle]").forEach((b) => {
-      b.addEventListener("click", () => {
+      b.addEventListener("click", (e) => {
+        e.stopPropagation();
         const card = b.closest(".card");
         if (card) card.classList.toggle("on");
+      });
+    });
+    box.querySelectorAll("[data-open]").forEach((b) => {
+      b.addEventListener("click", (e) => {
+        if (e.target.closest("[data-toggle]")) return;
+        openTokenDetail(b.dataset.open, "info");
       });
     });
     box.querySelectorAll("[data-unwatch]").forEach((b) => {
@@ -883,12 +895,12 @@
       });
     });
     box.querySelectorAll("[data-info]").forEach((b) => {
-      b.addEventListener("click", (e) => { e.stopPropagation(); openTokenInfo(b.dataset.info); });
+      b.addEventListener("click", (e) => { e.stopPropagation(); openTokenDetail(b.dataset.info, "info"); });
     });
     box.querySelectorAll("[data-swap]").forEach((b) => {
       b.addEventListener("click", (e) => {
         e.stopPropagation();
-        openTokenSwap(b.dataset.swap, b.dataset.dir || "in");
+        openTokenDetail(b.dataset.swap, "swap", b.dataset.dir || "in");
       });
     });
   }
@@ -1092,29 +1104,169 @@
     fillSwapBox(sheetBox, swapMint, swapDir);
     showSheet("sheet-swap");
   }
-  async function openTokenInfo(mint) {
-    const box = $("info-body");
-    if (!box) return;
+  async function dexFor(mint) {
+    const m = mintForJup(mint);
+    let data = null;
+    try {
+      data = await fetch("/api/token/dex?mint=" + encodeURIComponent(m)).then((r) => r.json());
+    } catch (e) {}
+    if (!data || !data.pairs) {
+      try {
+        data = await fetch("https://api.dexscreener.com/latest/dex/tokens/" + encodeURIComponent(m)).then((r) => r.json());
+      } catch (e2) {}
+    }
+    const pairs = Array.isArray(data && data.pairs) ? data.pairs.slice() : [];
+    pairs.sort((a, b) => Number((b.liquidity && b.liquidity.usd) || 0) - Number((a.liquidity && a.liquidity.usd) || 0));
+    return { pair: pairs[0] || null, pairs: pairs };
+  }
+  function fmtUsd(n) {
+    const x = Number(n);
+    if (!Number.isFinite(x)) return "—";
+    if (x >= 1e9) return "$" + (x / 1e9).toFixed(2) + "B";
+    if (x >= 1e6) return "$" + (x / 1e6).toFixed(2) + "M";
+    if (x >= 1e3) return "$" + (x / 1e3).toFixed(1) + "k";
+    if (x >= 1) return "$" + x.toFixed(4);
+    return "$" + x.toPrecision(3);
+  }
+  function tokenUses(mint) {
+    const out = [];
+    if (mint === "SOL" || mint === WSOL) {
+      out.push({ href: TRADER, name: "Auto-trader", blurb: "Fund the vault with SOL" });
+    }
+    if (mint === GBUX_MINT) {
+      out.push({ href: POKER + "/lobby", name: "BUDB Poker", blurb: "Sit with bag GBUX" });
+      out.push({ href: POKER + "/wallet", name: "Poker wallet", blurb: "Move GBUX onto the felt" });
+      out.push({ href: TRADER, name: "Trader fee", blurb: "Desk fee is GBUX" });
+    }
+    if (mint === THC_MINT) {
+      out.push({ href: POKER + "/lobby", name: "THC Labz play", blurb: "Same Grudge ID · Budz bag" });
+    }
+    if (mint === USDC_MINT) {
+      out.push({ href: "#swap", name: "Swap", blurb: "USDC in or out of this wallet" });
+    }
+    return out;
+  }
+  let tokMint = USDC_MINT;
+  let tokTab = "info";
+  let tokDir = "in";
+  async function openTokenDetail(mint, tab, dir) {
+    tokMint = mint || USDC_MINT;
+    tokTab = tab || "info";
+    if (dir) tokDir = dir;
+    const page = $("tok-page") || $("info-body");
+    if (!page) { openTokenSwap(tokMint, tokDir); return; }
     showSheet("sheet-info");
-    if (mint === "BUDZ") {
-      box.innerHTML = "<p>Budz play GBUX is the off-chain bag on your Grudge ID (poker + THC Labz games). Not an on-chain mint.</p>";
+    if (page.dataset.mint === tokMint && window.__tokDex && page.querySelector("#tok-pane")) {
+      page.querySelectorAll("[data-toktab]").forEach((b) => b.classList.toggle("on", b.dataset.toktab === tokTab));
+      paintTokPane(page.querySelector("#tok-pane"), window.__tokDex.meta, window.__tokDex.pair, window.__tokDex.dex);
       return;
     }
-    box.innerHTML = "<p>Loading…</p>";
-    const row = CORE.find((c) => c.mint === mint) || { mint: mint, symbol: short(mint) };
-    let extra = "";
+    const core = CORE.find((c) => c.mint === tokMint) || {};
+    page.innerHTML = "<p>Loading…</p>";
+    let meta = { symbol: core.symbol || short(tokMint), name: core.name || "", logo: tokenLogo(tokMint, core.symbol) };
     try {
-      if (mint !== "SOL") extra = await lookupToken(mint);
+      if (tokMint !== "SOL") {
+        const extra = await lookupToken(tokMint);
+        if (extra) meta = Object.assign(meta, extra);
+      }
     } catch (e) {}
-    const meta = extra || row;
-    const logo = tokenLogo(mint, meta.symbol, meta.logo);
-    box.innerHTML =
-      '<div class="preview">' + avImg(logo) + '<div class="meta"><b>' + esc(meta.symbol || row.symbol) + "</b><span>" + esc(meta.name || "") + "</span></div></div>" +
-      (mint !== "SOL" ? '<p class="mono">' + esc(mint) + "</p>" : "<p>Native SOL.</p>") +
-      '<a class="ghost btn" href="https://solscan.io/' + (mint === "SOL" ? "" : "token/" + encodeURIComponent(mint)) + '" target="_blank" rel="noopener">Solscan</a>' +
-      (mint ? '<button class="primary" type="button" id="info-in">Swap in</button><button class="ghost" type="button" id="info-out">Swap out</button>' : "");
-    if ($("info-in")) $("info-in").onclick = () => openTokenSwap(mint, "in");
-    if ($("info-out")) $("info-out").onclick = () => openTokenSwap(mint, "out");
+    const dex = tokMint === "BUDZ" ? { pair: null } : await dexFor(tokMint);
+    const pair = dex.pair;
+    const price = pair ? pair.priceUsd : null;
+    const chg = pair && pair.priceChange ? pair.priceChange.h24 : null;
+    const logo = tokenLogo(tokMint, meta.symbol, meta.logo || meta.logoURI);
+    const tabs = ["info", "swap", "graph", "news"];
+    const labels = { info: "Info", swap: "Swap", graph: "Graph", news: "News" };
+    const chgTxt = chg == null ? "" : ((Number(chg) >= 0 ? "+" : "") + Number(chg).toFixed(2) + "% 24h");
+    page.dataset.mint = tokMint;
+    window.__tokDex = { meta: meta, pair: pair, dex: dex };
+    page.innerHTML =
+      '<div class="tok-head">' + avImg(logo) +
+        '<div class="meta"><b>' + esc(meta.symbol || "Token") + "</b><span>" + esc(meta.name || "") + "</span></div>" +
+        '<div class="tok-price"><b>' + (price ? fmtUsd(price) : "—") + "</b><span>" + esc(chgTxt) + "</span></div></div>" +
+      '<div class="tok-tabs">' + tabs.map((t) =>
+        '<button type="button" class="' + (t === tokTab ? "on" : "") + '" data-toktab="' + t + '">' + labels[t] + "</button>"
+      ).join("") + "</div>" +
+      '<div id="tok-pane"></div>';
+    page.querySelectorAll("[data-toktab]").forEach((b) => {
+      b.onclick = () => openTokenDetail(tokMint, b.dataset.toktab, tokDir);
+    });
+    paintTokPane(page.querySelector("#tok-pane"), meta, pair, dex);
+  }
+  function paintTokPane(pane, meta, pair, dex) {
+    if (!pane) return;
+    const mint = tokMint;
+    const jupMint = mintForJup(mint);
+    if (tokTab === "swap") {
+      pane.innerHTML = '<div class="swapbox" id="tok-swapbox"></div>';
+      fillSwapBox(pane.querySelector("#tok-swapbox"), mint, tokDir);
+      return;
+    }
+    if (tokTab === "graph") {
+      const pairAddr = pair && (pair.pairAddress || pair.pairAddress);
+      const srcMint = pairAddr || jupMint;
+      const src = "https://dexscreener.com/solana/" + encodeURIComponent(srcMint) + "?embed=1&theme=dark&trades=0&info=0";
+      pane.innerHTML =
+        (mint === "BUDZ"
+          ? "<p>Budz is off-chain play GBUX. No on-chain chart.</p>"
+          : '<iframe class="chartframe" title="Dexscreener" src="' + src + '" loading="lazy" referrerpolicy="no-referrer"></iframe>') +
+        '<a class="ghost btn" href="https://dexscreener.com/solana/' + encodeURIComponent(srcMint) + '" target="_blank" rel="noopener" style="display:block;text-align:center;text-decoration:none;margin-top:8px">Open Dexscreener</a>';
+      return;
+    }
+    if (tokTab === "news") {
+      const info = (pair && pair.info) || {};
+      const sites = Array.isArray(info.websites) ? info.websites : [];
+      const socials = Array.isArray(info.socials) ? info.socials : [];
+      const links = [];
+      sites.forEach((w) => { if (w && w.url) links.push({ label: w.label || "Site", href: w.url }); });
+      socials.forEach((s) => { if (s && s.url) links.push({ label: s.type || "Social", href: s.url }); });
+      if (mint !== "SOL" && mint !== "BUDZ") {
+        links.push({ label: "X search", href: "https://x.com/search?q=" + encodeURIComponent(jupMint) });
+        links.push({ label: "Dexscreener", href: "https://dexscreener.com/solana/" + encodeURIComponent((pair && pair.pairAddress) || jupMint) });
+      }
+      if (!links.length) {
+        pane.innerHTML = "<p>No project links indexed for this mint. We do not invent headlines.</p>";
+        return;
+      }
+      pane.innerHTML = "<p class=\"hint\">From Dexscreener token profile. Not made-up news.</p>" +
+        links.map((l) =>
+          '<a class="use-row" href="' + esc(l.href) + '" target="_blank" rel="noopener"><div class="meta"><b>' + esc(l.label) + "</b><span>" + esc(l.href) + "</span></div></a>"
+        ).join("");
+      return;
+    }
+    const liq = pair && pair.liquidity ? pair.liquidity.usd : null;
+    const vol = pair && pair.volume ? pair.volume.h24 : null;
+    const fdv = pair && pair.fdv;
+    const uses = tokenUses(mint);
+    const holds = (window.__coinRows && window.__coinRows[mint] && window.__coinRows[mint].holds) || [];
+    pane.innerHTML =
+      (mint !== "SOL" && mint !== "BUDZ"
+        ? '<button type="button" class="copymint" data-copyaddr="' + esc(jupMint) + '">' + esc(jupMint) + "</button>"
+        : mint === "SOL" ? "<p>Native SOL.</p>" : "<p>Budz play GBUX is the off-chain bag (poker + THC Labz). Not a mint.</p>") +
+      '<div class="statg">' +
+        "<div><span>Liquidity</span><b>" + (liq != null ? fmtUsd(liq) : "—") + "</b></div>" +
+        "<div><span>Volume 24h</span><b>" + (vol != null ? fmtUsd(vol) : "—") + "</b></div>" +
+        "<div><span>FDV</span><b>" + (fdv != null ? fmtUsd(fdv) : "—") + "</b></div>" +
+        "<div><span>DEX</span><b>" + esc((pair && pair.dexId) || "—") + "</b></div></div>" +
+      (holds.length
+        ? "<p class=\"hint\">Your bags</p>" + holds.map((h) =>
+          '<button type="button" class="hold" data-copyaddr="' + esc(h.address) + '"><span class="copychip">' + esc(clip7(h.address)) + "</span><span>" + esc(h.label) + "</span><b style=\"margin-left:auto\">" + fmtAmt(h.amount) + "</b></button>"
+        ).join("")
+        : "") +
+      (uses.length ? "<p class=\"hint\">Use in Grudge</p>" + uses.map((u) =>
+        u.href === "#swap"
+          ? '<button type="button" class="use-row" data-useswap="1"><div class="meta"><b>' + esc(u.name) + "</b><span>" + esc(u.blurb) + "</span></div></button>"
+          : '<a class="use-row" href="' + esc(u.href) + '"><div class="meta"><b>' + esc(u.name) + "</b><span>" + esc(u.blurb) + "</span></div></a>"
+      ).join("") : "") +
+      (mint !== "BUDZ"
+        ? '<a class="ghost btn" href="https://solscan.io/' + (mint === "SOL" ? "" : "token/" + encodeURIComponent(jupMint)) + '" target="_blank" rel="noopener" style="display:block;text-align:center;text-decoration:none;margin-top:8px">Solscan</a>'
+        : "");
+    bindCopyChips(pane);
+    const sw = pane.querySelector("[data-useswap]");
+    if (sw) sw.onclick = () => openTokenDetail(mint, "swap", "in");
+  }
+  async function openTokenInfo(mint) {
+    return openTokenDetail(mint, "info");
   }
   async function loadCoins() {
     const box = $("coin-list");
@@ -1180,16 +1332,7 @@
     const home = $("home-tokens");
     if (home) {
       home.innerHTML = rows.slice(0, 6).map(tokenRow).join("");
-      bindCopyChips(home);
-      home.querySelectorAll("[data-toggle]").forEach((b) => {
-        b.addEventListener("click", () => { const card = b.closest(".card"); if (card) card.classList.toggle("on"); });
-      });
-      home.querySelectorAll("[data-info]").forEach((b) => {
-        b.addEventListener("click", (e) => { e.stopPropagation(); openTokenInfo(b.dataset.info); });
-      });
-      home.querySelectorAll("[data-swap]").forEach((b) => {
-        b.addEventListener("click", (e) => { e.stopPropagation(); openTokenSwap(b.dataset.swap, b.dataset.dir || "in"); });
-      });
+      bindCoinListHome(home);
     }
   }
   function renderTokenPreview(meta) {
@@ -1404,7 +1547,7 @@
     document.querySelectorAll(".sheet").forEach((s) => { s.addEventListener("click", (e) => { if (e.target === s) showSheet(null); }); });
     if ($("act-recv")) $("act-recv").onclick = () => showSheet("sheet-recv");
     if ($("act-send")) $("act-send").onclick = () => showSheet("sheet-send");
-    if ($("act-swap")) $("act-swap").onclick = () => openTokenSwap(USDC_MINT, "in");
+    if ($("act-swap")) $("act-swap").onclick = () => openTokenDetail(USDC_MINT, "swap", "in");
     if ($("act-connect")) $("act-connect").onclick = () => showSheet("sheet-connect");
     if ($("act-add")) $("act-add").onclick = () => showSheet("sheet-connect");
     if ($("btn-login")) $("btn-login").href = loginHref();

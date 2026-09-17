@@ -3,7 +3,7 @@
  */
 import { htmlPage } from "./ui.js";
 
-export const WALLET_BUILD = "2026-09-17-inswap-v1";
+export const WALLET_BUILD = "2026-09-17-tokpage-v1";
 
 const CORS_ALLOW = [
   "https://wallet.grudge-studio.com",
@@ -209,6 +209,20 @@ export default {
         status: 200,
         headers: { "Content-Type": "text/javascript; charset=utf-8", "Cache-Control": "no-store", ...cors },
       });
+    }
+
+    if (url.pathname === "/api/token/dex" && request.method === "GET") {
+      const mint = url.searchParams.get("mint") || "";
+      if (!mint) return json({ error: "mint required" }, 400, cors);
+      try {
+        const r = await fetch("https://api.dexscreener.com/latest/dex/tokens/" + encodeURIComponent(mint), {
+          headers: { accept: "application/json" },
+        });
+        const body = await r.json().catch(() => ({}));
+        return json(body, r.ok ? 200 : r.status, cors);
+      } catch (err) {
+        return json({ error: "dexscreener failed" }, 502, cors);
+      }
     }
 
     if (url.pathname.startsWith("/api/swap/")) {

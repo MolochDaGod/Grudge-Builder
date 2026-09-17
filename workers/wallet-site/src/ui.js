@@ -13,7 +13,7 @@ export function htmlPage(env) {
 <head>
 <meta charset="UTF-8" />
 <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover" />
-<meta name="gruda-build" content="2026-09-17-inswap-v1" />
+<meta name="gruda-build" content="2026-09-17-tokpage-v1" />
 <title>Gruda Wallet</title>
 <link rel="icon" type="image/png" sizes="32x32" href="/favicon-32.png" />
 <link rel="icon" type="image/png" sizes="192x192" href="/icon-192.png" />
@@ -74,6 +74,23 @@ section{padding:8px 16px 0}
 .sw-row b{flex:1;font-size:18px}
 .sw-row span{font-size:12px;color:var(--muted);font-weight:600}
 .sw-go{margin-top:8px}
+.tok-head{display:flex;align-items:center;gap:10px;margin-bottom:8px}
+.tok-head .meta b{font-size:18px}
+.tok-price{margin-left:auto;text-align:right}
+.tok-price b{display:block;font-size:16px}
+.tok-price span{font-size:11px;color:var(--muted)}
+.tok-tabs{display:flex;gap:4px;margin:8px 0 10px}
+.tok-tabs button{flex:1;border:0;border-radius:10px;padding:8px 4px;background:var(--card);color:var(--muted);font-weight:700;font-size:12px;box-shadow:0 0 0 1px var(--line)}
+.tok-tabs button.on{color:#1a1405;background:linear-gradient(180deg,#e8d07a,#b8922a);box-shadow:none}
+.chartframe{width:100%;height:280px;border:0;border-radius:12px;background:#0a0a12}
+.statg{display:grid;grid-template-columns:1fr 1fr;gap:8px;margin:8px 0}
+.statg div{background:#0a0a12;border-radius:12px;padding:10px;box-shadow:0 0 0 1px var(--line)}
+.statg b{display:block;font-size:14px}
+.statg span{font-size:10px;color:var(--muted);letter-spacing:.06em;text-transform:uppercase}
+.use-row{display:flex;align-items:center;gap:10px;padding:10px;border-radius:12px;background:var(--card);border:1px solid var(--line);text-decoration:none;color:var(--text);margin-bottom:8px}
+.use-row b{display:block}
+.use-row span{font-size:11px;color:var(--muted)}
+.copymint{width:100%;text-align:left;font-family:"IBM Plex Mono",monospace;font-size:11px;word-break:break-all;background:#0a0a12;border:0;color:var(--gold2);border-radius:10px;padding:10px;margin:6px 0}
 .meta{flex:1;min-width:0}
 .meta b,.meta span{display:block;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
 .meta b{font-size:14px}.meta span{font-size:11px;color:var(--muted)}
@@ -332,8 +349,7 @@ section{padding:8px 16px 0}
     <button class="ghost" type="button" data-close>Close</button>
   </div></div>
   <div class="sheet" id="sheet-info"><div class="pad"><div class="grab"></div>
-    <h3>Token</h3>
-    <div id="info-body"></div>
+    <div id="tok-page"></div>
     <button class="ghost" type="button" data-close>Close</button>
   </div></div>
 </div></div>
@@ -343,7 +359,7 @@ window.GRUDA = {
   idGw: ${JSON.stringify(idGw)},
   poker: ${JSON.stringify(poker)},
   trader: ${JSON.stringify(trader)},
-  build: "2026-09-17-inswap-v1",
+  build: "2026-09-17-tokpage-v1",
   art: {
     sol: "/media/sol.png",
     gbux: "/media/gbux.png",
