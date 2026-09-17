@@ -3,7 +3,7 @@
  */
 import { htmlPage } from "./ui.js";
 
-export const WALLET_BUILD = "2026-09-17-tokpage-v1";
+export const WALLET_BUILD = "2026-09-17-dex-v1";
 
 const CORS_ALLOW = [
   "https://wallet.grudge-studio.com",
@@ -212,14 +212,28 @@ export default {
     }
 
     if (url.pathname === "/api/token/dex" && request.method === "GET") {
-      const mint = url.searchParams.get("mint") || "";
-      if (!mint) return json({ error: "mint required" }, 400, cors);
+      const mint = (url.searchParams.get("mint") || "").trim();
+      const mints = (url.searchParams.get("mints") || "").split(",").map((s) => s.trim()).filter(Boolean);
+      const list = mints.length ? mints.slice(0, 30) : (mint ? [mint] : []);
+      if (!list.length) return json({ error: "mint required" }, 400, cors);
       try {
-        const r = await fetch("https://api.dexscreener.com/latest/dex/tokens/" + encodeURIComponent(mint), {
-          headers: { accept: "application/json" },
-        });
-        const body = await r.json().catch(() => ({}));
-        return json(body, r.ok ? 200 : r.status, cors);
+        const DS = "https://api.dexscreener.com";
+        let pairs = [];
+        if (list.length === 1) {
+          const r = await fetch(`${DS}/token-pairs/v1/solana/${encodeURIComponent(list[0])}`, {
+            headers: { accept: "application/json" },
+          });
+          const body = await r.json().catch(() => []);
+          pairs = Array.isArray(body) ? body : (body.pairs || []);
+        } else {
+          const r = await fetch(`${DS}/tokens/v1/solana/${list.map(encodeURIComponent).join(",")}`, {
+            headers: { accept: "application/json" },
+          });
+          const body = await r.json().catch(() => []);
+          pairs = Array.isArray(body) ? body : (body.pairs || []);
+        }
+        pairs = pairs.filter((p) => p && p.chainId === "solana");
+        return json({ ok: true, source: "dexscreener-v1", pairs }, 200, cors);
       } catch (err) {
         return json({ error: "dexscreener failed" }, 502, cors);
       }

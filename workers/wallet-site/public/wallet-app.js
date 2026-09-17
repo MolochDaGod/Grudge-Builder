@@ -1106,17 +1106,29 @@
   }
   async function dexFor(mint) {
     const m = mintForJup(mint);
-    let data = null;
+    let pairs = [];
     try {
-      data = await fetch("/api/token/dex?mint=" + encodeURIComponent(m)).then((r) => r.json());
+      const data = await fetch("/api/token/dex?mint=" + encodeURIComponent(m)).then((r) => r.json());
+      pairs = Array.isArray(data && data.pairs) ? data.pairs : (Array.isArray(data) ? data : []);
     } catch (e) {}
-    if (!data || !data.pairs) {
+    if (!pairs.length) {
       try {
-        data = await fetch("https://api.dexscreener.com/latest/dex/tokens/" + encodeURIComponent(m)).then((r) => r.json());
+        const data = await fetch("https://api.dexscreener.com/token-pairs/v1/solana/" + encodeURIComponent(m)).then((r) => r.json());
+        pairs = Array.isArray(data) ? data : (data.pairs || []);
       } catch (e2) {}
     }
-    const pairs = Array.isArray(data && data.pairs) ? data.pairs.slice() : [];
-    pairs.sort((a, b) => Number((b.liquidity && b.liquidity.usd) || 0) - Number((a.liquidity && a.liquidity.usd) || 0));
+    pairs = pairs.filter((p) => p && (p.chainId === "solana" || !p.chainId));
+    const quoteRank = (p) => {
+      const q = ((p.quoteToken && p.quoteToken.symbol) || "").toUpperCase();
+      if (q === "SOL" || q === "WSOL") return 3;
+      if (q === "USDC" || q === "USDT") return 2;
+      return 1;
+    };
+    pairs.sort((a, b) => {
+      const lq = Number((b.liquidity && b.liquidity.usd) || 0) - Number((a.liquidity && a.liquidity.usd) || 0);
+      if (lq) return lq;
+      return quoteRank(b) - quoteRank(a);
+    });
     return { pair: pairs[0] || null, pairs: pairs };
   }
   function fmtUsd(n) {
@@ -1203,8 +1215,12 @@
       return;
     }
     if (tokTab === "graph") {
-      const pairAddr = pair && (pair.pairAddress || pair.pairAddress);
-      const srcMint = pairAddr || jupMint;
+      const pairAddr = pair && pair.pairAddress;
+      if (!pairAddr && mint !== "BUDZ") {
+        pane.innerHTML = "<p>No Dexscreener pool indexed for this mint yet. Chart appears after a SOL/USDC pair exists.</p>";
+        return;
+      }
+      const srcMint = pairAddr || mintForJup(mint);
       const src = "https://dexscreener.com/solana/" + encodeURIComponent(srcMint) + "?embed=1&theme=dark&trades=0&info=0";
       pane.innerHTML =
         (mint === "BUDZ"

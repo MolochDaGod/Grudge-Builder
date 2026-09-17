@@ -13,7 +13,7 @@ export function htmlPage(env) {
 <head>
 <meta charset="UTF-8" />
 <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover" />
-<meta name="gruda-build" content="2026-09-17-tokpage-v1" />
+<meta name="gruda-build" content="2026-09-17-dex-v1" />
 <title>Gruda Wallet</title>
 <link rel="icon" type="image/png" sizes="32x32" href="/favicon-32.png" />
 <link rel="icon" type="image/png" sizes="192x192" href="/icon-192.png" />
@@ -359,7 +359,7 @@ window.GRUDA = {
   idGw: ${JSON.stringify(idGw)},
   poker: ${JSON.stringify(poker)},
   trader: ${JSON.stringify(trader)},
-  build: "2026-09-17-tokpage-v1",
+  build: "2026-09-17-dex-v1",
   art: {
     sol: "/media/sol.png",
     gbux: "/media/gbux.png",
