@@ -13,7 +13,7 @@ export function htmlPage(env) {
 <head>
 <meta charset="UTF-8" />
 <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover" />
-<meta name="gruda-build" content="2026-09-16-nft-v1" />
+<meta name="gruda-build" content="2026-09-16-wallets-v1" />
 <title>Gruda Wallet</title>
 <link rel="icon" type="image/png" sizes="32x32" href="/favicon-32.png" />
 <link rel="icon" type="image/png" sizes="192x192" href="/icon-192.png" />
@@ -87,6 +87,14 @@ section{padding:8px 16px 0}
 .msg.ok{color:var(--ok)}.msg.err{color:var(--err)}
 .prov{display:flex;width:100%;align-items:center;gap:12px;background:var(--card);border:1px solid var(--line);border-radius:14px;padding:12px;color:var(--text);margin-bottom:8px;font-size:14px;font-weight:600;text-align:left}
 .prov img{width:28px;height:28px;border-radius:8px;object-fit:contain;background:#0a0a12;flex-shrink:0}
+.prov .sub{margin:0;font-size:11px;font-weight:500;color:var(--muted)}
+.prov.install{opacity:.92;font-weight:500}
+.pick-label{font-size:11px;letter-spacing:.08em;text-transform:uppercase;color:var(--muted);margin:8px 0 6px}
+.install-more{margin:10px 0;border-radius:14px;background:rgba(255,255,255,.03);box-shadow:0 0 0 1px var(--line)}
+.install-more>summary{list-style:none;cursor:pointer;padding:12px 14px;font-weight:600;color:var(--gold2)}
+.install-more>summary::-webkit-details-marker{display:none}
+.install-more[open]>summary{border-bottom:1px solid var(--line)}
+.install-more .pad-in{padding:10px}
 .addrbox{font-family:"IBM Plex Mono",monospace;font-size:12px;word-break:break-all;background:#000;border-radius:12px;padding:12px;margin:8px 0 12px}
 .primary{width:100%;border:0;border-radius:14px;padding:12px;background:linear-gradient(180deg,#e8d07a,#b8922a);color:#1a1405;font-weight:700}
 .ghost{width:100%;margin-top:8px;border-radius:14px;padding:12px;background:transparent;color:var(--gold2);border:1px solid var(--line);font-weight:600}
@@ -265,8 +273,16 @@ section{padding:8px 16px 0}
   </nav>
   <div class="sheet" id="sheet-connect"><div class="pad"><div class="grab"></div>
     <h3>Connect a wallet</h3>
-    <p>Phantom, Solflare, Backpack, or another Solana wallet. Links to this Grudge ID. Play stays the primary address.</p>
-    <div id="wallet-picker"></div>
+    <p>Any Solana wallet. Installed ones first. Play stays the primary address.</p>
+    <div class="pick-label">On this device</div>
+    <div id="wallet-installed"></div>
+    <details class="install-more" id="wallet-install-wrap">
+      <summary>Install a wallet</summary>
+      <div class="pad-in">
+        <p class="hint">Easiest to set up, then the rest.</p>
+        <div id="wallet-install"></div>
+      </div>
+    </details>
     <p class="msg" id="connect-msg"></p>
     <button class="ghost" type="button" data-close>Cancel</button>
   </div></div>
@@ -319,7 +335,7 @@ window.GRUDA = {
   idGw: ${JSON.stringify(idGw)},
   poker: ${JSON.stringify(poker)},
   trader: ${JSON.stringify(trader)},
-  build: "2026-09-16-nft-v1",
+  build: "2026-09-16-wallets-v1",
   art: {
     sol: "/media/sol.png",
     gbux: "/media/gbux.png",

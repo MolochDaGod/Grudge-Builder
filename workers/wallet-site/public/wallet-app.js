@@ -43,11 +43,24 @@
     { id: "studio", name: "Studio portal", tagline: "grudge-studio.com", category: "Studio", row: "studio", href: "https://grudge-studio.com", img: "https://grudge-studio.com/opengraph.jpg", developer: "Grudge Studio", blurb: "Home of the fleet." },
   ];
   const LINK_CAP = 8;
-  const FALLBACKS = [
-    { id: "phantom", name: "Phantom", install: "https://phantom.app" },
-    { id: "solflare", name: "Solflare", install: "https://solflare.com" },
-    { id: "backpack", name: "Backpack", install: "https://backpack.app" },
+  const ADAPTER_ICON = "https://raw.githubusercontent.com/solana-labs/wallet-adapter/master/packages/wallets/icons/";
+  const CATALOG = [
+    { id: "phantom", name: "Phantom", install: "https://phantom.app/download", easy: 1, mobile: "https://phantom.app/ul/browse/" },
+    { id: "solflare", name: "Solflare", install: "https://solflare.com/download", easy: 2, mobile: "https://solflare.com/ul/v1/browse/" },
+    { id: "backpack", name: "Backpack", install: "https://backpack.app/download", easy: 3 },
+    { id: "trust", name: "Trust Wallet", install: "https://trustwallet.com/download", easy: 4, mobile: "https://link.trustwallet.com/open_url?coin_id=501&url=" },
+    { id: "okx", name: "OKX Wallet", install: "https://www.okx.com/download", easy: 5 },
+    { id: "coinbase", name: "Coinbase Wallet", install: "https://www.coinbase.com/wallet/downloads", easy: 6 },
+    { id: "exodus", name: "Exodus", install: "https://www.exodus.com/download", easy: 7 },
+    { id: "glow", name: "Glow", install: "https://glow.app", easy: 8 },
+    { id: "magiceden", name: "Magic Eden", install: "https://wallet.magiceden.io", easy: 9 },
+    { id: "nightly", name: "Nightly", install: "https://nightly.app", easy: 10 },
+    { id: "bitget", name: "Bitget Wallet", install: "https://web3.bitget.com/en/wallet-download", easy: 11, iconFile: "bitkeep.svg" },
   ];
+  function catalogIcon(id, file) {
+    const f = file || (id === "magiceden" ? "" : id + ".svg");
+    return f ? ADAPTER_ICON + f : "";
+  }
   const providerIcons = Object.create(null);
   function tokenLogo(mint, symbol, remote) {
     const m = String(mint || "");
@@ -215,7 +228,19 @@
     if (n.includes("phantom")) return "phantom";
     if (n.includes("solflare")) return "solflare";
     if (n.includes("backpack")) return "backpack";
-    return "other";
+    if (n.includes("trust")) return "trust";
+    if (n.includes("okx")) return "okx";
+    if (n.includes("coinbase")) return "coinbase";
+    if (n.includes("exodus")) return "exodus";
+    if (n.includes("glow")) return "glow";
+    if (n.includes("magic eden") || n.includes("magiceden")) return "magiceden";
+    if (n.includes("nightly")) return "nightly";
+    if (n.includes("bitget") || n.includes("bitkeep")) return "bitget";
+    const slug = n.replace(/[^a-z0-9]+/g, "-").replace(/^-|-$/g, "");
+    return slug || "wallet";
+  }
+  function isPhone() {
+    return /Android|iPhone|iPad|iPod/i.test(navigator.userAgent || "");
   }
   function feat(wallet, key) {
     return (wallet && wallet.features && wallet.features[key]) || null;
@@ -226,6 +251,8 @@
     if (chains.length && !chains.some((c) => String(c).startsWith("solana:"))) return;
     if (standardWallets.some((w) => w.name === wallet.name)) return;
     standardWallets.push(wallet);
+    const sheet = $("sheet-connect");
+    if (sheet && sheet.classList.contains("on")) renderPicker();
   }
   function bootStandard() {
     if (window.__GRUDA_STD_BOOTED) return;
@@ -242,46 +269,123 @@
     if (id === "phantom") return (w.phantom && w.phantom.solana) || (w.solana && w.solana.isPhantom ? w.solana : null);
     if (id === "solflare") return w.solflare || w.solflareSolana;
     if (id === "backpack") return w.backpack || (w.xnft && w.xnft.solana);
+    if (id === "trust") return (w.trustwallet && w.trustwallet.solana) || (w.solana && w.solana.isTrust ? w.solana : null);
+    if (id === "okx") return (w.okxwallet && (w.okxwallet.solana || w.okxwallet)) || null;
+    if (id === "coinbase") return w.coinbaseSolana || (w.coinbaseWalletExtension && w.coinbaseWalletExtension.solana) || null;
+    if (id === "exodus") return w.exodus && w.exodus.solana;
+    if (id === "glow") return w.glowSolana || w.glow;
+    if (id === "magiceden") return w.magicEden && w.magicEden.solana;
+    if (id === "nightly") return w.nightly && (w.nightly.solana || w.nightly);
+    if (id === "bitget") return (w.bitkeep && w.bitkeep.solana) || (w.bitget && w.bitget.solana) || null;
     return null;
   }
   function listProviders() {
     bootStandard();
-    const out = [];
+    const installed = [];
     const seen = new Set();
     standardWallets.forEach((w) => {
       const id = providerId(w.name);
       seen.add(id);
       if (w.icon) providerIcons[id] = w.icon;
-      out.push({ id: id, name: w.name, available: true, standard: w, legacy: null, install: null, icon: w.icon || providerIcons[id] || "" });
+      installed.push({
+        id: id,
+        name: w.name,
+        available: true,
+        standard: w,
+        legacy: null,
+        install: null,
+        icon: w.icon || providerIcons[id] || catalogIcon(id),
+      });
     });
-    FALLBACKS.forEach((f) => {
+    CATALOG.forEach((f) => {
       if (seen.has(f.id)) return;
       const leg = legacy(f.id);
-      out.push({ id: f.id, name: f.name, available: Boolean(leg), standard: null, legacy: leg, install: f.install, icon: providerIcons[f.id] || "" });
+      if (!leg) return;
+      seen.add(f.id);
+      installed.push({
+        id: f.id,
+        name: f.name,
+        available: true,
+        standard: null,
+        legacy: leg,
+        install: f.install,
+        icon: providerIcons[f.id] || catalogIcon(f.id, f.iconFile),
+      });
     });
-    return out;
+    const install = CATALOG
+      .filter((f) => !seen.has(f.id))
+      .sort((a, b) => a.easy - b.easy)
+      .map((f) => ({
+        id: f.id,
+        name: f.name,
+        available: false,
+        standard: null,
+        legacy: null,
+        install: f.install,
+        mobile: f.mobile || "",
+        icon: catalogIcon(f.id, f.iconFile),
+        easy: f.easy,
+      }));
+    return { installed: installed, install: install };
+  }
+  function pickerButton(row, kind) {
+    const b = document.createElement("button");
+    b.type = "button";
+    b.className = "prov" + (kind === "install" ? " install" : "");
+    b.dataset.sol = row.id;
+    const img = document.createElement("img");
+    img.src = row.icon || WALLET_GLYPH;
+    img.alt = "";
+    img.width = 28;
+    img.height = 28;
+    img.addEventListener("error", () => { img.src = WALLET_GLYPH; });
+    const meta = document.createElement("div");
+    meta.className = "meta";
+    const title = document.createElement("b");
+    title.textContent = row.name;
+    const sub = document.createElement("span");
+    if (kind === "installed") sub.textContent = "Ready on this device";
+    else if (isPhone() && row.mobile) sub.textContent = "Open in app";
+    else sub.textContent = row.easy && row.easy <= 4 ? "Easy setup" : "Get the extension or app";
+    meta.appendChild(title);
+    meta.appendChild(sub);
+    b.appendChild(img);
+    b.appendChild(meta);
+    b.addEventListener("click", () => {
+      if (kind === "install") {
+        if (isPhone() && row.mobile) {
+          const dest = row.mobile + encodeURIComponent(location.href);
+          location.href = dest;
+          return;
+        }
+        if (row.install) window.open(row.install, "_blank", "noopener");
+        note("connect-msg", "Install " + row.name + ", then come back and tap it under On this device.", true);
+        return;
+      }
+      linkProvider(row);
+    });
+    return b;
   }
   function renderPicker() {
-    const box = $("wallet-picker");
-    if (!box) return;
-    const rows = listProviders();
-    box.innerHTML = "";
-    rows.forEach((row) => {
-      const b = document.createElement("button");
-      b.type = "button";
-      b.className = "prov";
-      b.dataset.sol = row.id;
-      const img = document.createElement("img");
-      img.src = row.icon || WALLET_GLYPH;
-      img.alt = "";
-      img.width = 28;
-      img.height = 28;
-      img.addEventListener("error", () => { img.src = WALLET_GLYPH; });
-      b.appendChild(img);
-      b.appendChild(document.createTextNode(row.available ? row.name : row.name + " — install"));
-      b.addEventListener("click", () => linkProvider(row));
-      box.appendChild(b);
-    });
+    const on = $("wallet-installed");
+    const off = $("wallet-install");
+    if (!on || !off) return;
+    const { installed, install } = listProviders();
+    on.innerHTML = "";
+    off.innerHTML = "";
+    if (!installed.length) {
+      const p = document.createElement("p");
+      p.className = "empty";
+      p.textContent = isPhone()
+        ? "No wallet in this browser. Open this page inside Phantom, Solflare, Backpack, or Trust — or install one below."
+        : "No Solana wallet in this browser yet. Install one below, then return here.";
+      on.appendChild(p);
+    } else {
+      installed.forEach((row) => on.appendChild(pickerButton(row, "installed")));
+    }
+    install.forEach((row) => off.appendChild(pickerButton(row, "install")));
+    const wrap = $("wallet-install-wrap");
+    if (wrap) wrap.open = installed.length === 0;
   }
   async function connectHandle(row) {
     if (row.standard) {
