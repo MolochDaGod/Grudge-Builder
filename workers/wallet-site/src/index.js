@@ -3,7 +3,7 @@
  */
 import { htmlPage } from "./ui.js";
 
-export const WALLET_BUILD = "2026-09-17-tokens-v1";
+export const WALLET_BUILD = "2026-09-17-swap-v1";
 
 const CORS_ALLOW = [
   "https://wallet.grudge-studio.com",

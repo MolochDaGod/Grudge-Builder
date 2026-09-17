@@ -13,7 +13,7 @@ export function htmlPage(env) {
 <head>
 <meta charset="UTF-8" />
 <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover" />
-<meta name="gruda-build" content="2026-09-17-tokens-v1" />
+<meta name="gruda-build" content="2026-09-17-swap-v1" />
 <title>Gruda Wallet</title>
 <link rel="icon" type="image/png" sizes="32x32" href="/favicon-32.png" />
 <link rel="icon" type="image/png" sizes="192x192" href="/icon-192.png" />
@@ -67,6 +67,8 @@ section{padding:8px 16px 0}
 .chev{width:12px;height:12px;margin-left:6px;opacity:.7;transition:transform .15s ease}
 .tok-acts{display:flex;gap:10px;padding:4px 10px 8px;justify-content:flex-end}
 .tok-acts .tiny{margin:0}
+.swapbox{padding:8px 8px 12px;min-height:420px}
+#jupiter-plugin{width:100%;min-height:400px;border-radius:14px;overflow:hidden;background:#0a0a12}
 .meta{flex:1;min-width:0}
 .meta b,.meta span{display:block;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
 .meta b{font-size:14px}.meta span{font-size:11px;color:var(--muted)}
@@ -320,14 +322,12 @@ section{padding:8px 16px 0}
   </div></div>
   <div class="sheet" id="sheet-swap"><div class="pad"><div class="grab"></div>
     <h3>Swap</h3>
-    <p id="swap-title">SOL</p>
+    <p class="hint">In this wallet. Buy or sell on Jupiter Ultra.</p>
     <div class="chips" id="swap-dirs">
       <button type="button" class="chip on" data-dir="in">In · buy</button>
       <button type="button" class="chip" data-dir="out">Out · sell</button>
     </div>
-    <p class="hint" id="swap-hint">Spend SOL, get the token.</p>
-    <a class="primary btn" id="swap-open" href="https://jup.ag" target="_blank" rel="noopener" style="display:block;text-align:center;text-decoration:none">Open Jupiter</a>
-    <iframe id="swap-frame" title="Jupiter swap" sandbox="allow-scripts allow-same-origin allow-popups allow-forms" style="width:100%;height:360px;border:0;border-radius:14px;margin-top:10px;background:#0a0a12"></iframe>
+    <div class="swapbox"><div id="jupiter-plugin"></div></div>
     <button class="ghost" type="button" data-close>Close</button>
   </div></div>
   <div class="sheet" id="sheet-info"><div class="pad"><div class="grab"></div>
@@ -342,7 +342,7 @@ window.GRUDA = {
   idGw: ${JSON.stringify(idGw)},
   poker: ${JSON.stringify(poker)},
   trader: ${JSON.stringify(trader)},
-  build: "2026-09-17-tokens-v1",
+  build: "2026-09-17-swap-v1",
   art: {
     sol: "/media/sol.png",
     gbux: "/media/gbux.png",
@@ -355,6 +355,7 @@ window.GRUDA = {
   }
 };
 </script>
+<script src="https://plugin.jup.ag/plugin-v1.js" data-preload defer></script>
 <script src="/wallet-app.js" defer></script>
 </body>
 </html>`;

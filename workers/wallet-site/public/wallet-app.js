@@ -859,7 +859,8 @@
         '<div class="meta"><b>' + esc(t.symbol || t.name || "Token") + "</b><span>" + (holds.length > 1 ? holds.length + " wallets" : (holds[0] ? holds[0].label : "Play")) + "</span></div>" +
         '<div class="bal"><b>' + fmtAmt(t.uiAmount) + "</b>" + chev + "</div>" +
       "</button>" +
-      '<div class="drop">' + (drop || "") + '<div class="tok-acts">' + actions + remove + "</div></div>" +
+      '<div class="drop">' + (drop || "") + '<div class="tok-acts">' + actions + remove + "</div>" +
+      '<div class="swapbox" data-swapbox="' + esc(mint) + '" hidden></div></div>' +
       "</article>";
   }
   function bindCoinList() {
@@ -893,22 +894,57 @@
   }
   let swapMint = USDC_MINT;
   let swapDir = "in";
-  function jupPair(mint, dir) {
-    const m = mint === "SOL" ? WSOL : mint;
-    if (mint === "SOL" || mint === WSOL) {
-      return dir === "out" ? "SOL-" + USDC_MINT : USDC_MINT + "-SOL";
+  let jupReady = false;
+  function mintForJup(m) {
+    if (!m || m === "SOL") return WSOL;
+    return m;
+  }
+  function swapForm(mint, dir) {
+    const token = mintForJup(mint);
+    if (dir === "out") {
+      return { initialInputMint: token, initialOutputMint: WSOL };
     }
-    return dir === "out" ? m + "-SOL" : "SOL-" + m;
+    return { initialInputMint: WSOL, initialOutputMint: mint === "SOL" ? USDC_MINT : token };
+  }
+  function parkPlugin() {
+    const plugin = $("jupiter-plugin");
+    const sheetBox = document.querySelector("#sheet-swap .swapbox");
+    if (plugin && sheetBox && plugin.parentElement !== sheetBox) sheetBox.appendChild(plugin);
+    document.querySelectorAll("[data-swapbox]").forEach((el) => { el.hidden = true; });
+  }
+  function initPlugin(form) {
+    if (!window.Jupiter || typeof window.Jupiter.init !== "function") return false;
+    const opts = {
+      displayMode: "integrated",
+      integratedTargetId: "jupiter-plugin",
+      formProps: form,
+      branding: { name: "Gruda", logoUri: location.origin + "/media/play.png" },
+      containerStyles: { width: "100%", minHeight: "420px", borderRadius: "14px", overflow: "hidden" },
+    };
+    try {
+      if (!jupReady) {
+        window.Jupiter.init(opts);
+        jupReady = true;
+      } else if (typeof window.Jupiter.syncProps === "function") {
+        window.Jupiter.syncProps({ formProps: form });
+      } else {
+        window.Jupiter.init(opts);
+      }
+    } catch (e) {
+      try { window.Jupiter.init(opts); jupReady = true; } catch (e2) { return false; }
+    }
+    return true;
+  }
+  function mountSwapIn(box, mint, dir) {
+    const plugin = $("jupiter-plugin");
+    if (!plugin || !box) return;
+    box.hidden = false;
+    box.appendChild(plugin);
+    initPlugin(swapForm(mint, dir));
   }
   function paintSwap() {
-    const href = "https://jup.ag/swap/" + jupPair(swapMint, swapDir);
-    if ($("swap-frame")) $("swap-frame").src = href;
-    if ($("swap-open")) $("swap-open").href = href;
-    const name = (CORE.find((c) => c.mint === swapMint) || {}).symbol || short(swapMint);
-    setText("swap-title", name);
-    setText("swap-hint", swapDir === "out"
-      ? "Sell " + name + " for SOL."
-      : (swapMint === "SOL" ? "Buy SOL with USDC." : "Spend SOL, get " + name + "."));
+    parkPlugin();
+    initPlugin(swapForm(swapMint, swapDir));
     document.querySelectorAll("#swap-dirs [data-dir]").forEach((b) => {
       b.classList.toggle("on", b.dataset.dir === swapDir);
     });
@@ -916,6 +952,17 @@
   function openTokenSwap(mint, dir) {
     swapMint = mint || USDC_MINT;
     swapDir = dir === "out" ? "out" : "in";
+    const card = document.querySelector('.tok[data-mint="' + CSS.escape(swapMint) + '"]');
+    const box = card && card.querySelector("[data-swapbox]");
+    if (card && box) {
+      document.querySelectorAll(".card.tok.on").forEach((c) => { if (c !== card) c.classList.remove("on"); });
+      card.classList.add("on");
+      parkPlugin();
+      mountSwapIn(box, swapMint, swapDir);
+      showSheet(null);
+      card.scrollIntoView({ behavior: "smooth", block: "nearest" });
+      return;
+    }
     paintSwap();
     showSheet("sheet-swap");
   }
@@ -1001,6 +1048,7 @@
     const sol = byMint.SOL ? byMint.SOL.uiAmount : 0;
     setText("fig-sol", Number(sol).toFixed(4));
     setText("tok-sol", Number(sol).toFixed(4));
+    parkPlugin();
     box.innerHTML = rows.length ? rows.map(tokenRow).join("") : '<p class="empty">No tokens on these wallets yet.</p>';
     bindCoinList();
     const home = $("home-tokens");
@@ -1230,7 +1278,12 @@
     document.querySelectorAll(".sheet").forEach((s) => { s.addEventListener("click", (e) => { if (e.target === s) showSheet(null); }); });
     if ($("act-recv")) $("act-recv").onclick = () => showSheet("sheet-recv");
     if ($("act-send")) $("act-send").onclick = () => showSheet("sheet-send");
-    if ($("act-swap")) $("act-swap").onclick = () => openTokenSwap(USDC_MINT, "in");
+    if ($("act-swap")) $("act-swap").onclick = () => {
+      swapMint = USDC_MINT;
+      swapDir = "in";
+      paintSwap();
+      showSheet("sheet-swap");
+    };
     if ($("act-connect")) $("act-connect").onclick = () => showSheet("sheet-connect");
     if ($("act-add")) $("act-add").onclick = () => showSheet("sheet-connect");
     if ($("btn-login")) $("btn-login").href = loginHref();
@@ -1238,7 +1291,12 @@
     if ($("set-logout")) $("set-logout").onclick = signOut;
     if ($("set-copy-gid")) $("set-copy-gid").onclick = () => copyAddr("gid");
     document.querySelectorAll("#swap-dirs [data-dir]").forEach((b) => {
-      b.onclick = () => { swapDir = b.dataset.dir === "out" ? "out" : "in"; paintSwap(); };
+      b.onclick = () => {
+        swapDir = b.dataset.dir === "out" ? "out" : "in";
+        const sheet = $("sheet-swap");
+        if (sheet && sheet.classList.contains("on")) paintSwap();
+        else openTokenSwap(swapMint, swapDir);
+      };
     });
     document.querySelectorAll("[data-copy]").forEach((b) => {
       b.onclick = () => copyAddr(b.dataset.copy);
