@@ -13,7 +13,10 @@ export function htmlPage(env) {
 <head>
 <meta charset="UTF-8" />
 <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover" />
-<meta name="gruda-build" content="2026-09-17-gbux-coin" />
+<meta name="gruda-build" content="2026-09-18-download" />
+<meta name="apple-mobile-web-app-capable" content="yes" />
+<meta name="apple-mobile-web-app-title" content="Gruda Wallet" />
+<meta name="mobile-web-app-capable" content="yes" />
 <title>Gruda Wallet</title>
 <link rel="icon" type="image/png" sizes="32x32" href="/favicon-32.png" />
 <link rel="icon" type="image/png" sizes="192x192" href="/icon-192.png" />
@@ -187,6 +190,7 @@ section{padding:8px 16px 0}
       </div>
     </div>
     <a class="ico" id="btn-login" href="${login}" title="Grudge ID">ID</a>
+    <a class="ico" id="btn-download" href="/download" title="Install">↓</a>
     <button class="ico" type="button" id="btn-logout" title="Sign out" hidden>✕</button>
   </header>
   <div class="hero">
@@ -288,6 +292,10 @@ section{padding:8px 16px 0}
     <div class="row"><div class="av"><img src="/media/sol.png" alt=""></div><div class="meta"><b>Linked</b><button type="button" class="copychip" data-copy="w1" id="set-w1">None</button></div></div>
     <div class="row"><div class="av"><img src="/media/sol.png" alt=""></div><div class="meta"><b>Trader</b><button type="button" class="copychip" data-copy="vault" id="set-vault">Not enabled</button></div></div>
     <button class="ghost" type="button" id="set-refresh">Refresh</button>
+    <div class="hrow"><h2>Install</h2></div>
+    <p class="hint">Put Gruda Wallet on this phone or PC. Same Play address.</p>
+    <button class="primary" type="button" id="btn-install-app">Install app</button>
+    <a class="ghost btn" href="/download" style="display:block;text-align:center;text-decoration:none;margin-top:8px">Download for Windows</a>
     <button class="ghost" type="button" id="set-logout">Sign out</button>
   </section></div>
   <nav class="dock">
@@ -359,7 +367,7 @@ window.GRUDA = {
   idGw: ${JSON.stringify(idGw)},
   poker: ${JSON.stringify(poker)},
   trader: ${JSON.stringify(trader)},
-  build: "2026-09-17-gbux-coin",
+  build: "2026-09-18-download",
   art: {
     sol: "/media/sol.png",
     gbux: "/media/gbux.png",
@@ -373,6 +381,49 @@ window.GRUDA = {
 };
 </script>
 <script src="/wallet-app.js" defer></script>
+</body>
+</html>`;
+}
+
+export function downloadPage() {
+  return `<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8" />
+<meta name="viewport" content="width=device-width, initial-scale=1" />
+<title>Install Gruda Wallet</title>
+<link rel="icon" type="image/png" href="/favicon-32.png" />
+<link rel="manifest" href="/manifest.webmanifest" />
+<style>
+body{margin:0;min-height:100vh;background:#07070b;color:#f5f5f7;font-family:system-ui,sans-serif;display:flex;justify-content:center}
+.wrap{width:100%;max-width:420px;padding:28px 20px}
+img.logo{width:72px;height:72px;border-radius:18px}
+h1{font-size:22px;margin:16px 0 8px}
+p{color:#8b8b96;line-height:1.45}
+a.btn,button.btn{display:block;text-align:center;text-decoration:none;border:0;border-radius:14px;padding:14px;margin:10px 0;font:inherit;font-weight:700;cursor:pointer;color:#1a1405;background:linear-gradient(180deg,#e8d07a,#b8922a)}
+a.ghost{display:block;text-align:center;color:#e0c36a;margin-top:16px}
+</style>
+</head>
+<body>
+<div class="wrap">
+  <img class="logo" src="/icon-192.png" alt="Gruda Wallet" />
+  <h1>Install Gruda Wallet</h1>
+  <p>Same Grudge ID, Play address, and coins as the site. Phone installs as an app. Windows pins an Edge window.</p>
+  <button class="btn" type="button" id="install">Install on this device</button>
+  <a class="btn" href="/desktop/Install-GrudaWallet.ps1" download>Windows installer</a>
+  <a class="btn" href="/desktop/GrudaWallet.bat" download>Windows shortcut (.bat)</a>
+  <p>iPhone: Share → Add to Home Screen. Android / Chrome: Install app.</p>
+  <a class="ghost" href="/">Open wallet</a>
+</div>
+<script>
+let deferred;
+window.addEventListener("beforeinstallprompt", (e) => { e.preventDefault(); deferred = e; });
+document.getElementById("install").onclick = async () => {
+  if (deferred) { deferred.prompt(); await deferred.userChoice; deferred = null; return; }
+  alert("On iPhone use Share → Add to Home Screen. On Windows use the installer below.");
+};
+if ("serviceWorker" in navigator) navigator.serviceWorker.register("/sw.js");
+</script>
 </body>
 </html>`;
 }

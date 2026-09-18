@@ -1,10 +1,10 @@
 /**
  * grudge-wallet-site — production edge for wallet.grudge-studio.com
  */
-import { htmlPage } from "./ui.js";
+import { htmlPage, downloadPage } from "./ui.js";
 import { parseSwap, parseExecute, parseMint } from "./swap-validate.js";
 
-export const WALLET_BUILD = "2026-09-17-gbux-coin";
+export const WALLET_BUILD = "2026-09-18-download";
 
 const CORS_ALLOW = [
   "https://wallet.grudge-studio.com",
@@ -126,6 +126,8 @@ export default {
             "dapps-catalog",
             "auth-callback",
             "pwa-install",
+            "windows-download",
+            "gbux-circulating",
           ],
         },
         200,
@@ -177,16 +179,33 @@ export default {
       return Response.redirect(loc, 302);
     }
 
+    if (url.pathname === "/download" || url.pathname === "/download/") {
+      return new Response(downloadPage(), {
+        status: 200,
+        headers: {
+          "Content-Type": "text/html; charset=utf-8",
+          "Cache-Control": "no-store",
+          "X-Grudge-Wallet-Build": WALLET_BUILD,
+          ...cors,
+        },
+      });
+    }
+
     if (url.pathname === "/manifest.webmanifest" || url.pathname === "/manifest.json") {
       return new Response(
         JSON.stringify({
           name: "Gruda Wallet",
           short_name: "Gruda Wallet",
+          description: "Grudge ID Play wallet on Solana",
           start_url: "/",
           scope: "/",
           display: "standalone",
+          display_override: ["standalone", "minimal-ui"],
+          orientation: "portrait-primary",
           background_color: "#07070c",
           theme_color: "#e0c36a",
+          id: "https://wallet.grudge-studio.com/",
+          categories: ["finance", "utilities"],
           icons: [
             { src: "/favicon-32.png", sizes: "32x32", type: "image/png", purpose: "any" },
             { src: "/icon-192.png", sizes: "192x192", type: "image/png", purpose: "any" },
@@ -206,7 +225,15 @@ export default {
     }
 
     if (url.pathname === "/sw.js") {
-      const sw = `self.addEventListener('install',(e)=>{self.skipWaiting();});self.addEventListener('activate',(e)=>{e.waitUntil(self.clients.claim());});self.addEventListener('fetch',(e)=>{const u=new URL(e.request.url);if(u.pathname.startsWith('/api/')||u.pathname==='/'||u.pathname==='/wallet-app.js')return;});`;
+      const sw = `const C='gruda-wallet-2026-09-18';
+const SHELL=['/','/wallet-app.js','/manifest.webmanifest','/icon-192.png','/icon-512.png','/favicon-32.png','/download'];
+self.addEventListener('install',e=>{e.waitUntil(caches.open(C).then(c=>c.addAll(SHELL)).then(()=>self.skipWaiting()));});
+self.addEventListener('activate',e=>{e.waitUntil(caches.keys().then(ks=>Promise.all(ks.filter(k=>k!==C).map(k=>caches.delete(k)))).then(()=>self.clients.claim()));});
+self.addEventListener('fetch',e=>{
+  const u=new URL(e.request.url);
+  if(e.request.method!=='GET'||u.origin!==self.location.origin||u.pathname.startsWith('/api/'))return;
+  e.respondWith(fetch(e.request).then(r=>{if(r.ok){const x=r.clone();caches.open(C).then(c=>c.put(e.request,x));}return r;}).catch(()=>caches.match(e.request).then(h=>h||caches.match('/'))));
+});`;
       return new Response(sw, {
         status: 200,
         headers: { "Content-Type": "text/javascript; charset=utf-8", "Cache-Control": "no-store", ...cors },

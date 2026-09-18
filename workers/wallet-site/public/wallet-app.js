@@ -1680,6 +1680,26 @@
     renderPicker();
     loadDapps();
     refresh();
+    if ("serviceWorker" in navigator && (location.protocol === "https:" || location.hostname === "localhost")) {
+      navigator.serviceWorker.register("/sw.js").catch(() => {});
+    }
+    let deferredInstall = null;
+    window.addEventListener("beforeinstallprompt", (e) => {
+      e.preventDefault();
+      deferredInstall = e;
+      if ($("btn-install-app")) $("btn-install-app").textContent = "Install app";
+    });
+    if ($("btn-install-app")) {
+      $("btn-install-app").onclick = async () => {
+        if (deferredInstall) {
+          deferredInstall.prompt();
+          await deferredInstall.userChoice;
+          deferredInstall = null;
+          return;
+        }
+        location.href = "/download";
+      };
+    }
   }
   captureAuthFromUrl();
   if (document.readyState === "loading") document.addEventListener("DOMContentLoaded", bind);
