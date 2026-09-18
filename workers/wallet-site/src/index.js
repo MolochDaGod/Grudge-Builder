@@ -213,6 +213,46 @@ export default {
       });
     }
 
+    if (url.pathname === "/api/gbux/circulating" || url.pathname === "/api/gbux/supply") {
+      try {
+        const rpc = env.SOLANA_RPC_URL || "https://api.mainnet-beta.solana.com";
+        const mint = "55TpSoMNxbfsNJ9U1dQoo9H3dRtDmjBZVMcKqvU2nray";
+        const r = await fetch(rpc, {
+          method: "POST",
+          headers: { "content-type": "application/json" },
+          body: JSON.stringify({ jsonrpc: "2.0", id: "gbux", method: "getTokenSupply", params: [mint] }),
+        });
+        const j = await r.json();
+        const v = j && j.result && j.result.value;
+        if (!v || v.amount == null) return json({ error: "getTokenSupply failed" }, 502, cors);
+        const ui = v.uiAmountString || String(v.uiAmount || "");
+        if (url.pathname === "/api/gbux/circulating") {
+          return new Response(ui, {
+            status: 200,
+            headers: { "Content-Type": "text/plain; charset=utf-8", "Cache-Control": "public, max-age=30", ...cors },
+          });
+        }
+        return json(
+          {
+            ok: true,
+            mint,
+            decimals: v.decimals,
+            amount: String(v.amount),
+            circulating: Number(ui),
+            circulatingString: ui,
+            total: Number(ui),
+            totalString: ui,
+            source: "solana-getTokenSupply",
+            at: new Date().toISOString(),
+          },
+          200,
+          cors,
+        );
+      } catch (err) {
+        return json({ error: "supply unavailable" }, 502, cors);
+      }
+    }
+
     if (url.pathname === "/api/token/dex" && request.method === "GET") {
       const mint = (url.searchParams.get("mint") || "").trim();
       const mints = (url.searchParams.get("mints") || "").split(",").map((s) => s.trim()).filter(Boolean);

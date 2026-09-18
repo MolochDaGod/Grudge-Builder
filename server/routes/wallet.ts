@@ -21,6 +21,7 @@ import { WALLET_PURCHASE_CURRENCIES } from "@shared/schema";
 import { registerWalletInventoryRoutes } from "./walletInventoryRoutes";
 import { swapPlayWallet, jupiterOrder } from "../services/walletSwap";
 import { parseSwap, isSolAddress } from "../services/swapValidate";
+import { getGbuxSupply } from "../services/gbuxSolana";
 
 /** Prefer SESSION_SECRET (auth.ts) then JWT_SECRET / GRUDGE_JWT_SECRET — use first non-empty candidate only. */
 const JWT_SECRET_CANDIDATES = [
@@ -77,6 +78,27 @@ async function requireAccount(req: Request, res: Response) {
 }
 
 export function registerWalletRoutes(app: Express): void {
+  app.get("/api/gbux/circulating", async (_req, res) => {
+    try {
+      const s = await getGbuxSupply();
+      res.setHeader("Cache-Control", "public, max-age=30");
+      res.setHeader("Access-Control-Allow-Origin", "*");
+      res.type("text/plain").send(s.circulatingString);
+    } catch (e: any) {
+      res.status(502).json({ error: e.message || "supply unavailable" });
+    }
+  });
+  app.get("/api/gbux/supply", async (_req, res) => {
+    try {
+      const s = await getGbuxSupply();
+      res.setHeader("Cache-Control", "public, max-age=30");
+      res.setHeader("Access-Control-Allow-Origin", "*");
+      res.json({ ok: true, ...s });
+    } catch (e: any) {
+      res.status(502).json({ error: e.message || "supply unavailable" });
+    }
+  });
+
   app.get("/api/wallet/overview", requireAuth, async (req, res) => {
     try {
       const account = await requireAccount(req, res);
