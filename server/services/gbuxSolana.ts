@@ -151,36 +151,51 @@ let supplyCache: {
 export async function getGbuxSupply() {
   const now = Date.now();
   if (supplyCache && now - supplyCache.at < 30_000) return supplyCache.data;
-  const rpc = process.env.SOLANA_RPC_URL || "https://api.mainnet-beta.solana.com";
-  const r = await fetch(rpc, {
-    method: "POST",
-    headers: { "content-type": "application/json" },
-    body: JSON.stringify({
-      jsonrpc: "2.0",
-      id: "gbux-supply",
-      method: "getTokenSupply",
-      params: [GBUX_MINT_ADDRESS],
-    }),
-  });
-  const j = (await r.json()) as {
-    result?: { value?: { amount?: string; decimals?: number; uiAmount?: number; uiAmountString?: string } };
-    error?: { message?: string };
-  };
-  const v = j.result?.value;
-  if (!v || v.amount == null) throw new Error(j.error?.message || "getTokenSupply failed");
-  const ui = v.uiAmountString || String(v.uiAmount ?? "");
-  const n = Number(ui);
-  const data = {
-    mint: GBUX_MINT_ADDRESS,
-    decimals: Number(v.decimals ?? GBUX_DECIMALS),
-    amount: String(v.amount),
-    circulating: n,
-    circulatingString: ui,
-    total: n,
-    totalString: ui,
-    source: "solana-getTokenSupply",
-    at: new Date().toISOString(),
-  };
-  supplyCache = { at: now, data };
-  return data;
+  const rpcs = [process.env.SOLANA_RPC_URL, "https://api.mainnet-beta.solana.com"].filter(Boolean);
+  let last = "getTokenSupply failed";
+  for (const rpc of [...new Set(rpcs)]) {
+    try {
+      const r = await fetch(rpc, {
+        method: "POST",
+        headers: { "content-type": "application/json" },
+        body: JSON.stringify({
+          jsonrpc: "2.0",
+          id: "gbux-supply",
+          method: "getTokenSupply",
+          params: [GBUX_MINT_ADDRESS],
+        }),
+      });
+      const text = await r.text();
+      let j: any;
+      try {
+        j = JSON.parse(text);
+      } catch {
+        last = text.slice(0, 80);
+        continue;
+      }
+      const v = j.result?.value;
+      if (!v || v.amount == null) {
+        last = j.error?.message || last;
+        continue;
+      }
+      const ui = v.uiAmountString || String(v.uiAmount ?? "");
+      const n = Number(ui);
+      const data = {
+        mint: GBUX_MINT_ADDRESS,
+        decimals: Number(v.decimals ?? GBUX_DECIMALS),
+        amount: String(v.amount),
+        circulating: n,
+        circulatingString: ui,
+        total: n,
+        totalString: ui,
+        source: "solana-getTokenSupply",
+        at: new Date().toISOString(),
+      };
+      supplyCache = { at: now, data };
+      return data;
+    } catch (e: any) {
+      last = e.message || String(e);
+    }
+  }
+  throw new Error(last);
 }
