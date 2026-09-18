@@ -622,10 +622,8 @@
       if (d.token || d.sessionToken) storeFleetToken(d.token || d.sessionToken, d);
       setText("name", d.username || d.displayName || "Signed in");
       setText("gid", d.grudgeId || d.id || "Grudge ID");
-      const bag = d.gbuxBalance != null ? d.gbuxBalance : "0";
-      playBagGbux = Number(bag) || 0;
-      setText("gbux", bag);
-      setText("tok-gbux", bag);
+      playBagGbux = Number(d.gbuxBalance != null ? d.gbuxBalance : 0) || 0;
+      if ($("play")) setText("play", playBagGbux);
     } catch (e) { toast(e.message || String(e), false); }
     try {
       const ov = await api("/api/wallet/overview");
@@ -833,7 +831,21 @@
         const info = a.account && a.account.data && a.account.data.parsed && a.account.data.parsed.info;
         if (!info || !info.mint) continue;
         const tok = info.tokenAmount || {};
-        bag.tokens[info.mint] = Number(tok.uiAmount || 0);
+        bag.tokens[info.mint] = (bag.tokens[info.mint] || 0) + Number(tok.uiAmount || 0);
+      }
+    } catch (e) {}
+    try {
+      const parsed22 = await rpc("getTokenAccountsByOwner", [
+        address,
+        { programId: "TokenzQdBNbLqP5VEhdkAS6EPFLC1PHnBqCXEpPxuEb" },
+        { encoding: "jsonParsed" },
+      ]);
+      const accs22 = (parsed22 && parsed22.value) || [];
+      for (const a of accs22) {
+        const info = a.account && a.account.data && a.account.data.parsed && a.account.data.parsed.info;
+        if (!info || !info.mint) continue;
+        const tok = info.tokenAmount || {};
+        bag.tokens[info.mint] = (bag.tokens[info.mint] || 0) + Number(tok.uiAmount || 0);
       }
     } catch (e) {}
     return bag;
@@ -850,9 +862,11 @@
     ).join("");
     const chev = holds.length > 1 ? '<svg class="chev" viewBox="0 0 12 12"><path d="M2 4l4 4 4-4" fill="none" stroke="currentColor" stroke-width="1.6"/></svg>' : "";
     const remove = t.watched && !t.core ? '<button type="button" class="tiny" data-unwatch="' + esc(mint) + '">Remove</button>' : "";
-    const actions = '<button type="button" class="tiny" data-info="' + esc(mint) + '">Open</button>' +
-      '<button type="button" class="tiny" data-swap="' + esc(mint) + '" data-dir="in">In</button>' +
-      '<button type="button" class="tiny" data-swap="' + esc(mint) + '" data-dir="out">Out</button>';
+    const swapBtns = t.bag || mint === "BUDZ"
+      ? ""
+      : '<button type="button" class="tiny" data-swap="' + esc(mint) + '" data-dir="in">In</button>' +
+        '<button type="button" class="tiny" data-swap="' + esc(mint) + '" data-dir="out">Out</button>';
+    const actions = '<button type="button" class="tiny" data-info="' + esc(mint) + '">Open</button>' + swapBtns;
     return '<article class="card tok" data-mint="' + esc(mint) + '">' +
       '<button type="button" class="card-hit" data-open="' + esc(mint) + '">' +
         avImg(logo) +
@@ -1146,9 +1160,12 @@
       out.push({ href: TRADER, name: "Auto-trader", blurb: "Fund the vault with SOL" });
     }
     if (mint === GBUX_MINT) {
-      out.push({ href: POKER + "/lobby", name: "BUDB Poker", blurb: "Sit with bag GBUX" });
-      out.push({ href: POKER + "/wallet", name: "Poker wallet", blurb: "Move GBUX onto the felt" });
-      out.push({ href: TRADER, name: "Trader fee", blurb: "Desk fee is GBUX" });
+      out.push({ href: TRADER, name: "Trader", blurb: "Desk fee is on-chain GBUX" });
+      out.push({ href: "#swap", name: "Swap", blurb: "Buy or sell GBUX in this wallet" });
+    }
+    if (mint === "BUDZ") {
+      out.push({ href: POKER + "/lobby", name: "BUDB Poker", blurb: "Play GBUX on the felt" });
+      out.push({ href: POKER + "/wallet", name: "Poker wallet", blurb: "Play bag, not the mint" });
     }
     if (mint === THC_MINT) {
       out.push({ href: POKER + "/lobby", name: "THC Labz play", blurb: "Same Grudge ID · Budz bag" });
@@ -1320,7 +1337,7 @@
         const gbux = mint === GBUX_MINT;
         const thc = mint === THC_MINT;
         const usdc = mint === USDC_MINT;
-        addHold(mint, gbux ? "GBUX" : thc ? "THC" : usdc ? "USDC" : "", gbux ? "GBUX" : thc ? "THC Labz" : usdc ? "USD Coin" : "", tokenLogo(mint), amt, owner, gbux ? { feeOnly: true } : { core: gbux || thc || usdc });
+        addHold(mint, gbux ? "GBUX" : thc ? "THC" : usdc ? "USDC" : "", gbux ? "GBUX" : thc ? "THC Labz" : usdc ? "USD Coin" : "", tokenLogo(mint), amt, owner, { core: gbux || thc || usdc });
       });
     });
     watch.forEach((m) => {
@@ -1336,13 +1353,16 @@
       }
     });
     if (playBagGbux) {
-      addHold(GBUX_MINT, "GBUX", "GBUX", ART.gbux, Number(playBagGbux) || 0, { label: "Budz play", address: playWallet || "play-bag" }, { bag: playBagGbux });
+      addHold("BUDZ", "Budz", "Play GBUX", ART.play, Number(playBagGbux) || 0, { label: "Play bag", address: playWallet || "play-bag" }, { bag: true, core: true });
     }
     const rows = Object.keys(byMint).map((k) => byMint[k]).sort((a, b) => Number(b.uiAmount) - Number(a.uiAmount));
     window.__coinRows = byMint;
     const sol = byMint.SOL ? byMint.SOL.uiAmount : 0;
+    const chainGbux = byMint[GBUX_MINT] ? byMint[GBUX_MINT].uiAmount : 0;
     setText("fig-sol", Number(sol).toFixed(4));
     setText("tok-sol", Number(sol).toFixed(4));
+    setText("tok-gbux", fmtAmt(chainGbux));
+    if ($("gbux")) setText("gbux", fmtAmt(chainGbux));
     box.innerHTML = rows.length ? rows.map(tokenRow).join("") : '<p class="empty">No tokens on these wallets yet.</p>';
     bindCoinList();
     const home = $("home-tokens");
@@ -1368,7 +1388,12 @@
     note(msg, "Searching Jupiter…");
     try {
       const meta = await lookupToken(q);
-      if (meta.mint === GBUX_MINT) { note(msg, "GBUX is already on your bag — fee / play, not a watch token.", false); return; }
+      if (meta.mint === GBUX_MINT) {
+        pendingToken = meta;
+        if (fromSheet) renderTokenPreview(meta);
+        note(msg, "GBUX is already on Coins — on-chain mint.", true);
+        return;
+      }
       if (fromSheet) {
         renderSuggest("token-suggest", [], null);
         renderTokenPreview(meta);
