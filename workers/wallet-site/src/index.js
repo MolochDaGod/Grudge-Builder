@@ -2,6 +2,7 @@
  * grudge-wallet-site — production edge for wallet.grudge-studio.com
  */
 import { htmlPage } from "./ui.js";
+import { parseSwap, parseExecute, parseMint } from "./swap-validate.js";
 
 export const WALLET_BUILD = "2026-09-17-gbux-coin";
 
@@ -215,7 +216,7 @@ export default {
     if (url.pathname === "/api/token/dex" && request.method === "GET") {
       const mint = (url.searchParams.get("mint") || "").trim();
       const mints = (url.searchParams.get("mints") || "").split(",").map((s) => s.trim()).filter(Boolean);
-      const list = mints.length ? mints.slice(0, 30) : (mint ? [mint] : []);
+      const list = (mints.length ? mints : (mint ? [mint] : [])).slice(0, 30).filter((m) => parseMint(m).ok);
       if (!list.length) return json({ error: "mint required" }, 400, cors);
       try {
         const DS = "https://api.dexscreener.com";
@@ -247,12 +248,20 @@ export default {
       try {
         if (url.pathname === "/api/swap/quote" && request.method === "GET") {
           const q = url.searchParams;
-          const orderUrl = `${jup}/order?${new URLSearchParams({
+          const parsed = parseSwap({
             inputMint: q.get("inputMint") || "",
             outputMint: q.get("outputMint") || "",
             amount: q.get("amount") || "",
             slippageBps: q.get("slippageBps") || "100",
-            ...(q.get("taker") ? { taker: q.get("taker") } : {}),
+            taker: q.get("taker") || "",
+          });
+          if (!parsed.ok) return json({ ok: false, error: parsed.error }, 400, cors);
+          const orderUrl = `${jup}/order?${new URLSearchParams({
+            inputMint: parsed.inputMint,
+            outputMint: parsed.outputMint,
+            amount: parsed.amount,
+            slippageBps: String(parsed.slippageBps),
+            ...(parsed.taker ? { taker: parsed.taker } : {}),
           })}`;
           const r = await fetch(orderUrl, { headers: jh });
           const body = await r.json().catch(() => ({}));
@@ -273,12 +282,14 @@ export default {
         }
         if (url.pathname === "/api/swap/execute" && request.method === "POST") {
           const payload = await request.json().catch(() => ({}));
+          const parsed = parseExecute(payload);
+          if (!parsed.ok) return json({ ok: false, error: parsed.error }, 400, cors);
           const r = await fetch(`${jup}/execute`, {
             method: "POST",
             headers: { ...jh, "content-type": "application/json" },
             body: JSON.stringify({
-              signedTransaction: payload.signedTransaction,
-              requestId: payload.requestId,
+              signedTransaction: parsed.signedTransaction,
+              requestId: parsed.requestId,
             }),
           });
           const body = await r.json().catch(() => ({}));

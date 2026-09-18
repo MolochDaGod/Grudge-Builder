@@ -20,6 +20,7 @@ import type { LinkedWalletProvider, WalletPurchaseCurrency } from "@shared/schem
 import { WALLET_PURCHASE_CURRENCIES } from "@shared/schema";
 import { registerWalletInventoryRoutes } from "./walletInventoryRoutes";
 import { swapPlayWallet, jupiterOrder } from "../services/walletSwap";
+import { parseSwap, isSolAddress } from "../services/swapValidate";
 
 /** Prefer SESSION_SECRET (auth.ts) then JWT_SECRET / GRUDGE_JWT_SECRET — use first non-empty candidate only. */
 const JWT_SECRET_CANDIDATES = [
@@ -410,7 +411,7 @@ export function registerWalletRoutes(app: Express): void {
           process.env.AI_AGENT_WALLET ||
           "6P7Pp5eHzPAVjnbNLkW8DzAuuc7gj9Sm5XiprwnjzvRs",
       ).trim();
-      if (to.length < 32) {
+      if (!isSolAddress(to)) {
         return res.status(400).json({ error: "recipient required" });
       }
 
@@ -493,24 +494,23 @@ export function registerWalletRoutes(app: Express): void {
 
   app.post("/api/wallet/swap/quote", requireAuth, async (req, res) => {
     try {
-      const { inputMint, outputMint, amount, taker, slippageBps } = req.body as {
-        inputMint?: string;
-        outputMint?: string;
-        amount?: string | number;
-        taker?: string;
-        slippageBps?: number;
-      };
-      const amt = String(amount || "").split(".")[0];
-      if (!inputMint || !outputMint || !/^[1-9]\d*$/.test(amt)) {
-        return res.status(400).json({ error: "inputMint, outputMint, amount required" });
+      const account = await requireAccount(req, res);
+      if (!account) return;
+      const parsed = parseSwap(req.body || {});
+      if (!parsed.ok) return res.status(400).json({ error: parsed.error });
+      const play = String((account as { walletAddress?: string }).walletAddress || "").trim();
+      if (parsed.taker) {
+        const linked = await listLinkedWallets(account.id);
+        const mine = new Set(
+          [play, ...linked.map((w) => String(w.walletAddress || ""))]
+            .map((a) => a.trim())
+            .filter(Boolean),
+        );
+        if (!mine.has(parsed.taker)) {
+          return res.status(403).json({ error: "taker is not one of your wallets" });
+        }
       }
-      const order = await jupiterOrder({
-        inputMint,
-        outputMint,
-        amount: amt,
-        taker,
-        slippageBps,
-      });
+      const order = await jupiterOrder(parsed);
       if (!order.ok) {
         return res.status(order.status || 400).json({
           error: order.body?.errorMessage || order.body?.error || "No route",
@@ -536,23 +536,15 @@ export function registerWalletRoutes(app: Express): void {
       const account = await requireAccount(req, res);
       if (!account) return;
       const play = String((account as { walletAddress?: string }).walletAddress || "").trim();
-      if (!play) return res.status(400).json({ error: "No Play wallet on this Grudge ID" });
-      const { inputMint, outputMint, amount, slippageBps } = req.body as {
-        inputMint?: string;
-        outputMint?: string;
-        amount?: string | number;
-        slippageBps?: number;
-      };
-      const amt = String(amount || "").split(".")[0];
-      if (!inputMint || !outputMint || !/^[1-9]\d*$/.test(amt)) {
-        return res.status(400).json({ error: "inputMint, outputMint, amount required" });
-      }
+      if (!play || !isSolAddress(play)) return res.status(400).json({ error: "No Play wallet on this Grudge ID" });
+      const parsed = parseSwap({ ...(req.body || {}), taker: play });
+      if (!parsed.ok) return res.status(400).json({ error: parsed.error });
       const result = await swapPlayWallet({
         playAddress: play,
-        inputMint,
-        outputMint,
-        amount: amt,
-        slippageBps,
+        inputMint: parsed.inputMint,
+        outputMint: parsed.outputMint,
+        amount: parsed.amount,
+        slippageBps: parsed.slippageBps,
       });
       if (!result.ok) return res.status(400).json(result);
       res.json({ success: true, ...result });

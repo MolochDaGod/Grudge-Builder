@@ -1,6 +1,6 @@
 import { crossmintWalletService } from "./crossmintWallet";
+import { parseSwap, jupMint as toJupMint } from "./swapValidate";
 
-const WSOL = "So11111111111111111111111111111111111111112";
 const JUP = (process.env.JUPITER_SWAP_URL || "https://lite-api.jup.ag/swap/v2").replace(/\/$/, "");
 
 function jupHeaders() {
@@ -11,9 +11,7 @@ function jupHeaders() {
 }
 
 export function jupMint(mint: string) {
-  const m = String(mint || "");
-  if (!m || m === "SOL") return WSOL;
-  return m;
+  return toJupMint(mint);
 }
 
 export async function jupiterOrder(opts: {
@@ -23,13 +21,15 @@ export async function jupiterOrder(opts: {
   taker?: string;
   slippageBps?: number;
 }) {
+  const parsed = parseSwap(opts);
+  if (!parsed.ok) return { ok: false, status: 400, body: { error: parsed.error } };
   const q = new URLSearchParams({
-    inputMint: jupMint(opts.inputMint),
-    outputMint: jupMint(opts.outputMint),
-    amount: String(opts.amount),
-    slippageBps: String(opts.slippageBps || 100),
+    inputMint: parsed.inputMint,
+    outputMint: parsed.outputMint,
+    amount: parsed.amount,
+    slippageBps: String(parsed.slippageBps),
   });
-  if (opts.taker) q.set("taker", opts.taker);
+  if (parsed.taker) q.set("taker", parsed.taker);
   const r = await fetch(`${JUP}/order?${q}`, { headers: jupHeaders() });
   const body = await r.json().catch(() => ({}));
   return { ok: r.ok && Boolean(body.outAmount), status: r.status, body };
@@ -52,13 +52,9 @@ export async function swapPlayWallet(opts: {
   amount: string;
   slippageBps?: number;
 }) {
-  const order = await jupiterOrder({
-    inputMint: opts.inputMint,
-    outputMint: opts.outputMint,
-    amount: opts.amount,
-    taker: opts.playAddress,
-    slippageBps: opts.slippageBps,
-  });
+  const parsed = parseSwap({ ...opts, taker: opts.playAddress });
+  if (!parsed.ok) return { ok: false, error: parsed.error };
+  const order = await jupiterOrder(parsed);
   const tx = order.body?.transaction;
   if (!order.ok || !tx) {
     return {
