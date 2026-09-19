@@ -78,6 +78,42 @@ async function requireAccount(req: Request, res: Response) {
 }
 
 export function registerWalletRoutes(app: Express): void {
+  app.post("/api/solana/rpc", async (req, res) => {
+    const method = String((req.body && req.body.method) || "");
+    const params = (req.body && req.body.params) || [];
+    const allow = new Set([
+      "getBalance",
+      "getTokenAccountsByOwner",
+      "getTokenAccountBalance",
+      "getAccountInfo",
+      "getMultipleAccounts",
+      "getTokenSupply",
+    ]);
+    if (!allow.has(method)) return res.status(403).json({ error: "method not allowed" });
+    const rpcs = [process.env.SOLANA_RPC_URL, "https://api.mainnet-beta.solana.com"].filter(Boolean);
+    let last = "rpc failed";
+    for (const rpc of [...new Set(rpcs)]) {
+      try {
+        const r = await fetch(rpc as string, {
+          method: "POST",
+          headers: { "content-type": "application/json" },
+          body: JSON.stringify({ jsonrpc: "2.0", id: req.body?.id || "gruda", method, params }),
+        });
+        const text = await r.text();
+        try {
+          JSON.parse(text);
+        } catch {
+          last = text.slice(0, 80);
+          continue;
+        }
+        return res.status(200).type("application/json").send(text);
+      } catch (e: any) {
+        last = e.message || String(e);
+      }
+    }
+    res.status(502).json({ error: last });
+  });
+
   app.get("/api/gbux/circulating", async (_req, res) => {
     try {
       const s = await getGbuxSupply();

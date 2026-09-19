@@ -97,6 +97,9 @@
   let walletType = "";
   let playWallet = "";
   let playBagGbux = 0;
+  let coinInFlight = null;
+  const bagCache = Object.create(null);
+  const BAG_TTL = 12000;
   let addrs = { gid: "", play: "", w1: "", vault: "" };
   let coinOwner = "all";
   let dappCat = "all";
@@ -622,8 +625,7 @@
       if (d.token || d.sessionToken) storeFleetToken(d.token || d.sessionToken, d);
       setText("name", d.username || d.displayName || "Signed in");
       setText("gid", d.grudgeId || d.id || "Grudge ID");
-      playBagGbux = Number(d.gbuxBalance != null ? d.gbuxBalance : 0) || 0;
-      if ($("play")) setText("play", playBagGbux);
+      if (d.gbuxBalance != null) playBagGbux = Number(d.gbuxBalance) || 0;
     } catch (e) { toast(e.message || String(e), false); }
     try {
       const ov = await api("/api/wallet/overview");
@@ -631,6 +633,7 @@
       linkedCache = o.linkedWallets || [];
       walletType = o.walletType || "crossmint";
       playWallet = o.primaryWallet || o.custodialWallet || o.walletAddress || "";
+      if (o.playGbux != null) playBagGbux = Number(o.playGbux) || 0;
       if (!playWallet) {
         try {
           const st = await api("/api/wallet/status");
@@ -641,8 +644,8 @@
         } catch (e2) {}
       }
       renderLinked(linkedCache, playWallet);
-      if ($("play") && o.playGbux != null) setText("play", o.playGbux);
     } catch (e) {}
+    if ($("play")) setText("play", playBagGbux);
     try {
       const h = await traderApi("/api/gruda/holdings");
       const d = h.data || {};
@@ -816,6 +819,8 @@
   async function rpcBag(address) {
     const bag = { sol: 0, tokens: {} };
     if (!address || address === HOUSE) return bag;
+    const hit = bagCache[address];
+    if (hit && Date.now() - hit.at < BAG_TTL) return hit.bag;
     try {
       const solLamports = await rpc("getBalance", [address]);
       bag.sol = (solLamports && solLamports.value != null ? solLamports.value : Number(solLamports || 0)) / 1e9;
@@ -848,6 +853,7 @@
         bag.tokens[info.mint] = (bag.tokens[info.mint] || 0) + Number(tok.uiAmount || 0);
       }
     } catch (e) {}
+    bagCache[address] = { at: Date.now(), bag: bag };
     return bag;
   }
   function tokenRow(t) {
@@ -1079,6 +1085,7 @@
           });
           if (!r.ok) throw new Error((r.data && (r.data.error || r.data.message)) || "Play swap failed");
           say("Done " + short((r.data && (r.data.signature || r.data.swapTx)) || ""), true);
+          Object.keys(bagCache).forEach((k) => { delete bagCache[k]; });
           loadCoins();
           return;
         }
@@ -1092,6 +1099,7 @@
         }).then((x) => x.json());
         if (!ex.ok && !ex.signature) throw new Error(ex.error || "execute failed");
         say("Done " + short(ex.signature), true);
+        Object.keys(bagCache).forEach((k) => { delete bagCache[k]; });
         loadCoins();
       } catch (e) {
         say(e.message || String(e), false);
@@ -1302,6 +1310,11 @@
     return openTokenDetail(mint, "info");
   }
   async function loadCoins() {
+    if (coinInFlight) return coinInFlight;
+    coinInFlight = loadCoinsNow().finally(() => { coinInFlight = null; });
+    return coinInFlight;
+  }
+  async function loadCoinsNow() {
     const box = $("coin-list");
     if (!box) return;
     const watch = readWatch();
@@ -1309,7 +1322,9 @@
       box.innerHTML = '<p class="empty">Sign in with Grudge ID to load balances, then add any Solana mint.</p>';
       return;
     }
-    box.innerHTML = '<p class="empty">Reading wallets…</p>';
+    if (!box.querySelector(".tok") && !box.querySelector(".card")) {
+      box.innerHTML = '<p class="empty">Reading wallets…</p>';
+    }
     const owners = listOwners().filter((o) => coinOwner === "all" || o.id === coinOwner);
     if (!owners.length) {
       box.innerHTML = '<p class="empty">No Play wallet yet. Sign in — Crossmint is created with your Grudge ID.</p>';
@@ -1680,6 +1695,7 @@
     renderPicker();
     loadDapps();
     refresh();
+    setInterval(() => { if (getTok() && document.visibilityState === "visible") refresh(); }, 20000);
     if ("serviceWorker" in navigator && (location.protocol === "https:" || location.hostname === "localhost")) {
       navigator.serviceWorker.register("/sw.js").catch(() => {});
     }

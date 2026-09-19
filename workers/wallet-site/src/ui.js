@@ -194,7 +194,7 @@ section{padding:8px 16px 0}
     <button class="ico" type="button" id="btn-logout" title="Sign out" hidden>✕</button>
   </header>
   <div class="hero">
-    <div class="net">Gruda · Solana mainnet</div>
+    <div class="net">All bags · Solana mainnet</div>
     <div class="fig"><span id="fig-sol">0.00</span><small>SOL</small></div>
     <div class="sub">Trader <span id="tr-sol">0.00</span> · Play <span id="play">0</span></div>
   </div>

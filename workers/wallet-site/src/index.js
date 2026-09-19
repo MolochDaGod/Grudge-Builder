@@ -2,7 +2,7 @@
  * grudge-wallet-site — production edge for wallet.grudge-studio.com
  */
 import { htmlPage, downloadPage } from "./ui.js";
-import { parseSwap, parseExecute, parseMint } from "./swap-validate.js";
+import { parseSwap, parseExecute, parseMint, rpcParamsOk } from "./swap-validate.js";
 
 export const WALLET_BUILD = "2026-09-18-download";
 
@@ -238,6 +238,46 @@ self.addEventListener('fetch',e=>{
         status: 200,
         headers: { "Content-Type": "text/javascript; charset=utf-8", "Cache-Control": "no-store", ...cors },
       });
+    }
+
+    if (url.pathname === "/api/solana/rpc" && request.method === "POST") {
+      const body = await request.json().catch(() => ({}));
+      const method = String(body.method || "");
+      const allow = new Set([
+        "getBalance",
+        "getTokenAccountsByOwner",
+        "getTokenAccountBalance",
+        "getAccountInfo",
+        "getMultipleAccounts",
+        "getTokenSupply",
+      ]);
+      if (!allow.has(method) || !rpcParamsOk(method, body.params || [])) {
+        return json({ error: "method not allowed" }, 403, cors);
+      }
+      const rpcs = [env.SOLANA_RPC_URL, "https://api.mainnet-beta.solana.com"].filter(Boolean);
+      let last = "rpc failed";
+      for (const rpc of [...new Set(rpcs)]) {
+        try {
+          const r = await fetch(rpc, {
+            method: "POST",
+            headers: { "content-type": "application/json" },
+            body: JSON.stringify({ jsonrpc: "2.0", id: body.id || "gruda", method, params: body.params || [] }),
+          });
+          const text = await r.text();
+          try {
+            JSON.parse(text);
+            return new Response(text, {
+              status: 200,
+              headers: { "Content-Type": "application/json", "Cache-Control": "no-store", ...cors },
+            });
+          } catch {
+            last = text.slice(0, 80);
+          }
+        } catch (err) {
+          last = String(err && err.message || err);
+        }
+      }
+      return json({ error: last }, 502, cors);
     }
 
     if (url.pathname === "/api/gbux/circulating" || url.pathname === "/api/gbux/supply") {
