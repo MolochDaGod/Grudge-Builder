@@ -13,7 +13,7 @@ export function htmlPage(env) {
 <head>
 <meta charset="UTF-8" />
 <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover" />
-<meta name="gruda-build" content="2026-09-18-download" />
+<meta name="gruda-build" content="2026-09-19-wallet-frame" />
 <meta name="apple-mobile-web-app-capable" content="yes" />
 <meta name="apple-mobile-web-app-title" content="Gruda Wallet" />
 <meta name="mobile-web-app-capable" content="yes" />
@@ -31,9 +31,15 @@ export function htmlPage(env) {
 html,body{min-height:100%;background:#050508;color:var(--text);font-family:Sora,system-ui,sans-serif}
 button,a.btn{font-family:inherit;cursor:pointer}
 .mono{font-family:"IBM Plex Mono",ui-monospace,monospace}
-.stage{min-height:100vh;display:flex;justify-content:center;background:radial-gradient(900px 420px at 50% -10%,rgba(168,85,247,.16),transparent 55%),#050508}
-.app{width:100%;max-width:420px;min-height:100vh;background:linear-gradient(180deg,#12101c 0%,var(--bg) 28%);position:relative;padding-bottom:calc(76px + var(--safe))}
-@media(min-width:720px){.app{min-height:820px;margin:28px 0;border-radius:28px;border:1px solid rgba(224,195,106,.18);box-shadow:0 30px 80px #000;overflow:hidden}}
+.stage{min-height:100vh;display:flex;justify-content:center;align-items:stretch;background:radial-gradient(900px 420px at 50% -10%,rgba(168,85,247,.16),transparent 55%),#050508}
+.app{width:100%;max-width:420px;min-height:100vh;background:linear-gradient(180deg,#12101c 0%,var(--bg) 28%);position:relative;padding-bottom:calc(76px + var(--safe));display:flex;flex-direction:column}
+.panel.on{flex:1;min-height:0;overflow:auto}
+@media(min-width:640px){
+  html.wallet-compact .stage{align-items:center;padding:24px 16px}
+  html.wallet-compact .app{height:min(780px,calc(100dvh - 48px));min-height:0;margin:0;border-radius:28px;border:1px solid rgba(224,195,106,.18);box-shadow:0 30px 80px #000;overflow:hidden}
+  html.wallet-full .stage{align-items:stretch;padding:0;background:var(--bg)}
+  html.wallet-full .app{max-width:560px;min-height:100vh;margin:0 auto;border-radius:0;border:0;box-shadow:none}
+}
 header{display:flex;align-items:center;gap:10px;padding:14px 16px 8px}
 .ident{flex:1;min-width:0;display:flex;align-items:center;gap:10px;background:rgba(255,255,255,.04);border:1px solid var(--line);border-radius:999px;padding:5px 12px 5px 5px}
 .ident img{width:28px;height:28px;border-radius:50%;flex-shrink:0;object-fit:cover;background:#0a0a12}
@@ -45,6 +51,7 @@ header{display:flex;align-items:center;gap:10px;padding:14px 16px 8px}
 .net{font-size:11px;letter-spacing:.16em;text-transform:uppercase;color:var(--gold);margin-bottom:10px}
 .fig{font-size:40px;font-weight:700;letter-spacing:-.04em;font-variant-numeric:tabular-nums}
 .fig small{font-size:16px;color:var(--muted);font-weight:500;margin-left:4px}
+.fig-usd{margin-top:6px;font-size:14px;color:var(--gold2);font-variant-numeric:tabular-nums}
 .sub{margin-top:8px;font-size:12px;color:var(--muted);line-height:1.4}
 .acts{display:grid;grid-template-columns:repeat(4,1fr);gap:8px;padding:16px 16px 8px}
 .acts button{border:1px solid var(--line);background:var(--card);color:var(--gold2);border-radius:16px;padding:12px 4px 10px;font-size:11px;font-weight:600}
@@ -189,6 +196,9 @@ section{padding:8px 16px 0}
         <span class="mono" id="gid">Grudge ID</span>
       </div>
     </div>
+    <button class="ico" type="button" id="btn-layout" title="Full page" aria-label="Full page">
+      <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8"><path d="M9 3H3v6"/><path d="M15 3h6v6"/><path d="M9 21H3v-6"/><path d="M21 15v6h-6"/></svg>
+    </button>
     <a class="ico" id="btn-login" href="${login}" title="Grudge ID">ID</a>
     <a class="ico" id="btn-download" href="/download" title="Install">↓</a>
     <button class="ico" type="button" id="btn-logout" title="Sign out" hidden>✕</button>
@@ -196,6 +206,7 @@ section{padding:8px 16px 0}
   <div class="hero">
     <div class="net">All bags · Solana mainnet</div>
     <div class="fig"><span id="fig-sol">0.00</span><small>SOL</small></div>
+    <div class="fig-usd" id="fig-usd"></div>
     <div class="sub">Trader <span id="tr-sol">0.00</span> · Play <span id="play">0</span></div>
   </div>
   <div class="acts">

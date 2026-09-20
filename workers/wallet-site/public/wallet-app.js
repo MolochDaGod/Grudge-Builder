@@ -100,6 +100,8 @@
   let coinInFlight = null;
   const bagCache = Object.create(null);
   const BAG_TTL = 12000;
+  const priceMap = Object.create(null);
+  const PRICE_TTL = 15000;
   let addrs = { gid: "", play: "", w1: "", vault: "" };
   let coinOwner = "all";
   let dappCat = "all";
@@ -222,6 +224,30 @@
     document.querySelectorAll(".sheet").forEach((s) => s.classList.remove("on"));
     if (id && $(id)) $(id).classList.add("on");
     if (id === "sheet-connect") renderPicker();
+  }
+  function applyLayout() {
+    let mode = "compact";
+    try {
+      const q = new URLSearchParams(location.search).get("view");
+      mode = q || localStorage.getItem("gruda.view") || "compact";
+    } catch (e) {}
+    if (mode !== "full") mode = "compact";
+    document.documentElement.classList.toggle("wallet-full", mode === "full");
+    document.documentElement.classList.toggle("wallet-compact", mode === "compact");
+    const btn = $("btn-layout");
+    if (btn) btn.title = mode === "full" ? "Wallet size" : "Full page";
+  }
+  function toggleLayout() {
+    const full = document.documentElement.classList.contains("wallet-full");
+    const next = full ? "compact" : "full";
+    try { localStorage.setItem("gruda.view", next); } catch (e) {}
+    try {
+      const u = new URL(location.href);
+      if (next === "full") u.searchParams.set("view", "full");
+      else u.searchParams.delete("view");
+      history.replaceState(null, "", u);
+    } catch (e) {}
+    applyLayout();
   }
   function showPanel(name) {
     document.querySelectorAll("[data-dock]").forEach((b) => b.classList.toggle("on", b.dataset.dock === name));
@@ -873,11 +899,12 @@
       : '<button type="button" class="tiny" data-swap="' + esc(mint) + '" data-dir="in">In</button>' +
         '<button type="button" class="tiny" data-swap="' + esc(mint) + '" data-dir="out">Out</button>';
     const actions = '<button type="button" class="tiny" data-info="' + esc(mint) + '">Open</button>' + swapBtns;
+    const usd = usdOf(mint, t.uiAmount);
     return '<article class="card tok" data-mint="' + esc(mint) + '">' +
       '<button type="button" class="card-hit" data-open="' + esc(mint) + '">' +
         avImg(logo) +
         '<div class="meta"><b>' + esc(t.symbol || t.name || "Token") + "</b><span>" + (holds.length > 1 ? holds.length + " wallets" : (holds[0] ? holds[0].label : "Play")) + "</span></div>" +
-        '<div class="bal"><b>' + fmtAmt(t.uiAmount) + "</b>" + (holds.length > 1 ? '<span class="chev-hit" data-toggle="1">' + chev + "</span>" : chev) + "</div>" +
+        '<div class="bal"><b>' + fmtAmt(t.uiAmount) + "</b><span>" + (usd != null ? fmtUsd(usd) : "") + "</span>" + (holds.length > 1 ? '<span class="chev-hit" data-toggle="1">' + chev + "</span>" : chev) + "</div>" +
       "</button>" +
       '<div class="drop">' + (drop || "") + '<div class="tok-acts">' + actions + remove + "</div>" +
       '<div class="swapbox" data-swapbox="' + esc(mint) + '" hidden></div></div>' +
@@ -1148,21 +1175,42 @@
   async function jupPrice(mint) {
     const m = mintForJup(mint);
     if (!m || m === "BUDZ") return null;
-    const urls = [
-      "/api/token/price?ids=" + encodeURIComponent(m),
-      "https://lite-api.jup.ag/price/v3?ids=" + encodeURIComponent(m),
-    ];
+    const hit = priceMap[m];
+    if (hit && Date.now() - hit.at < PRICE_TTL) return { usd: hit.usd, chg: hit.chg };
+    await loadPrices([mint]);
+    const row = priceMap[m];
+    return row ? { usd: row.usd, chg: row.chg } : null;
+  }
+  async function loadPrices(mints) {
+    const now = Date.now();
+    const ids = [...new Set((mints || []).map(mintForJup).filter((m) => m && m !== "BUDZ" && m !== "PLAY"))];
+    const need = ids.filter((id) => !priceMap[id] || now - priceMap[id].at > PRICE_TTL).slice(0, 50);
+    if (!need.length) return priceMap;
+    const q = need.join(",");
+    const urls = ["/api/token/price?ids=" + encodeURIComponent(q), "https://lite-api.jup.ag/price/v3?ids=" + encodeURIComponent(q)];
     for (const url of urls) {
       try {
         const data = await fetch(url).then((r) => r.json());
-        const row = (data && data.prices && data.prices[m]) || (data && data[m]);
-        const usd = Number(row && row.usdPrice);
-        if (Number.isFinite(usd) && usd > 0) {
-          return { usd: usd, chg: row.priceChange24h };
+        const body = (data && data.prices) || data || {};
+        for (const id of need) {
+          const row = body[id];
+          const usd = Number(row && row.usdPrice);
+          if (Number.isFinite(usd) && usd > 0) {
+            priceMap[id] = { usd: usd, chg: row.priceChange24h, at: now };
+          }
         }
+        return priceMap;
       } catch (e) {}
     }
-    return null;
+    return priceMap;
+  }
+  function usdOf(mint, amount) {
+    const id = mintForJup(mint);
+    const px = priceMap[id];
+    if (!px) return null;
+    const n = Number(amount);
+    if (!Number.isFinite(n)) return null;
+    return px.usd * n;
   }
   function fmtUsd(n) {
     const x = Number(n);
@@ -1383,6 +1431,7 @@
       addHold("BUDZ", "Budz", "Play GBUX", ART.play, Number(playBagGbux) || 0, { label: "Play bag", address: playWallet || "play-bag" }, { bag: true, core: true });
     }
     const rows = Object.keys(byMint).map((k) => byMint[k]).sort((a, b) => Number(b.uiAmount) - Number(a.uiAmount));
+    await loadPrices(rows.map((t) => t.mint));
     window.__coinRows = byMint;
     const sol = byMint.SOL ? byMint.SOL.uiAmount : 0;
     const chainGbux = byMint[GBUX_MINT] ? byMint[GBUX_MINT].uiAmount : 0;
@@ -1390,6 +1439,8 @@
     setText("tok-sol", Number(sol).toFixed(4));
     setText("tok-gbux", fmtAmt(chainGbux));
     if ($("gbux")) setText("gbux", fmtAmt(chainGbux));
+    const marked = rows.reduce((s, t) => s + (usdOf(t.mint, t.uiAmount) || 0), 0);
+    setText("fig-usd", marked > 0 ? fmtUsd(marked) : "");
     box.innerHTML = rows.length ? rows.map(tokenRow).join("") : '<p class="empty">No tokens on these wallets yet.</p>';
     bindCoinList();
     const home = $("home-tokens");
@@ -1706,6 +1757,8 @@
     }
     renderPicker();
     loadDapps();
+    applyLayout();
+    if ($("btn-layout")) $("btn-layout").onclick = toggleLayout;
     refresh();
     setInterval(() => { if (getTok() && document.visibilityState === "visible") refresh(); }, 20000);
     if ("serviceWorker" in navigator && (location.protocol === "https:" || location.hostname === "localhost")) {
