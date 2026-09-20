@@ -1140,18 +1140,29 @@
       } catch (e2) {}
     }
     pairs = pairs.filter((p) => p && (p.chainId === "solana" || !p.chainId));
-    const quoteRank = (p) => {
-      const q = ((p.quoteToken && p.quoteToken.symbol) || "").toUpperCase();
-      if (q === "SOL" || q === "WSOL") return 3;
-      if (q === "USDC" || q === "USDT") return 2;
-      return 1;
-    };
-    pairs.sort((a, b) => {
-      const lq = Number((b.liquidity && b.liquidity.usd) || 0) - Number((a.liquidity && a.liquidity.usd) || 0);
-      if (lq) return lq;
-      return quoteRank(b) - quoteRank(a);
-    });
+    const ours = pairs.filter((p) => ((p.baseToken && p.baseToken.address) || "") === m);
+    pairs = ours.length ? ours : [];
+    pairs.sort((a, b) => Number((b.liquidity && b.liquidity.usd) || 0) - Number((a.liquidity && a.liquidity.usd) || 0));
     return { pair: pairs[0] || null, pairs: pairs };
+  }
+  async function jupPrice(mint) {
+    const m = mintForJup(mint);
+    if (!m || m === "BUDZ") return null;
+    const urls = [
+      "/api/token/price?ids=" + encodeURIComponent(m),
+      "https://lite-api.jup.ag/price/v3?ids=" + encodeURIComponent(m),
+    ];
+    for (const url of urls) {
+      try {
+        const data = await fetch(url).then((r) => r.json());
+        const row = (data && data.prices && data.prices[m]) || (data && data[m]);
+        const usd = Number(row && row.usdPrice);
+        if (Number.isFinite(usd) && usd > 0) {
+          return { usd: usd, chg: row.priceChange24h };
+        }
+      } catch (e) {}
+    }
+    return null;
   }
   function fmtUsd(n) {
     const x = Number(n);
@@ -1209,8 +1220,9 @@
     } catch (e) {}
     const dex = tokMint === "BUDZ" ? { pair: null } : await dexFor(tokMint);
     const pair = dex.pair;
-    const price = pair ? pair.priceUsd : null;
-    const chg = pair && pair.priceChange ? pair.priceChange.h24 : null;
+    const spot = tokMint === "BUDZ" ? null : await jupPrice(tokMint);
+    const price = spot ? spot.usd : (pair && pair.priceUsd);
+    const chg = spot && spot.chg != null ? spot.chg : (pair && pair.priceChange ? pair.priceChange.h24 : null);
     const logo = tokenLogo(tokMint, meta.symbol, meta.logo || meta.logoURI);
     const tabs = ["info", "swap", "graph", "news"];
     const labels = { info: "Info", swap: "Swap", graph: "Graph", news: "News" };

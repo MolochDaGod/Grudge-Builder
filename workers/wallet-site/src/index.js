@@ -341,11 +341,35 @@ self.addEventListener('fetch',e=>{
           const body = await r.json().catch(() => []);
           pairs = Array.isArray(body) ? body : (body.pairs || []);
         }
-        pairs = pairs.filter((p) => p && p.chainId === "solana");
+        pairs = pairs.filter((p) => p && p.chainId === "solana" && list.includes(p.baseToken && p.baseToken.address));
         return json({ ok: true, source: "dexscreener-v1", pairs }, 200, cors);
       } catch (err) {
         return json({ error: "dexscreener failed" }, 502, cors);
       }
+    }
+
+    if (url.pathname === "/api/token/price" && request.method === "GET") {
+      const ids = (url.searchParams.get("ids") || url.searchParams.get("mint") || "")
+        .split(",")
+        .map((s) => s.trim())
+        .filter((m) => parseMint(m).ok)
+        .slice(0, 50);
+      if (!ids.length) return json({ error: "ids required" }, 400, cors);
+      const urls = [
+        "https://lite-api.jup.ag/price/v3?ids=" + ids.map(encodeURIComponent).join(","),
+        "https://api.jup.ag/price/v3?ids=" + ids.map(encodeURIComponent).join(","),
+      ];
+      let last = "price failed";
+      for (const src of urls) {
+        try {
+          const r = await fetch(src, { headers: { accept: "application/json" } });
+          const body = await r.json().catch(() => ({}));
+          if (body && typeof body === "object") return json({ ok: true, source: "jupiter-price-v3", prices: body }, 200, cors);
+        } catch (err) {
+          last = String(err && err.message || err);
+        }
+      }
+      return json({ error: last }, 502, cors);
     }
 
     if (url.pathname.startsWith("/api/swap/")) {
