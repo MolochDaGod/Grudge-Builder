@@ -51,7 +51,7 @@ row2    Abyssal Trench    Haven Shore       Ember Depths
 | `thornwood_wilds` | Thornwood Wilds | forest | NE — elf capital |
 | `stormbreak_reef` | Stormbreak Reef | storm+ice | **W mid-left** western cold band; Crusade ice patrols |
 | `convergence_nexus` | Convergence Nexus | nexus | CENTER — contested |
-| `ashen_wastes` | Ashen Wastes | desert | E — demon capital |
+| `ashen_wastes` | Ashen Wastes | desert | E — demon **NPC tribe** (Ashen Throne), not a play race |
 | `abyssal_trench` | Abyssal Trench | abyssal+ice-rim | **SW bottom-left** western cold rim; undead capital |
 | **`haven_shore`** | **Haven Shore** | **tropical** | **S — human capital, PVE trade (this Fruzer foundation)** |
 | `ember_depths` | Ember Depths | volcanic | SE — orc capital |

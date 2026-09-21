@@ -663,16 +663,16 @@ export default function WorldMapPage() {
         </div>
       )}
 
-      {/* 6 Race Capitals — Unity world map → Three.js zone */}
+      {/* Play-race capitals — Haven Port is Crusade (human + barbarian). Ashen Throne is NPC tribe. */}
       <div className="absolute top-20 left-4 z-20 w-80 max-h-[70vh]">
         <Card className="bg-slate-900/95 border-amber-700/40 backdrop-blur-sm">
           <CardHeader className="p-3 pb-2">
             <CardTitle className="text-sm font-cinzel text-amber-400 flex items-center gap-2">
               <Globe className="w-4 h-4" />
-              Race Capitals (6)
+              Race Capitals
             </CardTitle>
             <p className="text-[10px] text-slate-400 mt-1">
-              Unity world layout — land into Three.js with harvest + dungeon portals
+              Play races only (human + barbarian share Haven Port). Demon tribe is not listed.
             </p>
           </CardHeader>
           <CardContent className="p-3 pt-0">
