@@ -12,6 +12,10 @@ import {
   setPrimaryLinkedWallet,
   unlinkLinkedWallet,
   getWalletOverview,
+  composeWalletBook,
+  persistTraderVault,
+  setPrimaryLinkedWallet,
+  accountLocationPayload,
   quoteWalletPurchase,
   createPurchaseIntent,
   confirmPurchase,
@@ -152,9 +156,143 @@ export function registerWalletRoutes(app: Express): void {
       const account = await requireAccount(req, res);
       if (!account) return;
       const linked = await listLinkedWallets(account.id);
-      res.json({ linkedWallets: linked });
+      const funding = linked.filter((w) => w.provider !== "trader" && w.label !== "trader_vault");
+      res.json({ linkedWallets: funding });
     } catch (e: any) {
       res.status(500).json({ error: e.message });
+    }
+  });
+
+  /** Where this Grudge ID lives — Railway Postgres, not localStorage. */
+  app.get("/api/account/location", requireAuth, async (req, res) => {
+    try {
+      const account = await requireAccount(req, res);
+      if (!account) return;
+      res.json(accountLocationPayload(account));
+    } catch (e: any) {
+      res.status(500).json({ error: e.message || "Failed to load account location" });
+    }
+  });
+
+  /** Account wallet book: Crossmint · linked Phantom · trader vault. Same Railway tables. */
+  /** THC Labz play for this Grudge ID — join by linked Phantom, not a second bag DB. */
+  app.get("/api/account/thc-play", requireAuth, async (req, res) => {
+    try {
+      const account = await requireAccount(req, res);
+      if (!account) return;
+      const book = await composeWalletBook(account.id);
+      const wallets = [...new Set([book?.fundingWallet, book?.gameWallet].filter(Boolean))] as string[];
+      if (!wallets.length) {
+        return res.json({
+          ok: true,
+          linked: false,
+          hint: "Connect Phantom (SIWS) on this Grudge ID. Growerz Hub matches that address.",
+        });
+      }
+      const thcApi = (process.env.THC_LABZ_API || "https://dope-budz-production.up.railway.app").replace(/\/$/, "");
+      let snap: any = null;
+      let used: string | null = null;
+      for (const w of wallets) {
+        try {
+          const r = await fetch(`${thcApi}/api/account/snapshot?wallet=${encodeURIComponent(w)}`, {
+            headers: { accept: "application/json" },
+            signal: AbortSignal.timeout(12_000),
+          });
+          const j = await r.json().catch(() => ({}));
+          if (j && j.success) {
+            snap = j;
+            used = w;
+            break;
+          }
+        } catch {
+          /* try next address */
+        }
+      }
+      if (!snap) {
+        return res.json({
+          ok: true,
+          linked: false,
+          tried: wallets,
+          hint: "No THC Labz user on this Phantom yet. Open Growerz Hub and connect the same wallet.",
+        });
+      }
+      const gh = snap.growerz?.growhouse || {};
+      const houses = Array.isArray(gh.houses) ? gh.houses : [];
+      const hubHouseIds = houses
+        .map((h: any) => h.hub_house_id || h.hubHouseId || h.publicId)
+        .filter((n: any) => n != null && Number(n) > 0);
+      return res.json({
+        ok: true,
+        linked: true,
+        matchWallet: used,
+        grudgeIdThc: snap.identity?.grudgeId || null,
+        grudgeIdFleet: account.grudgeId,
+        idMatch: Boolean(snap.identity?.grudgeId && snap.identity.grudgeId === account.grudgeId),
+        balances: snap.balances || {},
+        growerz: {
+          ownedCount: snap.growerz?.ownedCount ?? 0,
+          hubHouseIds,
+          plants: gh.plants ?? gh.activePlants ?? null,
+          playable: snap.growerz?.playableSelected || null,
+        },
+        dopebudz: snap.dopebudz || null,
+        battle: {
+          totalBattles: snap.battle?.totalBattles ?? 0,
+          wins: snap.battle?.wins ?? 0,
+          cardCount: snap.battle?.cardCount ?? 0,
+        },
+        hosts: {
+          hub: "https://growerz.thc-labz.xyz",
+          battle: "https://battle.thc-labz.xyz",
+          dope: "https://dopebudz.thc-labz.xyz",
+        },
+      });
+    } catch (e: any) {
+      res.status(500).json({ error: e.message || "Failed to load THC Labz play" });
+    }
+  });
+
+  app.get("/api/account/wallets", requireAuth, async (req, res) => {
+    try {
+      const account = await requireAccount(req, res);
+      if (!account) return;
+      const book = await composeWalletBook(account.id);
+      if (!book) return res.status(404).json({ error: "Account not found" });
+      res.json(book);
+    } catch (e: any) {
+      res.status(500).json({ error: e.message || "Failed to load wallets" });
+    }
+  });
+
+  app.post("/api/account/wallets", requireAuth, async (req, res) => {
+    try {
+      const account = await requireAccount(req, res);
+      if (!account) return;
+      const body = req.body as { role?: string; address?: string; walletAddress?: string };
+      const role = String(body.role || "");
+      const address = String(body.address || body.walletAddress || "").trim();
+      if (role !== "trader_vault") {
+        return res.status(400).json({
+          error: "Only trader_vault can be POSTed here. Link Phantom via /api/wallet/link/*",
+        });
+      }
+      if (!address) return res.status(400).json({ error: "address required" });
+      await persistTraderVault(account.id, address);
+      const book = await composeWalletBook(account.id);
+      res.json({ ok: true, saved: "trader_vault", ...book });
+    } catch (e: any) {
+      res.status(400).json({ error: e.message || "Could not save trader vault" });
+    }
+  });
+
+  app.patch("/api/account/wallets/:id/primary", requireAuth, async (req, res) => {
+    try {
+      const account = await requireAccount(req, res);
+      if (!account) return;
+      const book = await setPrimaryLinkedWallet(account.id, String(req.params.id));
+      res.json(book);
+    } catch (e: any) {
+      res.status(400).json({ error: e.message || "Could not set primary" });
     }
   });
 
@@ -615,6 +753,7 @@ export function registerWalletRoutes(app: Express): void {
   registerWalletInventoryRoutes(app, requireAuth, requireAccount);
 
   console.log(
+    "[Wallet] Routes: GET /api/wallet/overview, /linked, /api/account/wallets; POST /link/*, /purchase/*, /transfer-to-play, trader_vault",
     "[Wallet] Routes: GET /api/wallet/overview, /linked; POST /link/*, /primary, /purchase/*, /transfer-to-play, /send-gbux; DELETE /linked/:address",
   );
 }

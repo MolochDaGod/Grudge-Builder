@@ -13,6 +13,7 @@ export function htmlPage(env) {
 <head>
 <meta charset="UTF-8" />
 <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover" />
+<meta name="gruda-build" content="2026-09-17-dex-v1" />
 <meta name="gruda-build" content="2026-09-19-wallet-frame" />
 <meta name="apple-mobile-web-app-capable" content="yes" />
 <meta name="apple-mobile-web-app-title" content="Gruda Wallet" />
@@ -31,6 +32,9 @@ export function htmlPage(env) {
 html,body{min-height:100%;background:#050508;color:var(--text);font-family:Sora,system-ui,sans-serif}
 button,a.btn{font-family:inherit;cursor:pointer}
 .mono{font-family:"IBM Plex Mono",ui-monospace,monospace}
+.stage{min-height:100vh;display:flex;justify-content:center;background:radial-gradient(900px 420px at 50% -10%,rgba(168,85,247,.16),transparent 55%),#050508}
+.app{width:100%;max-width:420px;min-height:100vh;background:linear-gradient(180deg,#12101c 0%,var(--bg) 28%);position:relative;padding-bottom:calc(76px + var(--safe))}
+@media(min-width:720px){.app{min-height:820px;margin:28px 0;border-radius:28px;border:1px solid rgba(224,195,106,.18);box-shadow:0 30px 80px #000;overflow:hidden}}
 .stage{min-height:100vh;display:flex;justify-content:center;align-items:stretch;background:radial-gradient(900px 420px at 50% -10%,rgba(168,85,247,.16),transparent 55%),#050508}
 .app{width:100%;max-width:420px;min-height:100vh;background:linear-gradient(180deg,#12101c 0%,var(--bg) 28%);position:relative;padding-bottom:calc(76px + var(--safe));display:flex;flex-direction:column}
 .panel.on{flex:1;min-height:0;overflow:auto}
@@ -196,6 +200,12 @@ section{padding:8px 16px 0}
         <span class="mono" id="gid">Grudge ID</span>
       </div>
     </div>
+    <a class="ico" id="btn-login" href="${login}" title="Grudge ID">ID</a>
+    <button class="ico" type="button" id="btn-logout" title="Sign out" hidden>✕</button>
+  </header>
+  <div class="hero">
+    <div class="net">Gruda · Solana mainnet</div>
+    <div class="fig"><span id="fig-sol">0.00</span><small>SOL</small></div>
     <button class="ico" type="button" id="btn-layout" title="Full page" aria-label="Full page">
       <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8"><path d="M9 3H3v6"/><path d="M15 3h6v6"/><path d="M9 21H3v-6"/><path d="M21 15v6h-6"/></svg>
     </button>
@@ -225,6 +235,23 @@ section{padding:8px 16px 0}
       </div>
     </section>
     <section>
+      <div class="hrow"><h2>THC Labz</h2><a href="https://growerz.thc-labz.xyz" style="color:var(--gold);font-size:12px;font-weight:600;text-decoration:none">Hub</a></div>
+      <p class="hint" id="thc-hint">Connect Phantom on this Grudge ID. Play matches that wallet on Railway — not a second bag.</p>
+      <div id="thc-card" class="card">
+        <div class="row"><div class="av"><img src="/media/thc.png" alt=""></div><div class="meta"><b id="thc-status">Not linked</b><span id="thc-wallet">—</span></div><div class="bal"><b id="thc-budz">—</b><span>$BUDZ</span></div></div>
+        <div class="row"><div class="meta"><b>Growhouse</b><span id="thc-gh">Connect wallet</span></div><div class="bal"><b id="thc-plants">—</b><span>plants</span></div></div>
+        <div class="row"><div class="meta"><b>Clash cards</b><span id="thc-idmatch">Grudge ID vs THC row</span></div><div class="bal"><b id="thc-cards">—</b></div></div>
+      </div>
+    </section>
+    <section>
+      <div class="hrow"><h2>Tokens</h2></div>
+      <div id="home-tokens">
+      <div class="row"><div class="av"><img src="/media/sol.png" alt="SOL"></div><div class="meta"><b>Solana</b><span>SOL</span></div><div class="bal"><b id="tok-sol">0.00</b></div></div>
+      <div class="row"><div class="av"><img src="/media/gbux.png" alt="GBUX"></div><div class="meta"><b>GBUX</b><span>Play / fee</span></div><div class="bal"><b id="tok-gbux">0</b></div></div>
+      <div class="row"><div class="av"><img src="/media/usdc.png" alt="USDC"></div><div class="meta"><b>USDC</b><span>USD Coin</span></div><div class="bal"><b>0</b></div></div>
+      <div class="row"><div class="av"><img src="/media/thc.png" alt="THC"></div><div class="meta"><b>THC</b><span>THC Labz</span></div><div class="bal"><b>0</b></div></div>
+      </div>
+    </section>
       <div class="hrow"><h2>Tokens</h2></div>
       <div id="home-tokens">
       <div class="row"><div class="av"><img src="/media/sol.png" alt="SOL"></div><div class="meta"><b>Solana</b><span>SOL</span></div><div class="bal"><b id="tok-sol">0.00</b></div></div>
@@ -378,6 +405,7 @@ window.GRUDA = {
   idGw: ${JSON.stringify(idGw)},
   poker: ${JSON.stringify(poker)},
   trader: ${JSON.stringify(trader)},
+  build: "2026-09-17-dex-v1",
   build: "2026-09-18-download",
   art: {
     sol: "/media/sol.png",
@@ -435,6 +463,7 @@ document.getElementById("install").onclick = async () => {
 };
 if ("serviceWorker" in navigator) navigator.serviceWorker.register("/sw.js");
 </script>
+<script src="/wallet-app.js" defer></script>
 </body>
 </html>`;
 }

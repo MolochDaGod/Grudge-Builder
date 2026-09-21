@@ -1,6 +1,8 @@
 /**
  * grudge-wallet-site — production edge for wallet.grudge-studio.com
  */
+import { htmlPage } from "./ui.js";
+import { WALLET_APP_JS } from "./wallet-app-src.js";
 import { htmlPage, downloadPage } from "./ui.js";
 import { parseSwap, parseExecute, parseMint, rpcParamsOk } from "./swap-validate.js";
 
@@ -191,6 +193,42 @@ export default {
       });
     }
 
+    if (url.pathname === "/wallet-app.js") {
+      return new Response(WALLET_APP_JS, {
+        status: 200,
+        headers: {
+          "Content-Type": "text/javascript; charset=utf-8",
+          "Cache-Control": "no-store",
+          ...cors,
+        },
+      });
+    }
+
+    const media = {
+      "/media/sol.png": "https://raw.githubusercontent.com/solana-labs/token-list/main/assets/mainnet/So11111111111111111111111111111111111111112/logo.png",
+      "/media/gbux.png": `${env.POKER_ORIGIN || "https://poker.grudge-studio.com"}/media/gbux-coin.png`,
+      "/media/thc.png": "https://growerz.thc-labz.xyz/logo192.png",
+      "/media/grudge-id.png": `${idGw}/grudge-id-logo.png`,
+      "/media/play.png": "https://character.grudge-studio.com/opengraph.jpg",
+      "/media/usdc.png": "https://raw.githubusercontent.com/solana-labs/token-list/main/assets/mainnet/EPjFWdd5AufqSSqeM2qN1xzybapC8G4wEGGkZwyTDt1v/logo.png",
+      "/media/crossmint.png": "https://www.crossmint.com/assets/crossmint/logo.png",
+    };
+    if (media[url.pathname]) {
+      return Response.redirect(media[url.pathname], 302);
+    }
+
+    if (url.pathname === "/icon.svg") {
+      const svg = `<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 512 512">
+<rect width="512" height="512" rx="96" fill="#07070c"/>
+<path d="M256 48l176 80v128c0 112-75 198-176 240C155 454 80 368 80 256V128z" fill="#1a1405" stroke="#d4af37" stroke-width="22"/>
+<text x="256" y="300" text-anchor="middle" font-family="Georgia,serif" font-size="140" fill="#d4af37">G</text>
+</svg>`;
+      return new Response(svg, {
+        status: 200,
+        headers: {
+          "Content-Type": "image/svg+xml; charset=utf-8",
+          "Cache-Control": "public, max-age=86400",
+          ...cors,
     if (url.pathname === "/manifest.webmanifest" || url.pathname === "/manifest.json") {
       return new Response(
         JSON.stringify({
