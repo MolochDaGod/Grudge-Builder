@@ -18,7 +18,7 @@ Best-effort organization of accidental duplicates, mismatched systems, and dead 
 | Carrier PvP edge | `carrier.grudge-studio.com` | **Same CF Worker** (WS + shell static) | Expecting HTML from Vercel alone |
 | Water / home island | `water.grudge-studio.com` | **Tactical-Infinity** linked domain | `tactical-infinity.vercel.app` as player URL |
 | Characters SSOT | Railway `grudge-api-production-0d46` | Railway | `api.grudge-studio.com` for bag/XP |
-| Catalogs | `objectstore.grudge-studio.com/api/v1/*` + `info.grudge-studio.com/api/v1/*` | CF ObjectStore / info | `grudge-objectstore.pages.dev` |
+| Catalogs | `objectstore.grudge-studio.com/api/v1/*` (canonical) | CF ObjectStore Worker | `grudge-objectstore.pages.dev` (deprecated), `info.grudge-studio.com` (legacy alias) |
 | Binaries | `assets.grudge-studio.com` | R2 CDN worker | git large GLBs |
 
 ## Probe purges (code)

@@ -31,7 +31,7 @@
 | **Account hub** | `grudge.studio` | Roster links, era pick, app directory, return after login |
 | **Era play clients** | `*.grudge.studio` | One host per era SPA surface |
 | **Marketing / legacy Warlords** | `grudgewarlords.com` | Alias → `warlords.grudge.studio` when DNS live |
-| **Platform (keep for now)** | `*.grudge-studio.com` | `id.` SSO, `assets.` CDN, `character.` Foundry, `forge.`, `info.` |
+| **Platform (keep for now)** | `*.grudge-studio.com` | `id.` SSO, `assets.` CDN, `character.` Foundry, `forge.`, `objectstore.` game catalog |
 
 Identity stays **`id.grudge-studio.com`** until an explicit `id.grudge.studio` cutover.
 
