@@ -136,7 +136,7 @@ export const ERA_META: Record<
     defaultPipeline: 'voxel',
     interimPipeline: null,
     playUrl: 'https://grudox.grudge-studio.com',
-    worldsUrl: 'https://mine-loader.vercel.app/#/lobby',
+    worldsUrl: 'https://mine.grudge-studio.com/#/lobby',
     slotCount: 4,
     createUrl: 'https://character.grudge-studio.com/?era=voxel',
     charactersEnabled: true,
