@@ -54,7 +54,7 @@ FLEET_VIDEO_CATALOG.warlordsIntro.r2_url;
 
 Do **not** add a second CDN, a second GLTFLoader, or a primitive stand-in for a missing island mesh. Upload the key (`upload-session-warlords-assets-to-r2.mjs`) or skip. Place only on a real ground sample (never `waterLevel + 2`).
 
-Deprecated hosts (`molochdagod.github.io`, `grudge-objectstore.pages.dev`) are rewritten at runtime in `iconResolver.ts`.
+Deprecated hosts (`molochdagod.github.io`, `grudge-objectstore.pages.dev`, `info.grudge-studio.com`) are rewritten at runtime in `iconResolver.ts` to use `objectstore.grudge-studio.com` or `assets.grudge-studio.com` as appropriate.
 
 ## Upload pipeline
 

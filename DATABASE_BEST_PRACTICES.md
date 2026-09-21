@@ -3,7 +3,7 @@
 This document outlines best practices for using the PostgreSQL database in GRUDGE Warlords and related GRUDGE games.
 
 > **Fleet SSOT (2026):** Player state = **Railway Postgres** only. Definitions = **ObjectStore / info**. Binaries = **R2**. Asset index = **D1**.  
-> Full multi-store map + backups: [grudge-dev-tool · Databases · sharing · backups](https://grudge-warlords.github.io/grudge-dev-tool/database-backups-sharing.html)  
+> Full multi-store map + backups: [grudge-dev-tool · Databases · sharing · backups](https://grudge-warlords.github.io/grudge-dev-tool/database-backups-sharing.html) (external reference)  
 > Skill: **`grudge-production-wiring`**. DB connection map (no secrets): `shared/fleet/dbConnections.ts`.
 
 ## Database Architecture

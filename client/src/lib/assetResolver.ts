@@ -136,7 +136,7 @@ export async function preloadAsset(path: string): Promise<string> {
     return cdnUrl;
   }
 
-  const osUrl = `https://info.grudge-studio.com${path.startsWith('/') ? path : '/' + path}`;
+  const osUrl = `https://objectstore.grudge-studio.com${path.startsWith('/') ? path : '/' + path}`;
   if (await probeImageUrl(osUrl)) {
     resolvedCache.set(path, osUrl);
     return osUrl;

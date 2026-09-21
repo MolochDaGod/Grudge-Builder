@@ -2,7 +2,7 @@
 
 How **WCS**, **Grudge ID accounts**, **Puter GS app**, **home islands**, and **ObjectStore** connect.
 
-Machine-readable map: [ObjectStore `warlords-integration-wiring.json`](https://molochdagod.github.io/ObjectStore/api/v1/_meta/warlords-integration-wiring.json)
+Machine-readable map: [ObjectStore `warlords-integration-wiring.json`](https://objectstore.grudge-studio.com/api/v1/_meta/warlords-integration-wiring.json)
 
 ---
 
@@ -39,7 +39,7 @@ WCS completes character/arsenal flow and redirects back; Warlords bridges the to
 
 ## Home island (physical scale + seed)
 
-Contract: [home-island-contract.json](https://molochdagod.github.io/ObjectStore/api/v1/home-island-contract.json)
+Contract: [home-island-contract.json](https://objectstore.grudge-studio.com/api/v1/home-island-contract.json)
 
 | Surface | Size | Role |
 |---------|------|------|
@@ -55,7 +55,7 @@ Contract: [home-island-contract.json](https://molochdagod.github.io/ObjectStore/
 
 **Seed:** `home_islands.seed` + `generateMountainTriadSeed()` — deterministic dungeon peak, triad placement, zone types.
 
-**RTS → Warlords:** `POST /api/island/export-from-rts` stores `rtsHeightmap` + `rtsNatureScatter` on Railway. Warlords 3D upsamples terrain (`MISSION-01`) and renders foliage GLBs (`MISSION-02`). Mission index: [ObjectStore missions](https://molochdagod.github.io/ObjectStore/api/v1/_meta/missions/).
+**RTS → Warlords:** `POST /api/island/export-from-rts` stores `rtsHeightmap` + `rtsNatureScatter` on Railway. Warlords 3D upsamples terrain (`MISSION-01`) and renders foliage GLBs (`MISSION-02`). Mission index: [ObjectStore missions](https://objectstore.grudge-studio.com/api/v1/_meta/missions/).
 
 ---
 

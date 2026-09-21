@@ -184,7 +184,7 @@ export function WarlordsArsenalProduct({
         <div className="rounded-xl border border-rose-800/50 bg-rose-950/40 p-4 text-sm text-rose-200">
           {error}
           <p className="text-xs text-rose-300/70 mt-1">
-            Expected ObjectStore / info.grudge-studio.com master-items.json
+            Expected ObjectStore / objectstore.grudge-studio.com master-items.json
           </p>
         </div>
       )}

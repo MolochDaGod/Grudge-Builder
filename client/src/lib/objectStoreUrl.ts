@@ -1,11 +1,11 @@
 /**
  * Canonical definition JSON — ONE TRUTH.
- * Browser: same-origin /api/objectstore/v1 (Vercel rewrite → info.grudge-studio.com).
- * SSR/scripts: https://info.grudge-studio.com/api/v1
- * objectstore.grudge-studio.com is a proxy of info, not a second catalog.
+ * Browser: same-origin /api/objectstore/v1 (Vercel rewrite → objectstore.grudge-studio.com).
+ * SSR/scripts: https://objectstore.grudge-studio.com/api/v1
+ * The ObjectStore Worker serves the unified game catalog (races, classes, items, recipes, etc.).
  */
 
-const CANONICAL_OBJECT_STORE_API = 'https://info.grudge-studio.com/api/v1';
+const CANONICAL_OBJECT_STORE_API = 'https://objectstore.grudge-studio.com/api/v1';
 
 const DEPRECATED_OBJECT_STORE_HOSTS = [
   'molochdagod.github.io',
@@ -22,8 +22,12 @@ export function resolveObjectStoreApiBase(envOverride?: string): string {
   if (!raw || isDeprecatedObjectStoreUrl(raw)) {
     return CANONICAL_OBJECT_STORE_API;
   }
-  // Prefer info host when an objectstore absolute URL is passed.
+  // Normalize objectstore.grudge-studio.com variations
   if (/objectstore\.grudge-studio\.com/i.test(raw)) {
+    return CANONICAL_OBJECT_STORE_API;
+  }
+  // Legacy info.grudge-studio.com → objectstore
+  if (/info\.grudge-studio\.com/i.test(raw)) {
     return CANONICAL_OBJECT_STORE_API;
   }
   if (raw.endsWith('/api/v1')) return raw;

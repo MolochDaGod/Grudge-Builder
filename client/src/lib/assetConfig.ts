@@ -196,7 +196,7 @@ export function apiUrl(endpoint: string): string {
  *
  * @example
  *   workerUrl('/v1/weapon-skills/SWORD')
- *   // => 'https://info.grudge-studio.com/v1/weapon-skills/SWORD'
+ *   // => 'https://objectstore.grudge-studio.com/api/v1/weapon-skills/SWORD'
  */
 export function workerUrl(path: string): string {
   const cleanPath = path.startsWith('/') ? path : `/${path}`;

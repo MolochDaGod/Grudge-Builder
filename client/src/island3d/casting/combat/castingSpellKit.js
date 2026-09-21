@@ -8,7 +8,7 @@
  *  - Anim: magic pack cast clip (weaponAnimPack staff → magic)
  *  - Catalog ids: info…/WEAPON_SKILLS.html · master-weaponSkills.json STAFF
  *
- * Browse: https://info.grudge-studio.com/WEAPON_SKILLS.html
+ * Browse: https://objectstore.grudge-studio.com/WEAPON_SKILLS.html
  * Live lab: https://casting-abilities-threejs.vercel.app/
  */
 
@@ -468,8 +468,8 @@ export function exportSpellKitJson() {
     generated: new Date().toISOString(),
     title: 'Casting lab 10-spell kit → staff / WEAPON_SKILLS',
     liveLab: 'https://casting-abilities-threejs.vercel.app/',
-    weaponSkillsHtml: 'https://info.grudge-studio.com/WEAPON_SKILLS.html',
-    masterSkills: 'https://info.grudge-studio.com/api/v1/master-weaponSkills.json',
+    weaponSkillsHtml: 'https://objectstore.grudge-studio.com/WEAPON_SKILLS.html',
+    masterSkills: 'https://objectstore.grudge-studio.com/api/v1/master-weaponSkills.json',
     rules: {
       animPack: 'magic for all staff spells',
       animRole: 'cast',
