@@ -13,6 +13,7 @@ import {
   warlordsPlayOrigin,
   warlordsPlayUrl,
 } from "@shared/fleet";
+import { isWarlordsPlayHost } from "@shared/fleet/warlordsDomains";
 import {
   normalizeGameEra,
   type GameEra,
@@ -64,12 +65,7 @@ export function defaultWarlordsReturnTo(path?: string): string {
   if (typeof window !== "undefined") {
     try {
       const h = window.location.hostname.toLowerCase();
-      if (
-        h === "grudgewarlords.com" ||
-        h === "www.grudgewarlords.com" ||
-        h.endsWith(".grudgewarlords.com") ||
-        h === "client.grudge-studio.com"
-      ) {
+      if (isWarlordsPlayHost(h)) {
         return `${window.location.origin}${p}`;
       }
     } catch {

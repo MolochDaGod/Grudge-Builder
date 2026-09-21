@@ -1,5 +1,6 @@
+import { GameErrorBoundary } from '@/components/GameRecovery';
 import { useEffect, useLayoutEffect, lazy, Suspense } from "react";
-import { Switch, Route } from "wouter";
+import { Switch, Route, useLocation } from "wouter";
 import { queryClient } from "./lib/queryClient";
 import { QueryClientProvider } from "@tanstack/react-query";
 import { Toaster } from "@/components/ui/toaster";
@@ -15,66 +16,92 @@ import { syncGameDataFromObjectStore } from "@/lib/gameData";
 import { syncItemsFromObjectStore } from "@/lib/grudaDB";
 import NotFound from "@/pages/not-found";
 import { Grudge6Redirect } from "@/components/Grudge6Redirect";
-import CharacterRedirect from "@/pages/character-redirect";
-import ProfessionsPage from "@/pages/professions";
-import DatabasePage from "@/pages/database";
-import IntroPage from "@/pages/intro";
-import WarlordsLandingPage from "@/pages/warlords-landing";
-import WarlordsAccountPage from "@/pages/warlords-account";
-import LoreIndexPage from "@/pages/lore/index";
-import LoreGodsPage from "@/pages/lore/gods";
-import LoreFactionsPage from "@/pages/lore/factions";
-import LoreHeroesPage from "@/pages/lore/heroes";
-import LoreWorldPage from "@/pages/lore/world";
-import LoreSectorsPage from "@/pages/lore/sectors";
-import LoreSectorDetailPage from "@/pages/lore/sector-detail";
-import HomePage from "@/pages/home";
-// Combat tab = airship 4-character Warlords era scene (heavy Three.js)
+import GrudgeAI from "@/components/GrudgeAI";
+import { GrudgeTruthBadge } from "@/components/GrudgeTruthBadge";
+import { GrudgeTokenWidget } from "@/components/grudge-token/GrudgeTokenWidget";
+import { RtsDomainBootstrap } from "@/components/RtsDomainBootstrap";
+import { hydrateVideoCatalog } from "@/lib/fleetVideo";
+import { loadFleetCdnFonts } from "@/lib/fleetFonts";
+import { consumeGcsReturnHandoff } from "@/lib/gcsRedirect";
+import { CharacterManager } from "@/lib/characterManager";
+
+// Landing is the only eager route. Vite 7 modulepreloads every lazy() from the
+// entry; keep Rapier/island3d off that graph and disable modulePreload in vite.
+const WarlordsLandingPage = lazy(() => import("@/pages/warlords-landing"));
+const CharacterRedirect = lazy(() => import("@/pages/character-redirect"));
+const ProfessionsPage = lazy(() => import("@/pages/professions"));
+const DatabasePage = lazy(() => import("@/pages/database"));
+const IntroPage = lazy(() => import("@/pages/intro"));
+const WarlordsAccountPage = lazy(() => import("@/pages/warlords-account"));
+const LoreIndexPage = lazy(() => import("@/pages/lore/index"));
+const LoreGodsPage = lazy(() => import("@/pages/lore/gods"));
+const LoreFactionsPage = lazy(() => import("@/pages/lore/factions"));
+const LoreHeroesPage = lazy(() => import("@/pages/lore/heroes"));
+const LoreWorldPage = lazy(() => import("@/pages/lore/world"));
+const LoreSectorsPage = lazy(() => import("@/pages/lore/sectors"));
+const LoreSectorDetailPage = lazy(() => import("@/pages/lore/sector-detail"));
+const HomePage = lazy(() => import("@/pages/home"));
+const SkillTreePage = lazy(() => import("@/pages/skill-tree"));
+const AdminPage = lazy(() => import("@/pages/admin"));
+const SpriteEnginePage = lazy(() => import("@/pages/sprite-engine"));
+const SpriteAdminPage = lazy(() => import("@/pages/sprite-admin"));
+const MinerPage = lazy(() => import("@/pages/profession/Miner"));
+const ForesterPage = lazy(() => import("@/pages/profession/Forester"));
+const MysticPage = lazy(() => import("@/pages/profession/Mystic"));
+const ChefPage = lazy(() => import("@/pages/profession/Chef"));
+const EngineerPage = lazy(() => import("@/pages/profession/Engineer"));
+const RPGBattlePage = lazy(() => import("@/pages/rpg-battle"));
+const SpriteGeneratorPage = lazy(() => import("@/pages/sprite-generator"));
+const TemplateViewerPage = lazy(() => import("@/pages/template-viewer"));
+const ArsenalPage = lazy(() => import("@/pages/ArsenalPage"));
+const MissionBoardPage = lazy(() => import("@/pages/mission-board"));
+const WalletPage = lazy(() => import("@/pages/WalletPage"));
+const AccountPage = lazy(() => import("@/pages/AccountPage"));
+const TreatyPage = lazy(() => import("@/pages/TreatyPage"));
+const AIHelperGenerator = lazy(() => import("@/pages/ai-helper-generator"));
+const AdminMapPage = lazy(() => import("@/pages/admin-map"));
+const RaceSpriteGeneratorPage = lazy(() => import("@/pages/race-sprite-generator"));
+const CharacterGalleryPage = lazy(() => import("@/pages/character-gallery"));
+const AdminCombatPage = lazy(() => import("@/pages/admin-combat"));
+const LauncherPage = lazy(() => import("@/pages/launcher"));
+const HarvestPage = lazy(() => import("@/pages/Harvest"));
+const HeroCodexPage = lazy(() => import("@/pages/hero-codex"));
+const CraftingPage = lazy(() => import("@/pages/crafting"));
+const AuthCallbackPage = lazy(() => import("@/pages/auth-callback"));
+const CreateCharacterRedirect = lazy(() => import("@/pages/create-character-redirect"));
+const CharacterCreatorRedirect = lazy(() => import("@/pages/character-creator-redirect"));
+const HeroesPage = lazy(() => import("@/pages/heroes"));
+const BossWalkupPage = lazy(() => import("@/pages/boss-walkup"));
+const GrudaWarsPage = lazy(() => import("@/pages/grudawars"));
+const WarlordsStartPage = lazy(() => import("@/pages/warlords-start"));
+const IslandsPage = lazy(() => import("@/pages/islands"));
+const GameCharacterPage = lazy(() => import("@/pages/game-character"));
+const SystemsPage = lazy(() => import("@/pages/systems"));
+const MainPanelPage = lazy(() => import("@/pages/main-panel"));
+const WarerarewardPage = lazy(() => import("@/pages/warerareward"));
 const CombatPage = lazy(() => import("@/pages/combat"));
-import SkillTreePage from "@/pages/skill-tree";
-import AdminPage from "@/pages/admin";
-import DungeonTiledPage from "@/pages/dungeon-tiled";
-import SpriteEnginePage from "@/pages/sprite-engine";
-import SpriteAdminPage from "@/pages/sprite-admin";
-import MinerPage from "@/pages/profession/Miner";
-import ForesterPage from "@/pages/profession/Forester";
-import MysticPage from "@/pages/profession/Mystic";
-import ChefPage from "@/pages/profession/Chef";
-import EngineerPage from "@/pages/profession/Engineer";
-import RPGBattlePage from "@/pages/rpg-battle";
-import SpriteGeneratorPage from "@/pages/sprite-generator";
-import TemplateViewerPage from "@/pages/template-viewer";
-import ArsenalPage from "@/pages/ArsenalPage";
-import WorldMapPage from "@/pages/world-map";
-import MissionBoardPage from "@/pages/mission-board";
-import WalletPage from "@/pages/WalletPage";
-import AccountPage from "@/pages/AccountPage";
-import TreatyPage from "@/pages/TreatyPage";
-import AIHelperGenerator from "@/pages/ai-helper-generator";
-import AdminMapPage from "@/pages/admin-map";
-import RaceSpriteGeneratorPage from "@/pages/race-sprite-generator";
-import CharacterGalleryPage from "@/pages/character-gallery";
-import AdminCombatPage from "@/pages/admin-combat";
-import IslandPage from "@/pages/island";
-import IslandV2Page from "@/pages/island-v2";
-import AdminIslandV2Page from "@/pages/admin-island-v2";
-import AdminIsland3DPage from "@/pages/admin-island-3d";
-import LauncherPage from "@/pages/launcher";
-import RtsGrudgePage from "@/pages/rts-grudge";
-const TowerWarsPage = lazy(() => import("@/pages/tower-wars")); // legacy, keep route
-import HarvestPage from "@/pages/Harvest";
+const DungeonTiledPage = lazy(() => import("@/pages/dungeon-tiled"));
+const WorldMapPage = lazy(() => import("@/pages/world-map"));
+const IslandPage = lazy(() => import("@/pages/island"));
+const IslandV2Page = lazy(() => import("@/pages/island-v2"));
+const AdminIslandV2Page = lazy(() => import("@/pages/admin-island-v2"));
+const AdminIsland3DPage = lazy(() => import("@/pages/admin-island-3d"));
+const RtsGrudgePage = lazy(() => import("@/pages/rts-grudge"));
+const TowerWarsPage = lazy(() => import("@/pages/tower-wars"));
 const AirshipZonePage = lazy(() => import("@/pages/AirshipZonePage"));
-import HeroCodexPage from "@/pages/hero-codex";
-import CraftingPage from "@/pages/crafting";
 const Island3DPage = lazy(() => import("@/pages/island-3d"));
-/** Canonical first-voyage: LeviathanOceanCinema */
+const LavaCaesarLabPage = lazy(() => import("@/pages/lava-caesar-lab"));
+const DockRaftLabPage = lazy(() => import("@/pages/dock-raft-lab"));
 const LeviathanCinemaPage = lazy(() => import("@/pages/shipwreck-cinema"));
-/** Legacy deep link — redirect only */
 const LegacyShipwreckCinemaRedirect = lazy(
   () => import("@/pages/legacy-shipwreck-cinema-redirect"),
 );
-import OpenWorldEntryPage from "@/pages/open-world";
+const OpenWorldEntryPage = lazy(() => import("@/pages/open-world"));
 const WarScenePage = lazy(() => import("@/pages/war-scene"));
+const EditorPage = lazy(() => import("@/pages/editor"));
+const ForgePage = lazy(() => import("@/pages/forge"));
+const ScenePage = lazy(() => import("@/pages/scene"));
+const Grudge6ViewerPage = lazy(() => import("@/pages/grudge6-viewer"));
 import AuthCallbackPage from "@/pages/auth-callback";
 import EditorPage from "@/pages/editor";
 import ForgePage from "@/pages/forge";
@@ -83,21 +110,27 @@ import Grudge6ViewerPage from "@/pages/grudge6-viewer";
 import GrudgeAI from "@/components/GrudgeAI";
 import { GrudgeTruthBadge } from "@/components/GrudgeTruthBadge";
 import { GrudgeTokenWidget } from "@/components/grudge-token/GrudgeTokenWidget";
+import { StudioFriendsDock } from "@/components/StudioFriendsDock";
 // Lazy-load the organizer page: it pulls in react-force-graph → aframe-extras
 // (A-Frame VR lib that uses THREE as a global). Code-splitting it keeps
 // aframe out of the main bundle and loads it only when /organizer is visited.
 const OrganizerPage = lazy(() => import("@/pages/organizer"));
-import CreateCharacterRedirect from "@/pages/create-character-redirect";
-import CharacterCreatorRedirect from "@/pages/character-creator-redirect";
-import HeroesPage from "@/pages/heroes";
-import BossWalkupPage from "@/pages/boss-walkup";
-import GrudaWarsPage from "@/pages/grudawars";
-import PlayPage from "@/pages/play";
-// Lazy: tactical ocean + sailing graph is heavy and must not init with main/three
+const PlayPage = lazy(() => import("@/pages/play"));
 const OceanPage = lazy(() => import("@/pages/ocean"));
-import TutorialPage from "@/pages/tutorial";
-import WarlordsStartPage from "@/pages/warlords-start";
+const TutorialPage = lazy(() => import("@/pages/tutorial"));
 const WorldNativePage = lazy(() => import("@/pages/world-native"));
+const IslandRevealPage = lazy(() => import("@/pages/island-reveal"));
+const HomeIslandPage = lazy(() => import("@/pages/home-island"));
+const HomeIslandEntryPage = lazy(() => import("@/pages/homeisland"));
+const AirshipHandoffPage = lazy(() => import("@/pages/airship-handoff"));
+const WeaponModelAdminPage = lazy(() => import("@/pages/weapon-model-admin"));
+const WeaponSkillsPage = lazy(() => import("@/pages/weapon-skills"));
+const CastingMasterPage = lazy(() => import("@/pages/casting-master"));
+const VideoMocapPage = lazy(() => import("@/pages/video-mocap"));
+const WeaponMasteryPage = lazy(() => import("@/pages/weapon-mastery"));
+const CombatLabPage = lazy(() => import("@/pages/combat-lab"));
+const TownPage = lazy(() => import("@/pages/town"));
+const AssetShowcasePage = lazy(() => import("@/pages/asset-showcase"));
 import IslandRevealPage from "@/pages/island-reveal";
 
 import HomeIslandPage from "@/pages/home-island";
@@ -123,6 +156,9 @@ import { CharacterManager } from "@/lib/characterManager";
 
 const AssassinationGroundsPage = lazy(() => import("@/pages/assassination-grounds"));
 
+const GameLobbyPage = lazy(() => import('@/pages/game-lobby'));
+const DeploymentDeskPage = lazy(() => import('@/pages/deployment-desk'));
+
 function Router() {
   return (
     <Suspense fallback={<div className="min-h-screen bg-black" />}>
@@ -141,7 +177,7 @@ function Router() {
       <Route path="/home" component={HomePage} />
       <Route path="/main-panel" component={MainPanelPage} />
       <Route path="/equipment" component={MainPanelPage} />
-      {/* /character create → GCS; /heroes roster; /home → /airship; /airship = era select */}
+      {/* /character create → GCS; /heroes roster; /home = WCS hub; /airship = era select */}
       <Route path="/character" component={CharacterRedirect} />
       <Route path="/characters" component={HeroesPage} />
       <Route path="/create-character" component={CreateCharacterRedirect} />
@@ -185,7 +221,10 @@ function Router() {
       <Route path="/island-v2" component={IslandV2Page} />
       <Route path="/admin-island-v2" component={AdminIslandV2Page} />
       <Route path="/admin-island-3d" component={AdminIsland3DPage} />
-      <Route path="/lobby" component={HomePage} />
+      <Route path="/lobby" component={GameLobbyPage} />
+      <Route path="/lobby/maps" component={GameLobbyPage} />
+      <Route path="/diagnostics" component={DeploymentDeskPage} />
+      <Route path="/deployments" component={DeploymentDeskPage} />
       <Route path="/launcher" component={LauncherPage} />
       <Route path="/rts-grudge" component={RtsGrudgePage} />
       <Route path="/open-world" component={OpenWorldEntryPage} />
@@ -203,6 +242,8 @@ function Router() {
       <Route path="/crafting" component={CraftingPage} />
       <Route path="/crafting-suite" component={CraftingPage} />
       <Route path="/island-3d" component={Island3DPage} />
+      <Route path="/lava-caesar-lab" component={LavaCaesarLabPage} />
+      <Route path="/dock-raft-lab" component={DockRaftLabPage} />
       {/* First voyage — LeviathanOceanCinema (canonical) */}
       <Route path="/leviathan-cinema" component={LeviathanCinemaPage} />
       {/* Legacy bookmark — soft-redirect to /leviathan-cinema (keeps characterId) */}
@@ -274,6 +315,7 @@ function Router() {
           <AssassinationGroundsPage />
         </Suspense>
       )}</Route>
+      {/* Warerareward served as static HTML via vercel.json redirect */}
       {/* Fallback to 404 */}
       <Route component={NotFound} />
     </Switch>
@@ -282,6 +324,8 @@ function Router() {
 }
 
 function AppContent() {
+  const [currentPath] = useLocation();
+  const hasCouncilShell = ['/lobby', '/lobby/maps', '/diagnostics', '/deployments'].includes(currentPath);
   const { isTransitioning, isAdmin } = useAdmin();
 
   useEffect(() => {
@@ -318,11 +362,14 @@ function AppContent() {
       <RtsDomainBootstrap />
       <TooltipProvider>
         <Toaster />
-        <Router />
-        <GrudgeAI />
-        <GrudgeTruthBadge />
-        <GrudgeTokenWidget />
-        <PuterFooter />
+        <GameErrorBoundary><Router /></GameErrorBoundary>
+        {!hasCouncilShell && <>
+          <GrudgeAI />
+          <GrudgeTruthBadge />
+          <GrudgeTokenWidget />
+          <StudioFriendsDock />
+          <PuterFooter />
+        </>}
       </TooltipProvider>
     </>
   );

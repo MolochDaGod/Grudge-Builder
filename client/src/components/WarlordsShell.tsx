@@ -39,7 +39,7 @@ export function WarlordsShell({
         style={{ background: 'rgba(5,6,12,.92)', backdropFilter: 'blur(16px)' }}
       >
         <div className="max-w-6xl mx-auto px-4 py-3 flex items-center justify-between gap-4">
-          <Link href="/">
+          <Link asChild href="/">
             <a className="flex items-center gap-2.5 no-underline group">
               <img
                 src="/grudge-logo.png"
@@ -76,7 +76,7 @@ export function WarlordsShell({
                   : path === item.href || path.startsWith(item.href + '/');
               if (item.primary) {
                 return (
-                  <Link key={item.id} href={item.href}>
+                  <Link asChild key={item.id} href={item.href}>
                     <a
                       className="ml-2 flex items-center gap-1.5 px-4 py-2 rounded-lg text-xs font-bold tracking-wider no-underline"
                       style={{
@@ -92,7 +92,7 @@ export function WarlordsShell({
                 );
               }
               return (
-                <Link key={item.id} href={item.href}>
+                <Link asChild key={item.id} href={item.href}>
                   <a
                     className="px-3 py-2 rounded-md text-xs font-medium tracking-wide no-underline transition-colors"
                     style={{
@@ -110,7 +110,7 @@ export function WarlordsShell({
           <div className="flex items-center gap-2">
             {isAuthenticated ? (
               <>
-                <Link href="/account">
+                <Link asChild href="/account">
                   <a className="text-xs text-amber-400/90 hidden sm:inline no-underline hover:text-amber-300">
                     {user?.username || 'Warlord'}
                   </a>
@@ -147,7 +147,7 @@ export function WarlordsShell({
         {/* Mobile nav */}
         <div className="md:hidden flex gap-1 px-3 pb-2 overflow-x-auto">
           {WARLORDS_NAV.map((item) => (
-            <Link key={item.id} href={item.href}>
+            <Link asChild key={item.id} href={item.href}>
               <a
                 className="shrink-0 px-3 py-1.5 rounded-full text-[11px] no-underline border border-white/10 text-slate-300"
                 style={
@@ -175,12 +175,12 @@ export function WarlordsShell({
             </div>
           </div>
           <div className="flex flex-wrap gap-3">
-            <Link href="/heroes"><a className="text-slate-400 hover:text-amber-400 no-underline">Characters</a></Link>
-            <Link href="/arsenal"><a className="text-slate-400 hover:text-amber-400 no-underline">Arsenal</a></Link>
-            <Link href="/professions"><a className="text-slate-400 hover:text-amber-400 no-underline">Professions</a></Link>
-            <Link href="/skill-tree"><a className="text-slate-400 hover:text-amber-400 no-underline">Skills</a></Link>
-            <Link href="/lore"><a className="text-slate-400 hover:text-amber-400 no-underline">Lore</a></Link>
-            <Link href="/account"><a className="text-slate-400 hover:text-amber-400 no-underline">Account</a></Link>
+            <Link asChild href="/heroes"><a className="text-slate-400 hover:text-amber-400 no-underline">Characters</a></Link>
+            <Link asChild href="/arsenal"><a className="text-slate-400 hover:text-amber-400 no-underline">Arsenal</a></Link>
+            <Link asChild href="/professions"><a className="text-slate-400 hover:text-amber-400 no-underline">Professions</a></Link>
+            <Link asChild href="/skill-tree"><a className="text-slate-400 hover:text-amber-400 no-underline">Skills</a></Link>
+            <Link asChild href="/lore"><a className="text-slate-400 hover:text-amber-400 no-underline">Lore</a></Link>
+            <Link asChild href="/account"><a className="text-slate-400 hover:text-amber-400 no-underline">Account</a></Link>
             <a
               href="/lore/tome-of-seasons-and-gods.html"
               className="text-slate-400 hover:text-amber-400 no-underline"

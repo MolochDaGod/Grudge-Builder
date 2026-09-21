@@ -1,9 +1,11 @@
 /**
  * /heroes · /characters · /select-character
- * Warlords 4-slot roster — seaside sector cinema (NO painted airship plate).
  *
- * NOT a dead-end: after intro / load-fail, auto-forward into first voyage
- * (shipwreck cinema → tutorial) when a hero is selected. Use ?stay=1 to pick.
+ * **Nexus only** — 4 characters on `client.grudge-studio.com` (era=nexus).
+ * **Warlords** 4 characters = **airship** on grudgewarlords.com (`/combat`) — not this page.
+ * On warlords hosts this page redirects → /combat (no second Warlords 4-slot).
+ *
+ * Do not call hero slots “crew”. Crew = RTS units (ships/camps), not character slots.
  */
 import { useCallback, useEffect, useMemo, useRef, useState } from "react";
 import { useLocation } from "wouter";
@@ -22,12 +24,12 @@ import { isTutorialComplete } from "@/lib/warlordsOnboarding";
 
 const MAX_SLOTS = 4;
 
-/** Simple slot labels — not airship crew stations. */
+/** Nexus 4-slot labels — Warlords airship uses /combat stations, not these. */
 const SLOT_META = [
-  { id: "slot1", label: "Hero 1", role: "Warlord slot" },
-  { id: "slot2", label: "Hero 2", role: "Warlord slot" },
-  { id: "slot3", label: "Hero 3", role: "Warlord slot" },
-  { id: "slot4", label: "Hero 4", role: "Warlord slot" },
+  { id: "slot1", label: "Hero 1", role: "Nexus slot" },
+  { id: "slot2", label: "Hero 2", role: "Nexus slot" },
+  { id: "slot3", label: "Hero 3", role: "Nexus slot" },
+  { id: "slot4", label: "Hero 4", role: "Nexus slot" },
 ] as const;
 
 type PlayDest = "shipwreck" | "home_island" | "zone" | "lobby" | "tutorial" | "world";
@@ -100,10 +102,34 @@ function readQueryParams() {
   };
 }
 
+function isWarlordsPlayHost(hostname: string): boolean {
+  const h = hostname.toLowerCase();
+  return (
+    h === "grudgewarlords.com" ||
+    h.endsWith(".grudgewarlords.com") ||
+    h === "warlord3d.grudge-studio.com"
+  );
+}
+
+function isNexusHeroesHost(hostname: string): boolean {
+  return hostname.toLowerCase() === "client.grudge-studio.com";
+}
+
 export default function HeroesPage() {
   const [, setLocation] = useLocation();
-  // Warlords product page — era=warlords only (voxel/nexus have their own hosts).
-  const { characters: warlordsChars, loading, activeId, setActive, error, refetch } = useCharacters();
+  const host =
+    typeof window !== "undefined" ? window.location.hostname : "";
+
+  // Warlords hosts: no /heroes 4-slot — only airship characters
+  useEffect(() => {
+    if (!isWarlordsPlayHost(host)) return;
+    const q = typeof window !== "undefined" ? window.location.search : "";
+    setLocation(`/combat${q || ""}`);
+  }, [host, setLocation]);
+
+  const nexusMode = isNexusHeroesHost(host);
+  const { characters: rosterChars, loading, activeId, setActive, error, refetch } =
+    useCharacters();
   const tutorialDone = isTutorialComplete();
   /** First voyage until tutorial flag; then home island */
   const [dest, setDest] = useState<PlayDest>(() =>
@@ -115,6 +141,8 @@ export default function HeroesPage() {
   const queryCharId = query.characterId;
   const queryError = query.errorCode;
   const autoForwarded = useRef(false);
+  const [nexusChars, setNexusChars] = useState<Character[]>([]);
+  const [nexusLoading, setNexusLoading] = useState(nexusMode);
 
   // Phase B: fleet session + activate before roster / auto-forward
   useEffect(() => {
@@ -123,8 +151,37 @@ export default function HeroesPage() {
     );
   }, []);
 
+  // Nexus roster on client.grudge-studio.com/heroes (not warlords airship)
+  useEffect(() => {
+    if (!nexusMode) return;
+    let cancelled = false;
+    (async () => {
+      setNexusLoading(true);
+      try {
+        const list = await CharacterManager.getAll("nexus");
+        if (!cancelled) setNexusChars(list);
+      } catch (e) {
+        if (!cancelled) {
+          setHandoffError(
+            e instanceof Error ? e.message : "Failed to load Nexus heroes",
+          );
+        }
+      } finally {
+        if (!cancelled) setNexusLoading(false);
+      }
+    })();
+    return () => {
+      cancelled = true;
+    };
+  }, [nexusMode]);
+
+  const eraChars = nexusMode ? nexusChars : rosterChars;
+  const loadingRoster = nexusMode ? nexusLoading : loading;
+  const rosterEra = nexusMode ? "nexus" : "warlords";
+
   // Honor ?characterId= handoff + surface ?error=load recovery
   useEffect(() => {
+    if (isWarlordsPlayHost(host)) return;
     if (queryError === "load") {
       setHandoffError(
         signedIn
@@ -132,15 +189,15 @@ export default function HeroesPage() {
           : "Sign in with Grudge ID to load your heroes. Characters are account-bound on Railway; cNFTs stay in server escrow until you claim.",
       );
     }
-  }, [queryError, signedIn]);
+  }, [queryError, signedIn, host]);
 
   useEffect(() => {
-    if (!queryCharId || loading) return;
-    const found = warlordsChars.find((c) => c.id === queryCharId);
+    if (isWarlordsPlayHost(host)) return;
+    if (!queryCharId || loadingRoster) return;
+    const found = eraChars.find((c) => c.id === queryCharId);
     if (found) {
       setActive(found.id);
       setHandoffError(null);
-      // Clean error/query noise from URL without reload
       try {
         const url = new URL(window.location.href);
         url.searchParams.delete("error");
@@ -148,19 +205,33 @@ export default function HeroesPage() {
       } catch {
         /* ignore */
       }
-    } else if (signedIn && warlordsChars.length > 0) {
+    } else if (signedIn && eraChars.length > 0) {
       setHandoffError(
-        `Character ${queryCharId.slice(0, 8)}… is not on this Warlords roster (era=warlords). Select another hero or create one in Foundry.`,
+        nexusMode
+          ? `Character ${queryCharId.slice(0, 8)}… is not on this Nexus roster (era=nexus).`
+          : `Character ${queryCharId.slice(0, 8)}… is not on this Nexus roster.`,
       );
-    } else if (signedIn && !loading && warlordsChars.length === 0) {
-      setHandoffError("No Warlords heroes on this Grudge ID yet. Create one in Foundry (4 slots, grudge6).");
+    } else if (signedIn && !loadingRoster && eraChars.length === 0) {
+      setHandoffError(
+        nexusMode
+          ? "No Nexus heroes on this Grudge ID yet. Create one in Foundry (?era=nexus)."
+          : "This host is Nexus /heroes only. Warlords characters are on the airship.",
+      );
     }
-  }, [queryCharId, loading, warlordsChars, signedIn, setActive]);
+  }, [
+    queryCharId,
+    loadingRoster,
+    eraChars,
+    signedIn,
+    setActive,
+    host,
+    nexusMode,
+  ]);
 
-  // Warlords-only: never merge voxel/nexus into product /heroes (era SSOT).
+  // Nexus /heroes on client.*; never merge warlords airship crew here
   const crew = useMemo(
-    () => pickCrewSlots([], warlordsChars, MAX_SLOTS, "warlords"),
-    [warlordsChars],
+    () => pickCrewSlots([], eraChars, MAX_SLOTS, rosterEra),
+    [eraChars, rosterEra],
   );
 
   const slots: (Character | null)[] = useMemo(() => {
@@ -169,7 +240,7 @@ export default function HeroesPage() {
 
   const selected =
     crew.find((c) => c.id === activeId) ??
-    warlordsChars.find((c) => c.id === activeId) ??
+    eraChars.find((c) => c.id === activeId) ??
     crew[0] ??
     null;
   const selectedSlotIndex = selected
@@ -221,13 +292,12 @@ export default function HeroesPage() {
     [selected, setActive, dest, tutorialDone, setLocation],
   );
 
-  // Escape the /heroes? dead-end: once roster is ready, auto-enter play
-  // unless user asked to stay and pick (?stay=1).
+  // Nexus /heroes stay-and-pick; do not auto-forward warlords (redirect handles that)
   useEffect(() => {
-    if (loading || autoForwarded.current || query.stay) return;
+    if (isWarlordsPlayHost(host) || !nexusMode) return;
+    if (loadingRoster || autoForwarded.current || query.stay) return;
     if (!signedIn || !selected) return;
 
-    // Auto when: explicit auto, handoff characterId, or bare /heroes after intro
     const shouldAuto =
       query.auto ||
       !!queryCharId ||
@@ -235,17 +305,15 @@ export default function HeroesPage() {
       query.from === "intro" ||
       query.from === "start" ||
       query.from === "home" ||
-      // Bare /heroes with exactly one hero → don't strand on layered UI
-      (warlordsChars.length === 1 && !query.stay);
+      (eraChars.length === 1 && !query.stay);
 
     if (!shouldAuto) return;
     autoForwarded.current = true;
-    const t = setTimeout(() => {
-      enterPlay(tutorialDone ? "home_island" : "shipwreck");
-    }, 650);
-    return () => clearTimeout(t);
+    // Nexus: stay on roster until product play host exists — no warlords shipwreck
   }, [
-    loading,
+    host,
+    nexusMode,
+    loadingRoster,
     signedIn,
     selected,
     query.stay,
@@ -253,17 +321,21 @@ export default function HeroesPage() {
     query.from,
     queryCharId,
     queryError,
-    warlordsChars.length,
-    tutorialDone,
-    enterPlay,
+    eraChars.length,
   ]);
 
-  // First voyage → tutorial; after tutorial → airship → home (not empty /heroes)
   const forgeUrl = buildGcsUrl({
-    era: "warlords",
+    era: nexusMode ? "nexus" : "warlords",
     mode: "create",
-    // omit returnTo → defaultWarlordsReturnTo() uses postCreatePlayPath()
   });
+
+  if (isWarlordsPlayHost(host)) {
+    return (
+      <div className="fixed inset-0 flex items-center justify-center bg-[#0a0604] text-amber-100/80 text-sm font-display">
+        Warlords characters are on the airship — opening…
+      </div>
+    );
+  }
 
   const onSelectSlot = (index: number) => {
     const hero = slots[index];
@@ -338,7 +410,7 @@ export default function HeroesPage() {
           </div>
         )}
 
-        {loading && (
+        {loadingRoster && (
           <div className="flex justify-center py-6 text-amber-200/80 pointer-events-none">
             <Loader2 className="w-8 h-8 animate-spin" />
           </div>
@@ -363,7 +435,7 @@ export default function HeroesPage() {
         )}
 
         {/* Compact slot strip (works with 3D pick) */}
-        {!loading && (
+        {!loadingRoster && (
           <section className="grid grid-cols-2 lg:grid-cols-4 gap-2 sm:gap-3 pointer-events-auto">
             {slots.map((hero, i) => {
               const station = SLOT_META[i] ?? SLOT_META[0];

@@ -1,0 +1,106 @@
+{
+  "version": "1.1.0",
+  "description": "Baked Bip001 packs from author _anim_packs → assets CDN. Wire via bip001DrcAnims.ts.",
+  "cdnBase": "https://assets.grudge-studio.com/anims/baked",
+  "cdnBaseMirror": "https://open.grudge-studio.com/anims/baked",
+  "clientSameOrigin": "/anims/baked",
+  "format": "json",
+  "skeleton": "Bip001",
+  "authorDisk": "_anim_packs",
+  "packs": {
+    "locomotion": {
+      "idle": "locomotion/idle.json",
+      "walk": "locomotion/walking.json",
+      "run": "locomotion/running.json",
+      "dodge": "locomotion/dodging.json",
+      "jump": "locomotion/jump.json",
+      "leftStrafe": "locomotion/left strafe walking.json",
+      "rightStrafe": "locomotion/right strafe walking.json",
+      "swim": "locomotion/swimming.json",
+      "swimIdle": "locomotion/treading-water.json",
+      "death": "locomotion/death.json"
+    },
+    "sword_shield": {
+      "idle": "sword_shield/idle.json",
+      "walk": "sword_shield/walk.json",
+      "run": "sword_shield/run.json",
+      "attack": "sword_shield/slash.json",
+      "attack2": "sword_shield/attack.json",
+      "inherits": "locomotion"
+    },
+    "greatsword": {
+      "source": "_anim_packs/greatsword",
+      "idle": "greatsword/great sword idle.json",
+      "walk": "greatsword/walk.json",
+      "run": "greatsword/great sword run.json",
+      "attack": "greatsword/great sword slash.json",
+      "attack2": "greatsword/attack.json",
+      "jump": "greatsword/jump.json",
+      "inherits": "locomotion"
+    },
+    "farming": {
+      "source": "_anim_packs/farming",
+      "idle": "farming/idle.json",
+      "walk": "farming/walk.json",
+      "harvest": "farming/watering.json",
+      "attack": "farming/attack.json",
+      "jump": "farming/jump.json",
+      "swim": "farming/swim.json",
+      "climb": "farming/climb.json"
+    },
+    "traversal": {
+      "source": "_anim_packs/traversal",
+      "climb": "traversal/climbing.json",
+      "swim": "traversal/swimming.json",
+      "swimIdle": "traversal/treading-water.json"
+    },
+    "longbow": {
+      "idle": "longbow/standing idle 01.json",
+      "walk": "longbow/standing walk forward.json",
+      "run": "longbow/standing run forward.json",
+      "attack": "longbow/standing aim recoil.json",
+      "dodge": "longbow/standing dodge forward.json"
+    },
+    "pistol": {
+      "idle": "pistol/pistol idle.json",
+      "walk": "pistol/pistol walk.json",
+      "run": "pistol/pistol run.json",
+      "attack": "pistol/gunplay.json",
+      "aim": "pistol/pistol aim.json"
+    },
+    "rifle": {
+      "idle": "rifle/idle.json",
+      "walk": "rifle/walk forward.json",
+      "run": "rifle/run forward.json",
+      "attack": "rifle/firing.json",
+      "reload": "rifle/reloading.json"
+    },
+    "magic": {
+      "idle": "magic_spell/standing-idle.json",
+      "inherits": "locomotion",
+      "note": "Cast one-shots from magic_spell when promoted"
+    },
+    "unarmed": {
+      "idle": "unarmed/idle.json",
+      "walk": "unarmed/walk.json",
+      "run": "unarmed/run.json",
+      "attack": "unarmed/attack.json",
+      "jump": "unarmed/jump.json",
+      "swim": "unarmed/swim.json",
+      "climb": "unarmed/climb.json",
+      "death": "unarmed/death.json"
+    },
+    "greatsword_samurai": {
+      "note": "Optional combat flourishes — primary 2H loco is greatsword pack",
+      "idle": "greatsword_samurai/gs_samurai_idle.json",
+      "attack": "greatsword_samurai/gs_samurai_combo_a.json",
+      "attack2": "greatsword_samurai/gs_samurai_combo_b.json"
+    }
+  },
+  "resolve": {
+    "preferred": "cdnBase",
+    "fallback": ["cdnBaseMirror", "clientSameOrigin"]
+  },
+  "exampleUrl": "https://assets.grudge-studio.com/anims/baked/farming/watering.json",
+  "updated": "2026-09-11"
+}

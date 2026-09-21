@@ -13,7 +13,7 @@ import {
   type PlayerHotbar,
   WEAPON_SKILL_SLOTS,
 } from '@/lib/hotbarLayout';
-import { weaponTypeFromModel3d, normalizeRaceId } from '@shared/fleet';
+import { weaponTypeFromModel3d, normalizeRaceId, WARLORDS_PLAY_CONTRACT_VERSION } from '@shared/fleet';
 import { defaultHotbarFromWeaponType } from '@/lib/viewerLaunchHandoff';
 import { getWeaponSkillDisplay } from '@shared/definitions/weaponSkillDisplay.generated';
 
@@ -154,6 +154,12 @@ export async function applyGrudge6PlayerToController(
       equipment,
     );
     character.setEquipment(equipment);
+    const kit = character.model;
+    if (kit?.userData) {
+      kit.userData.warlordsPlayContract = WARLORDS_PLAY_CONTRACT_VERSION;
+      kit.userData.grudge6Play = true;
+      kit.userData.playPath = 'toon-rts-glb';
+    }
   } catch (err) {
     const msg = err instanceof Error ? err.message : String(err);
     console.error('[Grudge6Player] loadCharacterFromManifest failed:', msg);
@@ -186,6 +192,22 @@ export async function applyGrudge6PlayerToController(
   if (!hasWeaponSkills) {
     const fromWeapon = defaultHotbarFromWeaponType(weaponType);
     hotbar.weaponSkills = fromWeapon.weaponSkills;
+  }
+
+  const hasClass = WEAPON_SKILL_SLOTS.some((s) => hotbar.classAbilities[s]);
+  if (!hasClass && (classId === 'mage' || classId === 'priest')) {
+    hotbar.classAbilities[1] = 'mage_mana_shield';
+    hotbar.classAbilities[2] = 'mage_0_missile';
+    hotbar.classAbilities[3] = 'mage_1_heal';
+  }
+
+  const wt = String(weaponType || '').toLowerCase();
+  if (wt === 'staff' || wt === 'wand') {
+    const stunId = wt === 'wand' ? 'wand_r_stun_totem' : 'staff_stun_totem';
+    if (!hotbar.weaponSkills[3]) hotbar.weaponSkills[3] = stunId;
+    else if (!hotbar.weaponSkills[4] && hotbar.weaponSkills[3] !== stunId) {
+      hotbar.weaponSkills[4] = stunId;
+    }
   }
 
   character.loadHotbar(hotbar);

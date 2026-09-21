@@ -14,6 +14,10 @@ export function htmlPage(env) {
 <meta charset="UTF-8" />
 <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover" />
 <meta name="gruda-build" content="2026-09-17-dex-v1" />
+<meta name="gruda-build" content="2026-09-19-wallet-frame" />
+<meta name="apple-mobile-web-app-capable" content="yes" />
+<meta name="apple-mobile-web-app-title" content="Gruda Wallet" />
+<meta name="mobile-web-app-capable" content="yes" />
 <title>Gruda Wallet</title>
 <link rel="icon" type="image/png" sizes="32x32" href="/favicon-32.png" />
 <link rel="icon" type="image/png" sizes="192x192" href="/icon-192.png" />
@@ -31,6 +35,15 @@ button,a.btn{font-family:inherit;cursor:pointer}
 .stage{min-height:100vh;display:flex;justify-content:center;background:radial-gradient(900px 420px at 50% -10%,rgba(168,85,247,.16),transparent 55%),#050508}
 .app{width:100%;max-width:420px;min-height:100vh;background:linear-gradient(180deg,#12101c 0%,var(--bg) 28%);position:relative;padding-bottom:calc(76px + var(--safe))}
 @media(min-width:720px){.app{min-height:820px;margin:28px 0;border-radius:28px;border:1px solid rgba(224,195,106,.18);box-shadow:0 30px 80px #000;overflow:hidden}}
+.stage{min-height:100vh;display:flex;justify-content:center;align-items:stretch;background:radial-gradient(900px 420px at 50% -10%,rgba(168,85,247,.16),transparent 55%),#050508}
+.app{width:100%;max-width:420px;min-height:100vh;background:linear-gradient(180deg,#12101c 0%,var(--bg) 28%);position:relative;padding-bottom:calc(76px + var(--safe));display:flex;flex-direction:column}
+.panel.on{flex:1;min-height:0;overflow:auto}
+@media(min-width:640px){
+  html.wallet-compact .stage{align-items:center;padding:24px 16px}
+  html.wallet-compact .app{height:min(780px,calc(100dvh - 48px));min-height:0;margin:0;border-radius:28px;border:1px solid rgba(224,195,106,.18);box-shadow:0 30px 80px #000;overflow:hidden}
+  html.wallet-full .stage{align-items:stretch;padding:0;background:var(--bg)}
+  html.wallet-full .app{max-width:560px;min-height:100vh;margin:0 auto;border-radius:0;border:0;box-shadow:none}
+}
 header{display:flex;align-items:center;gap:10px;padding:14px 16px 8px}
 .ident{flex:1;min-width:0;display:flex;align-items:center;gap:10px;background:rgba(255,255,255,.04);border:1px solid var(--line);border-radius:999px;padding:5px 12px 5px 5px}
 .ident img{width:28px;height:28px;border-radius:50%;flex-shrink:0;object-fit:cover;background:#0a0a12}
@@ -42,6 +55,7 @@ header{display:flex;align-items:center;gap:10px;padding:14px 16px 8px}
 .net{font-size:11px;letter-spacing:.16em;text-transform:uppercase;color:var(--gold);margin-bottom:10px}
 .fig{font-size:40px;font-weight:700;letter-spacing:-.04em;font-variant-numeric:tabular-nums}
 .fig small{font-size:16px;color:var(--muted);font-weight:500;margin-left:4px}
+.fig-usd{margin-top:6px;font-size:14px;color:var(--gold2);font-variant-numeric:tabular-nums}
 .sub{margin-top:8px;font-size:12px;color:var(--muted);line-height:1.4}
 .acts{display:grid;grid-template-columns:repeat(4,1fr);gap:8px;padding:16px 16px 8px}
 .acts button{border:1px solid var(--line);background:var(--card);color:var(--gold2);border-radius:16px;padding:12px 4px 10px;font-size:11px;font-weight:600}
@@ -192,6 +206,17 @@ section{padding:8px 16px 0}
   <div class="hero">
     <div class="net">Gruda · Solana mainnet</div>
     <div class="fig"><span id="fig-sol">0.00</span><small>SOL</small></div>
+    <button class="ico" type="button" id="btn-layout" title="Full page" aria-label="Full page">
+      <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8"><path d="M9 3H3v6"/><path d="M15 3h6v6"/><path d="M9 21H3v-6"/><path d="M21 15v6h-6"/></svg>
+    </button>
+    <a class="ico" id="btn-login" href="${login}" title="Grudge ID">ID</a>
+    <a class="ico" id="btn-download" href="/download" title="Install">↓</a>
+    <button class="ico" type="button" id="btn-logout" title="Sign out" hidden>✕</button>
+  </header>
+  <div class="hero">
+    <div class="net">All bags · Solana mainnet</div>
+    <div class="fig"><span id="fig-sol">0.00</span><small>SOL</small></div>
+    <div class="fig-usd" id="fig-usd"></div>
     <div class="sub">Trader <span id="tr-sol">0.00</span> · Play <span id="play">0</span></div>
   </div>
   <div class="acts">
@@ -223,6 +248,14 @@ section{padding:8px 16px 0}
       <div id="home-tokens">
       <div class="row"><div class="av"><img src="/media/sol.png" alt="SOL"></div><div class="meta"><b>Solana</b><span>SOL</span></div><div class="bal"><b id="tok-sol">0.00</b></div></div>
       <div class="row"><div class="av"><img src="/media/gbux.png" alt="GBUX"></div><div class="meta"><b>GBUX</b><span>Play / fee</span></div><div class="bal"><b id="tok-gbux">0</b></div></div>
+      <div class="row"><div class="av"><img src="/media/usdc.png" alt="USDC"></div><div class="meta"><b>USDC</b><span>USD Coin</span></div><div class="bal"><b>0</b></div></div>
+      <div class="row"><div class="av"><img src="/media/thc.png" alt="THC"></div><div class="meta"><b>THC</b><span>THC Labz</span></div><div class="bal"><b>0</b></div></div>
+      </div>
+    </section>
+      <div class="hrow"><h2>Tokens</h2></div>
+      <div id="home-tokens">
+      <div class="row"><div class="av"><img src="/media/sol.png" alt="SOL"></div><div class="meta"><b>Solana</b><span>SOL</span></div><div class="bal"><b id="tok-sol">0.00</b></div></div>
+      <div class="row"><div class="av"><img src="/media/gbux.png" alt="GBUX"></div><div class="meta"><b>GBUX</b><span>On-chain</span></div><div class="bal"><b id="tok-gbux">0</b></div></div>
       <div class="row"><div class="av"><img src="/media/usdc.png" alt="USDC"></div><div class="meta"><b>USDC</b><span>USD Coin</span></div><div class="bal"><b>0</b></div></div>
       <div class="row"><div class="av"><img src="/media/thc.png" alt="THC"></div><div class="meta"><b>THC</b><span>THC Labz</span></div><div class="bal"><b>0</b></div></div>
       </div>
@@ -297,6 +330,10 @@ section{padding:8px 16px 0}
     <div class="row"><div class="av"><img src="/media/sol.png" alt=""></div><div class="meta"><b>Linked</b><button type="button" class="copychip" data-copy="w1" id="set-w1">None</button></div></div>
     <div class="row"><div class="av"><img src="/media/sol.png" alt=""></div><div class="meta"><b>Trader</b><button type="button" class="copychip" data-copy="vault" id="set-vault">Not enabled</button></div></div>
     <button class="ghost" type="button" id="set-refresh">Refresh</button>
+    <div class="hrow"><h2>Install</h2></div>
+    <p class="hint">Put Gruda Wallet on this phone or PC. Same Play address.</p>
+    <button class="primary" type="button" id="btn-install-app">Install app</button>
+    <a class="ghost btn" href="/download" style="display:block;text-align:center;text-decoration:none;margin-top:8px">Download for Windows</a>
     <button class="ghost" type="button" id="set-logout">Sign out</button>
   </section></div>
   <nav class="dock">
@@ -369,6 +406,7 @@ window.GRUDA = {
   poker: ${JSON.stringify(poker)},
   trader: ${JSON.stringify(trader)},
   build: "2026-09-17-dex-v1",
+  build: "2026-09-18-download",
   art: {
     sol: "/media/sol.png",
     gbux: "/media/gbux.png",
@@ -380,6 +418,50 @@ window.GRUDA = {
     wsol: "So11111111111111111111111111111111111111112"
   }
 };
+</script>
+<script src="/wallet-app.js" defer></script>
+</body>
+</html>`;
+}
+
+export function downloadPage() {
+  return `<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8" />
+<meta name="viewport" content="width=device-width, initial-scale=1" />
+<title>Install Gruda Wallet</title>
+<link rel="icon" type="image/png" href="/favicon-32.png" />
+<link rel="manifest" href="/manifest.webmanifest" />
+<style>
+body{margin:0;min-height:100vh;background:#07070b;color:#f5f5f7;font-family:system-ui,sans-serif;display:flex;justify-content:center}
+.wrap{width:100%;max-width:420px;padding:28px 20px}
+img.logo{width:72px;height:72px;border-radius:18px}
+h1{font-size:22px;margin:16px 0 8px}
+p{color:#8b8b96;line-height:1.45}
+a.btn,button.btn{display:block;text-align:center;text-decoration:none;border:0;border-radius:14px;padding:14px;margin:10px 0;font:inherit;font-weight:700;cursor:pointer;color:#1a1405;background:linear-gradient(180deg,#e8d07a,#b8922a)}
+a.ghost{display:block;text-align:center;color:#e0c36a;margin-top:16px}
+</style>
+</head>
+<body>
+<div class="wrap">
+  <img class="logo" src="/icon-192.png" alt="Gruda Wallet" />
+  <h1>Install Gruda Wallet</h1>
+  <p>Same Grudge ID, Play address, and coins as the site. Phone installs as an app. Windows pins an Edge window.</p>
+  <button class="btn" type="button" id="install">Install on this device</button>
+  <a class="btn" href="/desktop/Install-GrudaWallet.ps1" download>Windows installer</a>
+  <a class="btn" href="/desktop/GrudaWallet.bat" download>Windows shortcut (.bat)</a>
+  <p>iPhone: Share → Add to Home Screen. Android / Chrome: Install app.</p>
+  <a class="ghost" href="/">Open wallet</a>
+</div>
+<script>
+let deferred;
+window.addEventListener("beforeinstallprompt", (e) => { e.preventDefault(); deferred = e; });
+document.getElementById("install").onclick = async () => {
+  if (deferred) { deferred.prompt(); await deferred.userChoice; deferred = null; return; }
+  alert("On iPhone use Share → Add to Home Screen. On Windows use the installer below.");
+};
+if ("serviceWorker" in navigator) navigator.serviceWorker.register("/sw.js");
 </script>
 <script src="/wallet-app.js" defer></script>
 </body>

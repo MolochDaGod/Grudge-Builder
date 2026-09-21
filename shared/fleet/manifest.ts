@@ -61,6 +61,8 @@ export const FLEET_URLS = {
   assets: "https://assets.grudge-studio.com",
   objectStore: "https://objectstore.grudge-studio.com/api/v1",
   ai: "https://ai.grudge-studio.com",
+  /** Player account cloud (Puter FS + site deploy). Sign in with Grudge. Not bag SSOT. */
+  puterSpace: "https://ai.grudge-studio.com/puter-space",
   /**
    * Video mocap Anim Studio (Cloudflare Pages).
    * Live: anim-studio.pages.dev · custom domain anim.grudge-studio.com (CNAME).
@@ -94,7 +96,7 @@ export const FLEET_URLS = {
    * @deprecated Prefer warlordsPlay / play.grudgewarlords.com for Warlords era.
    * Legacy studio-branded client host — same SPA until traffic cut over.
    */
-  clientPlay: "https://client.grudge-studio.com",
+  clientPlay: "https://grudgewarlords.com",
   /** Warlords product marketing apex (grudge.studio) — not play SSOT */
   warlords: "https://grudge.studio",
   /**
@@ -113,6 +115,12 @@ export const FLEET_URLS = {
   warlordsScenes: "https://scenes.grudgewarlords.com",
   /** Craft suite on Warlords product domain (static /craft/ on SPA deploy) */
   warlordsCraft: "https://grudgewarlords.com/craft/",
+  /** Production main panel hub (vanilla overlay + /main-panel/) */
+  warlordsPanel: "https://grudgewarlords.com/main-panel/",
+  /** Craft Skills Docs — same Vercel as warlordsPlay */
+  warlordsCraftDocs: "https://grudgewarlords.com/docs/crafting",
+  /** Alias host (needs Cloudflare CNAME → this project). */
+  warlordsCraftDocsHost: "https://docs.grudge-studio.com",
   /** Optional subdomain alias (DNS later → /craft/) */
   warlordsCraftHost: "https://craft.grudgewarlords.com",
   /** Legacy Puter craft — keep for redirects only */
@@ -228,6 +236,13 @@ export const FLEET_SERVICES: FleetService[] = [
     role: "ai",
     url: FLEET_URLS.ai,
     proxyPath: "/api/ai",
+  },
+  {
+    id: "puter-space",
+    label: "Puter Space (account cloud)",
+    role: "ai",
+    url: FLEET_URLS.puterSpace,
+    notes: "User-Pays FS + puter.site deploy. Never bag/roster/wallet SSOT.",
   },
   {
     id: "anythingllm",
@@ -498,7 +513,11 @@ export function buildFleetGameDataRewrites(
   return rules;
 }
 
-/** Vercel rewrite templates — copy into any Grudge game vercel.json (order matters). */
+/**
+ * Vercel rewrite templates — copy into any Grudge game vercel.json (order matters).
+ * `/api/assets` must be an edge function that fetches the CDN *without* Referer
+ * (Cloudflare Hotlink Protection 1011). Do not rely on this rewrite alone.
+ */
 export const FLEET_VERCEL_REWRITES: readonly FleetRewrite[] = [
   { source: "/api/assets/:path*", destination: `${FLEET_URLS.assets}/:path*` },
   { source: "/sprites/:path*", destination: `${FLEET_URLS.assets}/sprites/:path*` },
@@ -539,3 +558,121 @@ export const CROSSMINT_CHARACTER_TEMPLATE_ID =
   "a9bb2c8d-1350-4413-aec7-5ba1f6888511" as const;
 export const CROSSMINT_ISLAND_TEMPLATE_ID =
   "18d0e641-8713-4d5b-9a1d-ba67c516a3ce" as const;
+
+export type FleetHeader = { key: string; value: string };
+export type FleetHeaderRule = { source: string; headers: FleetHeader[] };
+
+/**
+ * Production security headers — ONE TRUTH for vercel.json `headers`.
+ * Copy into any Grudge game vercel.json. Do not fork per-app.
+ *
+ * Notes:
+ *  - Prefer CSP `frame-ancestors` over `X-Frame-Options` on HTML that must
+ *    embed (main-panel / craft inspect). X-Frame-Options SAMEORIGIN is kept
+ *    on the SPA catch-all for browsers that ignore frame-ancestors.
+ *  - HSTS is HTTPS-only at the edge; Vercel strips it on http.
+ *  - PWA webmanifest gets nosniff + DENY frame so it cannot be MIME-sniffed.
+ */
+export const FLEET_SECURITY_HEADERS: FleetHeader[] = [
+  { key: "X-Content-Type-Options", value: "nosniff" },
+  { key: "Referrer-Policy", value: "strict-origin-when-cross-origin" },
+  { key: "Permissions-Policy", value: "camera=(), microphone=(), geolocation=(), interest-cohort=()" },
+  { key: "X-DNS-Prefetch-Control", value: "off" },
+  { key: "Strict-Transport-Security", value: "max-age=63072000; includeSubDomains; preload" },
+];
+
+export const FLEET_MANIFEST_HEADERS: FleetHeader[] = [
+  { key: "Content-Type", value: "application/manifest+json; charset=utf-8" },
+  { key: "Cache-Control", value: "no-cache" },
+  { key: "X-Content-Type-Options", value: "nosniff" },
+  { key: "Referrer-Policy", value: "no-referrer" },
+  { key: "X-Frame-Options", value: "DENY" },
+  { key: "Cross-Origin-Resource-Policy", value: "same-origin" },
+  { key: "Permissions-Policy", value: "camera=(), microphone=(), geolocation=(), interest-cohort=()" },
+];
+
+const FLEET_CSP_CORE =
+  "default-src 'self'; script-src 'self' 'unsafe-inline' 'unsafe-eval' https://js.puter.com https://cdn.jsdelivr.net https://unpkg.com https://static.cloudflareinsights.com https://*.grudge-studio.com https://*.vercel.app https://vercel.live; style-src 'self' 'unsafe-inline' https://fonts.googleapis.com https://assets.grudge-studio.com; font-src 'self' https://fonts.gstatic.com https://assets.grudge-studio.com https://vercel.live data:; img-src 'self' data: blob: https: http:; connect-src 'self' https: wss: data: blob:; frame-src 'self' https://*.puter.com https://*.puter.site https://*.grudge-studio.com https://*.grudgewarlords.com https://*.vercel.app https://vercel.live; media-src 'self' https://assets.grudge-studio.com blob: data:; worker-src 'self' blob:; object-src 'none'; base-uri 'self'";
+
+const FLEET_CSP_PANEL =
+  "default-src 'self'; script-src 'self' 'unsafe-inline' 'unsafe-eval' https://cdn.jsdelivr.net https://*.grudge-studio.com https://*.vercel.app; style-src 'self' 'unsafe-inline' https://fonts.googleapis.com; font-src 'self' https://fonts.gstatic.com data:; img-src 'self' data: blob: https: http:; connect-src 'self' https: wss: blob: data:; frame-src 'self' https://*.grudge-studio.com https://*.grudgewarlords.com; worker-src 'self' blob:; frame-ancestors 'self' https://*.grudge-studio.com https://*.grudgewarlords.com https://grudgewarlords.com https://*.grok.me; object-src 'none'; base-uri 'self'; form-action 'self' https://id.grudge-studio.com";
+
+export const FLEET_VERCEL_HEADERS: FleetHeaderRule[] = [
+  { source: "/__grok/manifest.webmanifest", headers: FLEET_MANIFEST_HEADERS },
+  { source: "/__grok/manifest.json", headers: FLEET_MANIFEST_HEADERS },
+  {
+    source: "/main-panel",
+    headers: [
+      { key: "Cache-Control", value: "public, max-age=0, must-revalidate" },
+      ...FLEET_SECURITY_HEADERS,
+      { key: "Content-Security-Policy", value: FLEET_CSP_PANEL },
+    ],
+  },
+  {
+    source: "/main-panel/",
+    headers: [
+      { key: "Cache-Control", value: "public, max-age=0, must-revalidate" },
+      ...FLEET_SECURITY_HEADERS,
+      { key: "Content-Security-Policy", value: FLEET_CSP_PANEL },
+    ],
+  },
+  {
+    source: "/docs",
+    headers: [
+      { key: "Cache-Control", value: "public, max-age=0, must-revalidate" },
+      ...FLEET_SECURITY_HEADERS,
+      { key: "Content-Security-Policy", value: FLEET_CSP_PANEL },
+    ],
+  },
+  {
+    source: "/docs/",
+    headers: [
+      { key: "Cache-Control", value: "public, max-age=0, must-revalidate" },
+      ...FLEET_SECURITY_HEADERS,
+      { key: "Content-Security-Policy", value: FLEET_CSP_PANEL },
+    ],
+  },
+  {
+    source: "/docs/(.*)",
+    headers: [
+      { key: "Cache-Control", value: "public, max-age=0, must-revalidate" },
+      ...FLEET_SECURITY_HEADERS,
+      { key: "Content-Security-Policy", value: FLEET_CSP_PANEL },
+    ],
+  },
+  {
+    source: "/main-panel/(.*)",
+    headers: [
+      { key: "Cache-Control", value: "public, max-age=0, must-revalidate" },
+      ...FLEET_SECURITY_HEADERS,
+      { key: "Content-Security-Policy", value: FLEET_CSP_PANEL },
+    ],
+  },
+  {
+    source: "/(.*)",
+    headers: [
+      ...FLEET_SECURITY_HEADERS,
+      { key: "X-Frame-Options", value: "SAMEORIGIN" },
+      { key: "Content-Security-Policy", value: FLEET_CSP_CORE },
+    ],
+  },
+  {
+    source: "/editor",
+    headers: [
+      { key: "Cross-Origin-Embedder-Policy", value: "require-corp" },
+      { key: "Cross-Origin-Opener-Policy", value: "same-origin" },
+    ],
+  },
+  {
+    source: "/assets/(.*)",
+    headers: [{ key: "Cache-Control", value: "public, max-age=31536000, immutable" }],
+  },
+  {
+    source: "/api/:path*",
+    headers: [
+      { key: "Cache-Control", value: "no-store" },
+      { key: "X-Content-Type-Options", value: "nosniff" },
+      { key: "X-Grudge-Proxy", value: "vercel" },
+    ],
+  },
+];

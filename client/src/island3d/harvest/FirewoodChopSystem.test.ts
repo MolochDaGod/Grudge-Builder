@@ -1,6 +1,6 @@
 /**
  * Firewood notch / split math smoke tests.
- * Run: npx tsx client/src/island3d/harvest/FirewoodChopSystem.test.ts
+ * Run: npx vitest run --config client/vitest.config.ts client/src/island3d/harvest/FirewoodChopSystem.test.ts
  */
 import {
   FIREWOOD_CHOP,
@@ -12,6 +12,9 @@ import {
   yawDelta,
 } from '../../../../shared/definitions/firewoodChop.ts';
 
+import { test } from 'vitest';
+
+test('FirewoodChopSystem gameplay invariants', () => {
 function assert(c: boolean, m: string) {
   if (!c) throw new Error(m);
 }
@@ -90,4 +93,5 @@ console.log('FirewoodChopSystem.test.ts OK', {
   same: same.grade,
   opp: opp.grade,
   segs: segs.length,
+});
 });

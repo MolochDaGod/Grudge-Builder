@@ -113,7 +113,6 @@ import {
 } from '../terrain/OceanReflectionRig';
 import { UnderwaterPost } from '../terrain/UnderwaterPost';
 import { BoatWakeSystem } from '../terrain/BoatWakeSystem';
-import type { QualityPreset } from '../render/PostProcessing';
 import { registerMeshPrefabs, sculptSandPrefab } from '../map/MeshPrefabRegistry';
 import { PostProcessing, type QualityPreset } from '../render/PostProcessing';
 import { DayNightCycle, type DayNightConfig } from '../environment/DayNightCycle';
@@ -160,7 +159,7 @@ import {
 } from '@/lib/renderBackend';
 import { NpcCampSystem, spawnZoneCamps } from '../camps/NpcCampSystem';
 import { CampUnitSystem } from '../camps/CampUnitSystem';
-import type { CampFaction } from '@shared/definitions/npcCamps';
+import { CAMP_UPGRADES, type CampFaction } from '@shared/definitions/npcCamps';
 import type { CampUnitOrderId } from '@shared/definitions/campUnits';
 import {
   createEvilMountainTriad,
@@ -210,6 +209,8 @@ import {
   isHothEligibleSector,
   isIcelandSector,
   isSpiralEventSector,
+  isBossInstanceSector,
+  pickBossRoomInstance,
 } from '@shared/definitions/floatingIslandBossAssets';
 import {
   isVolcanicClimbSector,
@@ -246,6 +247,7 @@ import {
 import { tickGrowth, isHarvestable } from '../harvest/RegenerativeHarvest';
 import { PinataHarvestBreakSystem } from '../harvest/PinataHarvestBreak';
 import { FirewoodChopSystem } from '../harvest/FirewoodChopSystem';
+import type { HarvestNodeClass } from '../harvest/HarvestNodeRecognition';
 import { resolveBossHitResponse } from '../combat/HitResponseSystem';
 import type { LargeBossHitEvent } from '../combat/LargeBossFightSystem';
 import { PveBossInstanceSystem } from '../systems/PveBossInstanceSystem';
@@ -376,6 +378,17 @@ export interface Island3DEngineConfig {
   showBoardGrid?: boolean;
 }
 
+/** Taberna inn staff talk payload — IslandPlayOverlay + playNPCGreeting. */
+export interface InnTalkNpc {
+  id: string;
+  name: string;
+  role: string;
+  greeting: string;
+  dialogueSetId?: string;
+  travel?: boolean;
+  race?: string;
+}
+
 export class Island3DEngine {
   private renderer: THREE.WebGLRenderer;
   private scene: THREE.Scene;
@@ -446,9 +459,46 @@ export class Island3DEngine {
   public lobbyShip: LobbyShipSystem | null = null;
 
   /** Bounds for LobbyMiniMap / island SSOT world projection */
+  /** Nearest Taberna inn staff within 3.2 m (same E range as voxel vendors). */
+  pickInnStaffTalk(playerPos: THREE.Vector3): InnTalkNpc | null {
+    const ids = new Set([
+      'innkeeper',
+      'apothecary',
+      'smith',
+      'inn_trader',
+      'stationmaster',
+    ]);
+    const nearby: { d: number; o: THREE.Object3D }[] = [];
+    const wp = new THREE.Vector3();
+    this.scene.traverse((o) => {
+      const id = String(o.userData?.npcId ?? '');
+      if (!ids.has(id)) return;
+      o.getWorldPosition(wp);
+      const d = Math.hypot(playerPos.x - wp.x, playerPos.z - wp.z);
+      if (d > 3.2) return;
+      nearby.push({ d, o });
+    });
+    const best = nearby.sort((a, b) => a.d - b.d)[0];
+    if (!best) return null;
+    const u = best.o.userData;
+    return {
+      id: String(u.npcId),
+      name: String(u.npcName ?? u.npcId),
+      role: String(u.vendorId ?? u.npcId),
+      greeting: String(u.greeting ?? 'Well met, traveler.'),
+      dialogueSetId: u.dialogueSetId,
+      travel: !!u.travel,
+      race: u.race,
+    };
+  }
+
   public getLobbyMapBounds(): { center: THREE.Vector3; size: THREE.Vector3 } | null {
     if (!this.lobbyResult) return null;
     return { center: this.lobbyResult.center, size: this.lobbyResult.size };
+  }
+
+  public getLobbyScene(): THREE.Group | null {
+    return this.lobbyResult?.scene ?? null;
   }
 
   /** Sample walkable height on lobby map (pirate-islands colliders). */
@@ -504,6 +554,10 @@ export class Island3DEngine {
   }
   /** Set when player presses E at south dock — UI shows ShipDockPanel */
   public dockInteractPending = false;
+  /** E on Taberna inn staff — React overlay talks (existing dialogue + npc chat). */
+  public onInnTalk: ((npc: InnTalkNpc) => void) | null = null;
+  /** E while a play UI (inn talk) is open — overlay closes and returns true. */
+  public onClosePlayUi: (() => boolean) | null = null;
   public lobbyPlayZone: LobbyPlayZoneResult | null = null;
   /** 6 race faction islands on pirate open-world borders */
   public factionIslands: FactionIslandRuntime | null = null;
@@ -523,6 +577,8 @@ export class Island3DEngine {
   public physicsReady = false;
   /** Zone / procedural BVH walk layer (lobby reuses lobbyCollider). */
   private walkCollider: LobbyColliderResult | null = null;
+  /** Zone sampler restored when leaving a boss instance. */
+  private zoneGroundSampler: ((x: number, z: number) => number | null) | null = null;
 
   // Zone mode
   public zoneScene: ZoneSceneResult | null = null;
@@ -584,6 +640,8 @@ export class Island3DEngine {
   // Navigation + AI
   public navMesh: TerrainNavMesh | null = null;
   public allyManager: AllyManager | null = null;
+  private _savedGravity: number | null = null;
+  private lavaParty: import('../combat/LavaCaesarPartyBrain').LavaCaesarPartyBrain | null = null;
   /** Towers / fortress / jungle rocks — SI scale + AABB colliders */
   public mapLandmarks: LandmarkLoadResult | null = null;
 
@@ -681,6 +739,7 @@ export class Island3DEngine {
    * Reference: https://screen.toys/firewood/
    */
   public firewoodChop: FirewoodChopSystem | null = null;
+  public dockRaftLab: import('../zone/DockRaftLabSystem').DockRaftLabSystem | null = null;
 
   constructor(private config: Island3DEngineConfig) {
     // Renderer — WebGL2 when available (THREE.WebGLRenderer), high-perf GPU,
@@ -1091,6 +1150,9 @@ export class Island3DEngine {
 
     // Map composition overlays (tents, chests, modular dock, nature samples)
     try {
+      if (mapDef.id === 'shipwreck-island') {
+        console.log('[Island3D] Baked shipwreck island — skip pirate composition overlay');
+      } else {
       const { loadMapComposition } = await import('../map/MapCompositionLoader');
       const comp = await loadMapComposition(
         this.scene,
@@ -1108,6 +1170,7 @@ export class Island3DEngine {
         (comp.ocean.material as THREE.Material)?.dispose?.();
       }
       console.log(`[Island3D] ${comp.summary}`);
+      }
     } catch (err) {
       console.warn('[Island3D] Map composition overlay skipped', err);
     }
@@ -1283,6 +1346,7 @@ export class Island3DEngine {
       existingSampler: sampleGround,
       label: 'lobby',
     });
+    this.zoneGroundSampler = physicsSampler;
     this.character = new CharacterController3D({
       scene: this.scene,
       camera: this.camera,
@@ -1294,6 +1358,7 @@ export class Island3DEngine {
     });
     this.character.setEntryLocked(false);
     this.character.setWorldFxBus?.(this.worldFx);
+    if (this.physics) this.character.attachRapierCct(this.physics);
 
     // Grudge6 race prefab + main-panel meshes + weapon skills (uMMORPG parity)
     try {
@@ -1329,7 +1394,9 @@ export class Island3DEngine {
       this.config.biome ?? 'beach',
     );
     progress(12);
-    const terrainMaterial = await createTerrainMaterialAsync();
+    const terrainMaterial = await createTerrainMaterialAsync({
+      biome: this.config.biome ?? 'beach',
+    });
     const segs = HOME_ISLAND_TERRAIN_SEGMENTS;
     const terrainConfig: IslandTerrainConfig = {
       seed: this.config.seed,
@@ -1467,6 +1534,7 @@ export class Island3DEngine {
       {
         worldSizeM: HOME_ISLAND_WORLD_SIZE_M,
         seed: this.config.seed,
+        biome: this.config.biome ?? 'beach',
         campClearRadiusM: foundation.campClearRadiusM ?? HOME_ISLAND_CAMP_CLEAR_RADIUS_M,
         campX: campWorld.x,
         campZ: campWorld.z,
@@ -1523,7 +1591,9 @@ export class Island3DEngine {
     // 8b. Warlords map landmarks (tower / fortress / jungle rocks) — SI prop scale, not hero-fit
     try {
       this.mapLandmarks = await loadWarlordsMapLandmarks(this.scene, {
-        sampleHeight: (x, z) => getTerrainHeightAt(this.terrain!.terrainMesh, x, z),
+        sampleHeight: (x, z) => this.terrain
+          ? getTerrainHeightAt(this.terrain.terrainMesh, x, z)
+          : null,
         enabled: this.config.enableLandmarks !== false,
       });
       // Block nav under landmark footprints
@@ -1730,6 +1800,43 @@ export class Island3DEngine {
       `${zoneHarvest.rocks.length} rocks, ${zoneHarvest.crystals.length} gems`,
     );
 
+    // 2b2. Biome foliage on each sector island (GroundPBR mesh + battle nature pack)
+    // Not F:\\GitHub\\super-terrain (WebGPU editor). Same visual kit as home island.
+    const islandFootprintM: Record<string, number> = {
+      atoll: 240,
+      small: 520,
+      medium: 900,
+      large: 1500,
+      home: HOME_ISLAND_WORLD_SIZE_M,
+      fortress: 2800,
+    };
+    const islandNodes = getNodesByCategory<IslandNode>(this.zonePopulation, 'island');
+    for (const island of islandNodes) {
+      const mesh = this.zoneScene.islandMeshes.get(island.id);
+      if (!mesh) continue;
+      const foot = islandFootprintM[island.size] ?? 900;
+      const scale = Math.max(0.25, foot / 1024);
+      try {
+        await scatterBattleNatureOnTerrain(this.scene, mesh, {
+          worldSizeM: foot,
+          seed: `${worldSeed}:${island.id}`,
+          biome: sector.biome,
+          originX: island.position[0],
+          originZ: island.position[2],
+          campX: island.position[0],
+          campZ: island.position[2],
+          campClearRadiusM: Math.max(24, foot * 0.04),
+          layers: foot >= 1200 ? 3 : 2,
+          treeCount: Math.round(80 * scale),
+          rockCount: Math.round(50 * scale),
+          bushCount: Math.round(40 * scale),
+          grassCount: Math.round(90 * scale),
+        });
+      } catch (err) {
+        console.warn(`[Island3D] Zone foliage failed on ${island.id}:`, err);
+      }
+    }
+
     // 2c. Race capital city (Unity world map — 6 race cities)
     // For haven_shore: Fruzer foundation IS the village (vendors, missions, boats).
     const cityHint =
@@ -1835,20 +1942,23 @@ export class Island3DEngine {
       this.zonePopulation,
       this.zoneScene.islandMeshes,
       (dungeonId, dungeonName) => {
-        // Frozen / cold sectors: some random dungeon portals open Hoth boss room
-        const iceName = /ice|frost|hoth|frozen|cold|snow/i.test(dungeonName + dungeonId);
-        if (
-          this.bossRooms &&
-          this.character &&
-          isHothEligibleSector(sectorId) &&
-          (iceName || Math.random() < 0.35)
-        ) {
-          this.bossRooms.enter(
+        // Biome dungeon portals → Hoth / woods / desert / lava instance maps
+        const instance = pickBossRoomInstance({
+          sectorId,
+          dungeonId,
+          dungeonName,
+        });
+        if (this.character && instance) {
+          this.ensureBossRooms();
+          const entered = this.bossRooms?.enter(
             this.character.model.position,
             'random_dungeon_portal',
+            instance.id,
           );
-          this.config.onDungeonEnter?.(dungeonId, dungeonName);
-          return;
+          if (entered) {
+            this.config.onDungeonEnter?.(dungeonId, dungeonName);
+            return;
+          }
         }
         // Warlords era sectors: dungeon entrance → PvE boss instance chamber
         const entered = this.enterPveBossFromDoorway(
@@ -2023,55 +2133,9 @@ export class Island3DEngine {
       }
     }
 
-    // 2i. Hoth boss room instance (frozen / cold portal targets)
-    if (isHothEligibleSector(sectorId)) {
-      try {
-        this.bossRooms?.dispose();
-        this.bossRooms = new BossRoomInstanceSystem({
-          scene: this.scene,
-          sectorId,
-          worldFx: this.worldFx,
-          cb: {
-            onEnter: (roomId, bossId) =>
-              console.info(`[BossRoom] enter ${roomId} boss=${bossId}`),
-            onExit: (roomId) => console.info(`[BossRoom] exit ${roomId}`),
-            onBossDeath: (bossId) => {
-              try {
-                window.dispatchEvent(
-                  new CustomEvent('grudge:boss-room', {
-                    detail: { type: 'death', bossId },
-                  }),
-                );
-              } catch {
-                /* */
-              }
-            },
-            onPlayerHit: (hit) => {
-              this.applyBossHitToPlayer(hit);
-              try {
-                window.dispatchEvent(
-                  new CustomEvent('grudge:boss-room', {
-                    detail: { type: 'hit', ...hit },
-                  }),
-                );
-              } catch {
-                /* */
-              }
-            },
-            onPrompt: (msg) => {
-              try {
-                window.dispatchEvent(
-                  new CustomEvent('grudge:boss-room', { detail: { prompt: msg } }),
-                );
-              } catch {
-                /* */
-              }
-            },
-          },
-        });
-      } catch (err) {
-        console.warn('[Island3D] BossRoomInstanceSystem failed:', err);
-      }
+    // 2i. Instance maps: Hoth (ice), deep woods, desert island, volcanic arena
+    if (isBossInstanceSector(sectorId)) {
+      this.ensureBossRooms();
     }
 
     // 2j. Iceland scene in frozen + near-frozen zones
@@ -2162,6 +2226,7 @@ export class Island3DEngine {
     this._bossPortalKey = (e: KeyboardEvent) => {
       if (e.repeat || (e.key !== 'e' && e.key !== 'E')) return;
       if (!this.character) return;
+      if (this.onClosePlayUi?.()) return;
       // Exit PvE mountain / Warlords boss instance first
       if (this.pveBossInstance?.isInside) {
         if (this.pveBossInstance.tryExit(this.character.model.position)) {
@@ -2180,7 +2245,10 @@ export class Island3DEngine {
       });
       if (result.kind !== 'none') {
         console.info('[Island3D] zone interact:', result.kind);
+        return;
       }
+      const staff = this.pickInnStaffTalk(this.character.model.position);
+      if (staff) this.onInnTalk?.(staff);
     };
     window.addEventListener('keydown', this._bossPortalKey);
 
@@ -2263,7 +2331,7 @@ export class Island3DEngine {
         };
         collectMeshes(this.havenFoundation?.root);
         collectMeshes(this.fabledFoundation?.root);
-        for (const m of this.zoneScene.islandMeshes.values()) {
+        for (const m of this.zoneScene?.islandMeshes.values() ?? []) {
           if (m?.isMesh && m.geometry && m.matrixWorld) meshes.push(m);
         }
         if (meshes.length === 0) return fallbackY;
@@ -2378,6 +2446,7 @@ export class Island3DEngine {
         label: sectorId,
       });
 
+      this.zoneGroundSampler = physicsSampler;
       this.character = new CharacterController3D({
         scene: this.scene,
         camera: this.camera,
@@ -2389,6 +2458,7 @@ export class Island3DEngine {
       });
       this.character.setEntryLocked(false);
       this.character.setWorldFxBus?.(this.worldFx);
+      if (this.physics) this.character.attachRapierCct(this.physics);
 
       // Hold-to-jump — single sector resolver (volcanic / ethereal)
       const jumpCfg = resolvePlatformerJumpForSector(sectorId);
@@ -2565,7 +2635,7 @@ export class Island3DEngine {
     sampleHeight?: (x: number, z: number) => number | null,
   ): void {
     // AllyManager is created after nav bake on home island; zone/lobby may attach later.
-    // CampUnitSystem still spawns race meshes without allies (static posts until AI available).
+    // Garrison uses Toon RTS race kits; F1–F5 orders target wildlife via CreatureManager.
 
     if (!this.npcCamps) {
       this.npcCamps = new NpcCampSystem({
@@ -2575,6 +2645,16 @@ export class Island3DEngine {
         sampleHeight,
       });
     }
+    const getEnemies = () => {
+      const pos = this.character?.getPosition() ?? this.camera.position;
+      if (!this.creatures) return [];
+      return this.creatures.listSoftLockTargets(pos, 80).map((t) => ({
+        id: t.id,
+        position: t.position,
+        hp: t.hp,
+        dead: t.hp <= 0,
+      }));
+    };
     if (!this.campUnits) {
       this.campUnits = new CampUnitSystem({
         scene: this.scene,
@@ -2584,11 +2664,13 @@ export class Island3DEngine {
         playerAccountId: this.config.accountId ?? 'guest',
         getPlayerPosition: () =>
           this.character?.getPosition() ?? this.camera.position.clone(),
+        getEnemies,
         sampleHeight,
         waterLevel,
       });
     } else {
       this.campUnits.setAllyManager(this.allyManager);
+      this.campUnits.setGetEnemies(getEnemies);
     }
     this.npcCamps.setClaimFlagHandler(async (camp) => {
       if (!camp.data.ownerAccountId) {
@@ -2663,6 +2745,111 @@ export class Island3DEngine {
     return this.campUnits?.isNearOwnedCamp(radius) ?? false;
   }
 
+  private campRtsActive = false;
+  private campRtsPolar = Math.PI / 2.15;
+
+  isCampRtsBuildMode(): boolean {
+    return this.campRtsActive;
+  }
+
+  /**
+   * Overhead RTS build on the nearest owned (or claimable) camp.
+   * Orbit owns the camera; TPS follow is off. Esc / same toggle exits.
+   */
+  enterCampRtsBuildMode(radius = 80): boolean {
+    const pos = this.character?.getPosition() ?? this.camera.position;
+    const owned = this.campUnits?.findNearestOwnedCamp(radius);
+    const near = this.npcCamps?.findNearestCamp(pos.x, pos.z, radius);
+    const camp =
+      owned ??
+      (near && near.relation !== 'enemy' ? near : null);
+    if (!camp) return false;
+
+    this.ensureCampSystems(
+      PROCEDURAL_WATER_LEVEL,
+      this.terrain
+        ? (wx, wz) => getTerrainHeightAt(this.terrain!.terrainMesh, wx, wz)
+        : undefined,
+    );
+    if (!camp.data.ownerAccountId) {
+      camp.data.ownerAccountId = this.config.accountId ?? 'guest';
+    }
+
+    const [cx, cy, cz] = camp.data.position;
+    this.campRtsPolar = this.controls.maxPolarAngle;
+    this.controls.maxPolarAngle = Math.PI * 0.38;
+    this.controls.minDistance = 12;
+    this.controls.maxDistance = 90;
+    this.controls.target.set(cx, cy + 0.6, cz);
+    this.camera.position.set(cx + 2, cy + 52, cz + 14);
+    this.camera.lookAt(cx, cy + 0.4, cz);
+    this.setCameraMode('orbit_edit');
+    this.controls.update();
+    this.campRtsActive = true;
+    void this.character?.setControlMode('build');
+    return true;
+  }
+
+  exitCampRtsBuildMode(): void {
+    if (!this.campRtsActive && this.getCameraMode() !== 'orbit_edit') return;
+    this.campRtsActive = false;
+    this.controls.maxPolarAngle = this.campRtsPolar;
+    this.controls.minDistance = 2;
+    this.controls.maxDistance = 400;
+    this.cancelBuilding();
+    this.setCameraMode(this.character ? 'play_tps' : 'orbit_edit');
+    void this.character?.setControlMode('harvest');
+  }
+
+  toggleCampRtsBuildMode(): boolean {
+    if (this.campRtsActive) {
+      this.exitCampRtsBuildMode();
+      return false;
+    }
+    return this.enterCampRtsBuildMode();
+  }
+
+  /** Snapshot for camp HUD — units + buildings on nearest owned camp. */
+  getCampHudSnapshot(): {
+    campId: string;
+    units: Array<{ id: string; race: string; order: string; t0: boolean }>;
+    buildings: Array<{ id: string; label: string; kind: string }>;
+    rts: boolean;
+  } | null {
+    const camp = this.campUnits?.findNearestOwnedCamp(80);
+    if (!camp) return null;
+    const units = (this.campUnits?.getUnitsForCamp(camp.data.id) ?? []).map((u) => ({
+      id: u.unitId,
+      race: u.raceId,
+      order: u.order,
+      t0: u.equipT0,
+    }));
+    const buildings = camp.data.upgrades.map((u) => ({
+      id: u.upgradeId,
+      label: CAMP_UPGRADES[u.upgradeId]?.label ?? u.upgradeId,
+      kind: u.kind,
+    }));
+    return { campId: camp.data.id, units, buildings, rts: this.campRtsActive };
+  }
+
+  /** Place a catalog upgrade on nearest camp (auto-slot). */
+  async placeCampUpgrade(upgradeId: string): Promise<boolean> {
+    const pos = this.character?.getPosition() ?? this.camera.position;
+    const camp =
+      this.campUnits?.findNearestOwnedCamp(80) ??
+      this.npcCamps?.findNearestCamp(pos.x, pos.z, 80);
+    if (!camp) return false;
+    if (camp.relation === 'enemy' && camp.data.ownerAccountId !== (this.config.accountId ?? 'guest')) {
+      return false;
+    }
+    if (!camp.data.ownerAccountId) {
+      camp.data.ownerAccountId = this.config.accountId ?? 'guest';
+    }
+    return this.npcCamps!.addUpgrade(camp.data.id, upgradeId, {
+      ownerAccountId: this.config.accountId ?? 'guest',
+    });
+  }
+
   /** Collapse submerged terrain so only the ocean shader shows water (not seafloor + ocean). */
   private flattenTerrainBelowWater(mesh: THREE.Mesh, waterLevel: number, seafloorDepth = -14): void {
     flattenTerrainVertsBelowWater(mesh, waterLevel, seafloorDepth);
@@ -2694,6 +2881,14 @@ export class Island3DEngine {
    * Honors oceanQuality: off skips all polish; low skips dual-pass RTs.
    */
   private setupOceanPolish(waterLevel: number): void {
+    try {
+      this.setupOceanPolishInner(waterLevel);
+    } catch (e) {
+      console.warn('[Island3D] ocean polish skipped:', e);
+    }
+  }
+
+  private setupOceanPolishInner(waterLevel: number): void {
     this.oceanReflectionRig?.dispose();
     this.oceanReflectionRig = null;
     this.underwaterPost?.dispose();
@@ -2733,16 +2928,15 @@ export class Island3DEngine {
         foam: this.oceanProcTextures?.foam ?? null,
         caustics: this.oceanProcTextures?.caustics ?? null,
       });
-      if (mat.uniforms.uHasReflection) {
-        if (this.oceanReflectionRig) {
-          mat.uniforms.uReflectionMap.value = this.oceanReflectionRig.reflectionMap;
-          mat.uniforms.uRefractionMap.value = this.oceanReflectionRig.refractionMap;
-          mat.uniforms.uHasReflection.value = 1;
-          mat.uniforms.uHasRefraction.value = 1;
-        } else {
-          mat.uniforms.uHasReflection.value = 0;
-          mat.uniforms.uHasRefraction.value = 0;
-        }
+      const u = mat.uniforms;
+      if (this.oceanReflectionRig) {
+        if (u.uReflectionMap) u.uReflectionMap.value = this.oceanReflectionRig.reflectionMap;
+        if (u.uRefractionMap) u.uRefractionMap.value = this.oceanReflectionRig.refractionMap;
+        if (u.uHasReflection) u.uHasReflection.value = 1;
+        if (u.uHasRefraction) u.uHasRefraction.value = 1;
+      } else {
+        if (u.uHasReflection) u.uHasReflection.value = 0;
+        if (u.uHasRefraction) u.uHasRefraction.value = 0;
       }
     }
 
@@ -2982,17 +3176,37 @@ export class Island3DEngine {
     // Skill projectiles / melee hit queries use same hostiles as soft-lock
     this.character.setSkillCombatHostiles(() => {
       const playerPos = this.character!.getPosition();
-      const out: Array<{ id: string; position: THREE.Vector3; hpFrac?: number }> = [];
+      const out: Array<{
+        id: string;
+        position: THREE.Vector3;
+        hpFrac?: number;
+        stun?: (sec: number) => void;
+      }> = [];
       if (this.creatures) {
         for (const t of this.creatures.listSoftLockTargets(playerPos, 48)) {
           out.push({
             id: t.id,
             position: t.position.clone(),
             hpFrac: t.maxHp ? t.hp / t.maxHp : undefined,
+            stun: (sec) => this.creatures?.applyStun(t.id, sec),
           });
         }
       }
       return out;
+    });
+    this.character.setSkillCombatFriendlies(() => {
+      const out: Array<{ id: string; name?: string; position: THREE.Vector3; hpFrac?: number }> = [];
+      if (this.allyManager) {
+        for (const a of this.allyManager.getLiving()) {
+          out.push({
+            id: a.id,
+            name: a.name,
+            position: a.model.position.clone(),
+            hpFrac: a.stats.maxHp ? a.hp / a.stats.maxHp : 1,
+          });
+        }
+      }
+      return out.slice(0, 3);
     });
 
     void this.connectPlayModeBridge();
@@ -3072,6 +3286,7 @@ export class Island3DEngine {
     });
     this.character.setEntryLocked(false);
     this.character.setWorldFxBus?.(this.worldFx);
+    if (this.physics) this.character.attachRapierCct(this.physics);
 
     console.log(
       `[Island3D] Hero on board cell ${cell.label} @ (${startPos.x.toFixed(1)}, ${startPos.y.toFixed(1)}, ${startPos.z.toFixed(1)})`,
@@ -3247,6 +3462,249 @@ export class Island3DEngine {
     this.harvestDrops = updateHarvestDrops(this.harvestDrops, dt, this.scene);
   }
 
+  /**
+   * Playable lava Caesar lab: ember volcanic room, 50% gravity, explorer mesh,
+   * tank/healer/dps allies, combat timer events.
+   */
+  public async startLavaCaesarLab(): Promise<void> {
+    const { LAVA_CAESAR_LOAD, LAVA_CAESAR_KIT } = await import(
+      '@shared/definitions/lavaCaesarBossFight'
+    );
+    const { VOLCANIC_BOSS_ARENA } = await import(
+      '@shared/definitions/floatingIslandBossAssets'
+    );
+    const { LavaCaesarPartyBrain } = await import('../combat/LavaCaesarPartyBrain');
+    this.ensureBossRooms();
+    for (let i = 0; i < 50 && !this.bossRooms; i++) {
+      await new Promise((r) => setTimeout(r, 80));
+    }
+    const pos = this.character?.model.position;
+    if (!pos || !this.bossRooms) {
+      console.warn('[LavaLab] no character or boss room');
+      return;
+    }
+    const ok = this.bossRooms.enter(pos, 'event_island_portal', VOLCANIC_BOSS_ARENA.id);
+    if (!ok) {
+      await new Promise((r) => setTimeout(r, 400));
+      this.bossRooms.enter(pos, 'event_island_portal', VOLCANIC_BOSS_ARENA.id);
+    }
+    try {
+      await this.character?.loadModel(LAVA_CAESAR_LOAD.explorer[0]);
+    } catch (e) {
+      console.warn('[LavaLab] explorer load failed — keeping current mesh', e);
+    }
+    this.lavaParty = new LavaCaesarPartyBrain();
+    const labAllies: import('../ai/AllyController').AllyController[] = [];
+    await new Promise((r) => setTimeout(r, 700));
+    const mesh = this.character?.model;
+    if (this.scene && mesh) {
+      const { AllyController } = await import('../ai/AllyController');
+      const { TerrainNavMesh } = await import('../navigation/TerrainNavMesh');
+      let nav = this.navMesh;
+      let terrain = this.terrain?.terrainMesh;
+      if (!nav || !terrain) {
+        const dummy = new THREE.Mesh(new THREE.PlaneGeometry(90, 90));
+        dummy.rotation.x = -Math.PI / 2;
+        dummy.position.copy(pos);
+        dummy.updateMatrixWorld(true);
+        terrain = dummy;
+        nav = new TerrainNavMesh(dummy, [['plains' as any]], 1, 1, 90, 90, {
+          bakePathfinding: false,
+          cellSize: 6,
+          zoneId: 'lava_caesar_lab',
+        });
+      }
+      if (nav && terrain) {
+        const roles = ['tank', 'healer', 'dps'] as const;
+        const boss = this.bossRooms.largeBoss;
+        for (let i = 0; i < 3; i++) {
+          const slot = boss?.loadSlotWorld(i + 1) ?? pos.clone().add(new THREE.Vector3((i - 1) * 3, 0, 2));
+          const ally = new AllyController(
+            {
+              id: `lava_${roles[i]}`,
+              name: roles[i]!.toUpperCase(),
+              position: slot,
+              stats: {
+                maxHp: roles[i] === 'tank' ? 220 : roles[i] === 'healer' ? 140 : 160,
+                damage: roles[i] === 'dps' ? 28 : 16,
+                attackRange: 2.6,
+                attackCooldown: 1.4,
+                moveSpeed: 4.8,
+                aggroRadius: 22,
+                followDistance: 3.2,
+              },
+            },
+            nav,
+            terrain,
+            this.scene,
+          );
+          ally.onAttack = (t, dmg) => {
+            this.bossRooms?.tryHitBoss(t.position, dmg);
+          };
+          this.lavaParty.attach(ally, roles[i]!);
+          labAllies.push(ally);
+        }
+      }
+    }
+    this.onUpdate((dt) => {
+      const snap = this.bossRooms?.largeBoss?.getLavaSnapshot();
+      const p = this.character?.model.position;
+      if (snap && p && this.lavaParty) {
+        this.lavaParty.tick(dt, p, {
+          ...snap,
+          minions: snap.minions,
+        });
+        for (const a of labAllies) a.update(dt, p, snap.minions);
+      }
+      try {
+        window.dispatchEvent(
+          new CustomEvent('grudge:lava-caesar-lab', {
+            detail: {
+              timer: snap?.combatT ?? 0,
+              hp: snap?.bossHpRatio ?? 1,
+              state: snap?.bossState ?? 'idle',
+              gravity: LAVA_CAESAR_KIT.gravityScale,
+            },
+          }),
+        );
+      } catch {
+        /* */
+      }
+    });
+    void LAVA_CAESAR_KIT;
+  }
+
+  /** Dock + atoll raft lab — scene (9), hatchet logs, one-log raft. */
+  public async startDockRaftLab(): Promise<void> {
+    const { DockRaftLabSystem } = await import('../zone/DockRaftLabSystem');
+    const { FIREWOOD_CHOP_ONE_LOG } = await import('@shared/definitions/firewoodChop');
+    const { DOCK_RAFT_ITEM } = await import('@shared/definitions/dockRaftTestMap');
+    this.ensureFirewoodChop();
+    this.firewoodChop?.setConfig(FIREWOOD_CHOP_ONE_LOG);
+    for (let i = 0; i < 40 && !this.physics; i++) {
+      await new Promise((r) => setTimeout(r, 80));
+    }
+    this.dockRaftLab = new DockRaftLabSystem({
+      scene: this.scene,
+      physics: this.physics,
+      addTree: (t) => {
+        this.trees.push(t);
+      },
+    });
+    const ok = await this.dockRaftLab.boot();
+    if (!ok) return;
+    const spawn = this.dockRaftLab.spawnPoint();
+    if (this.character) {
+      this.character.model.position.copy(spawn);
+      this.character.setGroundSampler((x, z) => {
+        const y = this.dockRaftLab?.play?.sampleHeight(x, z);
+        if (y != null) return y;
+        return this.zoneGroundSampler?.(x, z) ?? null;
+      });
+    }
+    void this.enterHarvestMode();
+    const origHarvest = this.config.onHarvest;
+    this.config.onHarvest = (ev) => {
+      const amt = (ev as { amount?: number }).amount;
+      if (typeof amt === 'number' && amt > 0) {
+        this.adjustItem(DOCK_RAFT_ITEM.log, amt);
+      }
+      origHarvest?.(ev);
+    };
+    const onKey = (e: KeyboardEvent) => {
+      if (e.repeat || e.code !== 'KeyE') return;
+      const p = this.character?.model.position;
+      if (!p || !this.dockRaftLab) return;
+      const wood = this.getMergedInventory()[DOCK_RAFT_ITEM.log] ?? 0;
+      const r = this.dockRaftLab.tryPlaceLog(p, wood);
+      if (r.placed) this.adjustItem(DOCK_RAFT_ITEM.log, -1);
+    };
+    window.addEventListener('keydown', onKey);
+    this.onUpdate(() => {
+      const wood = this.getMergedInventory()[DOCK_RAFT_ITEM.log] ?? 0;
+      try {
+        window.dispatchEvent(
+          new CustomEvent('grudge:dock-raft-lab', {
+            detail: this.dockRaftLab?.snapshot(wood),
+          }),
+        );
+      } catch {
+        /* */
+      }
+    });
+  }
+
+  /** Hoth / woods / desert / lava instance maps (preload sector room). */
+  private ensureBossRooms(): void {
+    if (this.bossRooms || !this.scene) return;
+    const sectorId = this.config.sectorId || '';
+    try {
+      this.bossRooms = new BossRoomInstanceSystem({
+        scene: this.scene,
+        sectorId,
+        worldFx: this.worldFx,
+        physics: this.physics,
+        cb: {
+          onEnter: (roomId, bossId, play) => {
+            console.info(`[BossRoom] enter ${roomId} boss=${bossId}`, play?.layerCounts);
+            this.character?.setGroundSampler((x, z) => {
+              const y = this.bossRooms?.sampleHeight(x, z);
+              if (y != null) return y;
+              return this.zoneGroundSampler?.(x, z) ?? null;
+            });
+            if (roomId === 'volcanic_boss_arena' && this.character) {
+              this._savedGravity = this.character.physics.gravity;
+              this.character.physics.gravity = this._savedGravity * 0.5;
+            }
+          },
+          onExit: (roomId) => {
+            console.info(`[BossRoom] exit ${roomId}`);
+            this.character?.setGroundSampler(this.zoneGroundSampler);
+            if (this.character && this._savedGravity != null) {
+              this.character.physics.gravity = this._savedGravity;
+              this._savedGravity = null;
+            }
+            void roomId;
+          },
+          onBossDeath: (bossId) => {
+            try {
+              window.dispatchEvent(
+                new CustomEvent('grudge:boss-room', {
+                  detail: { type: 'death', bossId },
+                }),
+              );
+            } catch {
+              /* */
+            }
+          },
+          onPlayerHit: (hit) => {
+            this.applyBossHitToPlayer(hit);
+            try {
+              window.dispatchEvent(
+                new CustomEvent('grudge:boss-room', {
+                  detail: { type: 'hit', ...hit },
+                }),
+              );
+            } catch {
+              /* */
+            }
+          },
+          onPrompt: (msg) => {
+            try {
+              window.dispatchEvent(
+                new CustomEvent('grudge:boss-room', { detail: { prompt: msg } }),
+              );
+            } catch {
+              /* */
+            }
+          },
+        },
+      });
+    } catch (err) {
+      console.warn('[Island3D] BossRoomInstanceSystem failed:', err);
+    }
+  }
+
   /** Ensure shared PvE boss chamber (home mountain door + Warlords doors). */
   private ensurePveBossInstance(): void {
     if (this.pveBossInstance || !this.scene) return;
@@ -3300,6 +3758,18 @@ export class Island3DEngine {
       | 'home_island_mine',
   ): boolean {
     if (!this.character) return false;
+    const sectorId = this.config.sectorId || '';
+    const instance = pickBossRoomInstance({ sectorId, dungeonId, dungeonName });
+    if (instance) {
+      this.ensureBossRooms();
+      return (
+        this.bossRooms?.enter(
+          this.character.model.position,
+          'random_dungeon_portal',
+          instance.id,
+        ) ?? false
+      );
+    }
     this.ensurePveBossInstance();
     return (
       this.pveBossInstance?.enter(this.character.model.position, {
@@ -3348,6 +3818,9 @@ export class Island3DEngine {
         /electric/i.test(hit.kind) ? 'lightning' : 'fire',
         response.impactScale,
       );
+      if (/slam|stomp|shockwave|meteor|rock/i.test(hit.kind) || response.impactScale >= 2.0) {
+        this.worldFx?.groundSlamBreak(target.clone());
+      }
     }
   }
 
@@ -3355,7 +3828,7 @@ export class Island3DEngine {
   private ensureFirewoodChop(): void {
     if (this.firewoodChop) return;
     if (!this.scene) return;
-    this.pinataHarvest = new PinataHarvestBreakSystem(this.scene, null);
+    this.pinataHarvest = new PinataHarvestBreakSystem(this.scene, this.physics);
     this.firewoodChop = new FirewoodChopSystem({
       scene: this.scene,
       pinata: this.pinataHarvest,
@@ -3413,6 +3886,40 @@ export class Island3DEngine {
           }
         },
       },
+    });
+  }
+
+  /**
+   * One harvest swing: pickaxe/hand IK at the ray hit, then pinata chip/shatter.
+   * Reuses PinataHarvestBreak + CharacterController3D — not a second harvest world.
+   */
+  private strikeHarvestImpact(
+    nodeClass: HarvestNodeClass,
+    target: THREE.Object3D,
+    impact: THREE.Vector3,
+    opts: { depleted: boolean; scale?: number; nodeId?: string; hitIndex?: number },
+  ): void {
+    this.ensureFirewoodChop();
+    const nodeId =
+      opts.nodeId ||
+      (typeof target.userData?.harvestNodeId === 'string'
+        ? target.userData.harvestNodeId
+        : target.uuid);
+    this.character?.pulseHarvestHandIk(impact, nodeId);
+    this.character?.playHarvestSwing();
+    const origin = this.character?.model.position ?? this.camera.position;
+    const impactDir = new THREE.Vector3(
+      impact.x - origin.x,
+      0.12,
+      impact.z - origin.z,
+    );
+    if (impactDir.lengthSq() < 1e-6) impactDir.set(0, 0.2, 1);
+    else impactDir.normalize();
+    this.pinataHarvest?.breakNode(nodeClass, target, {
+      mode: opts.depleted ? 'shatter' : 'chip',
+      impactPoint: impact,
+      impactDir,
+      scale: opts.scale ?? 1,
     });
   }
 
@@ -3723,7 +4230,8 @@ export class Island3DEngine {
     }
     const sampleY = (x: number, z: number) => {
       if (this.terrain?.terrainMesh) {
-        return getTerrainHeightAt(this.terrain.terrainMesh, x, z);
+        const height = getTerrainHeightAt(this.terrain.terrainMesh, x, z);
+        if (height !== null && Number.isFinite(height)) return height;
       }
       const lobby = this.sampleLobbyGroundHeight(x, z);
       return lobby ?? 0;
@@ -4360,6 +4868,19 @@ export class Island3DEngine {
         return true;
       }
     }
+    const nodeId = `${ready.plot.id}:${ready.cell.index}`;
+    const impact = ready.worldPos.clone();
+    if (ready.cell.mesh) {
+      this.strikeHarvestImpact('flower', ready.cell.mesh, impact, {
+        depleted: true,
+        scale: 1,
+        nodeId,
+        hitIndex: 0,
+      });
+    } else {
+      this.character?.pulseHarvestHandIk(impact, nodeId);
+      this.character?.playHarvestSwing();
+    }
     const ev = this.farmPlots.harvestCell(ready.plot, ready.cell);
     return !!ev;
   }
@@ -4516,17 +5037,25 @@ export class Island3DEngine {
           result &&
           (selectedId === 'camp_bench_upgrade' ||
             selectedId === 'camp_storage_upgrade' ||
-            selectedId === 'camp_tower_upgrade')
+            selectedId === 'camp_tower_upgrade' ||
+            selectedId === 'camp_flag' ||
+            selectedId === 'camp_fire' ||
+            selectedId === 'flag_totem' ||
+            selectedId === 'bw_campfire')
         ) {
           const props = this.building.getAllProps();
           const last = props.find((p) => p.id === result.id);
-          const map: Record<string, 'camp_bench' | 'camp_storage' | 'camp_tower'> = {
+          const map: Record<string, string> = {
             camp_bench_upgrade: 'camp_bench',
             camp_storage_upgrade: 'camp_storage',
             camp_tower_upgrade: 'camp_tower',
+            camp_flag: 'camp_flag',
+            flag_totem: 'camp_flag',
+            camp_fire: 'camp_fire',
+            bw_campfire: 'camp_fire',
           };
           if (last && selectedId && map[selectedId]) {
-            void this.upgradeNearestCamp(last.position.x, last.position.z, map[selectedId]);
+            void this.placeCampUpgrade(map[selectedId]);
           }
         }
         return;
@@ -4573,11 +5102,9 @@ export class Island3DEngine {
       const hitDmgBoss = 45;
       const hitsBoss = this.raycaster.intersectObjects(
         [
-          ...(this.bossRooms?.largeBoss ? [this.bossRooms.largeBoss.root] : []),
-          ...(this.pveBossInstance?.largeBoss
-            ? [this.pveBossInstance.largeBoss.root]
-            : []),
-          ...this.arenaBosses.map((b) => b.root),
+          ...(this.bossRooms?.largeBoss?.getHitObjects() ?? []),
+          ...(this.pveBossInstance?.largeBoss?.getHitObjects() ?? []),
+          ...this.arenaBosses.flatMap((b) => b.getHitObjects()),
         ],
         true,
       );
@@ -4648,8 +5175,11 @@ export class Island3DEngine {
       const impact = hits[0]!.point;
       const playerPos =
         this.character?.model.position ?? this.camera.position;
+      this.character?.pulseHarvestHandIk(impact, tree.nodeId);
+      this.character?.playHarvestSwing();
 
       if (this.firewoodChop && standing) {
+        this.character?.pulseHarvestAxeIK(impact);
         this.firewoodChop.strikeStanding(tree, impact, playerPos);
         if (tree.fallPhase === 'falling') {
           markDepleted(tree as any, 'tree', false);
@@ -4657,6 +5187,7 @@ export class Island3DEngine {
         return;
       }
       if (this.firewoodChop && downed) {
+        this.character?.pulseHarvestAxeIK(impact);
         const facing =
           this.character?.model.rotation.y ??
           this.camera.rotation.y ??
@@ -4687,7 +5218,7 @@ export class Island3DEngine {
       return;
     }
 
-    // Check rock hits
+    // Check rock hits — pinata chip at IK point; leftover core stays visible
     for (const rock of this.rocks) {
       if (!isHarvestable(rock as any)) continue;
       const hits = this.raycaster.intersectObject(rock.group, true);
@@ -4695,11 +5226,21 @@ export class Island3DEngine {
         rock.health--;
         rock.chipping = true;
         rock.chipTime = 0;
-        const scale = Math.max(0.3, rock.health / rock.maxHealth);
+        const depleted = rock.health <= 0;
+        const scale = depleted
+          ? 0.32
+          : Math.max(0.32, rock.health / rock.maxHealth);
         rock.group.scale.setScalar(rock.baseScale * scale);
+        const kind: HarvestNodeClass = rock.oreVariant ? 'ore' : 'rock';
+        this.strikeHarvestImpact(kind, rock.group, hits[0]!.point, {
+          depleted,
+          scale: rock.baseScale,
+          nodeId: rock.nodeId,
+          hitIndex: Math.max(0, rock.maxHealth - rock.health),
+        });
         void this.spawnRockDebris(rock, 1);
-        if (rock.health <= 0) {
-          markDepleted(rock as any, 'rock', true);
+        if (depleted) {
+          markDepleted(rock as any, 'rock', false);
           void this.emitHarvestDrops(
             rock.group.position.clone(),
             rock.oreVariant ? 'gold' : 'debris',
@@ -4719,12 +5260,19 @@ export class Island3DEngine {
         crystal.health--;
         crystal.chipping = true;
         crystal.chipTime = 0;
+        const depleted = crystal.health <= 0;
         const scale = Math.max(0.35, crystal.health / crystal.maxHealth);
         crystal.group.scale.setScalar(crystal.baseScale * scale);
+        this.strikeHarvestImpact('crystal', crystal.group, hits[0]!.point, {
+          depleted,
+          scale: crystal.baseScale,
+          nodeId: crystal.nodeId,
+          hitIndex: Math.max(0, crystal.maxHealth - crystal.health),
+        });
         void spawnResourceDrops(this.scene, crystal.group.position, 'gem', 1).then((d) => {
           this.harvestDrops.push(...d);
         });
-        if (crystal.health <= 0) {
+        if (depleted) {
           markDepleted(crystal as any, 'crystal', true);
           void this.emitHarvestDrops(
             crystal.group.position.clone(),
@@ -4743,9 +5291,16 @@ export class Island3DEngine {
       const hits = this.raycaster.intersectObject(hemp.group, true);
       if (hits.length > 0) {
         hemp.health--;
+        const depleted = hemp.health <= 0;
         const scale = Math.max(0.4, hemp.health / hemp.maxHealth);
         hemp.group.scale.setScalar(hemp.baseScale * scale);
-        if (hemp.health <= 0) {
+        this.strikeHarvestImpact('hemp', hemp.group, hits[0]!.point, {
+          depleted,
+          scale: hemp.baseScale,
+          nodeId: hemp.nodeId,
+          hitIndex: Math.max(0, hemp.maxHealth - hemp.health),
+        });
+        if (depleted) {
           markDepleted(hemp as any, 'hemp', true);
           void this.emitHarvestDrops(hemp.group.position.clone(), 'debris', 2, hemp.nodeId, 'herbalism');
         }
@@ -4758,9 +5313,16 @@ export class Island3DEngine {
       const hits = this.raycaster.intersectObject(flower.group, true);
       if (hits.length > 0) {
         flower.health--;
+        const depleted = flower.health <= 0;
         const scale = Math.max(0.4, flower.health / flower.maxHealth);
         flower.group.scale.setScalar(flower.baseScale * scale);
-        if (flower.health <= 0) {
+        this.strikeHarvestImpact('flower', flower.group, hits[0]!.point, {
+          depleted,
+          scale: flower.baseScale,
+          nodeId: flower.nodeId,
+          hitIndex: Math.max(0, flower.maxHealth - flower.health),
+        });
+        if (depleted) {
           markDepleted(flower as any, 'flower', true);
           void this.emitHarvestDrops(flower.group.position.clone(), 'debris', 2, flower.nodeId, 'herbalism');
         }
@@ -4773,12 +5335,19 @@ export class Island3DEngine {
       const hits = this.raycaster.intersectObject(scrap.group, true);
       if (hits.length > 0) {
         scrap.health--;
+        const depleted = scrap.health <= 0;
         const scale = Math.max(0.4, scrap.health / scrap.maxHealth);
         scrap.group.scale.setScalar(scrap.baseScale * scale);
+        this.strikeHarvestImpact('scrap', scrap.group, hits[0]!.point, {
+          depleted,
+          scale: scrap.baseScale,
+          nodeId: scrap.nodeId,
+          hitIndex: Math.max(0, scrap.maxHealth - scrap.health),
+        });
         void spawnResourceDrops(this.scene, scrap.group.position, 'debris', 1).then((d) => {
           this.harvestDrops.push(...d);
         });
-        if (scrap.health <= 0) {
+        if (depleted) {
           markDepleted(scrap as any, 'scrap', true);
           void this.emitHarvestDrops(scrap.group.position.clone(), 'debris', 3, scrap.nodeId, 'mining');
         }

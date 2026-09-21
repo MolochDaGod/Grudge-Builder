@@ -46,6 +46,7 @@ const APPLY_ALLOWLIST = new Set([
   "006_character_grudge_code.sql",
   "007_player_ships.sql",
   "009_users_discord_puter_identity.sql",
+  "041_account_learned_recipes.sql",
 ]);
 
 const client = new pg.Client({

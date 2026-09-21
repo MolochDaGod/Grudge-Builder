@@ -154,7 +154,7 @@ function setFleetCookie(name: string, value: string, maxAge = COOKIE_MAX_AGE): v
 
 /** Claim Railway session from cookie or refresh JWT into local fleet keys. */
 export async function ensureFleetSessionClaim(): Promise<boolean> {
-  if (typeof window === "undefined") return false;
+  if (typeof window === "undefined" || isAuthRejected()) return false;
   if (isAuthenticated()) {
     // Refresh profile / ensure cookie mirror
     try {
@@ -178,32 +178,8 @@ export async function ensureFleetSessionClaim(): Promise<boolean> {
     }
     return true;
   }
-  try {
-    const res = await fetch(`${API_BASE}/auth/session/claim`, {
-      method: "POST",
-      credentials: "include",
-      headers: { "Content-Type": "application/json" },
-      body: "{}",
-    });
-    if (!res.ok) return false;
-    const data = await res.json();
-    const token = data.sessionToken || data.token || data.access_token;
-    if (!token) return false;
-    setToken(token);
-    if (data.grudgeId) {
-      localStorage.setItem("grudge_id", data.grudgeId);
-      localStorage.setItem("grudge_account_id", data.grudgeId);
-    }
-    if (data.username || data.displayName) {
-      localStorage.setItem("grudge_username", data.username || data.displayName);
-    }
-    window.dispatchEvent(
-      new CustomEvent("grudge:auth:ready", { detail: { source: "session_claim" } }),
-    );
-    return true;
-  } catch {
-    return false;
-  }
+  // Guest / short cookie: do not POST claim (401 spam on labs / public pages).
+  return false;
 }
 
 (function pickupSsoToken() {
@@ -292,6 +268,7 @@ let authRejectedThisLoad = false;
 
 export function markAuthRejected(): void {
   authRejectedThisLoad = true;
+  if (typeof window !== 'undefined') window.dispatchEvent(new Event('grudge:auth:rejected'));
 }
 
 export function isAuthRejected(): boolean {
@@ -671,6 +648,7 @@ async function getPhantomSDK(): Promise<{
     const { BrowserSDK, AddressType } = await import("@phantom/browser-sdk");
     _phantomSdk = new BrowserSDK({
       providerType: "embedded",
+      embeddedWalletType: "user-wallet",
       addressTypes: [AddressType.solana],
       appId: phantomAppId(),
       authOptions: {
@@ -780,6 +758,7 @@ const EMPTY_WALLET_OVERVIEW: WalletOverview = {
 };
 
 export async function fetchWalletOverview(): Promise<WalletOverview> {
+  if (!getToken()) return { ...EMPTY_WALLET_OVERVIEW };
   const res = await fetch(`${API_BASE}/wallet/overview`, { headers: authHeaders() });
   // Guest / expired JWT — quiet empty shell (do not throw → no console red on public pages)
   if (res.status === 401 || res.status === 403) return { ...EMPTY_WALLET_OVERVIEW };
@@ -798,6 +777,7 @@ async function connectSolanaForLink(provider: "phantom" | "solflare"): Promise<s
     const sdk = await getPhantomSDK();
     const { addresses } = await sdk.connect();
     const sol = addresses?.find((a: { type?: string }) => a.type === "solana");
+    const sol = addresses?.find((a) => typeof a !== "string" && a.type === "solana");
     const addr =
       typeof sol === "string"
         ? sol
@@ -975,33 +955,38 @@ export async function loginWithPuterSDK(): Promise<AuthResponse> {
 
 // ── Token verification ───────────────────────────────────────────────
 
-export async function verifyToken(): Promise<{
-  valid: boolean;
-  grudgeId?: string;
-  username?: string;
-}> {
+type TokenVerification = { valid: boolean; grudgeId?: string; username?: string };
+let verification: { token: string; until: number; promise: Promise<TokenVerification> } | null = null;
+
+/** Local token presence is a hint; only the identity service verifies a session. */
+export async function verifyToken(): Promise<TokenVerification> {
   const token = getToken();
   if (!token) return { valid: false };
-
-  // Client-side only validation (No separate backend). If it's a JWT, check expiry.
-  try {
-    const parts = token.split(".");
-    if (parts.length === 3) {
-      const payload = JSON.parse(atob(parts[1]));
-      if (payload.exp && payload.exp * 1000 < Date.now()) {
-        console.warn("[Auth] Token expired, logging out");
-        logout();
-        return { valid: false };
-      }
+  if (verification?.token === token && verification.until > Date.now()) return verification.promise;
+  const promise = (async (): Promise<TokenVerification> => {
+    const response = await fetch('/api/auth/verify', {
+      headers: { Authorization: `Bearer ${token}` },
+      credentials: 'include',
+      signal: AbortSignal.timeout(10000),
+    });
+    if (response.status === 401 || response.status === 403) {
+      if (getToken() === token) markAuthRejected();
+      return { valid: false };
     }
-  } catch {
-    // Not a JWT — treat any non-empty token as valid (Puter session tokens aren't JWTs)
-  }
-
-  // Token exists and isn't expired — valid
-  const grudgeId = localStorage.getItem("grudge_id") || undefined;
-  const username = localStorage.getItem("grudge_username") || undefined;
-  return { valid: true, grudgeId, username };
+    if (!response.ok) throw new Error(`Account verification failed (HTTP ${response.status})`);
+    const result = await response.json();
+    if (getToken() !== token) return { valid: false };
+    if (result.valid !== true) {
+      markAuthRejected();
+      return { valid: false };
+    }
+    if (result.grudgeId) localStorage.setItem('grudge_id', result.grudgeId);
+    if (result.username) localStorage.setItem('grudge_username', result.username);
+    return { valid: true, grudgeId: result.grudgeId, username: result.username };
+  })();
+  verification = { token, until: Date.now() + 60000, promise };
+  try { return await promise; }
+  catch (error) { if (verification?.promise === promise) verification = null; throw error; }
 }
 
 // ── Periodic token re-verification (every 5 minutes) ─────────────────
@@ -1013,7 +998,9 @@ export function startTokenMonitor(): void {
   if (_tokenCheckInterval) return;
   _tokenCheckInterval = setInterval(async () => {
     if (!getToken()) return;
-    const result = await verifyToken();
+    let result: TokenVerification;
+    try { result = await verifyToken(); }
+    catch { return; } // Transient service failure must not erase a valid session.
     if (!result.valid && getToken()) {
       // Token was present but invalid — it was revoked or expired
       console.warn("[Auth] Session expired, clearing");

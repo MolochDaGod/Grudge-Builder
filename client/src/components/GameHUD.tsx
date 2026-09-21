@@ -52,7 +52,7 @@ interface ChatMsg {
   time: number;
 }
 
-const HOTBAR_SKILLS = [
+const HOTBAR_SKILLS: Array<{ slot: number; key: string; label: string; color: string; icon?: string }> = [
   { slot: 1, key: '1', label: 'Skill 1', color: '#ff6b57' },
   { slot: 2, key: '2', label: 'Skill 2', color: '#6aa9ff' },
   { slot: 3, key: '3', label: 'Skill 3', color: '#6bdc8b' },

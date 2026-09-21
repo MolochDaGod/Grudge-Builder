@@ -76,6 +76,8 @@ export function useCharacters(): UseCharactersReturn {
     } catch (err) {
       const msg = err instanceof Error ? err.message : 'Failed to load characters';
       setError(msg);
+      setCharacters([]);
+      setActiveIdState(null);
       // Soft: stale JWT is common on public pages
       if (!/401|403|Unauthorized/i.test(msg)) {
         console.warn('[useCharacters]', msg);
@@ -110,7 +112,13 @@ export function useCharacters(): UseCharactersReturn {
       }
     };
     window.addEventListener('storage', onStorage);
-    return () => window.removeEventListener('storage', onStorage);
+    window.addEventListener('grudge:auth:ready', fetchCharacters);
+    window.addEventListener('grudge:auth:rejected', fetchCharacters);
+    return () => {
+      window.removeEventListener('storage', onStorage);
+      window.removeEventListener('grudge:auth:ready', fetchCharacters);
+      window.removeEventListener('grudge:auth:rejected', fetchCharacters);
+    };
   }, [fetchCharacters]);
 
   const activeCharacter = characters.find(c => c.id === activeId) ?? null;

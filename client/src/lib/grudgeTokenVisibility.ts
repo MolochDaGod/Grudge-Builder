@@ -18,6 +18,8 @@ const HIDDEN_PREFIXES = [
   "/rts-grudge",
   "/sailing",
   "/island-3d",
+  "/lava-caesar-lab",
+  "/dock-raft-lab",
   "/editor",
   "/forge",
   "/scene",

@@ -83,7 +83,9 @@ const JWT_SECRET_CANDIDATES = [
   process.env.SESSION_SECRET,
   process.env.JWT_SECRET,
   process.env.GRUDGE_JWT_SECRET,
-].filter((s): s is string => !!s && s.length > 0);
+]
+  .map((s) => s?.trim())
+  .filter((s): s is string => !!s && s.length > 0);
 
 const JWT_SECRET = JWT_SECRET_CANDIDATES[0] || "";
 
@@ -366,7 +368,7 @@ export async function registerRoutes(
 
   // AI router (gruda-ai-router) — Legion first, Puter fallback, page logging, cost tiers
   // Protects grudgewarlords.com/craft and all direct puter.ai.chat callers
-  import aiRouter from "./ai/gruda-ai-router/server/ai-router.mjs";
+  const { default: aiRouter } = await import("./ai/gruda-ai-router/server/ai-router.mjs");
   app.use("/api/ai", aiRouter);
 
   // Local huge medieval battle GLB (dev) — 517MB on D: drive
@@ -1447,13 +1449,35 @@ export async function registerRoutes(
       const account = await storage.getOrCreateAccountForUser(userId);
       
       // Sanitize payload - only allow safe fields to be updated (not userId, id)
-      const { displayName, gold, premiumCurrency } = req.body;
+      const { displayName, username, gold, premiumCurrency } = req.body;
       const safeUpdates: Record<string, unknown> = {};
-      if (displayName !== undefined) safeUpdates.displayName = displayName;
+      const handle =
+        typeof username === "string" && username.trim()
+          ? username.trim().slice(0, 48)
+          : typeof displayName === "string" && displayName.trim()
+            ? displayName.trim().slice(0, 48)
+            : undefined;
+      if (handle !== undefined) safeUpdates.displayName = handle;
+      if (displayName !== undefined && handle === undefined) safeUpdates.displayName = displayName;
       if (gold !== undefined) safeUpdates.gold = gold;
       if (premiumCurrency !== undefined) safeUpdates.premiumCurrency = premiumCurrency;
-      
+
       const updated = await storage.updateAccount(account.id, safeUpdates);
+      if (handle) {
+        try {
+          const { stampPuterLink, fetchIdentityUserById } = await import("./lib/identityLink");
+          const identity = await fetchIdentityUserById(userId);
+          if (identity?.puter_user_id) {
+            await stampPuterLink(userId, {
+              id: identity.puter_user_id,
+              username: handle,
+              email: identity.puter_email || identity.email,
+            });
+          }
+        } catch {
+          /* puter_username column optional */
+        }
+      }
       res.json(updated);
     } catch (error) {
       console.error("Error updating account:", error);
@@ -1635,6 +1659,92 @@ export async function registerRoutes(
   });
 
   // ============================================
+  // ACCOUNT RECIPE BOOK (learned / hidden)
+  // Knowledge is account-scoped. Server bans live on the world, not here.
+  // ============================================
+
+  const recipeIdSchema = z
+    .string()
+    .trim()
+    .regex(/^[a-z0-9_]{2,64}$/i, "invalid recipe id")
+    .transform((s) => s.toLowerCase());
+
+  function sanitizeRecipeIds(raw: unknown, cap = 256): string[] {
+    if (!Array.isArray(raw)) return [];
+    const out: string[] = [];
+    const seen = new Set<string>();
+    for (const item of raw) {
+      const parsed = recipeIdSchema.safeParse(item);
+      if (!parsed.success) continue;
+      if (seen.has(parsed.data)) continue;
+      seen.add(parsed.data);
+      out.push(parsed.data);
+      if (out.length >= cap) break;
+    }
+    return out;
+  }
+
+  app.get("/api/account/recipes", requireAuth, async (req, res) => {
+    try {
+      const userId = getUserId(req);
+      const account = await storage.getOrCreateAccountForUser(userId);
+      const recipeIds = await storage.getAccountLearnedRecipes(account.id);
+      res.json({
+        accountId: account.id,
+        recipeIds,
+        scope: "account",
+      });
+    } catch (error) {
+      console.error("Error fetching account recipes:", error);
+      res.status(500).json({ error: "Failed to fetch recipes" });
+    }
+  });
+
+  app.post("/api/account/recipes", requireAuth, async (req, res) => {
+    try {
+      const userId = getUserId(req);
+      const account = await storage.getOrCreateAccountForUser(userId);
+      const one = req.body?.recipeId;
+      const many = req.body?.recipeIds;
+      const ids = sanitizeRecipeIds(many ?? (one != null ? [one] : []));
+      if (!ids.length) {
+        return res.status(400).json({ error: "recipeId or recipeIds required" });
+      }
+      const existing = await storage.getAccountLearnedRecipes(account.id);
+      if (existing.length + ids.filter((id) => !existing.includes(id)).length > 256) {
+        return res.status(400).json({ error: "recipe book is full (256)" });
+      }
+      const recipeIds = await storage.learnAccountRecipes(account.id, ids);
+      res.json({ accountId: account.id, recipeIds, scope: "account" });
+    } catch (error) {
+      console.error("Error learning account recipes:", error);
+      res.status(500).json({ error: "Failed to learn recipes" });
+    }
+  });
+
+  app.post("/api/account/recipes/check", requireAuth, async (req, res) => {
+    try {
+      const userId = getUserId(req);
+      const account = await storage.getOrCreateAccountForUser(userId);
+      const parsed = recipeIdSchema.safeParse(req.body?.recipeId);
+      if (!parsed.success) {
+        return res.status(400).json({ error: "invalid recipeId" });
+      }
+      const recipeIds = await storage.getAccountLearnedRecipes(account.id);
+      const known = recipeIds.includes(parsed.data);
+      res.json({
+        recipeId: parsed.data,
+        known,
+        scope: "account",
+        allowed: known,
+      });
+    } catch (error) {
+      console.error("Error checking account recipe:", error);
+      res.status(500).json({ error: "Failed to check recipe" });
+    }
+  });
+
+  // ============================================
   // HOME ISLAND ROUTES
   // ============================================
 
@@ -1778,7 +1888,7 @@ export async function registerRoutes(
   });
 
   // Get the player's home island (creates one if doesn't exist)
-  app.get("/api/island", async (req, res) => {
+  app.get("/api/island", requireAuth, async (req, res) => {
     try {
       const userId = getUserId(req);
       const account = await storage.getOrCreateAccountForUser(userId);
@@ -1818,7 +1928,7 @@ export async function registerRoutes(
     }
   });
 
-  app.get("/api/island/status", async (req, res) => {
+  app.get("/api/island/status", requireAuth, async (req, res) => {
     try {
       const userId = getUserId(req);
       const account = await storage.getOrCreateAccountForUser(userId);
@@ -6800,7 +6910,7 @@ Also suggest metadata values in this exact JSON format:
   // ==================== Grudge UUID System Routes ====================
 
   // GET /api/uuid/test - Test UUID generation with current time
-  app.get("/api/uuid/test", async (_req, res) => {
+  app.get("/api/uuid/test", requireAuth, async (_req, res) => {
     try {
       const { 
         generateGrudgeUUID, 
@@ -6855,7 +6965,7 @@ Also suggest metadata values in this exact JSON format:
   });
 
   // POST /api/uuid/generate - Generate a UUID for a specific item
-  app.post("/api/uuid/generate", async (req, res) => {
+  app.post("/api/uuid/generate", requireAuth, async (req, res) => {
     try {
       const { slot, tier, itemId } = req.body;
       const { generateGrudgeUUID, parseGrudgeUUID, describeGrudgeUUID } = await import("@shared/grudgeUUID");
@@ -6876,7 +6986,10 @@ Also suggest metadata values in this exact JSON format:
   });
 
   // POST /api/uuid/apply-to-items - Apply Grudge UUIDs to all items in database
-  app.post("/api/uuid/apply-to-items", async (req, res) => {
+  app.post("/api/uuid/apply-to-items", requireAuth, async (req, res) => {
+    if (!isAdmin(req)) {
+      return res.status(403).json({ error: "Admin only" });
+    }
     try {
       const { generateGrudgeUUID, setCounterState } = await import("@shared/grudgeUUID");
       
@@ -6937,7 +7050,10 @@ Also suggest metadata values in this exact JSON format:
   });
 
   // POST /api/uuid/commit - Commit Grudge UUIDs to all items in database
-  app.post("/api/uuid/commit", async (req, res) => {
+  app.post("/api/uuid/commit", requireAuth, async (req, res) => {
+    if (!isAdmin(req)) {
+      return res.status(403).json({ error: "Admin only" });
+    }
     try {
       const { generateGrudgeUUID, setCounterState } = await import("@shared/grudgeUUID");
       
@@ -6998,7 +7114,7 @@ Also suggest metadata values in this exact JSON format:
   // ==================== UUID Ledger Routes ====================
 
   // POST /api/ledger/event - Log a UUID event
-  app.post("/api/ledger/event", async (req, res) => {
+  app.post("/api/ledger/event", requireAuth, async (req, res) => {
     try {
       const { 
         grudgeUuid, 
@@ -7106,7 +7222,7 @@ Also suggest metadata values in this exact JSON format:
   });
 
   // GET /api/ledger/search - Search ledger with filters
-  app.get("/api/ledger/search", async (req, res) => {
+  app.get("/api/ledger/search", requireAuth, async (req, res) => {
     try {
       const { 
         accountId, 
@@ -7141,7 +7257,7 @@ Also suggest metadata values in this exact JSON format:
   });
 
   // GET /api/ledger/account/:accountId - Get all UUIDs for an account
-  app.get("/api/ledger/account/:accountId", async (req, res) => {
+  app.get("/api/ledger/account/:accountId", requireAuth, async (req, res) => {
     try {
       const { accountId } = req.params;
       const { state } = req.query;
@@ -7176,7 +7292,7 @@ Also suggest metadata values in this exact JSON format:
   });
 
   // POST /api/ledger/craft - Handle crafting with UUID validation
-  app.post("/api/ledger/craft", async (req, res) => {
+  app.post("/api/ledger/craft", requireAuth, async (req, res) => {
     try {
       const { 
         accountId, 
@@ -7300,7 +7416,7 @@ Also suggest metadata values in this exact JSON format:
   });
 
   // POST /api/ledger/upgrade - Handle item upgrade with UUID archival
-  app.post("/api/ledger/upgrade", async (req, res) => {
+  app.post("/api/ledger/upgrade", requireAuth, async (req, res) => {
     try {
       const { 
         accountId, 

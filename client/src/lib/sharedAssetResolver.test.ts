@@ -33,6 +33,12 @@ describe('shared @grudge-studio/asset-resolver integration', () => {
     expect(getPackIconForCategory({ weaponType: 'Bow' })).toBe(
       `${CDN}/icons/pack/weapons/Bow_01.png`,
     );
+    expect(resolveIconUrl(null, { category: 'wings' })).toBe(
+      `${CDN}/icons/pack/accessories/Wings_01.png`,
+    );
+    expect(resolveIconUrl(null, { name: 'feathered wings' })).toBe(
+      `${CDN}/icons/pack/accessories/Wings_02.png`,
+    );
   });
 
   it('iconOnError swaps the image src to the fallback icon', () => {

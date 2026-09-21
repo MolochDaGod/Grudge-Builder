@@ -243,9 +243,10 @@ export const CLASS_SKILL_TREES: Record<string, ClassSkillTree> = {
       effects: [
         "On use: cleanse all cleansable debuffs",
         "Absorption / mana shield",
+        "Drops a red (mage) or green (priest) echo totem for 2 minutes. Echoes every matching spell 1s later — not a one-cast drop. One totem at a time; recast 20s CD replaces it. Green: same ally, else lowest-HP if gone / over 90% HP / unique buff already on them",
         "Key: Shift+1 with wand",
       ],
-      cooldown: 45,
+      cooldown: 20,
       manaCost: 20
     },
     tiers: [
@@ -263,6 +264,22 @@ export const CLASS_SKILL_TREES: Record<string, ClassSkillTree> = {
             effects: ["5 missiles", "Cannot miss", "Each deals 15 arcane damage"],
             cooldown: 3,
             manaCost: 15
+          },
+          {
+            id: "staff_stun_totem",
+            name: "Stun Totem",
+            description:
+              "Arcane staff weapon skill. Select a ground AOE. A Freya totem rises from under the zone; a purple burst stuns every enemy inside.",
+            icon: "/icons/misc/ChaosCircle.png",
+            effectType: "active",
+            effects: [
+              "Staff hotbar (default slot 3)",
+              "Ground-target AOE (look + LMB)",
+              "Freya totem rises from the earth",
+              "Purple explosion stuns enemies in the zone 2.5s",
+            ],
+            cooldown: 18,
+            manaCost: 22
           }
         ]
       },

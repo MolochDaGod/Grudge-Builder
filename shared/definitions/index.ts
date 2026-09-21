@@ -41,6 +41,7 @@ export * from "./floatingIslandBossAssets";
 // Prefer: import { VOLCANIC_CLIMB, … } from '@shared/definitions/volcanicClimb' in climb code
 export * from "./firewoodChop";
 export * from "./pipSkullBossFight";
+export * from "./lavaCaesarBossFight";
 export * from "./seedContentContract";
 // valheimStyleHarvest intentionally not re-exported until the module ships.
 export * from "./biomeHarvestAssets";

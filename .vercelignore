@@ -16,7 +16,12 @@ db
 attached_assets
 diabloweb
 puter-vanilla
-docs
+# Markdown SSOT only (repo-root). public/docs is the live Craft Skills page.
+/docs
+!/public/docs/
+!/public/docs/**
+!/client/public/docs/
+!/client/public/docs/**
 migrations
 /public/models/lobby/warlords-lobby/scene.glb
 /public/models/**/*.glb
@@ -54,3 +59,6 @@ foods_export.csv
 
 dist._bak*
 tmp-*
+
+# R2 is the production source for PBR ground maps; do not upload 1.3 GB to Vercel.
+client/public/textures/pbr/ground/**

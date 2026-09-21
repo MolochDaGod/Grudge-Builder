@@ -24,7 +24,11 @@ export type PipBossAttackId =
   | 'sweep_beam'
   | 'whirlwind_arms'
   | 'charge_stomp'
-  | 'weakness_expose';
+  | 'weakness_expose'
+  | 'lava_dive'
+  | 'lava_rise_tornado'
+  | 'spawn_lava_minions'
+  | 'fire_twister';
 
 export interface PipBossAttackDef {
   id: PipBossAttackId;
@@ -87,7 +91,7 @@ export interface PipBossFightConfig {
   /** Damage mult while weak (player DPS up) */
   weakDamageTakenMult: number;
   phases: PipBossPhaseDef[];
-  attacks: Record<PipBossAttackId, PipBossAttackDef>;
+  attacks: Record<string, PipBossAttackDef>;
   /** Hosts: boss room instance, boss_arena nodes, dungeon end */
   hostKinds: Array<'boss_room' | 'boss_arena' | 'dungeon' | 'event_island'>;
 }
@@ -347,6 +351,66 @@ export const PIP_SKULL_BOSS_FIGHT: PipBossFightConfig = {
       rangeM: 0,
       vfx: 'weakness',
       weight: 0,
+    },
+    lava_dive: {
+      id: 'lava_dive',
+      name: 'Lava Dive',
+      telegraphSec: 0.85,
+      activeSec: 1.6,
+      recoverSec: 0.2,
+      cooldownSec: 18,
+      damage: 0,
+      shape: 'none',
+      rangeM: 0,
+      vfx: 'lava_dive',
+      weight: 0,
+    },
+    lava_rise_tornado: {
+      id: 'lava_rise_tornado',
+      name: 'Magma Rise',
+      telegraphSec: 0.7,
+      activeSec: 2.2,
+      recoverSec: 0.4,
+      cooldownSec: 18,
+      damage: 280,
+      shape: 'aoe_ring',
+      rangeM: 5.5,
+      knockdown: true,
+      stunSec: 0.45,
+      knockbackMps: 10,
+      knockUpMps: 6,
+      vfx: 'lava_rise_tornado',
+      weight: 0,
+    },
+    spawn_lava_minions: {
+      id: 'spawn_lava_minions',
+      name: 'Lava Brood',
+      telegraphSec: 0.5,
+      activeSec: 0.8,
+      recoverSec: 0.2,
+      cooldownSec: 22,
+      damage: 0,
+      shape: 'none',
+      rangeM: 0,
+      vfx: 'spawn_lava_minions',
+      weight: 0,
+    },
+    fire_twister: {
+      id: 'fire_twister',
+      name: 'Fire Twister',
+      telegraphSec: 0.9,
+      activeSec: 5.5,
+      recoverSec: 0.7,
+      cooldownSec: 9,
+      damage: 240,
+      shape: 'projectile',
+      rangeM: 28,
+      knockdown: true,
+      stunSec: 0.35,
+      knockbackMps: 9,
+      knockUpMps: 4,
+      vfx: 'fire_twister',
+      weight: 1.35,
     },
   },
 };

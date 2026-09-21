@@ -19,6 +19,7 @@ vi.mock("@/lib/grudgeBackend", () => ({
   getSession: vi.fn(() => null),
   logout: vi.fn(),
   verifyToken: vi.fn(async () => ({ valid: false })),
+  ensureFleetSessionClaim: vi.fn(async () => {}),
 }));
 
 vi.mock("@/lib/grudgeFleet", () => ({
@@ -40,7 +41,7 @@ function AuthConsumer() {
       <span data-testid="authed">{String(auth.isAuthenticated)}</span>
       <span data-testid="user">{auth.user?.username ?? "none"}</span>
       <span data-testid="login-open">{String(auth.loginOpen)}</span>
-      <button data-testid="open" onClick={auth.openLogin}>
+      <button data-testid="open" onClick={() => auth.openLogin()}>
         Open
       </button>
       <button data-testid="sso" onClick={() => auth.redirectToGrudgeIdLogin("/auth/callback")}>

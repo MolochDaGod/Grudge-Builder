@@ -25,23 +25,40 @@ export {
   canonicalSsoReturnOrigin,
 } from "./authReturn";
 
+/** Warlords / Nexus era hosts (grudge.studio + grudgewarlords.com) */
+export {
+  FLEET_AUTH_TOKEN_KEYS as WARLORDS_AUTH_TOKEN_KEYS,
+  FLEET_OPEN_TOKEN_KEY,
+  FLEET_AUTH_TOKEN_READ_FALLBACK,
+} from "./tokenKeys";
+
 /** Warlords era *.grudgewarlords.com product zone */
 export {
   WARLORDS_APEX,
+  WARLORDS_ERA_HOST,
+  WARLORDS_ERA_URL,
   WARLORDS_PLAY_HOST,
   WARLORDS_PLAY_URL,
   WARLORDS_CLIENT_STUDIO,
+  NEXUS_ERA_HOST,
+  NEXUS_ERA_URL,
+  NEXUS_HEROES_INTERIM,
+  GRUDGE_STUDIO_HUB,
   WARLORDS_SUBDOMAINS,
   WARLORDS_HOST_PATH,
   WARLORDS_CRAFT_PATH,
   WARLORDS_CRAFT_URL,
   warlordsPlayOrigin,
   warlordsPlayUrl,
+  nexusPlayOrigin,
+  nexusHeroesUrl,
   warlordsFoundryUrl,
   warlordsDefaultReturnTo,
   warlordsAirshipUrl,
   warlordsZoneUrl,
   isWarlordsPlayHost,
+  isNexusPlayHost,
+  isGrudgeStudioHubHost,
   isStudioPlatformHost,
   type WarlordsSubdomainKey,
 } from "./warlordsDomains";
@@ -62,6 +79,18 @@ export {
   WARLORDS_OCEAN_PATH,
   WARLORDS_LOBBY_PATH,
   WARLORDS_2D_PLAY_PATH,
+  WARLORDS_DUNGEON_ORIGIN,
+  warlordsDungeonPlayUrl,
+  DUNGEON_PREFABS,
+  DUNGEON_CLASS_IDS,
+  DUNGEON_CLASS_LABEL,
+  DUNGEON_FILL,
+  normalizeDungeonClassId,
+  dungeonFillClasses,
+  dungeonAllyRaces,
+  type DungeonClassId,
+  type DungeonAllySlot,
+  type WarlordsDungeonPlayOpts,
   deploymentUrl,
   threeHomeIslandUrl,
   threeOpenWorldUrl,
@@ -82,6 +111,9 @@ export {
   FLEET_AUTH_IMPLEMENTATION,
   FLEET_AUTH_DEPRECATED_API,
   FLEET_AUTH_TOKEN_KEYS,
+  FLEET_AUTH_PROFILE_KEYS,
+  clearFleetAuthTokens,
+  readFleetAuthToken,
   FLEET_AUTH_RETURN_PARAMS,
   FLEET_AUTH_WIRING_GUIDE,
   FLEET_AUTH_PROXY_PATHS,
@@ -117,7 +149,7 @@ export {
 
 export { FLEET_VIDEO_CATALOG, type FleetVideoEntry } from "./videoCatalog";
 
-export { GBUX_TOKEN_ICON, TOME_ICON_PATHS, tomeIconCdnUrl } from "./uiIcons";
+export { GBUX_TOKEN_ICON, GBUX_TOKEN_ICON_PATH, TOME_ICON_PATHS, tomeIconCdnUrl } from "./uiIcons";
 
 export {
   FLEET_FONTS,
@@ -168,6 +200,7 @@ export {
 } from "./uiArt";
 
 export {
+  WARLORDS_PLAY_CONTRACT_VERSION,
   RACE_GRUDGE6,
   RACE_TOON_RTS_PATHS,
   RACE_FBX_PATHS,
@@ -217,3 +250,19 @@ export {
   type MountDef,
   type SiegeDef,
 } from "./vehicles";
+
+/** Warlords MMO host contract — grudgewarlords.com only */
+export {
+  WARLORDS_MMO_HOST,
+  WARLORDS_MMO_CONTRACT,
+  WARLORDS_MMO_ROUTES,
+  WARLORDS_MMO_MAP_FAMILIES,
+  WARLORDS_MMO_CATALOGS,
+  WARLORDS_MMO_KEYS,
+  WARLORDS_MMO_NOT_HOST,
+  CHARACTER_HEIGHT_M,
+  BUILDING_HEIGHT_M,
+  HOME_ISLAND_DIAMETER_M,
+  catalogUrls,
+  isWarlordsMmoPlayPath,
+} from "./warlordsMmoDeploy";

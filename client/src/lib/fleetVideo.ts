@@ -11,12 +11,20 @@ const CATALOG_API =
   import.meta.env.VITE_VIDEO_CATALOG_API ?? '/api/videos/catalog';
 
 import { FLEET_VIDEO_CATALOG } from '@shared/fleet/videoCatalog';
+import { assetUrl } from '@/lib/assetConfig';
+
+/** Browser: same-origin /api/assets/{r2_key}. Tests/SSR: absolute CDN. */
+function playableVideoUrl(url: string): string {
+  return assetUrl(url);
+}
 
 export const FLEET_VIDEO_FALLBACK = {
-  warlordsIntro: FLEET_VIDEO_CATALOG.warlordsIntro.r2_url,
-  warlordsLoadscreen: FLEET_VIDEO_CATALOG.warlordsLoadscreen.r2_url,
-  warlordsPvpLoadscreen: FLEET_VIDEO_CATALOG.warlordsPvpLoadscreen.r2_url,
-  armadaIntro: FLEET_VIDEO_CATALOG.armadaIntro.r2_url,
+  warlordsIntro: playableVideoUrl(FLEET_VIDEO_CATALOG.warlordsIntro.r2_url),
+  warlordsLoadscreen: playableVideoUrl(FLEET_VIDEO_CATALOG.warlordsLoadscreen.r2_url),
+  warlordsPvpLoadscreen: playableVideoUrl(
+    FLEET_VIDEO_CATALOG.warlordsPvpLoadscreen.r2_url,
+  ),
+  armadaIntro: playableVideoUrl(FLEET_VIDEO_CATALOG.armadaIntro.r2_url),
 } as const;
 
 export type FleetVideoKey = keyof typeof FLEET_VIDEO_FALLBACK;
@@ -32,7 +40,7 @@ async function hydrateCatalog(): Promise<void> {
         catalog?: Record<string, { r2_url?: string }>;
       };
       for (const [key, entry] of Object.entries(data.catalog ?? {})) {
-        if (entry?.r2_url) cache.set(key, entry.r2_url);
+        if (entry?.r2_url) cache.set(key, playableVideoUrl(entry.r2_url));
       }
     }
   } catch {
@@ -47,7 +55,7 @@ export async function hydrateVideoCatalog(): Promise<void> {
 
 export async function resolveFleetVideo(catalogKey: FleetVideoKey): Promise<string> {
   await hydrateCatalog();
-  return cache.get(catalogKey) ?? FLEET_VIDEO_FALLBACK[catalogKey];
+  return playableVideoUrl(cache.get(catalogKey) ?? FLEET_VIDEO_FALLBACK[catalogKey]);
 }
 
 export async function resolveWarlordsIntroVideo(): Promise<string> {

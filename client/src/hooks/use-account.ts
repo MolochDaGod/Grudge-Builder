@@ -2,6 +2,7 @@ import { useState, useEffect, useCallback } from 'react';
 import type { Account, AccountInventoryItem } from '@shared/schema';
 import {
   authHeaders,
+  verifyToken,
   ensureFleetSessionClaim,
   getToken,
   markAuthRejected,
@@ -31,7 +32,7 @@ export function useAccount() {
       await ensureFleetSessionClaim().catch(() => false);
       await waitForAuthReady(4000).catch(() => false);
 
-      if (!getToken()) {
+      if (!getToken() || !(await verifyToken()).valid) {
         setAccount(null);
         setError(null);
         return;
@@ -55,7 +56,7 @@ export function useAccount() {
         }
         if (meRes.ok) {
           const me = (await meRes.json()) as Record<string, unknown>;
-          if (isGuestAccountPayload(me) || isGuestAccountPayload(me.user)) {
+          if (isGuestAccountPayload(me.user ?? me)) {
             setAccount(null);
             setError(null);
             return;

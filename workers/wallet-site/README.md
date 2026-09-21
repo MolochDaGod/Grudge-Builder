@@ -11,7 +11,7 @@ Production edge for **https://wallet.grudge-studio.com/**
 | Game API | `RAILWAY_API_ORIGIN` = Railway grudge-api |
 | Auth login UI | `ID_GATEWAY_ORIGIN` = `https://id.grudge-studio.com` |
 | Play ledger | `POKER_ORIGIN` = `https://poker.grudge-studio.com` |
-| Images | Live poker CDN media (logo, GBUX, PokerSolPro, table hero) |
+| Images | Same-origin `/media/*` (Worker assets) + live unique host images (poker og, Open opengraph, apple-touch icons) |
 
 **Do not** point wallet at VPS `74.208.155.229`.
 
@@ -19,25 +19,48 @@ Production edge for **https://wallet.grudge-studio.com/**
 
 ## Player product (clean wallet tool)
 
+This host is the **studio bag**. Poker sit is **not** this page.
+
+| Piece | Job |
+|-------|-----|
+| **Grudge ID** | Who you are — `/login` 302 → `id.grudge-studio.com` · return `/auth/callback` |
+| **Phantom Connect** | How you sign — handoff `poker…/connect` with `#sso_token=` |
+| **Play ledger** | How the table runs — poker D1 (200 welcome GBUX is **real** play money) |
+| **Fleet bag** | Railway `GET /api/wallet/overview` (can be 0 while play is 200) |
+
 | Feature | How |
 |---------|-----|
-| Working images | `poker.grudge-studio.com/media/**` (real image/*) |
-| Sign in / reconnect | Grudge ID SSO + bridge + Domain cookie handoff |
+| Working images | Tile `<img>` on each connected-app card; `/media/*` from Worker assets |
+| Sign in | Grudge ID SSO → `/auth/callback` (do **not** proxy `/login` to ID from this Worker — that 526s) |
+| Shared session | JWT cookie `Domain=.grudge-studio.com` (`grudge_auth_token` + `sso_token`) so poker ↔ wallet stay signed in |
 | Connect Phantom | Handoff → `poker…/connect` with `sso_token` |
-| Fleet bag GBUX | `GET /api/wallet/overview` (Railway) |
-| Play GBUX | Poker `/api/wallet/scopes?wallet=` |
-| **Fund play** | `POST /api/wallet/transfer-to-play` → debit bag → poker D1 credit |
+| On-chain GBUX / SOL | Poker `/api/wallet/scopes?wallet=` |
+| **Fund play** | `POST /api/wallet/transfer-to-play` → debit bag → poker D1 (disabled if bag &lt; 1) |
 | Bag SOL↔GBUX | `POST /api/exchange/quote` + `/swap` |
+| Games grid | Poker, Phantom, Warlords, Foundry, Open, GRUDOX, Mine, Forge, Casting, Portal |
 | Games grid | Auto-trader, Poker, Nexus, Warlords, Foundry, Open, GRUDOX, Mine, Forge, Casting |
 | Gruda / Crossmint | `GET /api/wallet/status` first · `POST /api/wallet/create` only if missing |
 
-## Deploy
+## Deploy (this preview → wallet.grudge-studio.com)
+
+Production **is** Cloudflare Worker `grudge-wallet-site`. GitHub Action `.github/workflows/deploy-wallet-site.yml` publishes it.
+
+**One-time:** GitHub → `MolochDaGod/Grudge-Builder` → Settings → Secrets and variables → Actions → `CLOUDFLARE_API_TOKEN`.
+
+Create that token in Cloudflare → My Profile → API Tokens → "Edit Cloudflare Workers". Account `ee475864561b02d4588180b8b9acf694`.
+
+Then either:
+- push `workers/wallet-site/**` to `main`, or
+- Actions → "Deploy wallet.grudge-studio.com" → Run workflow
+
+Until the secret exists, the Action fails on purpose instead of uploading an empty token.
 
 ```bash
-cd Documents/Grudge-Builder/workers/wallet-site
-$env:WRANGLER_HOME = "C:\Users\nugye\.wrangler"
+cd workers/wallet-site
 npx wrangler deploy --env=""
 ```
+
+Railway is **The Engine** (`grudge-api`) for `/api/wallet/*`. This Worker only fronts the page and proxies. Do not point wallet DNS at the VPS.
 
 Railway (transfer-to-play route lives in grudge-api):
 
@@ -53,15 +76,16 @@ cd Projects/poker-grudge
 npm run build && npx wrangler deploy
 ```
 
-Optional shared secret (align Railway + poker):
+Shared handshake secret (align Railway + poker — **no SESSION_SECRET / JWT_SECRET fallback**):
 
 - Railway: `FLEET_PLAY_CREDIT_SECRET`
-- Poker worker secret: `FLEET_PLAY_CREDIT_SECRET` (falls back to SESSION_SECRET)
+- Poker Worker: `FLEET_PLAY_CREDIT_SECRET` (same string)
 
 ## Health
 
 ```bash
 curl -s https://wallet.grudge-studio.com/health
+# features: fleet-bag, transfer-to-play, exchange-swap, game-handoff, phantom-reconnect, app-tiles, auth-callback
 # features: … crossmint-check-first, auto-trader-handoff, pwa-install
 # PWA: /manifest.webmanifest · /sw.js · Install app (Chrome/Edge/Android)
 ```
@@ -71,6 +95,7 @@ curl -s https://wallet.grudge-studio.com/health
 | Concern | Rule |
 |---------|------|
 | Login UI | **Only** id.grudge-studio.com |
-| Session JWT | Railway users/accounts |
+| Session JWT | Railway users/accounts · cookie `Domain=.grudge-studio.com` + localStorage |
 | Edge `/api/*` | Proxy → Railway |
 | Guest | Never as signed-in wallet |
+| Crossmint | Server/ops on Railway — not a player connect CTA here |

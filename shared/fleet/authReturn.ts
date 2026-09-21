@@ -42,6 +42,12 @@ const EXACT_HOSTS = new Set([
   "mech-playground.vercel.app",
   "grudge.studio",
   "www.grudge.studio",
+  // Era play clients + account hub (DNS → Vercel grudge-builder)
+  "warlords.grudge.studio",
+  "nexus.grudge.studio",
+  "voxel.grudge.studio",
+  "account.grudge.studio",
+  "apps.grudge.studio",
   "grudgestudio.org",
   "grudgeplatform.io",
   "puter.com",
@@ -71,6 +77,8 @@ const SUFFIX_HOSTS = [
   ".netlify.app",
   ".netlify.live",
   ".cloudflarepages.com",
+  // Grok App Builder live preview (wallet hub + fleet SSO test)
+  ".grok-sandbox.com",
 ];
 
 /** Optional production/signed hosts from env (server) or globalThis (embed). */
@@ -110,6 +118,11 @@ export function canonicalSsoReturnOrigin(origin: string): string {
   try {
     const u = new URL(origin.includes("://") ? origin : `https://${origin}`);
     if (isEphemeralVercelHost(u.hostname)) return warlordsPlayOrigin();
+    // Legacy studio play brand → Warlords apex (production MMO is grudgewarlords.com)
+    const h = u.hostname.toLowerCase();
+    if (h === "client.grudge-studio.com" || h === "warlord3d.grudge-studio.com") {
+      return warlordsPlayOrigin();
+    }
     return u.origin;
   } catch {
     return warlordsPlayOrigin();
@@ -119,7 +132,10 @@ export function canonicalSsoReturnOrigin(origin: string): string {
 /** Returns true when `url` may receive SSO tokens after Grudge ID login. */
 export function isFleetAllowedReturnUrl(url: string): boolean {
   try {
-    const host = new URL(url).hostname.toLowerCase();
+    const u = new URL(url);
+    const host = u.hostname.toLowerCase();
+    const local = host === "localhost" || host === "127.0.0.1";
+    if (!local && u.protocol !== "https:") return false;
     if (extraExactHosts().includes(host)) return true;
     if (isEphemeralVercelHost(host)) return false;
     if (EXACT_HOSTS.has(host)) return true;

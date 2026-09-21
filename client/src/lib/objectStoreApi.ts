@@ -340,9 +340,9 @@ export function getToonRtsPlayKitPath(raceId: string): string {
   return `/asset-packs/toon-rts-characters/glb/characters/${playId}.glb`;
 }
 
-/** Get the CDN URL for a race's character GLB (texture-baked, ready to load with GLTFLoader) */
+/** Play kit URL — Toon RTS GLB via same-origin /api/assets (not races bake). */
 export function getRaceCharacterUrl(raceId: string): string {
-  return `${RACE_CDN_BASE}/glb/characters/${raceId}.glb`;
+  return getToonRtsPlayKitPath(raceId);
 }
 
 /** Get the CDN URL for a shared animation GLB */

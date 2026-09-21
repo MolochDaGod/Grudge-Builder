@@ -1,13 +1,28 @@
-import { useState, useEffect } from 'react';
+import { useState, useEffect, useMemo } from 'react';
 import { useLocation } from 'wouter';
 import { motion, AnimatePresence } from 'framer-motion';
 import { Button } from '@/components/ui/button';
 import { ChevronLeft, RotateCcw, Swords } from 'lucide-react';
 import Layout from '@/components/Layout';
-import { CLASS_SKILL_TREES, WEAPON_SKILL_TREES, SPECIAL_ITEM_SKILL_TREES, Skill, SkillTier, CLASS_TO_ID, getSkillDisplay } from '@/lib/skillTreeData';
+import { CLASS_SKILL_TREES, SPECIAL_ITEM_SKILL_TREES, Skill, SkillTier, CLASS_TO_ID, getSkillDisplay } from '@/lib/skillTreeData';
 import { CharacterManager, Character } from '@/lib/characterManager';
 import { WeaponSelectionPanel } from '@/components/WeaponSelectionPanel';
+import { WeaponSkillTreeNew } from '@/components/WeaponSkillTreeNew';
 import { WEAPON_TYPES } from '@shared/definitions/weaponDatabase';
+import { listPrefabsForType } from '@shared/definitions/weaponPrefabCatalog';
+import {
+  type SelectedSkills,
+  type SelectedSkillKey,
+  type SlotType,
+} from '@shared/definitions/weaponSkillsNew';
+import {
+  loadMasterWeaponSkillsCatalog,
+  listAllSkillTreeWeaponTypeIds,
+  getSkillTreeTypeMeta,
+  listNamedWeaponsForType,
+  getMasterCatalogVersion,
+  resolveSkillTreeWeaponDef,
+} from '@/lib/loadMasterWeaponSkills';
 import { cn } from '@/lib/utils';
 import type { WeaponSkillSelection } from '@/lib/characterManager';
 import { useAuthGuard } from '@/hooks/use-auth-guard';
@@ -29,40 +44,29 @@ const CLASS_ICONS: Record<string, string> = {
   ranger: '🏹'
 };
 
-const WEAPON_ICONS: Record<string, string> = {
-  sword: '⚔️',
-  bow: '🏹',
-  staff: '🪄',
-  dagger: '🗡️',
-  axe: '🪓',
-  hammer: '🔨',
-  lance: '🔱',
-  mace: '⚫',
-  // 6 special skill sheet types
-  tome: '📖',
-  shield: '🛡️',
-  wand: '🪄',
-  grimoire: '📜',
-  nimble_fingers: '🖐️',
-  dual_wield: '⚔️'
+const EMPTY_COMBAT_SELECTION: SelectedSkills = {
+  primary: null,
+  secondary: null,
+  ability: null,
+  ultimate: null,
 };
 
-// The 6 special weapon/skill sheet types for spellbook selection
-const SPELLBOOK_WEAPON_TYPES = [
-  { id: 'tome', name: 'Tomes', icon: '📖', desc: 'Arcane knowledge & spell storage' },
-  { id: 'shield', name: 'Shields', icon: '🛡️', desc: 'Defense, blocks & counters' },
-  { id: 'wand', name: 'Wands', icon: '🪄', desc: 'Quick elemental casting' },
-  { id: 'grimoire', name: 'Grimoires', icon: '📜', desc: 'Forbidden rituals & summons' },
-  { id: 'nimble_fingers', name: 'Nimble Fingers', icon: '🖐️', desc: 'Rogue tricks & evasion' },
-  { id: 'dual_wield', name: 'Dual Wield', icon: '⚔️', desc: 'Two-weapon flurry mastery' },
-];
+function isIconPath(value: string | undefined): boolean {
+  if (!value) return false;
+  return (
+    value.startsWith('http') ||
+    value.startsWith('/') ||
+    value.includes('/icons/') ||
+    /\.(png|webp|jpg|jpeg|svg)$/i.test(value)
+  );
+}
 
 export default function SkillTreePage() {
   const authReady = useAuthGuard();
   if (!authReady) return null;
 
   const [, setLocation] = useLocation();
-  const [mode, setMode] = useState<TreeMode>('class');
+  const [mode, setMode] = useState<TreeMode>('weapons');
   const [activeClass, setActiveClass] = useState('warrior');
   const [activeWeapon, setActiveWeapon] = useState('sword');
   const [classSkills, setClassSkills] = useState<Record<string, number>>({});
@@ -75,6 +79,9 @@ export default function SkillTreePage() {
   const [selectedWeaponTier, setSelectedWeaponTier] = useState<number>(1);
   const [weaponSkillLevel, setWeaponSkillLevel] = useState<number>(1);
   const [skillSelections, setSkillSelections] = useState<Record<string, WeaponSkillSelection>>({});
+  const [catalogReady, setCatalogReady] = useState(false);
+  const [catalogError, setCatalogError] = useState<string | null>(null);
+  const [combatSelections, setCombatSelections] = useState<Record<string, SelectedSkills>>({});
   // Special item skill tree (tomes/shields/wands etc for the class)
   const [showSpecialItem, setShowSpecialItem] = useState(false);
   const [specialItemKey, setSpecialItemKey] = useState<string | null>(null);
@@ -109,6 +116,26 @@ export default function SkillTreePage() {
     window.addEventListener('keydown', handleKeyDown);
     return () => window.removeEventListener('keydown', handleKeyDown);
   }, [showSpecialItem, specialItemKey, activeClass]);
+
+  useEffect(() => {
+    let cancelled = false;
+    loadMasterWeaponSkillsCatalog()
+      .then(() => {
+        if (!cancelled) {
+          setCatalogReady(true);
+          setCatalogError(null);
+        }
+      })
+      .catch((e) => {
+        if (!cancelled) {
+          setCatalogReady(true);
+          setCatalogError(e instanceof Error ? e.message : String(e));
+        }
+      });
+    return () => {
+      cancelled = true;
+    };
+  }, []);
 
   useEffect(() => {
     const loadCharacter = async () => {
@@ -185,11 +212,31 @@ export default function SkillTreePage() {
   
   const skillPoints = remainingPoints;
 
-  let currentTree = mode === 'class' 
-    ? (showSpecialItem && specialItemKey && SPECIAL_ITEM_SKILL_TREES[activeClass] && SPECIAL_ITEM_SKILL_TREES[activeClass][specialItemKey] 
-        ? SPECIAL_ITEM_SKILL_TREES[activeClass][specialItemKey] 
-        : CLASS_SKILL_TREES[activeClass]) 
-    : WEAPON_SKILL_TREES[activeWeapon];
+  const weaponTypeIds = useMemo(
+    () => listAllSkillTreeWeaponTypeIds(),
+    [catalogReady],
+  );
+  const weaponTypeMeta = useMemo(
+    () => weaponTypeIds.map((id) => getSkillTreeTypeMeta(id)),
+    [weaponTypeIds],
+  );
+  const activeWeaponType = (selectedWeaponType || 'SWORD').toUpperCase();
+  const namedWeapons = useMemo(
+    () => listNamedWeaponsForType(activeWeaponType),
+    [activeWeaponType, catalogReady],
+  );
+  const prefabWeapons = useMemo(
+    () => listPrefabsForType(activeWeaponType),
+    [activeWeaponType],
+  );
+  const combatDef = resolveSkillTreeWeaponDef(activeWeaponType);
+  const catalogVersion = catalogReady ? getMasterCatalogVersion() : null;
+  const totalCombatSkills = weaponTypeMeta.reduce((n, t) => n + t.skillCount, 0);
+  const totalNamedWeapons = weaponTypeMeta.reduce((n, t) => n + t.weaponCount, 0);
+
+  let currentTree = showSpecialItem && specialItemKey && SPECIAL_ITEM_SKILL_TREES[activeClass] && SPECIAL_ITEM_SKILL_TREES[activeClass][specialItemKey]
+    ? SPECIAL_ITEM_SKILL_TREES[activeClass][specialItemKey]
+    : CLASS_SKILL_TREES[activeClass];
 
   // Support grimoire three forms (and other subtrees) - switch to selected form subtree
   if (showSpecialItem && specialItemKey === 'grimoire' && currentTree && currentTree.hasSubtrees && currentTree.subtrees) {
@@ -283,7 +330,12 @@ export default function SkillTreePage() {
             <div className="text-center">
               <h1 className="text-xl font-bold text-emerald-400 font-serif">Skill Tree</h1>
               <p className="text-xs text-slate-500">
-                {character?.name || 'Hero'} - {currentTree?.className} {showSpecialItem ? '(Special Item Tree)' : ''}
+                {character?.name || 'Hero'} -{' '}
+                {mode === 'weapons'
+                  ? `${getSkillTreeTypeMeta(activeWeaponType).name} combat tree`
+                  : mode === 'hotkeys'
+                    ? 'Weapon hotkeys'
+                    : `${currentTree?.className || 'Class'}${showSpecialItem ? ' (Special Item Tree)' : ''}`}
               </p>
             </div>
             
@@ -340,22 +392,35 @@ export default function SkillTreePage() {
                 )}
               </>
             ) : (
-              Object.keys(WEAPON_SKILL_TREES).map(weaponId => (
-                <button
-                  key={weaponId}
-                  onClick={() => { setActiveWeapon(weaponId); setShowSpecialItem(false); }}
-                  className={cn(
-                    "px-2 py-1 rounded border font-semibold text-xs transition-all flex items-center gap-1",
-                    activeWeapon === weaponId
-                      ? "border-amber-500 bg-amber-500/15 text-amber-400"
-                      : "border-slate-700 text-slate-400 hover:border-slate-500"
-                  )}
-                  data-testid={`tab-weapon-${weaponId}`}
-                >
-                  <span>{WEAPON_ICONS[weaponId]}</span>
-                  <span className="capitalize">{weaponId}</span>
-                </button>
-              ))
+              weaponTypeMeta.map((wt) => {
+                const isActive = activeWeaponType === wt.id;
+                return (
+                  <button
+                    key={wt.id}
+                    onClick={() => {
+                      setSelectedWeaponType(wt.id);
+                      setActiveWeapon(wt.id.toLowerCase());
+                      setShowSpecialItem(false);
+                    }}
+                    className={cn(
+                      "px-2 py-1 rounded border font-semibold text-xs transition-all flex items-center gap-1",
+                      isActive
+                        ? "border-amber-500 bg-amber-500/15 text-amber-400"
+                        : "border-slate-700 text-slate-400 hover:border-slate-500"
+                    )}
+                    data-testid={`tab-weapon-${wt.id.toLowerCase()}`}
+                    title={`${wt.skillCount} skills · ${wt.weaponCount} weapons`}
+                  >
+                    {isIconPath(wt.icon) ? (
+                      <img src={wt.icon} alt="" className="w-4 h-4 object-contain" referrerPolicy="no-referrer" />
+                    ) : (
+                      <span>{wt.icon}</span>
+                    )}
+                    <span className="capitalize">{wt.name}</span>
+                    <span className="text-[10px] opacity-60">{wt.skillCount}</span>
+                  </button>
+                );
+              })
             )}
           </div>
         </div>
@@ -566,35 +631,45 @@ export default function SkillTreePage() {
 
           {mode === 'hotkeys' ? (
             <div className="py-4">
-              {/* Explicit 6-way weapon/skill sheet type selector (the missing step) */}
               <div className="mb-6">
-                <div className="text-sm text-amber-400 mb-2 tracking-wider">SELECT WEAPON / SKILL SHEET TYPE (6 options)</div>
+                <div className="text-sm text-amber-400 mb-2 tracking-wider">
+                  SELECT WEAPON TYPE ({weaponTypeMeta.length} types · {totalCombatSkills} skills · {totalNamedWeapons} named weapons)
+                </div>
                 <div className="grid grid-cols-2 md:grid-cols-3 lg:grid-cols-6 gap-3">
-                  {SPELLBOOK_WEAPON_TYPES.map((style) => {
-                    const isActive = (selectedWeaponType || '').toLowerCase() === style.id || selectedWeaponType === style.id.toUpperCase();
+                  {weaponTypeMeta.map((style) => {
+                    const isActive = activeWeaponType === style.id;
                     return (
                       <button
                         key={style.id}
                         onClick={() => {
-                          const upper = style.id.toUpperCase();
-                          setSelectedWeaponType(upper);
+                          setSelectedWeaponType(style.id);
                           setSelectedWeaponId(null);
-                          // Also set for weapon skill trees lookup
+                          setActiveWeapon(style.id.toLowerCase());
                         }}
                         className={cn(
                           "p-4 rounded-xl border text-left transition-all hover:border-amber-400/60",
                           isActive ? "border-amber-500 bg-amber-500/10" : "border-slate-700 bg-slate-900/60 hover:bg-slate-800"
                         )}
-                        data-testid={`spellbook-style-${style.id}`}
+                        data-testid={`spellbook-style-${style.id.toLowerCase()}`}
                       >
-                        <div className="text-3xl mb-1">{style.icon}</div>
+                        <div className="text-3xl mb-1">
+                          {isIconPath(style.icon) ? (
+                            <img src={style.icon} alt="" className="w-8 h-8 object-contain" referrerPolicy="no-referrer" />
+                          ) : (
+                            style.icon
+                          )}
+                        </div>
                         <div className="font-semibold text-white">{style.name}</div>
-                        <div className="text-xs text-slate-400 mt-1">{style.desc}</div>
+                        <div className="text-xs text-slate-400 mt-1">
+                          {style.skillCount} skills · {style.weaponCount} weapons
+                        </div>
                       </button>
                     );
                   })}
                 </div>
-                <div className="text-[10px] text-slate-500 mt-2">Selecting a type loads its dedicated skill sheet. Weapon hotkeys & upgrades apply per type.</div>
+                <div className="text-[10px] text-slate-500 mt-2">
+                  Combat trees from master-weaponSkills{catalogVersion ? ` v${catalogVersion}` : ''}. Named weapons from weaponDatabase. Select a type, then assign hotkeys.
+                </div>
               </div>
 
               {/* Production Hotbar Assignment - 5 slots like uMMORPG Grudge Warlords */}
@@ -695,6 +770,13 @@ export default function SkillTreePage() {
                         }
                       });
                     }
+                    if (combatDef) {
+                      for (const slot of combatDef.slots) {
+                        for (const sk of slot.skills || []) {
+                          pool.push({ id: sk.id, name: sk.name, icon: sk.icon });
+                        }
+                      }
+                    }
                     // Dedup by id
                     const seen = new Set<string>();
                     const unique = pool.filter(s => { if (seen.has(s.id)) return false; seen.add(s.id); return true; });
@@ -705,7 +787,12 @@ export default function SkillTreePage() {
                       className={`mr-1 mb-1 px-2 py-1 rounded border ${selectedSkillForAssign?.id === skill.id ? 'bg-amber-500 text-black border-amber-500' : 'border-slate-600 hover:bg-slate-700'}`}
                       onClick={() => setSelectedSkillForAssign(skill)}
                     >
-                      {skill.icon} {skill.name}
+                      {isIconPath(skill.icon) ? (
+                        <img src={skill.icon} alt="" className="inline-block w-3 h-3 mr-1 object-contain" referrerPolicy="no-referrer" />
+                      ) : (
+                        <span className="mr-1">{skill.icon}</span>
+                      )}
+                      {skill.name}
                     </button>
                   ))}
                 </div>
@@ -765,11 +852,116 @@ export default function SkillTreePage() {
                 }}
               />
             </div>
+          ) : mode === 'weapons' ? (
+            <div className="space-y-6 pb-10">
+              <div className="flex flex-wrap items-center justify-between gap-2 text-xs text-slate-400">
+                <span>
+                  Combat SSOT: master-weaponSkills
+                  {catalogVersion ? ` v${catalogVersion}` : ''}
+                  {' · '}
+                  {weaponTypeMeta.length} types · {totalCombatSkills} skills · {totalNamedWeapons} named weapons
+                </span>
+                {catalogError && (
+                  <span className="text-amber-400">Catalog fetch failed — local weaponSkillsNew fallback. {catalogError}</span>
+                )}
+              </div>
+
+              {namedWeapons.length > 0 && (
+                <div>
+                  <h3 className="text-amber-400 font-bold mb-2 text-sm tracking-wider">
+                    {getSkillTreeTypeMeta(activeWeaponType).name.toUpperCase()} WEAPONS ({namedWeapons.length})
+                  </h3>
+                  <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-3">
+                    {namedWeapons.map((weapon) => {
+                      const isActive = selectedWeaponId === weapon.id;
+                      return (
+                        <button
+                          key={weapon.id}
+                          onClick={() => {
+                            setSelectedWeaponId(weapon.id);
+                            if (character) {
+                              const updatedChar = { ...character, equippedWeaponId: weapon.id };
+                              setCharacter(updatedChar);
+                              CharacterManager.updateCharacter(updatedChar);
+                            }
+                          }}
+                          className={cn(
+                            'text-left p-3 rounded-xl border transition-all',
+                            isActive
+                              ? 'border-amber-500 bg-amber-500/10'
+                              : 'border-slate-700 bg-slate-900/60 hover:border-amber-400/50',
+                          )}
+                          data-testid={`named-weapon-${weapon.id}`}
+                        >
+                          <div className="font-semibold text-white">{weapon.name}</div>
+                          <div className="text-[11px] text-slate-400 italic mt-0.5">{weapon.lore}</div>
+                          <div className="text-[10px] text-slate-500 mt-1">
+                            {weapon.skills.hotkey1.name}
+                            {weapon.skills.hotkey4?.name ? ` · ${weapon.skills.hotkey4.name}` : ''}
+                          </div>
+                        </button>
+                      );
+                    })}
+                  </div>
+                </div>
+              )}
+
+              {prefabWeapons.length > 0 && (
+                <div>
+                  <h3 className="text-slate-400 font-bold mb-2 text-xs tracking-wider">
+                    PREFABS ({prefabWeapons.length} styles)
+                  </h3>
+                  <div className="flex flex-wrap gap-2">
+                    {prefabWeapons.map((prefab) => (
+                      <div
+                        key={prefab.id}
+                        className="px-2 py-1 rounded border border-slate-700 bg-slate-900/50 text-[11px] text-slate-300"
+                        title={prefab.notes || prefab.id}
+                      >
+                        {prefab.label || prefab.id}
+                      </div>
+                    ))}
+                  </div>
+                </div>
+              )}
+
+              {!catalogReady && (
+                <div className="text-slate-500 text-xs">Loading master-weaponSkills… local trees shown first.</div>
+              )}
+
+              <WeaponSkillTreeNew
+                key={`${activeWeaponType}-${catalogReady ? catalogVersion || 'local' : 'local'}`}
+                weaponType={activeWeaponType}
+                playerTier={selectedWeaponTier}
+                selectedSkills={combatSelections[activeWeaponType] || EMPTY_COMBAT_SELECTION}
+                onSelectSkill={(_slotType: SlotType, skillId: string, selectionKey: SelectedSkillKey) => {
+                  setCombatSelections((prev) => ({
+                    ...prev,
+                    [activeWeaponType]: {
+                      ...(prev[activeWeaponType] || EMPTY_COMBAT_SELECTION),
+                      [selectionKey]: skillId,
+                    },
+                  }));
+                }}
+                onReset={() => {
+                  setCombatSelections((prev) => ({
+                    ...prev,
+                    [activeWeaponType]: { ...EMPTY_COMBAT_SELECTION },
+                  }));
+                }}
+              />
+
+              {catalogReady && !combatDef && (
+                <div className="text-center py-6 text-slate-400 text-sm">
+                  No combat skill sheet for {activeWeaponType}. Named weapons above still apply.
+                </div>
+              )}
+            </div>
           ) : (
             <div className="relative" onMouseMove={handleMouseMove}>
               <AnimatePresence mode="wait">
                 <motion.div
-                  key={mode === 'class' ? activeClass : activeWeapon}
+                  key={activeClass}
                   initial={{ opacity: 0, y: 20 }}
                   animate={{ opacity: 1, y: 0 }}
                   exit={{ opacity: 0, y: -20 }}

@@ -9,6 +9,8 @@ import {
   originFromRequest,
   confirmLinkedWallet,
   listLinkedWallets,
+  setPrimaryLinkedWallet,
+  unlinkLinkedWallet,
   getWalletOverview,
   composeWalletBook,
   persistTraderVault,
@@ -20,8 +22,21 @@ import {
 } from "../services/walletAccess";
 import type { LinkedWalletProvider, WalletPurchaseCurrency } from "@shared/schema";
 import { WALLET_PURCHASE_CURRENCIES } from "@shared/schema";
+import { registerWalletInventoryRoutes } from "./walletInventoryRoutes";
+import { swapPlayWallet, jupiterOrder } from "../services/walletSwap";
+import { parseSwap, isSolAddress } from "../services/swapValidate";
+import { getGbuxSupply } from "../services/gbuxSolana";
 
-const JWT_SECRET = process.env.SESSION_SECRET || process.env.JWT_SECRET || "grudge-dev-secret";
+/** Prefer SESSION_SECRET (auth.ts) then JWT_SECRET / GRUDGE_JWT_SECRET — use first non-empty candidate only. */
+const JWT_SECRET_CANDIDATES = [
+  process.env.SESSION_SECRET,
+  process.env.JWT_SECRET,
+  process.env.GRUDGE_JWT_SECRET,
+]
+  .map((s) => s?.trim())
+  .filter((s): s is string => !!s && s.length > 0);
+
+const JWT_SECRET = JWT_SECRET_CANDIDATES[0] || "";
 
 function readWalletSessionToken(req: Request): string | null {
   const authHeader = req.get("Authorization") || req.get("X-Session-Token") || "";
@@ -36,6 +51,10 @@ function requireAuth(req: Request, res: Response, next: NextFunction): void {
   const token = readWalletSessionToken(req);
   if (!token) {
     res.status(401).json({ error: "Authentication required" });
+    return;
+  }
+  if (!JWT_SECRET) {
+    res.status(500).json({ error: "Authentication not configured (SESSION_SECRET, JWT_SECRET, or GRUDGE_JWT_SECRET required)" });
     return;
   }
   try {
@@ -63,6 +82,63 @@ async function requireAccount(req: Request, res: Response) {
 }
 
 export function registerWalletRoutes(app: Express): void {
+  app.post("/api/solana/rpc", async (req, res) => {
+    const method = String((req.body && req.body.method) || "");
+    const params = (req.body && req.body.params) || [];
+    const allow = new Set([
+      "getBalance",
+      "getTokenAccountsByOwner",
+      "getTokenAccountBalance",
+      "getAccountInfo",
+      "getMultipleAccounts",
+      "getTokenSupply",
+    ]);
+    if (!allow.has(method)) return res.status(403).json({ error: "method not allowed" });
+    const rpcs = [process.env.SOLANA_RPC_URL, "https://api.mainnet-beta.solana.com"].filter(Boolean);
+    let last = "rpc failed";
+    for (const rpc of [...new Set(rpcs)]) {
+      try {
+        const r = await fetch(rpc as string, {
+          method: "POST",
+          headers: { "content-type": "application/json" },
+          body: JSON.stringify({ jsonrpc: "2.0", id: req.body?.id || "gruda", method, params }),
+        });
+        const text = await r.text();
+        try {
+          JSON.parse(text);
+        } catch {
+          last = text.slice(0, 80);
+          continue;
+        }
+        return res.status(200).type("application/json").send(text);
+      } catch (e: any) {
+        last = e.message || String(e);
+      }
+    }
+    res.status(502).json({ error: last });
+  });
+
+  app.get("/api/gbux/circulating", async (_req, res) => {
+    try {
+      const s = await getGbuxSupply();
+      res.setHeader("Cache-Control", "public, max-age=30");
+      res.setHeader("Access-Control-Allow-Origin", "*");
+      res.type("text/plain").send(s.circulatingString);
+    } catch (e: any) {
+      res.status(502).json({ error: e.message || "supply unavailable" });
+    }
+  });
+  app.get("/api/gbux/supply", async (_req, res) => {
+    try {
+      const s = await getGbuxSupply();
+      res.setHeader("Cache-Control", "public, max-age=30");
+      res.setHeader("Access-Control-Allow-Origin", "*");
+      res.json({ ok: true, ...s });
+    } catch (e: any) {
+      res.status(502).json({ error: e.message || "supply unavailable" });
+    }
+  });
+
   app.get("/api/wallet/overview", requireAuth, async (req, res) => {
     try {
       const account = await requireAccount(req, res);
@@ -484,7 +560,200 @@ export function registerWalletRoutes(app: Express): void {
     }
   });
 
+  /**
+   * Sign+send on-chain GBUX from the account Crossmint Solana wallet.
+   * Official Crossmint transfer-token (server API key). No Phantom.
+   * @see https://docs.crossmint.com/wallets/guides/transfer-tokens
+   */
+  app.post("/api/wallet/send-gbux", requireAuth, async (req, res) => {
+    try {
+      const account = await requireAccount(req, res);
+      if (!account) return;
+      const body = req.body as {
+        amount?: number | string;
+        to?: string;
+        fromWallet?: string;
+      };
+      const amount = Number(body.amount);
+      if (!Number.isFinite(amount) || amount <= 0) {
+        return res.status(400).json({ error: "amount must be > 0" });
+      }
+      const { crossmintWalletService } = await import(
+        "../services/crossmintWallet"
+      );
+      const grudgeId = String(
+        (account as { grudgeId?: string }).grudgeId || "",
+      );
+      const cm = grudgeId
+        ? await crossmintWalletService.getOrCreateWalletForGrudgeId(grudgeId)
+        : null;
+      const overview = await getWalletOverview(account.id);
+      const stored = String(
+        (overview as { custodialWallet?: string; primaryWallet?: string } | null)?.custodialWallet ||
+          overview?.primaryWallet ||
+          account.walletAddress ||
+          "",
+      ).trim();
+      // JWT identity owns the Crossmint wallet. Ignore client fromWallet so a
+      // linked Phantom cannot be used as the custodial signer source.
+      const fromWallet = String(cm?.address || stored).trim();
+      if (fromWallet.length < 32) {
+        return res.status(400).json({
+          error: "No Crossmint play wallet on this Grudge ID",
+        });
+      }
+      const to = String(
+        body.to ||
+          process.env.AI_AGENT_WALLET ||
+          "6P7Pp5eHzPAVjnbNLkW8DzAuuc7gj9Sm5XiprwnjzvRs",
+      ).trim();
+      if (!isSolAddress(to)) {
+        return res.status(400).json({ error: "recipient required" });
+      }
+
+      const GBUX_MINT =
+        process.env.GBUX_MINT ||
+        "55TpSoMNxbfsNJ9U1dQoo9H3dRtDmjBZVMcKqvU2nray";
+      const email = grudgeId
+        ? crossmintWalletService.stableEmailForGrudgeId(grudgeId)
+        : "";
+      const emailLocator = email ? `email:${email}:solana` : undefined;
+
+      const sent = await crossmintWalletService.sendSplToken({
+        fromWallet,
+        toWallet: to,
+        amount: String(amount),
+        mint: GBUX_MINT,
+        emailLocator,
+        extraLocators: email
+          ? [
+              `email:${email}:solana-custodial-wallet`,
+              `email:${email}:solana:solana-custodial-wallet`,
+            ]
+          : undefined,
+        idempotencyKey: `gbux:${account.id}:${to.slice(0, 8)}:${amount}`,
+      });
+      if (!sent.success) {
+        return res.status(502).json({
+          error: sent.error || "Crossmint send failed",
+          fromWallet,
+          to,
+        });
+      }
+      res.json({
+        success: true,
+        signature: sent.signature,
+        explorerLink: sent.explorerLink,
+        pending: sent.pending,
+        status: sent.status,
+        fromWallet,
+        to,
+        amount,
+        mint: GBUX_MINT,
+        via: "crossmint",
+      });
+    } catch (e: any) {
+      console.error("[Wallet/send-gbux]", e);
+      res.status(400).json({ error: e.message || "Send failed" });
+    }
+  });
+
+  app.post("/api/wallet/primary", requireAuth, async (req, res) => {
+    try {
+      const account = await requireAccount(req, res);
+      if (!account) return;
+      const walletAddress = String((req.body as { walletAddress?: string })?.walletAddress || "").trim();
+      if (!walletAddress) {
+        return res.status(400).json({ error: "walletAddress required" });
+      }
+      const linked = await setPrimaryLinkedWallet(account.id, walletAddress);
+      res.json({ success: true, linkedWallets: linked });
+    } catch (e: any) {
+      res.status(400).json({ error: e.message || "Could not set primary" });
+    }
+  });
+
+  app.delete("/api/wallet/linked/:address", requireAuth, async (req, res) => {
+    try {
+      const account = await requireAccount(req, res);
+      if (!account) return;
+      const walletAddress = decodeURIComponent(String(req.params.address || "")).trim();
+      if (!walletAddress) {
+        return res.status(400).json({ error: "address required" });
+      }
+      const linked = await unlinkLinkedWallet(account.id, walletAddress);
+      res.json({ success: true, linkedWallets: linked });
+    } catch (e: any) {
+      res.status(400).json({ error: e.message || "Could not unlink" });
+    }
+  });
+
+  app.post("/api/wallet/swap/quote", requireAuth, async (req, res) => {
+    try {
+      const account = await requireAccount(req, res);
+      if (!account) return;
+      const parsed = parseSwap(req.body || {});
+      if (!parsed.ok) return res.status(400).json({ error: parsed.error });
+      const play = String((account as { walletAddress?: string }).walletAddress || "").trim();
+      if (parsed.taker) {
+        const linked = await listLinkedWallets(account.id);
+        const mine = new Set(
+          [play, ...linked.map((w) => String(w.walletAddress || ""))]
+            .map((a) => a.trim())
+            .filter(Boolean),
+        );
+        if (!mine.has(parsed.taker)) {
+          return res.status(403).json({ error: "taker is not one of your wallets" });
+        }
+      }
+      const order = await jupiterOrder(parsed);
+      if (!order.ok) {
+        return res.status(order.status || 400).json({
+          error: order.body?.errorMessage || order.body?.error || "No route",
+          order: order.body,
+        });
+      }
+      res.json({
+        ok: true,
+        inAmount: order.body.inAmount,
+        outAmount: order.body.outAmount,
+        otherAmountThreshold: order.body.otherAmountThreshold,
+        slippageBps: order.body.slippageBps,
+        requestId: order.body.requestId,
+        transaction: Boolean(order.body.transaction),
+      });
+    } catch (e: any) {
+      res.status(400).json({ error: e.message || "quote failed" });
+    }
+  });
+
+  app.post("/api/wallet/swap", requireAuth, async (req, res) => {
+    try {
+      const account = await requireAccount(req, res);
+      if (!account) return;
+      const play = String((account as { walletAddress?: string }).walletAddress || "").trim();
+      if (!play || !isSolAddress(play)) return res.status(400).json({ error: "No Play wallet on this Grudge ID" });
+      const parsed = parseSwap({ ...(req.body || {}), taker: play });
+      if (!parsed.ok) return res.status(400).json({ error: parsed.error });
+      const result = await swapPlayWallet({
+        playAddress: play,
+        inputMint: parsed.inputMint,
+        outputMint: parsed.outputMint,
+        amount: parsed.amount,
+        slippageBps: parsed.slippageBps,
+      });
+      if (!result.ok) return res.status(400).json(result);
+      res.json({ success: true, ...result });
+    } catch (e: any) {
+      console.error("[Wallet/swap]", e);
+      res.status(400).json({ error: e.message || "Swap failed" });
+    }
+  });
+
+  registerWalletInventoryRoutes(app, requireAuth, requireAccount);
+
   console.log(
     "[Wallet] Routes: GET /api/wallet/overview, /linked, /api/account/wallets; POST /link/*, /purchase/*, /transfer-to-play, trader_vault",
+    "[Wallet] Routes: GET /api/wallet/overview, /linked; POST /link/*, /primary, /purchase/*, /transfer-to-play, /send-gbux; DELETE /linked/:address",
   );
 }

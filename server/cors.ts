@@ -37,6 +37,10 @@ export const GRUDGE_EXACT_ORIGINS: string[] = [
   "https://grudge-studio-tool.vercel.app",
 
   // Fleet game clients (explicit until Railway redeploys regex allowlist)
+  "https://poker.grudge-studio.com",
+  "https://poker.grudge.studio",
+  "https://grudge.studio",
+  "https://www.grudge.studio",
   "https://metaverse.grudge-studio.com",
   "https://forge.grudge-studio.com",
   "https://play.grudge-studio.com",
@@ -50,6 +54,8 @@ export const GRUDGE_EXACT_ORIGINS: string[] = [
 export const GRUDGE_REGEX_ORIGINS: RegExp[] = [
   // All *.grudge-studio.com subdomains (api, id, assets, ai, dash, ws, pvp, etc.)
   /\.grudge-studio\.com$/,
+  // Short TLD aliases (poker.grudge.studio, casting.grudge.studio, …)
+  /\.grudge\.studio$/,
 
   // Vercel preview deploys
   /\.vercel\.app$/,
@@ -70,6 +76,9 @@ export const GRUDGE_REGEX_ORIGINS: RegExp[] = [
   /\.github\.io$/,
   /\.netlify\.app$/,
   /\.netlify\.live$/,
+
+  // Grok App Builder live preview — Bearer SSO test, never cookie Domain
+  /\.grok-sandbox\.com$/,
 ];
 
 // ── Combined list for cors() middleware ────────────────────────────────────────
