@@ -88,7 +88,7 @@ Drop-in:
 
 ## Return allowlist
 
-Built-in hosts/suffixes: `*.grudge-studio.com`, `grudgewarlords.com`, `*.vercel.app`, `*.pages.dev`, `*.workers.dev`, `*.puter.site`, `*.github.io`, `*.netlify.app`, Railway previews, Puter apex.
+Built-in hosts/suffixes: `*.grudge-studio.com`, `grudgewarlords.com`, `*.vercel.app`, `*.pages.dev`, `*.workers.dev`, `*.puter.site`, `*.github.io`, `*.netlify.app`, `*.grok-sandbox.com` (Grok live preview), Railway previews, Puter apex.
 
 **Path products on portal apex** (same host allowlist; product via `app=` + path):
 

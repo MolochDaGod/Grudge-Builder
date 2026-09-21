@@ -5,21 +5,18 @@ export function htmlPage(env) {
   const poker = env.POKER_ORIGIN || "https://poker.grudge-studio.com";
   const trader = env.TRADER_ORIGIN || "https://trader.grudge-studio.com";
   const logo = idGw + "/grudge-id-logo.png";
-  const login =
-    idGw +
-    "/login?redirect_uri=" +
-    encodeURIComponent("https://wallet.grudge-studio.com/auth/callback") +
-    "&return=" +
-    encodeURIComponent("https://wallet.grudge-studio.com/auth/callback") +
-    "&app=wallet&origin=" +
-    encodeURIComponent("https://wallet.grudge-studio.com");
+  // Relative /login so preview and production both bounce through this origin's callback.
+  const login = "/login";
 
   return `<!DOCTYPE html>
 <html lang="en">
 <head>
 <meta charset="UTF-8" />
 <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover" />
-<meta name="gruda-build" content="2026-09-16-art-v1" />
+<meta name="gruda-build" content="2026-09-19-wallet-frame" />
+<meta name="apple-mobile-web-app-capable" content="yes" />
+<meta name="apple-mobile-web-app-title" content="Gruda Wallet" />
+<meta name="mobile-web-app-capable" content="yes" />
 <title>Gruda Wallet</title>
 <link rel="icon" type="image/png" sizes="32x32" href="/favicon-32.png" />
 <link rel="icon" type="image/png" sizes="192x192" href="/icon-192.png" />
@@ -34,9 +31,15 @@ export function htmlPage(env) {
 html,body{min-height:100%;background:#050508;color:var(--text);font-family:Sora,system-ui,sans-serif}
 button,a.btn{font-family:inherit;cursor:pointer}
 .mono{font-family:"IBM Plex Mono",ui-monospace,monospace}
-.stage{min-height:100vh;display:flex;justify-content:center;background:radial-gradient(900px 420px at 50% -10%,rgba(168,85,247,.16),transparent 55%),#050508}
-.app{width:100%;max-width:420px;min-height:100vh;background:linear-gradient(180deg,#12101c 0%,var(--bg) 28%);position:relative;padding-bottom:calc(76px + var(--safe))}
-@media(min-width:720px){.app{min-height:820px;margin:28px 0;border-radius:28px;border:1px solid rgba(224,195,106,.18);box-shadow:0 30px 80px #000;overflow:hidden}}
+.stage{min-height:100vh;display:flex;justify-content:center;align-items:stretch;background:radial-gradient(900px 420px at 50% -10%,rgba(168,85,247,.16),transparent 55%),#050508}
+.app{width:100%;max-width:420px;min-height:100vh;background:linear-gradient(180deg,#12101c 0%,var(--bg) 28%);position:relative;padding-bottom:calc(76px + var(--safe));display:flex;flex-direction:column}
+.panel.on{flex:1;min-height:0;overflow:auto}
+@media(min-width:640px){
+  html.wallet-compact .stage{align-items:center;padding:24px 16px}
+  html.wallet-compact .app{height:min(780px,calc(100dvh - 48px));min-height:0;margin:0;border-radius:28px;border:1px solid rgba(224,195,106,.18);box-shadow:0 30px 80px #000;overflow:hidden}
+  html.wallet-full .stage{align-items:stretch;padding:0;background:var(--bg)}
+  html.wallet-full .app{max-width:560px;min-height:100vh;margin:0 auto;border-radius:0;border:0;box-shadow:none}
+}
 header{display:flex;align-items:center;gap:10px;padding:14px 16px 8px}
 .ident{flex:1;min-width:0;display:flex;align-items:center;gap:10px;background:rgba(255,255,255,.04);border:1px solid var(--line);border-radius:999px;padding:5px 12px 5px 5px}
 .ident img{width:28px;height:28px;border-radius:50%;flex-shrink:0;object-fit:cover;background:#0a0a12}
@@ -48,6 +51,7 @@ header{display:flex;align-items:center;gap:10px;padding:14px 16px 8px}
 .net{font-size:11px;letter-spacing:.16em;text-transform:uppercase;color:var(--gold);margin-bottom:10px}
 .fig{font-size:40px;font-weight:700;letter-spacing:-.04em;font-variant-numeric:tabular-nums}
 .fig small{font-size:16px;color:var(--muted);font-weight:500;margin-left:4px}
+.fig-usd{margin-top:6px;font-size:14px;color:var(--gold2);font-variant-numeric:tabular-nums}
 .sub{margin-top:8px;font-size:12px;color:var(--muted);line-height:1.4}
 .acts{display:grid;grid-template-columns:repeat(4,1fr);gap:8px;padding:16px 16px 8px}
 .acts button{border:1px solid var(--line);background:var(--card);color:var(--gold2);border-radius:16px;padding:12px 4px 10px;font-size:11px;font-weight:600}
@@ -57,9 +61,46 @@ section{padding:8px 16px 0}
 .hrow{display:flex;justify-content:space-between;align-items:baseline;margin:12px 0 8px}
 .hrow h2{font-size:13px;font-weight:600;letter-spacing:.04em;text-transform:uppercase;color:var(--muted)}
 .hrow button{background:none;border:0;color:var(--gold);font-size:12px;font-weight:600}
-.row{display:flex;align-items:center;gap:12px;padding:12px;background:var(--card);border:1px solid var(--line);border-radius:16px;margin-bottom:8px}
-.av{width:36px;height:36px;border-radius:50%;display:grid;place-items:center;flex-shrink:0;background:#14141c;color:var(--gold);font-size:13px;font-weight:700;overflow:hidden}
-.av img{width:100%;height:100%;object-fit:contain;background:#0a0a12}
+.row{display:flex;align-items:center;gap:12px;padding:12px;background:linear-gradient(180deg,rgba(255,255,255,.05),rgba(255,255,255,.02));box-shadow:0 0 0 1px rgba(224,195,106,.14),0 10px 24px rgba(0,0,0,.35);border-radius:18px;margin-bottom:8px}
+.av{width:36px;height:36px;border-radius:50%;display:grid;place-items:center;flex-shrink:0;background:#14141c;color:var(--gold);font-size:13px;font-weight:700;overflow:hidden;box-shadow:0 0 0 1px rgba(224,195,106,.35)}
+.av img{width:100%;height:100%;object-fit:contain;background:#0a0a12;outline:1px solid rgba(255,255,255,.08);outline-offset:-1px}
+.card{background:linear-gradient(180deg,rgba(255,255,255,.06),rgba(18,18,26,.92));box-shadow:0 0 0 1px rgba(224,195,106,.16),0 12px 28px rgba(0,0,0,.4);border-radius:18px;margin-bottom:10px;overflow:hidden}
+.card-hit{display:flex;align-items:center;gap:12px;padding:12px;width:100%;background:none;border:0;color:inherit;text-align:left;cursor:pointer;font:inherit}
+.card.on .drop{display:block}
+.drop{display:none;background:rgba(0,0,0,.38);border-top:1px solid rgba(224,195,106,.12);padding:6px}
+.hold{display:flex;width:100%;align-items:center;gap:10px;padding:10px;background:rgba(255,255,255,.03);border:0;border-radius:12px;color:var(--text);margin-bottom:6px;font:inherit;cursor:pointer;text-align:left}
+.hold:last-child{margin-bottom:0}
+.copychip{display:inline-block;margin-top:4px;background:rgba(224,195,106,.1);border:1px solid rgba(224,195,106,.28);color:var(--gold2);border-radius:999px;padding:3px 8px;font-family:"IBM Plex Mono",ui-monospace,monospace;font-size:11px;cursor:pointer}
+.acts button{border:0;background:linear-gradient(180deg,#1c1a24,#101018);color:var(--gold2);border-radius:16px;padding:12px 4px 10px;font-size:11px;font-weight:600;box-shadow:0 0 0 1px rgba(224,195,106,.22),0 8px 18px rgba(0,0,0,.35)}
+.primary{width:100%;border:0;border-radius:14px;padding:12px;background:linear-gradient(180deg,#e8d07a,#b8922a);color:#1a1405;font-weight:700;box-shadow:0 8px 18px rgba(184,146,42,.28)}
+.ghost{width:100%;margin-top:8px;border-radius:14px;padding:12px;background:transparent;color:var(--gold2);border:0;box-shadow:0 0 0 1px rgba(224,195,106,.2);font-weight:600}
+.chev{width:12px;height:12px;margin-left:6px;opacity:.7;transition:transform .15s ease}
+.tok-acts{display:flex;gap:10px;padding:4px 10px 8px;justify-content:flex-end}
+.tok-acts .tiny{margin:0}
+.swapbox{padding:8px 8px 12px}
+.sw-row{display:flex;align-items:center;gap:8px;background:#0a0a12;border-radius:12px;padding:10px;margin:6px 0;box-shadow:0 0 0 1px rgba(224,195,106,.16)}
+.sw-row img{width:28px;height:28px;border-radius:8px;background:#111}
+.sw-row input{flex:1;min-width:0;background:transparent;border:0;color:var(--text);font:inherit;font-size:18px;font-weight:700}
+.sw-row b{flex:1;font-size:18px}
+.sw-row span{font-size:12px;color:var(--muted);font-weight:600}
+.sw-go{margin-top:8px}
+.tok-head{display:flex;align-items:center;gap:10px;margin-bottom:8px}
+.tok-head .meta b{font-size:18px}
+.tok-price{margin-left:auto;text-align:right}
+.tok-price b{display:block;font-size:16px}
+.tok-price span{font-size:11px;color:var(--muted)}
+.tok-tabs{display:flex;gap:4px;margin:8px 0 10px}
+.tok-tabs button{flex:1;border:0;border-radius:10px;padding:8px 4px;background:var(--card);color:var(--muted);font-weight:700;font-size:12px;box-shadow:0 0 0 1px var(--line)}
+.tok-tabs button.on{color:#1a1405;background:linear-gradient(180deg,#e8d07a,#b8922a);box-shadow:none}
+.chartframe{width:100%;height:280px;border:0;border-radius:12px;background:#0a0a12}
+.statg{display:grid;grid-template-columns:1fr 1fr;gap:8px;margin:8px 0}
+.statg div{background:#0a0a12;border-radius:12px;padding:10px;box-shadow:0 0 0 1px var(--line)}
+.statg b{display:block;font-size:14px}
+.statg span{font-size:10px;color:var(--muted);letter-spacing:.06em;text-transform:uppercase}
+.use-row{display:flex;align-items:center;gap:10px;padding:10px;border-radius:12px;background:var(--card);border:1px solid var(--line);text-decoration:none;color:var(--text);margin-bottom:8px}
+.use-row b{display:block}
+.use-row span{font-size:11px;color:var(--muted)}
+.copymint{width:100%;text-align:left;font-family:"IBM Plex Mono",monospace;font-size:11px;word-break:break-all;background:#0a0a12;border:0;color:var(--gold2);border-radius:10px;padding:10px;margin:6px 0}
 .meta{flex:1;min-width:0}
 .meta b,.meta span{display:block;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
 .meta b{font-size:14px}.meta span{font-size:11px;color:var(--muted)}
@@ -80,6 +121,14 @@ section{padding:8px 16px 0}
 .msg.ok{color:var(--ok)}.msg.err{color:var(--err)}
 .prov{display:flex;width:100%;align-items:center;gap:12px;background:var(--card);border:1px solid var(--line);border-radius:14px;padding:12px;color:var(--text);margin-bottom:8px;font-size:14px;font-weight:600;text-align:left}
 .prov img{width:28px;height:28px;border-radius:8px;object-fit:contain;background:#0a0a12;flex-shrink:0}
+.prov .sub{margin:0;font-size:11px;font-weight:500;color:var(--muted)}
+.prov.install{opacity:.92;font-weight:500}
+.pick-label{font-size:11px;letter-spacing:.08em;text-transform:uppercase;color:var(--muted);margin:8px 0 6px}
+.install-more{margin:10px 0;border-radius:14px;background:rgba(255,255,255,.03);box-shadow:0 0 0 1px var(--line)}
+.install-more>summary{list-style:none;cursor:pointer;padding:12px 14px;font-weight:600;color:var(--gold2)}
+.install-more>summary::-webkit-details-marker{display:none}
+.install-more[open]>summary{border-bottom:1px solid var(--line)}
+.install-more .pad-in{padding:10px}
 .addrbox{font-family:"IBM Plex Mono",monospace;font-size:12px;word-break:break-all;background:#000;border-radius:12px;padding:12px;margin:8px 0 12px}
 .primary{width:100%;border:0;border-radius:14px;padding:12px;background:linear-gradient(180deg,#e8d07a,#b8922a);color:#1a1405;font-weight:700}
 .ghost{width:100%;margin-top:8px;border-radius:14px;padding:12px;background:transparent;color:var(--gold2);border:1px solid var(--line);font-weight:600}
@@ -147,13 +196,18 @@ section{padding:8px 16px 0}
         <span class="mono" id="gid">Grudge ID</span>
       </div>
     </div>
+    <button class="ico" type="button" id="btn-layout" title="Full page" aria-label="Full page">
+      <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8"><path d="M9 3H3v6"/><path d="M15 3h6v6"/><path d="M9 21H3v-6"/><path d="M21 15v6h-6"/></svg>
+    </button>
     <a class="ico" id="btn-login" href="${login}" title="Grudge ID">ID</a>
+    <a class="ico" id="btn-download" href="/download" title="Install">↓</a>
     <button class="ico" type="button" id="btn-logout" title="Sign out" hidden>✕</button>
   </header>
   <div class="hero">
-    <div class="net">Gruda · Solana mainnet</div>
+    <div class="net">All bags · Solana mainnet</div>
     <div class="fig"><span id="fig-sol">0.00</span><small>SOL</small></div>
-    <div class="sub">Vault <span id="tr-sol">0.00</span> · bag GBUX <span id="gbux">0</span> · play <span id="play">0</span></div>
+    <div class="fig-usd" id="fig-usd"></div>
+    <div class="sub">Trader <span id="tr-sol">0.00</span> · Play <span id="play">0</span></div>
   </div>
   <div class="acts">
     <button type="button" id="act-recv"><span class="ic"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><path d="M12 4v12"/><path d="M7 12l5 5 5-5"/><path d="M5 20h14"/></svg></span>Receive</button>
@@ -165,25 +219,30 @@ section{padding:8px 16px 0}
   <div class="panel on" id="panel-home">
     <section>
       <div class="hrow"><h2>Wallets</h2><button type="button" id="act-add">+ Add</button></div>
-      <div id="linked-list">
-        <div class="row"><div class="av"><img src="/media/sol.png" alt=""></div><div class="meta"><b>Wallet 1</b><span class="mono" id="w1">Not linked</span></div><div class="bal"><span>funding</span></div></div>
+      <div id="linked-list"></div>
+      <div id="trader-card">
+        <div class="row"><div class="av"><img src="/media/sol.png" alt=""></div><div class="meta"><b>Trader</b><span>Auto-trader</span></div><div class="bal"><b id="vault-sol">0.00</b><span>SOL</span></div></div>
       </div>
-      <div class="row"><div class="av"><img src="/media/sol.png" alt=""></div><div class="meta"><b>Trader vault</b><span>Engine key · not a browser wallet</span></div><div class="bal"><b id="vault-sol">0.00</b><span>SOL</span></div></div>
     </section>
     <section>
       <div class="hrow"><h2>Tokens</h2></div>
+      <div id="home-tokens">
       <div class="row"><div class="av"><img src="/media/sol.png" alt="SOL"></div><div class="meta"><b>Solana</b><span>SOL</span></div><div class="bal"><b id="tok-sol">0.00</b></div></div>
-      <div class="row"><div class="av"><img src="/media/gbux.png" alt="GBUX"></div><div class="meta"><b>GBUX</b><span>Fleet bag · fee / play, not traded</span></div><div class="bal"><b id="tok-gbux">0</b></div></div>
+      <div class="row"><div class="av"><img src="/media/gbux.png" alt="GBUX"></div><div class="meta"><b>GBUX</b><span>On-chain</span></div><div class="bal"><b id="tok-gbux">0</b></div></div>
+      <div class="row"><div class="av"><img src="/media/usdc.png" alt="USDC"></div><div class="meta"><b>USDC</b><span>USD Coin</span></div><div class="bal"><b>0</b></div></div>
+      <div class="row"><div class="av"><img src="/media/thc.png" alt="THC"></div><div class="meta"><b>THC</b><span>THC Labz</span></div><div class="bal"><b>0</b></div></div>
+      </div>
     </section>
   </div>
   <div class="panel" id="panel-coins">
     <section>
       <div class="hrow"><h2>Coins</h2><button type="button" id="btn-add-token">+ Token</button></div>
-      <p class="hint">Paste a mint or search a ticker. Jupiter metadata + Solana RPC balances. Play is Crossmint. Wallet 1 is linked funding. Vault is the trader engine (SOL clips — not a collector wallet).</p>
+      <p class="hint">Search a ticker or paste a mint.</p>
       <div class="chips" id="coin-owners">
-        <button type="button" class="chip on" data-owner="crossmint">Play</button>
-        <button type="button" class="chip" data-owner="linked">Wallet 1</button>
-        <button type="button" class="chip" data-owner="vault">Vault</button>
+        <button type="button" class="chip on" data-owner="all">All</button>
+        <button type="button" class="chip" data-owner="play">Play</button>
+        <button type="button" class="chip" data-owner="linked">Linked</button>
+        <button type="button" class="chip" data-owner="trader">Trader</button>
       </div>
       <div class="addbar">
         <input class="input" id="coin-q" placeholder="Search JUP, BONK, or paste mint" autocomplete="off" />
@@ -197,7 +256,14 @@ section{padding:8px 16px 0}
   <div class="panel" id="panel-nfts">
     <section>
       <div class="hrow"><h2>cNFTs</h2><button type="button" id="btn-nft-sync">Sync</button></div>
-      <p class="hint" id="nft-empty">Hero and island cNFTs live on your Crossmint play wallet — never Phantom, never the trader vault.</p>
+      <p class="hint" id="nft-empty">Play + linked wallets. Characters, islands, Nemesis cards, Growerz, Bad Seeds.</p>
+      <div class="chips" id="nft-cats">
+        <button type="button" class="chip on" data-nft="all">All</button>
+        <button type="button" class="chip" data-nft="characters">Characters</button>
+        <button type="button" class="chip" data-nft="island">Islands</button>
+        <button type="button" class="chip" data-nft="nemesis">Nemesis</button>
+        <button type="button" class="chip" data-nft="access">Access</button>
+      </div>
       <p class="msg" id="nft-msg"></p>
       <a class="ghost btn cta" href="https://character.grudge-studio.com/?era=warlords" id="nft-foundry">Mint in Character Foundry</a>
       <div class="nftg" id="nft-grid"></div>
@@ -225,11 +291,23 @@ section{padding:8px 16px 0}
       <div id="dapp-list"></div>
     </section>
   </div>
-  <div class="panel" id="panel-set"><section><div class="hrow"><h2>Settings</h2></div>
-    <p class="msg">Grudge ID is login. One Connect sheet links Phantom / Solflare / Backpack / any Wallet Standard SOL wallet into linked_wallets. The trader vault is never SIWS. Coins use Jupiter + Solana RPC. cNFTs sync from Crossmint play.</p>
-    <div class="row"><div class="meta"><b>Network</b><span id="set-net">Solana mainnet-beta</span></div></div>
-    <div class="row"><div class="meta"><b>RPC</b><span id="set-rpc">Jupiter meta · Solana RPC · Crossmint cNFTs</span></div></div>
-    <button class="ghost" type="button" id="set-refresh">Refresh balances</button>
+  <div class="panel" id="panel-set"><section>
+    <div class="hrow"><h2>Account</h2></div>
+    <div class="row">
+      <div class="av"><img src="/media/grudge-id.png" alt=""></div>
+      <div class="meta"><b id="set-name">Sign in</b><span class="mono" id="set-gid">—</span></div>
+      <div class="bal"><button type="button" class="tiny" id="set-copy-gid">Copy ID</button></div>
+    </div>
+    <div class="hrow"><h2>Addresses</h2></div>
+    <div class="row"><div class="av"><img src="/media/play.png" alt=""></div><div class="meta"><b>Play <span class="pill">Primary</span></b><button type="button" class="copychip" data-copy="play" id="set-play">—</button></div></div>
+    <div class="row"><div class="av"><img src="/media/sol.png" alt=""></div><div class="meta"><b>Linked</b><button type="button" class="copychip" data-copy="w1" id="set-w1">None</button></div></div>
+    <div class="row"><div class="av"><img src="/media/sol.png" alt=""></div><div class="meta"><b>Trader</b><button type="button" class="copychip" data-copy="vault" id="set-vault">Not enabled</button></div></div>
+    <button class="ghost" type="button" id="set-refresh">Refresh</button>
+    <div class="hrow"><h2>Install</h2></div>
+    <p class="hint">Put Gruda Wallet on this phone or PC. Same Play address.</p>
+    <button class="primary" type="button" id="btn-install-app">Install app</button>
+    <a class="ghost btn" href="/download" style="display:block;text-align:center;text-decoration:none;margin-top:8px">Download for Windows</a>
+    <button class="ghost" type="button" id="set-logout">Sign out</button>
   </section></div>
   <nav class="dock">
     <button class="on" type="button" data-dock="home">Home</button>
@@ -239,15 +317,23 @@ section{padding:8px 16px 0}
     <button type="button" data-dock="set">Set</button>
   </nav>
   <div class="sheet" id="sheet-connect"><div class="pad"><div class="grab"></div>
-    <h3>Connect a SOL wallet</h3>
-    <p>One system: Wallet Standard, then Phantom / Solflare / Backpack. Signs SIWS and writes Wallet 1 / 2 on this Grudge ID. Does not log you in, replace Crossmint, or touch the trader vault. House aUp3 is never listed.</p>
-    <div id="wallet-picker"></div>
+    <h3>Connect a wallet</h3>
+    <p>Any Solana wallet. Installed ones first. Play stays the primary address.</p>
+    <div class="pick-label">On this device</div>
+    <div id="wallet-installed"></div>
+    <details class="install-more" id="wallet-install-wrap">
+      <summary>Install a wallet</summary>
+      <div class="pad-in">
+        <p class="hint">Easiest to set up, then the rest.</p>
+        <div id="wallet-install"></div>
+      </div>
+    </details>
     <p class="msg" id="connect-msg"></p>
     <button class="ghost" type="button" data-close>Cancel</button>
   </div></div>
   <div class="sheet" id="sheet-recv"><div class="pad"><div class="grab"></div>
-    <h3>Receive to trader vault</h3>
-    <p>Send SOL from Wallet 1 to this address. Keep 0.02 for fees. Buys need more than 0.03. Not house aUp3.</p>
+    <h3>Receive</h3>
+    <p>Send SOL here for the auto-trader. Leave a little for fees.</p>
     <div class="addrbox" id="vault-addr">Sign in → Enable trader</div>
     <button class="primary" type="button" id="btn-enroll">Enable trader</button>
     <button class="ghost" type="button" id="btn-copy-vault">Copy address</button>
@@ -257,7 +343,7 @@ section{padding:8px 16px 0}
   </div></div>
   <div class="sheet" id="sheet-send"><div class="pad"><div class="grab"></div>
     <h3>Send</h3>
-    <p>Play GBUX stays on the fleet bag / poker ledger. On-chain GBUX is fee-only and is forwarded to the Grudge dev wallet.</p>
+    <p>Send GBUX to Poker.</p>
     <label>Amount GBUX</label>
     <input class="input" id="send-amt" type="number" min="1" value="10" />
     <button class="primary" type="button" id="btn-play">Send to Poker play</button>
@@ -266,14 +352,24 @@ section{padding:8px 16px 0}
     <button class="ghost" type="button" data-close>Close</button>
   </div></div>
   <div class="sheet" id="sheet-token"><div class="pad"><div class="grab"></div>
-    <h3>Add a Solana token</h3>
-    <p>Search a ticker or paste a mint. Results come from Jupiter. Balance is read on Play / Wallet 1 / Vault.</p>
+    <h3>Add a token</h3>
+    <p>Search a ticker or paste a mint.</p>
     <input class="input" id="token-q" placeholder="JUP, BONK, or mint address" autocomplete="off" />
     <button class="primary" type="button" id="btn-token-lookup">Search</button>
     <div id="token-suggest" class="suggest" hidden></div>
     <div id="token-preview"></div>
     <p class="msg" id="token-msg"></p>
     <button class="ghost" type="button" data-close>Cancel</button>
+  </div></div>
+  <div class="sheet" id="sheet-swap"><div class="pad"><div class="grab"></div>
+    <h3>Swap</h3>
+    <p class="hint">In this wallet. Quote from Jupiter, sign from the bag that holds it.</p>
+    <div id="sheet-swap-box" class="swapbox"></div>
+    <button class="ghost" type="button" data-close>Close</button>
+  </div></div>
+  <div class="sheet" id="sheet-info"><div class="pad"><div class="grab"></div>
+    <div id="tok-page"></div>
+    <button class="ghost" type="button" data-close>Close</button>
   </div></div>
 </div></div>
 <script>
@@ -282,18 +378,63 @@ window.GRUDA = {
   idGw: ${JSON.stringify(idGw)},
   poker: ${JSON.stringify(poker)},
   trader: ${JSON.stringify(trader)},
-  build: "2026-09-16-art-v1",
+  build: "2026-09-18-download",
   art: {
     sol: "/media/sol.png",
     gbux: "/media/gbux.png",
     id: "/media/grudge-id.png",
-    play: "/media/crossmint.png",
+    play: "/media/play.png",
+    thc: "/media/thc.png",
+    usdc: "/media/usdc.png",
     gbuxMint: "55TpSoMNxbfsNJ9U1dQoo9H3dRtDmjBZVMcKqvU2nray",
     wsol: "So11111111111111111111111111111111111111112"
   }
 };
 </script>
 <script src="/wallet-app.js" defer></script>
+</body>
+</html>`;
+}
+
+export function downloadPage() {
+  return `<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8" />
+<meta name="viewport" content="width=device-width, initial-scale=1" />
+<title>Install Gruda Wallet</title>
+<link rel="icon" type="image/png" href="/favicon-32.png" />
+<link rel="manifest" href="/manifest.webmanifest" />
+<style>
+body{margin:0;min-height:100vh;background:#07070b;color:#f5f5f7;font-family:system-ui,sans-serif;display:flex;justify-content:center}
+.wrap{width:100%;max-width:420px;padding:28px 20px}
+img.logo{width:72px;height:72px;border-radius:18px}
+h1{font-size:22px;margin:16px 0 8px}
+p{color:#8b8b96;line-height:1.45}
+a.btn,button.btn{display:block;text-align:center;text-decoration:none;border:0;border-radius:14px;padding:14px;margin:10px 0;font:inherit;font-weight:700;cursor:pointer;color:#1a1405;background:linear-gradient(180deg,#e8d07a,#b8922a)}
+a.ghost{display:block;text-align:center;color:#e0c36a;margin-top:16px}
+</style>
+</head>
+<body>
+<div class="wrap">
+  <img class="logo" src="/icon-192.png" alt="Gruda Wallet" />
+  <h1>Install Gruda Wallet</h1>
+  <p>Same Grudge ID, Play address, and coins as the site. Phone installs as an app. Windows pins an Edge window.</p>
+  <button class="btn" type="button" id="install">Install on this device</button>
+  <a class="btn" href="/desktop/Install-GrudaWallet.ps1" download>Windows installer</a>
+  <a class="btn" href="/desktop/GrudaWallet.bat" download>Windows shortcut (.bat)</a>
+  <p>iPhone: Share → Add to Home Screen. Android / Chrome: Install app.</p>
+  <a class="ghost" href="/">Open wallet</a>
+</div>
+<script>
+let deferred;
+window.addEventListener("beforeinstallprompt", (e) => { e.preventDefault(); deferred = e; });
+document.getElementById("install").onclick = async () => {
+  if (deferred) { deferred.prompt(); await deferred.userChoice; deferred = null; return; }
+  alert("On iPhone use Share → Add to Home Screen. On Windows use the installer below.");
+};
+if ("serviceWorker" in navigator) navigator.serviceWorker.register("/sw.js");
+</script>
 </body>
 </html>`;
 }

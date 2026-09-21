@@ -77,6 +77,8 @@ const SUFFIX_HOSTS = [
   ".netlify.app",
   ".netlify.live",
   ".cloudflarepages.com",
+  // Grok App Builder live preview (wallet hub + fleet SSO test)
+  ".grok-sandbox.com",
 ];
 
 /** Optional production/signed hosts from env (server) or globalThis (embed). */
@@ -130,7 +132,10 @@ export function canonicalSsoReturnOrigin(origin: string): string {
 /** Returns true when `url` may receive SSO tokens after Grudge ID login. */
 export function isFleetAllowedReturnUrl(url: string): boolean {
   try {
-    const host = new URL(url).hostname.toLowerCase();
+    const u = new URL(url);
+    const host = u.hostname.toLowerCase();
+    const local = host === "localhost" || host === "127.0.0.1";
+    if (!local && u.protocol !== "https:") return false;
     if (extraExactHosts().includes(host)) return true;
     if (isEphemeralVercelHost(host)) return false;
     if (EXACT_HOSTS.has(host)) return true;

@@ -86,7 +86,7 @@ export function registerWalletInventoryRoutes(
       const meta = await lookupMint(q);
       if (!meta) return res.status(404).json({ error: "Token not found" });
       if (meta.mint === GBUX_MINT) {
-        return res.status(400).json({ error: "GBUX is already on the bag — not a watch token" });
+        return res.status(400).json({ error: "GBUX is already a core coin" });
       }
       await addWatchMint(account.id, meta);
       res.json({ success: true, token: meta });

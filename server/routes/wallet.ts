@@ -19,6 +19,9 @@ import {
 import type { LinkedWalletProvider, WalletPurchaseCurrency } from "@shared/schema";
 import { WALLET_PURCHASE_CURRENCIES } from "@shared/schema";
 import { registerWalletInventoryRoutes } from "./walletInventoryRoutes";
+import { swapPlayWallet, jupiterOrder } from "../services/walletSwap";
+import { parseSwap, isSolAddress } from "../services/swapValidate";
+import { getGbuxSupply } from "../services/gbuxSolana";
 
 /** Prefer SESSION_SECRET (auth.ts) then JWT_SECRET / GRUDGE_JWT_SECRET — use first non-empty candidate only. */
 const JWT_SECRET_CANDIDATES = [
@@ -75,6 +78,63 @@ async function requireAccount(req: Request, res: Response) {
 }
 
 export function registerWalletRoutes(app: Express): void {
+  app.post("/api/solana/rpc", async (req, res) => {
+    const method = String((req.body && req.body.method) || "");
+    const params = (req.body && req.body.params) || [];
+    const allow = new Set([
+      "getBalance",
+      "getTokenAccountsByOwner",
+      "getTokenAccountBalance",
+      "getAccountInfo",
+      "getMultipleAccounts",
+      "getTokenSupply",
+    ]);
+    if (!allow.has(method)) return res.status(403).json({ error: "method not allowed" });
+    const rpcs = [process.env.SOLANA_RPC_URL, "https://api.mainnet-beta.solana.com"].filter(Boolean);
+    let last = "rpc failed";
+    for (const rpc of [...new Set(rpcs)]) {
+      try {
+        const r = await fetch(rpc as string, {
+          method: "POST",
+          headers: { "content-type": "application/json" },
+          body: JSON.stringify({ jsonrpc: "2.0", id: req.body?.id || "gruda", method, params }),
+        });
+        const text = await r.text();
+        try {
+          JSON.parse(text);
+        } catch {
+          last = text.slice(0, 80);
+          continue;
+        }
+        return res.status(200).type("application/json").send(text);
+      } catch (e: any) {
+        last = e.message || String(e);
+      }
+    }
+    res.status(502).json({ error: last });
+  });
+
+  app.get("/api/gbux/circulating", async (_req, res) => {
+    try {
+      const s = await getGbuxSupply();
+      res.setHeader("Cache-Control", "public, max-age=30");
+      res.setHeader("Access-Control-Allow-Origin", "*");
+      res.type("text/plain").send(s.circulatingString);
+    } catch (e: any) {
+      res.status(502).json({ error: e.message || "supply unavailable" });
+    }
+  });
+  app.get("/api/gbux/supply", async (_req, res) => {
+    try {
+      const s = await getGbuxSupply();
+      res.setHeader("Cache-Control", "public, max-age=30");
+      res.setHeader("Access-Control-Allow-Origin", "*");
+      res.json({ ok: true, ...s });
+    } catch (e: any) {
+      res.status(502).json({ error: e.message || "supply unavailable" });
+    }
+  });
+
   app.get("/api/wallet/overview", requireAuth, async (req, res) => {
     try {
       const account = await requireAccount(req, res);
@@ -409,7 +469,7 @@ export function registerWalletRoutes(app: Express): void {
           process.env.AI_AGENT_WALLET ||
           "6P7Pp5eHzPAVjnbNLkW8DzAuuc7gj9Sm5XiprwnjzvRs",
       ).trim();
-      if (to.length < 32) {
+      if (!isSolAddress(to)) {
         return res.status(400).json({ error: "recipient required" });
       }
 
@@ -487,6 +547,68 @@ export function registerWalletRoutes(app: Express): void {
       res.json({ success: true, linkedWallets: linked });
     } catch (e: any) {
       res.status(400).json({ error: e.message || "Could not unlink" });
+    }
+  });
+
+  app.post("/api/wallet/swap/quote", requireAuth, async (req, res) => {
+    try {
+      const account = await requireAccount(req, res);
+      if (!account) return;
+      const parsed = parseSwap(req.body || {});
+      if (!parsed.ok) return res.status(400).json({ error: parsed.error });
+      const play = String((account as { walletAddress?: string }).walletAddress || "").trim();
+      if (parsed.taker) {
+        const linked = await listLinkedWallets(account.id);
+        const mine = new Set(
+          [play, ...linked.map((w) => String(w.walletAddress || ""))]
+            .map((a) => a.trim())
+            .filter(Boolean),
+        );
+        if (!mine.has(parsed.taker)) {
+          return res.status(403).json({ error: "taker is not one of your wallets" });
+        }
+      }
+      const order = await jupiterOrder(parsed);
+      if (!order.ok) {
+        return res.status(order.status || 400).json({
+          error: order.body?.errorMessage || order.body?.error || "No route",
+          order: order.body,
+        });
+      }
+      res.json({
+        ok: true,
+        inAmount: order.body.inAmount,
+        outAmount: order.body.outAmount,
+        otherAmountThreshold: order.body.otherAmountThreshold,
+        slippageBps: order.body.slippageBps,
+        requestId: order.body.requestId,
+        transaction: Boolean(order.body.transaction),
+      });
+    } catch (e: any) {
+      res.status(400).json({ error: e.message || "quote failed" });
+    }
+  });
+
+  app.post("/api/wallet/swap", requireAuth, async (req, res) => {
+    try {
+      const account = await requireAccount(req, res);
+      if (!account) return;
+      const play = String((account as { walletAddress?: string }).walletAddress || "").trim();
+      if (!play || !isSolAddress(play)) return res.status(400).json({ error: "No Play wallet on this Grudge ID" });
+      const parsed = parseSwap({ ...(req.body || {}), taker: play });
+      if (!parsed.ok) return res.status(400).json({ error: parsed.error });
+      const result = await swapPlayWallet({
+        playAddress: play,
+        inputMint: parsed.inputMint,
+        outputMint: parsed.outputMint,
+        amount: parsed.amount,
+        slippageBps: parsed.slippageBps,
+      });
+      if (!result.ok) return res.status(400).json(result);
+      res.json({ success: true, ...result });
+    } catch (e: any) {
+      console.error("[Wallet/swap]", e);
+      res.status(400).json({ error: e.message || "Swap failed" });
     }
   });
 

@@ -123,21 +123,79 @@ function nftFromAsset(asset: any, ownerWallet: string, ownerKind: string) {
     meta.image ||
     "";
   const compressed = Boolean(asset?.compression?.compressed);
+  const collection =
+    asset?.grouping?.find?.((g: any) => g.group_key === "collection")?.group_value ||
+    null;
+  const collectionName =
+    meta.collection?.name ||
+    meta.symbol ||
+    "";
+  const classified = classifyNft({
+    name: meta.name,
+    collection,
+    collectionName,
+    compressed,
+  });
   return {
     id: mint,
     kind: compressed ? "cnft" : "nft",
     mint,
-    name: String(meta.name || "cNFT"),
+    name: String(meta.name || "NFT"),
     imageUrl: image,
     characterId: null as string | null,
     ownerKind,
     ownerWallet,
-    collection:
-      asset?.grouping?.find?.((g: any) => g.group_key === "collection")?.group_value ||
-      null,
+    collection,
+    collectionName: collectionName || classified.label,
     compressed,
     source: "das",
+    project: classified.project,
+    access: classified.access,
   };
+}
+
+export function classifyNft(n: {
+  name?: string | null;
+  collection?: string | null;
+  collectionName?: string | null;
+  era?: string | null;
+  source?: string | null;
+  compressed?: boolean;
+  kind?: string | null;
+}) {
+  const blob = [n.name, n.collectionName, n.collection, n.era, n.kind]
+    .filter(Boolean)
+    .join(" ")
+    .toLowerCase();
+  const era = String(n.era || "").toLowerCase();
+  if (era === "nexus" || /nemesis|nexus card|season 0/.test(blob)) {
+    return { project: "nemesis", label: "Nexus Nemesis", access: false };
+  }
+  if (era === "voxel" || /grudox|voxel explorer/.test(blob)) {
+    return { project: "voxel", label: "Voxel", access: false };
+  }
+  if (era === "armada" || /\bmech\b|armada/.test(blob)) {
+    return { project: "armada", label: "Armada", access: false };
+  }
+  if (/home island|\bisland\b|find land/.test(blob) || n.kind === "island") {
+    return { project: "island", label: "Home island", access: false };
+  }
+  if (era === "warlords" || /warlord|grudge 6|grudge6/.test(blob)) {
+    return { project: "warlords", label: "Warlords", access: false };
+  }
+  if (/grower/.test(blob)) {
+    return { project: "growerz", label: "THC Growerz", access: true };
+  }
+  if (/bad seed/.test(blob)) {
+    return { project: "badseeds", label: "Bad Seeds", access: true };
+  }
+  if (/kronic|thc labz|zalez|rugged kronic/.test(blob)) {
+    return { project: "thc", label: "THC Labz", access: true };
+  }
+  if (n.source === "db") {
+    return { project: "warlords", label: "Warlords", access: false };
+  }
+  return { project: "other", label: n.collectionName || "Other", access: false };
 }
 
 export async function resolveOwnerAddress(
@@ -495,19 +553,25 @@ async function crossmintNfts(address: string, email?: string | null) {
       if (!Array.isArray(rows)) continue;
       for (const n of rows) {
         const mint = String(n.mintHash || n.tokenId || n.locator || n.contractAddress || "");
+        const name = n.metadata?.name || "cNFT";
+        const collectionName = n.metadata?.collection?.name || n.collectionId || "";
+        const classified = classifyNft({ name, collection: n.collectionId, collectionName, source: "crossmint" });
         out.push({
           id: n.locator || mint,
           kind: "cnft",
           mint,
-          name: n.metadata?.name || "cNFT",
+          name,
           imageUrl: n.metadata?.image || "",
           characterId: null,
           ownerKind: "crossmint",
           ownerWallet: address,
-          collection: n.metadata?.collection?.id || CHARACTER_COLLECTION,
+          collection: n.metadata?.collection?.id || n.collectionId || CHARACTER_COLLECTION,
+          collectionName: collectionName || classified.label,
           compressed: true,
           source: "crossmint",
           locator: loc,
+          project: classified.project,
+          access: classified.access,
         });
       }
       if (out.length) break;
@@ -520,19 +584,27 @@ async function crossmintNfts(address: string, email?: string | null) {
 
 async function dasNfts(address: string, ownerKind: string) {
   if (!address) return [] as any[];
-  try {
-    const page = await das("searchAssets", {
-      ownerAddress: address,
-      tokenType: "compressedNft",
-      page: 1,
-      limit: 50,
-    });
-    const items = page?.items || [];
-    return items.map((a: any) => nftFromAsset(a, address, ownerKind));
-  } catch (e) {
-    console.warn("[walletInventory] das nfts", (e as Error).message);
-    return [];
+  const types = ["compressedNft", "regularNft"] as const;
+  const out: any[] = [];
+  for (const tokenType of types) {
+    for (let page = 1; page <= 3; page++) {
+      try {
+        const result = await das("searchAssets", {
+          ownerAddress: address,
+          tokenType,
+          page,
+          limit: 50,
+        });
+        const items = result?.items || [];
+        for (const a of items) out.push(nftFromAsset(a, address, ownerKind));
+        if (items.length < 50) break;
+      } catch (e) {
+        console.warn("[walletInventory] das nfts", tokenType, (e as Error).message);
+        break;
+      }
+    }
   }
+  return out;
 }
 
 async function dbCharacterNfts(accountId: string, playWallet: string) {
@@ -549,7 +621,8 @@ async function dbCharacterNfts(accountId: string, playWallet: string) {
         n.crossmint_action_id,
         n.status,
         c.name AS character_name,
-        c.avatar_url
+        c.avatar_url,
+        c.game_era
       FROM character_nfts n
       LEFT JOIN characters c ON c.id = n.character_id
       WHERE n.account_id = ${accountId}
@@ -559,11 +632,17 @@ async function dbCharacterNfts(accountId: string, playWallet: string) {
     const list = (rows?.rows || rows || []) as any[];
     return list
       .filter((n) => n.mint_address || n.crossmint_action_id)
-      .map((n) => ({
+      .map((n) => {
+        const classified = classifyNft({
+          name: n.character_name,
+          era: n.game_era,
+          source: "db",
+        });
+        return {
         id: n.id,
         kind: n.is_compressed === false ? "nft" : "cnft",
         mint: n.mint_address || n.asset_id || n.crossmint_action_id,
-        name: n.character_name || "Hero cNFT",
+        name: n.character_name || "Hero",
         imageUrl: n.image_uri || n.avatar_url || "",
         characterId: n.character_id,
         ownerKind: "crossmint",
@@ -571,9 +650,57 @@ async function dbCharacterNfts(accountId: string, playWallet: string) {
         compressed: n.is_compressed !== false,
         source: "db",
         status: n.status,
-      }));
+        era: n.game_era || "warlords",
+        project: classified.project,
+        collectionName: classified.label,
+        access: classified.access,
+      };
+      });
   } catch (e) {
     console.warn("[walletInventory] character_nfts", (e as Error).message);
+    return [];
+  }
+}
+
+async function dbIslandNfts(accountId: string, playWallet: string) {
+  try {
+    const rows = (await db.execute(sql`
+      SELECT
+        n.id,
+        n.island_id,
+        n.mint_address,
+        n.asset_id,
+        n.image_uri,
+        n.is_compressed,
+        n.owner_wallet_address,
+        n.crossmint_action_id,
+        n.status
+      FROM island_nfts n
+      WHERE n.account_id = ${accountId}
+      ORDER BY n.created_at DESC
+      LIMIT 40
+    `)) as any;
+    const list = (rows?.rows || rows || []) as any[];
+    return list
+      .filter((n) => n.mint_address || n.crossmint_action_id)
+      .map((n) => ({
+        id: n.id,
+        kind: "island",
+        mint: n.mint_address || n.asset_id || n.crossmint_action_id,
+        name: "Home island",
+        imageUrl: n.image_uri || "",
+        characterId: null,
+        ownerKind: "crossmint",
+        ownerWallet: n.owner_wallet_address || playWallet,
+        compressed: n.is_compressed !== false,
+        source: "db",
+        status: n.status,
+        project: "island",
+        collectionName: "Home island",
+        access: false,
+      }));
+  } catch (e) {
+    console.warn("[walletInventory] island_nfts", (e as Error).message);
     return [];
   }
 }
@@ -604,27 +731,46 @@ export async function listNftsForAccount(opts: {
     }
   }
 
-  const [cm, dasItems, dbItems] = await Promise.all([
+  const linked = await listLinkedWallets(account.id).catch(() => []);
+  const linkedAddrs = [...new Set(
+    linked
+      .map((w) => String(w.walletAddress || "").trim())
+      .filter((a) => a && a !== HOUSE_PUBKEY && a !== play),
+  )];
+
+  const [cm, dasPlay, dbChars, dbIslands, ...dasLinked] = await Promise.all([
     crossmintNfts(play, email),
     dasNfts(play, "crossmint"),
     dbCharacterNfts(account.id, play),
+    dbIslandNfts(account.id, play),
+    ...linkedAddrs.map((a) => dasNfts(a, "linked")),
   ]);
 
   const seen = new Set<string>();
   const items: any[] = [];
-  for (const n of [...cm, ...dasItems, ...dbItems]) {
+  for (const n of [...cm, ...dasPlay, ...dasLinked.flat(), ...dbChars, ...dbIslands]) {
     const key = String(n.mint || n.id);
     if (!key || seen.has(key)) continue;
     seen.add(key);
+    if (!n.project) {
+      const c = classifyNft(n);
+      n.project = c.project;
+      n.collectionName = n.collectionName || c.label;
+      n.access = c.access;
+    }
     items.push(n);
   }
+
+  const projects = [...new Set(items.map((n) => n.project).filter(Boolean))];
 
   return {
     accountId: account.id,
     grudgeId: account.grudgeId,
     crossmint: play,
     ownerKind: "crossmint",
+    linked: linkedAddrs,
     rpc: rpcUrl().includes("helius") ? "helius" : "solana",
+    projects,
     items,
   };
 }

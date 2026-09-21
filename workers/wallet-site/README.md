@@ -41,13 +41,26 @@ This host is the **studio bag**. Poker sit is **not** this page.
 | Games grid | Auto-trader, Poker, Nexus, Warlords, Foundry, Open, GRUDOX, Mine, Forge, Casting |
 | Gruda / Crossmint | `GET /api/wallet/status` first · `POST /api/wallet/create` only if missing |
 
-## Deploy
+## Deploy (this preview → wallet.grudge-studio.com)
+
+Production **is** Cloudflare Worker `grudge-wallet-site`. GitHub Action `.github/workflows/deploy-wallet-site.yml` publishes it.
+
+**One-time:** GitHub → `MolochDaGod/Grudge-Builder` → Settings → Secrets and variables → Actions → `CLOUDFLARE_API_TOKEN`.
+
+Create that token in Cloudflare → My Profile → API Tokens → "Edit Cloudflare Workers". Account `ee475864561b02d4588180b8b9acf694`.
+
+Then either:
+- push `workers/wallet-site/**` to `main`, or
+- Actions → "Deploy wallet.grudge-studio.com" → Run workflow
+
+Until the secret exists, the Action fails on purpose instead of uploading an empty token.
 
 ```bash
-cd F:\GitHub\GrudgeBuilder\workers\wallet-site
-$env:WRANGLER_HOME = "C:\Users\nugye\.wrangler"
+cd workers/wallet-site
 npx wrangler deploy --env=""
 ```
+
+Railway is **The Engine** (`grudge-api`) for `/api/wallet/*`. This Worker only fronts the page and proxies. Do not point wallet DNS at the VPS.
 
 Railway (transfer-to-play route lives in grudge-api):
 
