@@ -32,7 +32,7 @@ export async function generateSpriteFromPrompt(
     transparent?: boolean;
   }
 ): Promise<string | null> {
-  // Primary path: use Grudge AI Gateway (ai.grudge-studio.com)
+  // Use Grudge AI Gateway (ai.grudge-studio.com) via Together/Kiln
   try {
     const result = await aiGateway.image({
       prompt,
@@ -46,25 +46,8 @@ export async function generateSpriteFromPrompt(
     const img = result.images?.[0];
     return img?.url || (img?.b64_json ? `data:image/png;base64,${img.b64_json}` : null);
   } catch (gatewayError) {
-    console.warn('AI Gateway unavailable, falling back to Puter:', gatewayError);
-  }
-
-  // Fallback: Puter txt2img
-  if (!isPuterAvailable() || !window.puter?.ai?.txt2img) {
-    console.warn("Puter AI not available for sprite generation");
-    return null;
-  }
-
-  try {
-    const imgElement = await window.puter.ai.txt2img(prompt, {
-      model: options?.model || AI_DEFAULTS.image.bulk,
-      quality: options?.quality || "medium",
-      size: options?.size || "1024x1024",
-    });
-    return imgElement.src;
-  } catch (error) {
-    console.error("Puter txt2img error:", error);
-    return null;
+    console.error('AI Gateway unavailable for sprite generation:', gatewayError);
+    throw new Error('Sprite generation service unavailable. AI Gateway (ai.grudge-studio.com) is required for image generation.');
   }
 }
 

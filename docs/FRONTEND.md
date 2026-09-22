@@ -123,7 +123,7 @@ Weapon skill tree system:
 ### Sprite Editor (`/sprite-editor`)
 Custom sprite creation tool:
 - Pixel art editor canvas
-- AI sprite generation via Puter
+- AI sprite generation via Grudge AI Gateway (ai.grudge-studio.com)
 - Aseprite file import
 - Animation preview
 
