@@ -33,7 +33,7 @@
 | Characters / progress | Railway `characters` | D1 player_characters, Puter KV |
 | Account bag | Railway `account_inventory` | `characters.inventory` JSONB (legacy) |
 | Island seeds | Railway `home_islands` | D1, localStorage |
-| Recipes / items / professions defs | ObjectStore `/api/v1/*.json` | Hardcoded HTML tables |
+| Recipes / items / professions defs | ObjectStore `objectstore.grudge-studio.com/api/v1/*.json` | Hardcoded HTML tables |
 | Meshes / icons | R2 CDN | Postgres BYTEA |
 | Asset search index | D1 `asset_registry` | — |
 
@@ -84,7 +84,7 @@ Apply pending: `006_character_grudge_code.sql`, `007_player_ships.sql` if not al
 | App | URL | Reads | Writes |
 |-----|-----|-------|--------|
 | Crafting | grudge-crafting.puter.site | ObjectStore defs, Railway chars/bag, R2 icons | Railway progress + bag; Puter KV cache |
-| Puter Warlords | puter.com/app/warlords | Shell → grudgewarlords.com | Same as Vercel client |
+| Puter Warlords | puter.com/app/warlords | Shell → grudgewarlords.com (Jonathan-signed PREVIEW only) | Same as Vercel client |
 | Dash Assets | dash…/assets | Health probes, pack list | Admin only via Railway |
 
 Auth: Grudge ID → dual `sso_token` + `grudge_token` → `grudge-fleet.js` **≥ 2.8.0**.  

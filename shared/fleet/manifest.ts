@@ -162,7 +162,7 @@ export const FLEET_URLS = {
    * Live Codex: GET {mineLoaderApi}/api/ssot · /api/blocks
    */
   mineLoader: "https://mine.grudge-studio.com",
-  mineLoaderSpa: "https://mine-loader.vercel.app",
+  mineLoaderSpa: "https://mine-loader.vercel.app", // legacy Vercel — primary = mine.grudge-studio.com
   mineLoaderApi: "https://mine-loader-api-production.up.railway.app",
   /** Codex UI (block defs) on the Mine-Loader SPA */
   mineCodex: "https://mine.grudge-studio.com/#/defs",

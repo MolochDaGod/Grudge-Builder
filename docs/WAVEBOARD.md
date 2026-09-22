@@ -1,7 +1,7 @@
 # Waveboard — Grudge6 open-water windsurf (tslda-inspired)
 
 **Source learning:** [Robpayot/tslda](https://github.com/Robpayot/tslda) (Wind Waker Three.js / TSL)  
-**Live:** grudgewarlords.com open water · dock craft  
+**Live:** grudgewarlords.com (Jonathan-signed PREVIEW only) open water · dock craft  
 **Asset:** `client/public/models/watercraft/waveboard_rig.glb`  
   (from `Documents/windsurfing_rig_silhouette.glb`)
 

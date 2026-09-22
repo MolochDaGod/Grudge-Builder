@@ -61,7 +61,7 @@ Contract: [home-island-contract.json](https://objectstore.grudge-studio.com/api/
 
 ## ObjectStore (items & economy)
 
-Puter app and Warlords load:
+Puter app and Warlords load from `https://objectstore.grudge-studio.com`:
 
 ```
 GET /api/v1/games-library.json

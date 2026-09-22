@@ -110,7 +110,7 @@ Puter surface defaults to a `/launcher` route that is the **GrudgeDot** login en
 - `grudge-backend`, `grudge-studio-dash`, `grudge-ai-hub`, `The-ENGINE`, `Grudge-Engine-Web`, `grudge-arena`, `Grudge-Studio-Game`, `grim-armada-web`, `GrudgeSpaceRTS`, `TGE-Billing`, `RPG-MODULAR` — out of audit write scope. Registered in `systemMap.ts` only.
 ## 13. Production parity for grudgeplatform.io, /gs, GrudgeDot, Puter (2026-04-26)
 ### 13a. Live surfaces (probed 2026-04-26)
-- `https://grudgewarlords.com` — 200 ✅ (this repo's SPA, Three.js, loads `js.puter.com/v2/`).
+- `https://grudgewarlords.com` — 200 ✅ (this repo's SPA, Three.js, loads `js.puter.com/v2/`). **Note: Jonathan-signed PREVIEW only, not production.**
 - `https://grudgewarlords.com/gs` — 200, but it's the SPA catch-all on this repo, **not** a real `/gs` route here.
 - `https://grudge-studio.com/gs` — 200, title `Rec0deD:88 — Grudge Studio Gaming Portal`. Served by `The-ENGINE` (`svc:gaming-portal`). This is the **canonical** `/gs` surface.
 - `https://grudgeplatform.io` — 200, title `RPG Maker Studio — Grudge Studios`. Served by `grudge-platform` repo. Now registered as `dom:grudgeplatform.io` + `svc:grudge-platform`.

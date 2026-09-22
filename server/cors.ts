@@ -30,7 +30,7 @@ export const GRUDGE_EXACT_ORIGINS: string[] = [
   "https://rts-grudge.vercel.app",
 
   // Mine-Loader / Voxel Realms (explicit SPA + edge)
-  "https://mine-loader.vercel.app",
+  "https://mine-loader.vercel.app", // legacy Vercel — primary = mine.grudge-studio.com
   "https://mine.grudge-studio.com",
 
   // Game Studio Tool / Grudge Islands (portal /gst + Vercel satellite)

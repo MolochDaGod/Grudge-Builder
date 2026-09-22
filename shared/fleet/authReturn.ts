@@ -60,7 +60,7 @@ const EXACT_HOSTS = new Set([
   "grudge-studio.puter.site",
   "grudge-heros.puter.site",
   // Mine-Loader / Voxel Realms
-  "mine-loader.vercel.app",
+  "mine-loader.vercel.app", // legacy Vercel — primary = mine.grudge-studio.com
   "mine.grudge-studio.com",
 ]);
 
