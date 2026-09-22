@@ -13,11 +13,27 @@
 import type { Express, Request, Response } from "express";
 import { db } from "../db";
 import { accounts, linkedWallets } from "@shared/schema";
-import { eq, sql } from "drizzle-orm";
+import { eq, inArray } from "drizzle-orm";
 import crypto from "node:crypto";
 import { CrossmintWalletService } from "../services/crossmintWallet";
 
 const crossmintService = new CrossmintWalletService();
+
+// Base58 alphabet for Solana public key validation
+const BASE58_ALPHABET = '123456789ABCDEFGHJKLMNPQRSTUVWXYZabcdefghijkmnopqrstuvwxyz';
+
+/**
+ * Validate if string is valid base58 (Solana pubkey format)
+ * Returns true if valid, false otherwise
+ */
+function isValidBase58(str: string): boolean {
+  if (!str || typeof str !== 'string') return false;
+  if (str.length < 32 || str.length > 44) return false; // Typical Solana pubkey is 32-44 chars
+  for (const char of str) {
+    if (!BASE58_ALPHABET.includes(char)) return false;
+  }
+  return true;
+}
 
 /**
  * Generate a GRUDGE_* ID (same style as auth.ts generateGrudgeId)
@@ -38,16 +54,45 @@ function normalizeSolanaPubkey(pubkey: string): string {
 }
 
 /**
- * Admin auth check (same pattern as isAdminRequest in routes.ts)
+ * Admin auth check with fail-closed security.
+ * 
+ * Production: requires non-empty ADMIN_API_KEY env + constant-time comparison.
+ * Dev: NODE_ENV==='development' bypass (pre-existing pattern debt).
  */
 function isAdminRequest(req: Request): boolean {
-  // In development mode, allow admin operations
+  // Dev mode bypass (pre-existing pattern)
   if (process.env.NODE_ENV === 'development') {
     return true;
   }
-  // In production, require admin key header
-  const adminKey = req.headers['x-admin-key'];
-  return adminKey === process.env.ADMIN_API_KEY;
+
+  // Production: fail CLOSED
+  const envKey = process.env.ADMIN_API_KEY;
+  if (!envKey || envKey.trim().length === 0) {
+    // If ADMIN_API_KEY unset/empty in prod → deny always (fail closed)
+    console.error('[Admin Backfill] ADMIN_API_KEY not configured in production');
+    return false;
+  }
+
+  const headerKey = req.headers['x-admin-key'];
+  if (!headerKey || typeof headerKey !== 'string' || headerKey.trim().length === 0) {
+    return false;
+  }
+
+  // Constant-time comparison to prevent timing attacks
+  try {
+    const headerBuf = Buffer.from(headerKey.trim(), 'utf8');
+    const envBuf = Buffer.from(envKey.trim(), 'utf8');
+    
+    // Buffers must be same length for timingSafeEqual
+    if (headerBuf.length !== envBuf.length) {
+      return false;
+    }
+    
+    return crypto.timingSafeEqual(headerBuf, envBuf);
+  } catch (error) {
+    console.error('[Admin Backfill] Auth comparison error:', error);
+    return false;
+  }
 }
 
 export function registerAdminIdentityBackfillRoutes(app: Express): void {
@@ -82,6 +127,12 @@ export function registerAdminIdentityBackfillRoutes(app: Express): void {
       }
 
       const normalizedPubkey = normalizeSolanaPubkey(phantomPubkey);
+
+      // Validate base58 format
+      if (!isValidBase58(normalizedPubkey)) {
+        return res.status(400).json({ error: "Invalid Solana public key format (base58 expected)" });
+      }
+
       console.log(`[Admin Backfill] Processing wallet: ${normalizedPubkey}`);
 
       // 1) Lookup linked wallet by pubkey
@@ -98,13 +149,26 @@ export function registerAdminIdentityBackfillRoutes(app: Express): void {
         const linkedAccounts = await db
           .select({ id: accounts.id, grudgeId: accounts.grudgeId })
           .from(accounts)
-          .where(sql`${accounts.id} = ANY(${accountIds})`);
+          .where(inArray(accounts.id, accountIds));
 
         const grudgeIds = linkedAccounts
           .map(a => a.grudgeId)
           .filter((id): id is string => !!id);
 
         const uniqueGrudgeIds = [...new Set(grudgeIds)];
+
+        // BUG FIX: If wallet is linked but no non-null grudgeIds exist → error (don't create new account)
+        if (grudgeIds.length === 0) {
+          const orphanAccountIds = linkedAccounts.map(a => a.id);
+          console.error(
+            `[Admin Backfill] Wallet ${normalizedPubkey} linked to accounts without grudge_id: ${orphanAccountIds.join(", ")}`
+          );
+          return res.status(409).json({
+            error: "linked_without_grudge_id",
+            message: "Wallet is linked to account(s) with null grudge_id. Manual fix required.",
+            accountIds: orphanAccountIds,
+          });
+        }
 
         if (uniqueGrudgeIds.length > 1) {
           console.warn(
@@ -242,7 +306,6 @@ export function registerAdminIdentityBackfillRoutes(app: Express): void {
       console.error("[Admin Backfill] Error in grudge-wallet:", error);
       return res.status(500).json({
         error: "Internal server error",
-        message: String(error),
       });
     }
   });
@@ -273,6 +336,11 @@ export function registerAdminIdentityBackfillRoutes(app: Express): void {
 
       const normalizedPubkey = normalizeSolanaPubkey(pubkey);
 
+      // Validate base58 format
+      if (!isValidBase58(normalizedPubkey)) {
+        return res.status(400).json({ error: "Invalid Solana public key format (base58 expected)" });
+      }
+
       // Lookup linked wallet
       const linkedWalletRows = await db
         .select()
@@ -293,7 +361,7 @@ export function registerAdminIdentityBackfillRoutes(app: Express): void {
       const linkedAccounts = await db
         .select({ id: accounts.id, grudgeId: accounts.grudgeId })
         .from(accounts)
-        .where(sql`${accounts.id} = ANY(${accountIds})`);
+        .where(inArray(accounts.id, accountIds));
 
       const grudgeIds = linkedAccounts
         .map(a => a.grudgeId)
@@ -317,7 +385,6 @@ export function registerAdminIdentityBackfillRoutes(app: Express): void {
       console.error("[Admin Backfill] Error in lookup:", error);
       return res.status(500).json({
         error: "Internal server error",
-        message: String(error),
       });
     }
   };
