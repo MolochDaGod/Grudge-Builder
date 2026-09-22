@@ -200,9 +200,25 @@ export function model3dFromEquipped(
   });
 }
 
-export function resolveRaceCdnUrl(raceId: string, assetsBase = "https://assets.grudge-studio.com"): string {
+export function resolveRaceCdnUrl(
+  raceId: string,
+  assetsBase = "https://assets.grudge-studio.com",
+  sex?: "male" | "female",
+): string {
   const race = RACE_GRUDGE6[normalizeRaceId(raceId)] ?? RACE_GRUDGE6.human;
-  return `${assetsBase.replace(/\/$/, "")}${race.cdnPath}`;
+  let path = race.cdnPath;
+  
+  if (sex === "female") {
+    path = path.replace(/\.glb$/, "_female.glb");
+  }
+  
+  const url = `${assetsBase.replace(/\/$/, "")}${path}`;
+  
+  if (sex === "female") {
+    return `${url}?v=anatomy2`;
+  }
+  
+  return url;
 }
 
 export function resolveFbxPath(raceId: string, assetsBase = "https://assets.grudge-studio.com"): string {

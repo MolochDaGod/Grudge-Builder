@@ -80,6 +80,12 @@ export default function Grudge6ViewerPage() {
   const [anim, setAnim] = useState<AnimState3D>("idle");
   const [autoRotate, setAutoRotate] = useState(true);
 
+  const sex = useMemo(() => {
+    const params = new URLSearchParams(window.location.search);
+    const sexParam = params.get("sex");
+    return sexParam === "female" ? "female" : undefined;
+  }, []);
+
   const { raceId, classId, label } = useMemo(() => parseHeroId(heroId), [heroId]);
 
   const model3d = useMemo(
@@ -179,6 +185,7 @@ export default function Grudge6ViewerPage() {
             raceId={raceId}
             classId={classId}
             heroId={heroId}
+            sex={sex}
             model3d={model3d}
             animation={anim}
             position={{ x: 0, y: 0, z: 0 }}

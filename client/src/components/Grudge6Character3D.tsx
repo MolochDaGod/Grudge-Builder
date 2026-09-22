@@ -39,6 +39,8 @@ interface Grudge6Character3DProps {
   classId: string;
   /** Hero codex id (e.g. human_warrior) — enables portrait-guided texture tinting */
   heroId?: string;
+  /** Character sex for body model selection */
+  sex?: "male" | "female";
   /** Pre-computed model3d — takes priority over equipment */
   model3d?: Partial<Model3DField>;
   /** Main-panel equipment slots — used when model3d is absent */
@@ -67,6 +69,7 @@ export default function Grudge6Character3D({
   raceId,
   classId,
   heroId,
+  sex,
   model3d: model3dProp,
   equipment,
   animation = "idle",
@@ -93,8 +96,8 @@ export default function Grudge6Character3D({
   );
 
   const model3dKey = useMemo(
-    () => JSON.stringify({ raceId: raceKey, classId, heroId, m: resolvedModel3d }),
-    [raceKey, classId, heroId, resolvedModel3d],
+    () => JSON.stringify({ raceId: raceKey, classId, heroId, sex, m: resolvedModel3d }),
+    [raceKey, classId, heroId, sex, resolvedModel3d],
   );
 
   const loadModel = useCallback(async () => {
@@ -110,7 +113,7 @@ export default function Grudge6Character3D({
     }
 
     const race = RACE_GRUDGE6[raceKey] ?? RACE_GRUDGE6.human;
-    const modelPath = resolveRaceCdnUrl(raceKey);
+    const modelPath = resolveRaceCdnUrl(raceKey, undefined, sex);
 
     try {
       const loaded = await loadCharacterModel(modelPath);
@@ -137,6 +140,18 @@ export default function Grudge6Character3D({
         targetBaseHeightM: PLAYER_HEIGHT_M,
         label: `Grudge6Character3D/${raceKey}`,
       });
+      
+      // Female Meshy GLBs are monolithic (face+chest both +Z in file space).
+      // Skip art-forward kit +π/2 for female; male kits use default rotation.
+      if (sex !== "female") {
+        // Male modular kits may need art-forward rotation if applied elsewhere
+        // Currently viewer loads with default rotation; preserve that behavior
+      }
+      // Female: explicit identity rotation (no +π/2 yaw)
+      if (sex === "female") {
+        loaded.scene.rotation.y = 0;
+      }
+      
       loaded.scene.position.set(position.x, position.y, position.z);
       scene.add(loaded.scene);
 
@@ -173,6 +188,7 @@ export default function Grudge6Character3D({
   }, [
     raceKey,
     heroId,
+    sex,
     model3dKey,
     resolvedModel3d,
     weaponType,
