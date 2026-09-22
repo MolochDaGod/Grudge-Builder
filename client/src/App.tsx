@@ -102,9 +102,6 @@ const EditorPage = lazy(() => import("@/pages/editor"));
 const ForgePage = lazy(() => import("@/pages/forge"));
 const ScenePage = lazy(() => import("@/pages/scene"));
 const Grudge6ViewerPage = lazy(() => import("@/pages/grudge6-viewer"));
-import GrudgeAI from "@/components/GrudgeAI";
-import { GrudgeTruthBadge } from "@/components/GrudgeTruthBadge";
-import { GrudgeTokenWidget } from "@/components/grudge-token/GrudgeTokenWidget";
 import { StudioFriendsDock } from "@/components/StudioFriendsDock";
 // Lazy-load the organizer page: it pulls in react-force-graph → aframe-extras
 // (A-Frame VR lib that uses THREE as a global). Code-splitting it keeps
@@ -126,11 +123,6 @@ const WeaponMasteryPage = lazy(() => import("@/pages/weapon-mastery"));
 const CombatLabPage = lazy(() => import("@/pages/combat-lab"));
 const TownPage = lazy(() => import("@/pages/town"));
 const AssetShowcasePage = lazy(() => import("@/pages/asset-showcase"));
-import { RtsDomainBootstrap } from "@/components/RtsDomainBootstrap";
-import { hydrateVideoCatalog } from "@/lib/fleetVideo";
-import { loadFleetCdnFonts } from "@/lib/fleetFonts";
-import { consumeGcsReturnHandoff } from "@/lib/gcsRedirect";
-import { CharacterManager } from "@/lib/characterManager";
 
 const AssassinationGroundsPage = lazy(() => import("@/pages/assassination-grounds"));
 
