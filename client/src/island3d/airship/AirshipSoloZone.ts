@@ -415,8 +415,6 @@ export class AirshipSoloZone {
     for (const def of AIRSHIP_NPCS) {
       try {
         // 3pirates Meshy bodies + walk/talk — not Toon race stand-ins
-        const actor = await createPirateDeckNpc({
-          npcId: def.id,
         const actor = await createDeckActor({
           raceId: def.id === 'john_wayne' ? 'crusade' : def.id === 'scourge_faithbearer' ? 'legion' : 'fabled',
           role: this.npcOriginalRole(def),

@@ -127,7 +127,6 @@ const IDLE_DURATION_MAX = 6;
 /** Flesh corpse window before auto-skeleton (also matches skin window). */
 const DEATH_LINGER_TIME = CORPSE_TO_SKELETON_S;
 const FLEE_DURATION = 4;
-const BIRD_ABOVE_M = FAUNA_HEIGHT?.birdAboveTerrainM ?? 12;
 const BIRD_BOB_M = FAUNA_HEIGHT?.birdBobM ?? 0.45;
 const FEET_ON_TERRAIN_M = FAUNA_HEIGHT?.feetOnTerrainM ?? 0.05;
 const FISH_MIN_SEABED_M = FAUNA_HEIGHT?.fishMinAboveSeabedM ?? 0.4;
@@ -347,8 +346,6 @@ export class CreatureManager {
       if (def.swimDepth) {
         const depth =
           def.swimDepth[0] + this.rand() * (def.swimDepth[1] - def.swimDepth[0]);
-        const minY = groundY + FISH_MIN_SEABED_M;
-        const maxY = this.waterLevel - FISH_MIN_SURFACE_M;
         const minY = groundY + (FAUNA_HEIGHT.fishMinAboveSeabedM ?? 0.4);
         const maxY = this.waterLevel - (FAUNA_HEIGHT.fishMinUnderSurfaceM ?? 0.3);
         swimY = Math.min(maxY, Math.max(minY, this.waterLevel - depth));

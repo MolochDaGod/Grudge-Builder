@@ -776,7 +776,6 @@ async function connectSolanaForLink(provider: "phantom" | "solflare"): Promise<s
     }
     const sdk = await getPhantomSDK();
     const { addresses } = await sdk.connect();
-    const sol = addresses?.find((a: { type?: string }) => a.type === "solana");
     const sol = addresses?.find((a) => typeof a !== "string" && a.type === "solana");
     const addr =
       typeof sol === "string"
