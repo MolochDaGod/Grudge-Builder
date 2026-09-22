@@ -128,6 +128,7 @@ export class CinemaSceneAudio {
     if (this.elapsed - this.lastSurfAt > gap) {
       this.lastSurfAt = this.elapsed;
       playGameSfx('world.ocean_wave', { volume: 0.22 + storm * 0.28, preferVariant: true });
+    }
 
     const wantBurn = !!(
       beat.fireBeam ||
@@ -163,6 +164,7 @@ export class CinemaSceneAudio {
     if (beat.id === 'rogue_rise' || beat.id === 'breach') {
       playGameSfx('world.ocean_wave', { volume: 0.7 });
       playGameSfx('world.wood_break', { volume: 0.55, preferVariant: true });
+    }
     if (storm >= 0.72 || beat.shipPinata || beat.fireBeam || beat.dragonPhase === 'blast') {
       if (!this.stormLayer) {
         this.stormLayer = true;

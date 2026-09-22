@@ -189,31 +189,6 @@ export function isValidWaterColumn(opts: {
   return true;
 }
 
-/**
- * Wildlife height vs the **same** terrain sample as player feet (SI metres).
- * Used by island3d CreatureManager — birds are not a fixed world-Y plane.
- */
-export const FAUNA_HEIGHT = {
-  /** Land wildlife sit this far above sampled terrain. */
-  feetOnTerrainM: 0.05,
-  /** Birds fly this far above the same terrain sample. */
-  birdAboveTerrainM: 12,
-  /** Subtle vertical bob on birds. */
-  birdBobM: 0.45,
-  /** Fish stay at least this far above seabed. */
-  fishMinAboveSeabedM: 0.4,
-  /** Fish stay at least this far under the ocean surface. */
-  fishMinUnderSurfaceM: 0.3,
-} as const;
-
-/** Mid water-column Y, or null if the column is too shallow to swim. */
-export function fishSwimY(groundY: number, waterLevel: number): number | null {
-  const minY = groundY + FAUNA_HEIGHT.fishMinAboveSeabedM;
-  const maxY = waterLevel - FAUNA_HEIGHT.fishMinUnderSurfaceM;
-  if (!(maxY > minY)) return null;
-  return (minY + maxY) * 0.5;
-}
-
 /** Serialize rules for dash / ObjectStore docs */
 export const HOME_ISLAND_NODE_RULESET_META = {
   version: '1.2.0',
