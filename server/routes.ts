@@ -34,6 +34,7 @@ import { registerWalletRoutes } from "./routes/wallet";
 import { registerTreatyRoutes } from "./routes/treaty";
 import { registerShipRoutes } from "./routes/ships";
 import { registerTelegramRoutes } from "./telegramRoutes";
+import { registerAdminIdentityBackfillRoutes } from "./routes/adminIdentityBackfill";
 import { scanAsepriteDirectory, readAsepriteFile, getAsepriteStats } from "./aseprite-reader";
 import { getSheetsClient, isConfigured, SHEET_IDS, readSheet, getCachedData, setCachedData } from "./googleSheets";
 import { exportFoodsToSheet, generateFoodRows } from "./sheetsExport";
@@ -348,6 +349,7 @@ export async function registerRoutes(
   registerWalletRoutes(app);
   registerShipRoutes(app, requireAuth);
   registerTreatyRoutes(app);
+  registerAdminIdentityBackfillRoutes(app);
   const { registerBuildLayoutRoutes } = await import("./routes/buildLayout");
   registerBuildLayoutRoutes(app);
 
