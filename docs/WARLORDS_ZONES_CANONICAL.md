@@ -76,7 +76,7 @@ Canonical sector IDs are **snake_case**. Legacy grid keys (`NW`…`SE`) resolve 
 
 | Concern | Host |
 |---------|------|
-| Client SPA | `client.grudge-studio.com` (also grudgewarlords.com) |
+| Client SPA | `client.grudge-studio.com` (also grudgewarlords.com = Jonathan-signed PREVIEW only) |
 | Static game data | `info.grudge-studio.com` / `objectstore.grudge-studio.com` |
 | Client → ObjectStore proxy | `/api/objectstore/v1/*` |
 | Binary assets | `assets.grudge-studio.com` (R2) |

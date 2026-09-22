@@ -34,7 +34,7 @@
 3. Spec catalog (meters + assets)
    shared/definitions/homeIslandSpec.ts
    GET /api/island/spec  (Railway)
-   ObjectStore: /api/v1/home-island-contract.json
+   ObjectStore: https://objectstore.grudge-studio.com/api/v1/home-island-contract.json
 
 4. Runtime play
    client.grudge-studio.com/home-island
