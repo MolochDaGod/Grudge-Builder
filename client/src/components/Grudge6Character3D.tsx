@@ -140,6 +140,18 @@ export default function Grudge6Character3D({
         targetBaseHeightM: PLAYER_HEIGHT_M,
         label: `Grudge6Character3D/${raceKey}`,
       });
+      
+      // Female Meshy GLBs are monolithic (face+chest both +Z in file space).
+      // Skip art-forward kit +π/2 for female; male kits use default rotation.
+      if (sex !== "female") {
+        // Male modular kits may need art-forward rotation if applied elsewhere
+        // Currently viewer loads with default rotation; preserve that behavior
+      }
+      // Female: explicit identity rotation (no +π/2 yaw)
+      if (sex === "female") {
+        loaded.scene.rotation.y = 0;
+      }
+      
       loaded.scene.position.set(position.x, position.y, position.z);
       scene.add(loaded.scene);
 
