@@ -24,6 +24,8 @@ export type IdentityUser = {
   puter_user_id?: string | null;
   puter_username?: string | null;
   puter_email?: string | null;
+  spawn_user_id?: string | null;
+  spawn_username?: string | null;
   auth_method?: string | null;
   display_name?: string | null;
   is_admin?: boolean | null;
@@ -58,6 +60,8 @@ function mapRow(r: Record<string, unknown>): IdentityUser {
     puter_user_id: (r.puter_user_id as string | null) ?? null,
     puter_username: (r.puter_username as string | null) ?? null,
     puter_email: (r.puter_email as string | null) ?? null,
+    spawn_user_id: (r.spawn_user_id as string | null) ?? null,
+    spawn_username: (r.spawn_username as string | null) ?? null,
     auth_method: (r.auth_method as string | null) ?? null,
     display_name: (r.display_name as string | null) ?? null,
     is_admin: Boolean(r.is_admin),
@@ -293,11 +297,155 @@ export async function resolvePuterIdentity(opts: {
   return { user: refreshed, isNew, mergedByEmail };
 }
 
+let spawnColumnsReady: Promise<void> | null = null;
+
+/** Idempotent. Same columns as migrations/045_users_spawn_identity.sql. */
+export function ensureSpawnIdentityColumns(): Promise<void> {
+  if (!spawnColumnsReady) {
+    spawnColumnsReady = (async () => {
+      await q(`ALTER TABLE users ADD COLUMN IF NOT EXISTS spawn_user_id TEXT`);
+      await q(`ALTER TABLE users ADD COLUMN IF NOT EXISTS spawn_username TEXT`);
+      await q(`ALTER TABLE users ADD COLUMN IF NOT EXISTS spawn_linked_at TIMESTAMPTZ`);
+      await q(
+        `CREATE UNIQUE INDEX IF NOT EXISTS users_spawn_user_id_uidx
+         ON users (spawn_user_id) WHERE spawn_user_id IS NOT NULL`,
+      );
+    })().catch((err) => {
+      spawnColumnsReady = null;
+      throw err;
+    });
+  }
+  return spawnColumnsReady;
+}
+
+const SPAWN_USER_SELECT = `id, username, password, grudge_id, email,
+            discord_id, discord_username, discord_email,
+            puter_user_id, puter_username, puter_email,
+            spawn_user_id, spawn_username,
+            auth_method, display_name, is_admin`;
+
+export async function findUserBySpawnId(spawnUserId: string): Promise<IdentityUser | null> {
+  const key = `spawn:${spawnUserId}`;
+  const rows = await q(
+    `SELECT ${SPAWN_USER_SELECT}
+     FROM users
+     WHERE spawn_user_id = $1 OR username = $2
+     LIMIT 1`,
+    [spawnUserId, key],
+  );
+  return rows[0] ? mapRow(rows[0]) : null;
+}
+
+export async function readSpawnLink(
+  userId: string,
+): Promise<{ spawnUserId: string | null; spawnUsername: string | null } | null> {
+  try {
+    const rows = await q(
+      `SELECT spawn_user_id, spawn_username FROM users WHERE id = $1 LIMIT 1`,
+      [userId],
+    );
+    if (!rows[0]) return null;
+    return {
+      spawnUserId: (rows[0].spawn_user_id as string | null) ?? null,
+      spawnUsername: (rows[0].spawn_username as string | null) ?? null,
+    };
+  } catch {
+    return null;
+  }
+}
+
+export class SpawnLinkConflict extends Error {
+  constructor() {
+    super("spawn_already_linked");
+  }
+}
+
+export async function stampSpawnLink(
+  userId: string,
+  spawn: { userId: string; username: string; name?: string | null },
+): Promise<void> {
+  await q(
+    `UPDATE users SET
+       spawn_user_id = $2,
+       spawn_username = $3,
+       display_name = COALESCE(display_name, $4),
+       auth_method = COALESCE(auth_method, 'spawn'),
+       spawn_linked_at = COALESCE(spawn_linked_at, NOW()),
+       last_login_at = NOW()
+     WHERE id = $1`,
+    [userId, spawn.userId, spawn.username, spawn.name ?? spawn.username],
+  );
+}
+
+/**
+ * Spawn account → one Grudge user.
+ * 1) existing spawn_user_id / username spawn:<uuid>
+ * 2) else create. Spawn has no email, so it never merges by email.
+ */
+export async function resolveSpawnGrudgeAccount(spawn: {
+  userId: string;
+  username: string;
+  name?: string | null;
+}): Promise<{ user: IdentityUser; isNew: boolean }> {
+  await ensureSpawnIdentityColumns();
+  let isNew = false;
+  let user = await findUserBySpawnId(spawn.userId);
+
+  if (!user) {
+    isNew = true;
+    const grudgeId = generateGrudgeId();
+    const dummyPw = await hashPassword(crypto.randomBytes(32).toString("hex"));
+    const spawnKey = `spawn:${spawn.userId}`;
+    const [created] = await db
+      .insert(users)
+      .values({
+        username: spawnKey,
+        password: dummyPw,
+        grudgeId,
+      })
+      .onConflictDoNothing()
+      .returning();
+    user = created
+      ? {
+          id: created.id,
+          username: created.username,
+          password: created.password,
+          grudgeId: created.grudgeId,
+          email: created.email,
+        }
+      : await findUserBySpawnId(spawn.userId);
+    if (!user) throw new Error("Failed to create Spawn-linked Grudge account");
+  }
+
+  await stampSpawnLink(user.id, spawn);
+  const refreshed = await findUserBySpawnId(spawn.userId);
+  if (!refreshed) throw new Error("Spawn user vanished after stamp");
+  return { user: refreshed, isNew };
+}
+
+/**
+ * Attach a verified Spawn player to an existing Grudge login.
+ * Refuses when that Spawn id already belongs to a different user.
+ */
+export async function linkSpawnToGrudgeUser(
+  grudgeUserId: string,
+  spawn: { userId: string; username: string; name?: string | null },
+): Promise<IdentityUser> {
+  await ensureSpawnIdentityColumns();
+  const existing = await findUserBySpawnId(spawn.userId);
+  if (existing && existing.id !== grudgeUserId) throw new SpawnLinkConflict();
+  await stampSpawnLink(grudgeUserId, spawn);
+  const refreshed = await findUserBySpawnId(spawn.userId);
+  if (!refreshed) throw new Error("Spawn link did not stick");
+  return refreshed;
+}
+
 /** Providers visible on an identity row (for /me). */
 export function listLinkedProviders(user: IdentityUser): string[] {
   const p = new Set<string>();
   if (user.discord_id || user.username?.startsWith("discord:")) p.add("discord");
   if (user.puter_user_id || user.username?.startsWith("puter:")) p.add("puter");
+  if (user.spawn_user_id || user.username?.startsWith("spawn:")) p.add("spawn");
   if (user.username?.startsWith("wallet:")) p.add("phantom");
   if (user.username?.startsWith("phone:")) p.add("phone");
   if (user.email) p.add("email");

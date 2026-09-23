@@ -12,6 +12,8 @@
  *   GET  /api/auth/verify            — Verify JWT token
  *   GET  /api/auth/me                — Get full user profile from JWT
  *   POST /api/auth/puter-link        — Link Puter UUID to existing account
+ *   POST /api/auth/spawn             — Verified Spawn player → same Grudge account
+ *   POST /api/auth/spawn-link        — Link Spawn player onto the signed-in Grudge account
  *   GET  /api/auth/sso-check         — Cross-app SSO bootstrap (session → return URL)
  *   GET  /api/auth/discord/callback  — Discord OAuth callback
  *   GET  /api/auth/google/start      — Google OAuth (delegates to Puter SDK)
@@ -23,7 +25,7 @@ import type { Express, Request, Response } from "express";
 import fs from "node:fs";
 import path from "node:path";
 import { db } from "../db";
-import { users, accounts } from "@shared/schema";
+import { users, accounts, characters } from "@shared/schema";
 import { eq, sql } from "drizzle-orm";
 import jwt from "jsonwebtoken";
 import crypto from "node:crypto";
@@ -43,8 +45,13 @@ import {
   listLinkedProviders,
   asSchemaUser,
   fetchIdentityUserById,
+  resolveSpawnGrudgeAccount,
+  linkSpawnToGrudgeUser,
+  readSpawnLink,
+  SpawnLinkConflict,
   type IdentityUser,
 } from "../lib/identityLink";
+import { verifySpawnToken, SpawnTokenError, type SpawnAccount } from "../lib/spawnIdentity";
 import {
   createLinkChallenge,
   createLoginChallenge,
@@ -248,7 +255,7 @@ function resolveUserStudioRole(opts: {
 
 /**
  * Detect linked auth providers — prefer production link columns when present.
- * Falls back to username prefixes: puter:, wallet:, discord:, phone:
+ * Falls back to username prefixes: puter:, wallet:, discord:, phone:, spawn:
  */
 function detectProviders(username: string, identity?: IdentityUser | null): string[] {
   if (identity) return listLinkedProviders(identity);
@@ -257,6 +264,7 @@ function detectProviders(username: string, identity?: IdentityUser | null): stri
   else if (username.startsWith("wallet:")) providers.push("phantom");
   else if (username.startsWith("discord:")) providers.push("discord");
   else if (username.startsWith("phone:")) providers.push("phone");
+  else if (username.startsWith("spawn:")) providers.push("spawn");
   else providers.push("grudge");
   return providers;
 }
@@ -340,6 +348,7 @@ function isAutoUsername(username: string): boolean {
     u.startsWith("wallet:") ||
     u.startsWith("discord:") ||
     u.startsWith("phone:") ||
+    u.startsWith("spawn:") ||
     u.startsWith("google:") ||
     u.startsWith("github:") ||
     /^puter_[a-f0-9]+$/i.test(u) ||
@@ -870,6 +879,122 @@ export function registerAuthRoutes(app: Express) {
       res.status(500).json({ success: false, error: e.message });
     }
   });
+
+  function readSpawnBearer(req: Request): string {
+    const header = String(req.get("X-Spawn-Token") || "").trim();
+    if (header) return header;
+    const bodyToken = req.body?.token || req.body?.spawnToken;
+    if (typeof bodyToken === "string" && bodyToken.trim()) return bodyToken.trim();
+    const auth = req.get("Authorization") || "";
+    if (/^Bearer\s+sak_/i.test(auth)) return auth.replace(/^Bearer\s+/i, "").trim();
+    return "";
+  }
+
+  async function buildSpawnAuthBody(identityUser: IdentityUser, spawn: SpawnAccount, isNew: boolean) {
+    const user = asSchemaUser(identityUser);
+    let account = await ensureAccount(user.id);
+    const display = (spawn.name || spawn.username).trim();
+    if (display && !isAutoUsername(display) && (!account.displayName || isAutoUsername(account.displayName))) {
+      await storage.updateAccount(account.id, { displayName: display });
+      account = { ...account, displayName: display };
+    }
+    const heroes = await db
+      .select({
+        id: characters.id,
+        name: characters.name,
+        era: characters.gameEra,
+        grudgeCode: characters.grudgeCode,
+        level: characters.level,
+        active: characters.activeForEra,
+      })
+      .from(characters)
+      .where(eq(characters.userId, user.id));
+    const response = buildAuthResponse(user, account, display, identityUser);
+    return {
+      ...response,
+      isNew,
+      spawn: {
+        userId: spawn.userId,
+        username: spawn.username,
+        handle: spawn.handle,
+        name: spawn.name,
+      },
+      account: {
+        id: account?.id || null,
+        grudgeId: response.grudgeId,
+        displayName: response.username,
+      },
+      characters: heroes.slice(0, 32),
+    };
+  }
+
+  /**
+   * POST /api/auth/spawn
+   * Player proves a Spawn account with their own token. We ask Spawn who they are,
+   * then return the Grudge account already linked to that Spawn id (or open one).
+   * The Spawn token is not stored.
+   */
+  const spawnLogin = async (req: Request, res: Response) => {
+    try {
+      const spawnToken = readSpawnBearer(req);
+      if (!spawnToken) {
+        return res.status(400).json({ success: false, error: "Spawn token required" });
+      }
+      const spawn = await verifySpawnToken(spawnToken);
+      const { user, isNew } = await resolveSpawnGrudgeAccount(spawn);
+      const body = await buildSpawnAuthBody(user, spawn, isNew);
+      setSessionCookie(res, body.token);
+      res.json(body);
+    } catch (e: unknown) {
+      if (e instanceof SpawnTokenError) {
+        return res.status(e.status).json({ success: false, error: e.message });
+      }
+      console.error("[Auth/Spawn]", e instanceof Error ? e.message : "failed");
+      res.status(500).json({ success: false, error: "Spawn sign-in failed" });
+    }
+  };
+  app.post("/api/auth/spawn", authRateLimit, spawnLogin);
+  app.post("/auth/spawn", authRateLimit, spawnLogin);
+
+  /**
+   * POST /api/auth/spawn-link
+   * Signed-in Grudge account + that person's Spawn token. Does not open a second account.
+   */
+  const spawnLink = async (req: Request, res: Response) => {
+    try {
+      const session = readSessionToken(req);
+      if (!session || !JWT_SECRET) {
+        return res.status(401).json({ success: false, error: "Not authenticated" });
+      }
+      const payload = jwt.verify(session, JWT_SECRET) as { userId?: string };
+      if (!payload.userId) {
+        return res.status(401).json({ success: false, error: "Not authenticated" });
+      }
+      const spawnToken = readSpawnBearer(req);
+      if (!spawnToken) {
+        return res.status(400).json({ success: false, error: "Spawn token required" });
+      }
+      const spawn = await verifySpawnToken(spawnToken);
+      const user = await linkSpawnToGrudgeUser(payload.userId, spawn);
+      const body = await buildSpawnAuthBody(user, spawn, false);
+      setSessionCookie(res, body.token);
+      res.json(body);
+    } catch (e: unknown) {
+      if (e instanceof SpawnLinkConflict) {
+        return res.status(409).json({
+          success: false,
+          error: "This Spawn player is already linked to a different Grudge account",
+        });
+      }
+      if (e instanceof SpawnTokenError) {
+        return res.status(e.status).json({ success: false, error: e.message });
+      }
+      console.error("[Auth/Spawn-link]", e instanceof Error ? e.message : "failed");
+      res.status(500).json({ success: false, error: "Spawn link failed" });
+    }
+  };
+  app.post("/api/auth/spawn-link", authRateLimit, spawnLink);
+  app.post("/auth/spawn-link", authRateLimit, spawnLink);
 
   /**
    * POST /api/auth/puter-sso
@@ -1924,7 +2049,10 @@ export function registerAuthRoutes(app: Express) {
 
       let [account] = await db.select().from(accounts).where(eq(accounts.userId, userId)).limit(1);
 
-      const providers = detectProviders(user.username);
+      const identity = await fetchIdentityUserById(user.id).catch(() => null);
+      const spawnLink = await readSpawnLink(user.id);
+      const providers = detectProviders(user.username, identity);
+      if (spawnLink?.spawnUserId && !providers.includes("spawn")) providers.push("spawn");
       const displayName = resolveAccountDisplayName(user, account, [payload.username]);
       const needsProfile =
         !hasClaimedUsername(user, account, [payload.username]) &&
@@ -1989,6 +2117,10 @@ export function registerAuthRoutes(app: Express) {
         needsProfile,
         role,
         isAdmin: isStudioAdminRole(role),
+        spawnUserId:
+          spawnLink?.spawnUserId ||
+          (user.username.startsWith("spawn:") ? user.username.slice("spawn:".length) : null),
+        spawnUsername: spawnLink?.spawnUsername || null,
       });
     } catch {
       res.status(401).json({ success: false, error: "Invalid or expired token" });

@@ -27,7 +27,8 @@
   </head>
   <body>
     <div id="root"></div>
-    <script src="https://js.puter.com/v2/" defer></script>
+    <!-- Puter SDK loads only when a Puter sign-in starts. A page-level script
+         sets Origin (browsers refuse it) and opens wss://api.puter.com. -->
     <!-- AFRAME stub: react-force-graph references AFRAME at module init;
          we stub it so the 2D graph works without loading the full VR library -->
     <script>

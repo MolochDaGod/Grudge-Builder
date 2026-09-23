@@ -14,7 +14,6 @@ import {
   getWalletOverview,
   composeWalletBook,
   persistTraderVault,
-  setPrimaryLinkedWallet,
   accountLocationPayload,
   quoteWalletPurchase,
   createPurchaseIntent,
