@@ -9,9 +9,9 @@
 
 import {
   FLEET_URLS,
-  isFleetAllowedReturnUrl,
   warlordsPlayOrigin,
   warlordsPlayUrl,
+  validateReturnUrl,
 } from "@shared/fleet";
 import { isWarlordsPlayHost } from "@shared/fleet/warlordsDomains";
 import {
@@ -42,7 +42,15 @@ export function isAllowedReturnUrl(url: string): boolean {
   try {
     const u = new URL(url);
     if (BLOCKED_RETURN_HOSTS.test(u.hostname)) return false;
-    return isFleetAllowedReturnUrl(url);
+    return Boolean(
+      validateReturnUrl(url, {
+        base: typeof window !== "undefined" ? window.location.origin : warlordsPlayOrigin(),
+        production: typeof process !== "undefined"
+          ? String(process.env.NODE_ENV || "").toLowerCase() === "production"
+          : true,
+        fallback: "",
+      }),
+    );
   } catch {
     return false;
   }

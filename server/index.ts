@@ -45,7 +45,7 @@ import { setupColyseus } from "./colyseus/index";
 import { registerBackendProxy } from "./proxy";
 import { registerSupabaseRoutes } from "./supabase/routes";
 import { registerFleetRoutes } from "./fleet/routes";
-import { GRUDGE_CORS_OPTIONS } from "./cors";
+import { GRUDGE_CORS_OPTIONS, applyPublicReadCors } from "./cors";
 
 console.log('[boot] All imports loaded successfully');
 
@@ -53,6 +53,7 @@ const app = express();
 const httpServer = createServer(app);
 
 // ── CORS (shared config from server/cors.ts) ─────────────────────────────────
+app.use(applyPublicReadCors);
 app.use(cors(GRUDGE_CORS_OPTIONS));
 
 // NOTE: Static file serving is registered AFTER API routes (see below).

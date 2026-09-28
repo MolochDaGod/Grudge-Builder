@@ -25,6 +25,13 @@ export {
   canonicalSsoReturnOrigin,
 } from "./authReturn";
 
+export {
+  STUDIO_HOSTS,
+  getAllowedHosts,
+  isStudioOrigin,
+  validateReturnUrl,
+} from "./studioOrigins";
+
 /** Warlords / Nexus era hosts (grudge.studio + grudgewarlords.com) */
 export {
   FLEET_AUTH_TOKEN_KEYS as WARLORDS_AUTH_TOKEN_KEYS,

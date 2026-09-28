@@ -1,4 +1,5 @@
 import { warlordsPlayOrigin } from "./warlordsDomains";
+import { validateReturnUrl } from "./studioOrigins";
 
 /**
  * Fleet SSO return-url allowlist — shared by auth routes and client redirects.
@@ -8,96 +9,11 @@ import { warlordsPlayOrigin } from "./warlordsDomains";
  * (comma-separated hostnames, no scheme) on Railway grudge-api-production.
  */
 
-const EXACT_HOSTS = new Set([
-  "localhost",
-  "127.0.0.1",
-  // Warlords product apex + SPA
-  "grudgewarlords.com",
-  "www.grudgewarlords.com",
-  // Warlords zone subdomains (CNAME → same SPA when DNS live)
-  "play.grudgewarlords.com",
-  "client.grudgewarlords.com",
-  "airship.grudgewarlords.com",
-  "home.grudgewarlords.com",
-  "map.grudgewarlords.com",
-  "scenes.grudgewarlords.com",
-  "craft.grudgewarlords.com",
-  "foundry.grudgewarlords.com",
-  // Portal apex — also covers path products e.g. https://grudge-studio.com/gst (Game Studio Tool)
-  "grudge-studio.com",
-  "www.grudge-studio.com",
-  "client.grudge-studio.com",
-  // Stable production Vercel satellites only — never unique/hash/git previews
-  "grudge-studio-tool.vercel.app",
-  "grudge-builder.vercel.app",
-  "grudge-builder-grudgenexus.vercel.app",
-  "gameopen.vercel.app",
-  "warlord-genesis.vercel.app",
-  "rts-grudge.vercel.app",
-  "voxgrudge.vercel.app",
-  "casting-abilities-threejs.vercel.app",
-  "grudge-studio-editor.vercel.app",
-  "grudge-three-port.vercel.app",
-  "flare-boss-arena.vercel.app",
-  "mech-playground.vercel.app",
-  "grudge.studio",
-  "www.grudge.studio",
-  // Era play clients + account hub (DNS → Vercel grudge-builder)
-  "warlords.grudge.studio",
-  "nexus.grudge.studio",
-  "voxel.grudge.studio",
-  "account.grudge.studio",
-  "apps.grudge.studio",
-  "grudgestudio.org",
-  "grudgeplatform.io",
-  "puter.com",
-  "www.puter.com",
-  "app.puter.com",
-  // Explicit Puter fleet satellites (also covered by .puter.site suffix)
-  "grudge-crafting.puter.site",
-  "grudgewarlords.puter.site",
-  "grudgestudio.puter.site",
-  "grudge-studio.puter.site",
-  "grudge-heros.puter.site",
-  // Mine-Loader / Voxel Realms
-  "mine-loader.vercel.app", // legacy Vercel — primary = mine.grudge-studio.com
-  "mine.grudge-studio.com",
-]);
-
-const SUFFIX_HOSTS = [
-  ".grudgewarlords.com",
-  ".grudge-studio.com",
-  ".grudge.studio",
-  ".up.railway.app",
-  ".pages.dev",
-  ".workers.dev",
-  ".puter.site",
-  ".puter.work",
-  ".github.io",
-  ".netlify.app",
-  ".netlify.live",
-  ".cloudflarepages.com",
-  // Grok App Builder live preview (wallet hub + fleet SSO test)
-  ".grok-sandbox.com",
-];
-
-/** Optional production/signed hosts from env (server) or globalThis (embed). */
-function extraExactHosts(): string[] {
-  try {
-    const raw =
-      (typeof process !== "undefined" &&
-        process.env &&
-        (process.env.AUTH_EXTRA_RETURN_HOSTS || process.env.GRUDGE_AUTH_EXTRA_HOSTS)) ||
-      (typeof globalThis !== "undefined" &&
-        (globalThis as { AUTH_EXTRA_RETURN_HOSTS?: string }).AUTH_EXTRA_RETURN_HOSTS) ||
-      "";
-    return String(raw)
-      .split(",")
-      .map((s) => s.trim().toLowerCase().replace(/^https?:\/\//, "").replace(/\/.*$/, ""))
-      .filter(Boolean);
-  } catch {
-    return [];
-  }
+function isProductionRuntime(explicit?: boolean): boolean {
+  if (typeof explicit === "boolean") return explicit;
+  const nodeEnv =
+    (typeof process !== "undefined" && process.env && process.env.NODE_ENV) || "";
+  return String(nodeEnv).toLowerCase() === "production";
 }
 
 /**
@@ -130,16 +46,20 @@ export function canonicalSsoReturnOrigin(origin: string): string {
 }
 
 /** Returns true when `url` may receive SSO tokens after Grudge ID login. */
-export function isFleetAllowedReturnUrl(url: string): boolean {
+export function isFleetAllowedReturnUrl(
+  url: string,
+  opts: { production?: boolean; base?: string } = {},
+): boolean {
+  const resolved = validateReturnUrl(url, {
+    base: opts.base,
+    production: isProductionRuntime(opts.production),
+    fallback: "",
+  });
+  if (!resolved) return false;
   try {
-    const u = new URL(url);
-    const host = u.hostname.toLowerCase();
-    const local = host === "localhost" || host === "127.0.0.1";
-    if (!local && u.protocol !== "https:") return false;
-    if (extraExactHosts().includes(host)) return true;
-    if (isEphemeralVercelHost(host)) return false;
-    if (EXACT_HOSTS.has(host)) return true;
-    return SUFFIX_HOSTS.some((suffix) => host.endsWith(suffix) || host === suffix.slice(1));
+    const parsed = new URL(resolved);
+    if (isEphemeralVercelHost(parsed.hostname.toLowerCase())) return false;
+    return true;
   } catch {
     return false;
   }
@@ -149,11 +69,24 @@ export function isFleetAllowedReturnUrl(url: string): boolean {
 export function resolveFleetReturnUrl(
   query: Record<string, string | string[] | undefined>,
   fallback = "https://grudgewarlords.com/",
+  opts: { production?: boolean; base?: string } = {},
 ): string {
-  for (const key of ["return", "return_to", "redirect", "redirect_uri"]) {
+  for (const key of ["return", "return_to", "redirect", "redirect_uri", "returnUrl"]) {
     const raw = query[key];
     const value = Array.isArray(raw) ? raw[0] : raw;
-    if (value && isFleetAllowedReturnUrl(value)) return value;
+    if (!value) continue;
+    const resolved = validateReturnUrl(value, {
+      base: opts.base,
+      production: isProductionRuntime(opts.production),
+      fallback: "",
+    });
+    if (!resolved) continue;
+    try {
+      if (isEphemeralVercelHost(new URL(resolved).hostname.toLowerCase())) continue;
+    } catch {
+      continue;
+    }
+    return resolved;
   }
   return fallback;
 }

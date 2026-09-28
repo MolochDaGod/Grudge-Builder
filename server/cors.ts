@@ -1,115 +1,36 @@
-/**
- * cors.ts — Shared CORS configuration for ALL Grudge backend servers.
- *
- * Single source of truth. Import into index.ts, island-server.ts, and any
- * future Express/Socket.IO service. Keep in sync with:
- *   - client/src/lib/grudgeConfig.ts  (GRUDGE_DOMAINS + GRUDGE_SUBDOMAINS)
- *   - grudge-fleet skill              (CORS Allowlist section)
- *   - Cloudflare Workers CORS headers
- */
+import type { CorsOptions } from "cors";
+import { isStudioOrigin } from "@shared/fleet/studioOrigins";
 
-// ── Exact-match origins ────────────────────────────────────────────────────────
+const PUBLIC_READ_PATHS = new Set([
+  "/api/health",
+  "/grudge-game-bootstrap.js",
+  "/grudge-auth-modal.js",
+  "/grudge-auth-modal.css",
+]);
 
-export const GRUDGE_EXACT_ORIGINS: string[] = [
-  // Primary game client
-  "https://grudgewarlords.com",
-  "https://www.grudgewarlords.com",
+const isProduction = String(process.env.NODE_ENV || "").toLowerCase() === "production";
 
-  // Studio TLDs
-  "https://grudge-studio.com",
-  "https://www.grudge-studio.com",
-  "https://grudgestudio.org",
-  "https://grudgeplatform.io",
-
-  // Puter hosted apps (canonical /gs hub + app launcher)
-  "https://puter.com",
-  "https://www.puter.com",
-  "https://app.puter.com",
-
-  // RTS Grudge 3D client (Vercel)
-  "https://rts-grudge.vercel.app",
-
-  // Mine-Loader / Voxel Realms (explicit SPA + edge)
-  "https://mine-loader.vercel.app", // legacy Vercel — primary = mine.grudge-studio.com
-  "https://mine.grudge-studio.com",
-
-  // Game Studio Tool / Grudge Islands (portal /gst + Vercel satellite)
-  "https://grudge-studio-tool.vercel.app",
-
-  // Fleet game clients (explicit until Railway redeploys regex allowlist)
-  "https://poker.grudge-studio.com",
-  "https://poker.grudge.studio",
-  "https://grudge.studio",
-  "https://www.grudge.studio",
-  "https://metaverse.grudge-studio.com",
-  "https://forge.grudge-studio.com",
-  "https://play.grudge-studio.com",
-  "https://studio.grudge-studio.com",
-  "https://client.grudge-studio.com",
-  "https://dash.grudge-studio.com",
-];
-
-// ── Regex-match origins (subdomains, preview deploys, Puter) ──────────────────
-
-export const GRUDGE_REGEX_ORIGINS: RegExp[] = [
-  // All *.grudge-studio.com subdomains (api, id, assets, ai, dash, ws, pvp, etc.)
-  /\.grudge-studio\.com$/,
-  // Short TLD aliases (poker.grudge.studio, casting.grudge.studio, …)
-  /\.grudge\.studio$/,
-
-  // Vercel preview deploys
-  /\.vercel\.app$/,
-
-  // Railway preview deploys
-  /\.up\.railway\.app$/,
-
-  // Cloudflare Pages / Workers
-  /\.pages\.dev$/,
-  /\.workers\.dev$/,
-  /\.cloudflarepages\.com$/,
-
-  // Puter hosted apps
-  /\.puter\.site$/,
-  /\.puter\.work$/,
-
-  // Signed static / docs hosts
-  /\.github\.io$/,
-  /\.netlify\.app$/,
-  /\.netlify\.live$/,
-
-  // Grok App Builder live preview — Bearer SSO test, never cookie Domain
-  /\.grok-sandbox\.com$/,
-];
-
-// ── Combined list for cors() middleware ────────────────────────────────────────
-
-export const GRUDGE_CORS_ORIGINS: (string | RegExp)[] = [
-  ...GRUDGE_EXACT_ORIGINS,
-  ...GRUDGE_REGEX_ORIGINS,
-];
-
-/**
- * Origin checker compatible with the `cors` npm package callback signature.
- * Allows:
- *   1. No origin (server-to-server / curl / health checks)
- *   2. Any http://localhost:* in any environment (dev convenience)
- *   3. Every origin in GRUDGE_CORS_ORIGINS
- */
-export function isAllowedOrigin(origin: string | undefined): boolean {
+export function isAllowedOrigin(origin: string | undefined, production = isProduction): boolean {
   if (!origin) return true;
-  if (origin.startsWith("http://localhost")) return true;
-  return GRUDGE_CORS_ORIGINS.some((o) =>
-    typeof o === "string" ? o === origin : o.test(origin),
-  );
+  return isStudioOrigin(origin, { production });
+}
+
+export function isPublicCorsPath(pathname: string | undefined): boolean {
+  if (!pathname) return false;
+  return PUBLIC_READ_PATHS.has(pathname);
 }
 
 /**
- * Pre-built cors options object — drop into `app.use(cors(GRUDGE_CORS_OPTIONS))`.
+ * CORS options for Express (`app.use(cors(GRUDGE_CORS_OPTIONS))`).
+ * - Allowed studio origins are reflected with credentials.
+ * - Disallowed origins are not reflected and do not throw errors.
+ * - Known public read-only endpoints may use ACAO "*" without credentials.
  */
-export const GRUDGE_CORS_OPTIONS = {
-  origin: (origin: string | undefined, cb: (err: Error | null, allow?: boolean | string) => void) => {
-    if (isAllowedOrigin(origin)) return cb(null, origin || true);
-    cb(new Error("Not allowed by CORS"));
+export const GRUDGE_CORS_OPTIONS: CorsOptions = {
+  origin: (origin, cb) => {
+    if (!origin) return cb(null, true);
+    if (isAllowedOrigin(origin)) return cb(null, origin);
+    return cb(null, false);
   },
   credentials: true,
   methods: ["GET", "POST", "PUT", "PATCH", "DELETE", "OPTIONS"],
@@ -122,12 +43,26 @@ export const GRUDGE_CORS_OPTIONS = {
 };
 
 /**
- * Socket.IO compatible CORS config — use in `new Server(httpServer, { cors: GRUDGE_SOCKETIO_CORS })`.
+ * Optional helper middleware for public endpoints that should be readable
+ * cross-origin without credentials.
+ */
+export function applyPublicReadCors(req: { method: string; path: string }, res: {
+  setHeader: (key: string, value: string) => void;
+}, next: () => void) {
+  if (req.method === "GET" && isPublicCorsPath(req.path)) {
+    res.setHeader("Access-Control-Allow-Origin", "*");
+  }
+  next();
+}
+
+/**
+ * Socket.IO CORS configuration — same strict studio-origin policy.
  */
 export const GRUDGE_SOCKETIO_CORS = {
   origin: (origin: string | undefined, cb: (err: Error | null, allow?: boolean | string) => void) => {
-    if (isAllowedOrigin(origin)) return cb(null, origin || true);
-    cb(new Error("Not allowed by CORS"));
+    if (!origin) return cb(null, true);
+    if (isAllowedOrigin(origin)) return cb(null, origin);
+    return cb(null, false);
   },
   methods: ["GET", "POST"],
   credentials: true,
