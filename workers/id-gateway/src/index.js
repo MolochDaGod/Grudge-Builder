@@ -31,11 +31,6 @@ const PUBLIC_READ_PATHS = new Set([
   "/grudge-auth-modal.css",
 ]);
 
-function isProductionEnv(env) {
-  const raw = String(env?.ENVIRONMENT || env?.NODE_ENV || "production").toLowerCase();
-  return raw === "production";
-}
-
 function isSensitivePath(pathname) {
   return (
     pathname === "/login" ||
@@ -50,12 +45,11 @@ function isSensitivePath(pathname) {
   );
 }
 
-function corsHeaders(request, env) {
+function corsHeaders(request, opts) {
   const origin = request.headers.get("Origin") || "";
   const pathname = new URL(request.url).pathname;
-  const production = isProductionEnv(env);
   const h = new Headers();
-  if (origin && isStudioOrigin(origin, { production })) {
+  if (origin && isStudioOrigin(origin, opts)) {
     h.set("Access-Control-Allow-Origin", origin);
     h.set("Access-Control-Allow-Credentials", "true");
     h.set("Vary", "Origin");
@@ -83,17 +77,18 @@ function corsHeaders(request, env) {
 /**
  * Map public id URL path+query → upstream Railway path+query.
  */
-function sanitizeRedirect(raw, publicHost, production) {
+function sanitizeRedirect(raw, opts) {
   if (!raw) return "";
   return validateReturnUrl(raw, {
-    base: publicHost,
-    production,
+    base: opts.publicHost,
+    dev: opts.dev,
+    extraHosts: opts.extraHosts,
     fallback: "",
   });
 }
 
-function sanitizeOrigin(raw, publicHost, production) {
-  const safe = sanitizeRedirect(raw, publicHost, production);
+function sanitizeOrigin(raw, opts) {
+  const safe = sanitizeRedirect(raw, opts);
   if (!safe) return "";
   try {
     return new URL(safe).origin;
@@ -103,8 +98,7 @@ function sanitizeOrigin(raw, publicHost, production) {
 }
 
 function mapUpstreamPath(url, opts) {
-  const publicHost = opts.publicHost || DEFAULT_PUBLIC;
-  const production = Boolean(opts.production);
+  const publicHost = opts.publicHost;
   const path = url.pathname;
   const params = new URLSearchParams(url.search);
 
@@ -127,14 +121,14 @@ function mapUpstreamPath(url, opts) {
       params.get("return_to") ||
       params.get("returnUrl");
     const q = new URLSearchParams();
-    const safeRedirect = sanitizeRedirect(redirect, publicHost, production);
+    const safeRedirect = sanitizeRedirect(redirect, opts);
     if (safeRedirect) {
       // Dual-write: public fleet param + legacy auth-page param
       q.set("redirect_uri", safeRedirect);
       q.set("redirect", safeRedirect);
     }
     if (params.get("app")) q.set("app", params.get("app"));
-    const origin = sanitizeOrigin(params.get("origin") || params.get("audience"), publicHost, production);
+    const origin = sanitizeOrigin(params.get("origin") || params.get("audience"), opts);
     if (origin) q.set("origin", origin);
     if (params.get("handoff")) q.set("handoff", params.get("handoff"));
     if (params.get("api")) q.set("api", params.get("api"));
@@ -152,13 +146,13 @@ function mapUpstreamPath(url, opts) {
       params.get("return_to") ||
       params.get("returnUrl");
     const q = new URLSearchParams();
-    const safeRedirect = sanitizeRedirect(redirect, publicHost, production);
+    const safeRedirect = sanitizeRedirect(redirect, opts);
     if (safeRedirect) {
       q.set("redirect_uri", safeRedirect);
       q.set("redirect", safeRedirect);
     }
     if (params.get("app")) q.set("app", params.get("app"));
-    const origin = sanitizeOrigin(params.get("origin") || params.get("audience"), publicHost, production);
+    const origin = sanitizeOrigin(params.get("origin") || params.get("audience"), opts);
     if (origin) q.set("origin", origin);
     if (params.get("handoff")) q.set("handoff", params.get("handoff"));
     if (params.get("api")) q.set("api", params.get("api"));
@@ -183,13 +177,13 @@ function mapUpstreamPath(url, opts) {
       params.get("return_to") ||
       params.get("returnUrl");
     const q = new URLSearchParams();
-    const safeRedirect = sanitizeRedirect(redirect, publicHost, production);
+    const safeRedirect = sanitizeRedirect(redirect, opts);
     if (safeRedirect) {
       q.set("redirect_uri", safeRedirect);
       q.set("redirect", safeRedirect);
     }
     if (params.get("app")) q.set("app", params.get("app"));
-    const origin = sanitizeOrigin(params.get("origin") || params.get("audience"), publicHost, production);
+    const origin = sanitizeOrigin(params.get("origin") || params.get("audience"), opts);
     if (origin) q.set("origin", origin);
     if (params.get("handoff")) q.set("handoff", params.get("handoff"));
     if (params.get("api")) q.set("api", params.get("api"));
@@ -206,7 +200,7 @@ function mapUpstreamPath(url, opts) {
       params.get("return") ||
       params.get("return_to");
     const q = new URLSearchParams();
-    const safeRedirect = sanitizeRedirect(redirect, publicHost, production);
+    const safeRedirect = sanitizeRedirect(redirect, opts);
     if (safeRedirect) {
       q.set("redirect_uri", safeRedirect);
       q.set("redirect", safeRedirect);
@@ -231,7 +225,7 @@ function pickRedirectParam(searchParams, opts = {}) {
     searchParams.get("returnUrl") ||
     ""
   );
-  return sanitizeRedirect(raw, opts.publicHost || DEFAULT_PUBLIC, Boolean(opts.production));
+  return sanitizeRedirect(raw, opts);
 }
 
 /**
@@ -250,8 +244,7 @@ function prettyLoginLocation(searchParams, opts = {}) {
     if (key === "origin" || key === "audience") {
       const origin = sanitizeOrigin(
         searchParams.get(key),
-        opts.publicHost || DEFAULT_PUBLIC,
-        Boolean(opts.production),
+        opts,
       );
       if (origin) q.set("origin", origin);
       continue;
@@ -372,14 +365,16 @@ export default {
     const upstreamBase = (env.UPSTREAM || DEFAULT_UPSTREAM).replace(/\/$/, "");
     const publicHost = (env.PUBLIC_HOST || DEFAULT_PUBLIC).replace(/\/$/, "");
     const upstreamHost = new URL(upstreamBase).hostname;
-    const production = isProductionEnv(env);
+    const dev = String(env?.ENVIRONMENT || "production").toLowerCase() === "development";
+    const extraHosts = env?.AUTH_ALLOWED_RETURN_HOSTS || "";
+    const studioOpts = { dev, extraHosts, publicHost };
 
     if (request.method === "OPTIONS") {
-      return new Response(null, { status: 204, headers: corsHeaders(request, env) });
+      return new Response(null, { status: 204, headers: corsHeaders(request, studioOpts) });
     }
 
     const url = new URL(request.url);
-    const mapped = mapUpstreamPath(url, { publicHost, production });
+    const mapped = mapUpstreamPath(url, studioOpts);
     const target = upstreamBase + mapped;
 
     const init = {
@@ -414,7 +409,7 @@ export default {
           status: 502,
           headers: {
             "Content-Type": "application/json",
-            ...Object.fromEntries(corsHeaders(request, env)),
+            ...Object.fromEntries(corsHeaders(request, studioOpts)),
           },
         },
       );
@@ -422,7 +417,7 @@ export default {
 
     const outHeaders = new Headers(upstream.headers);
     // CORS overlay
-    const ch = corsHeaders(request, env);
+    const ch = corsHeaders(request, studioOpts);
     ch.forEach((v, k) => outHeaders.set(k, v));
     // Drop upstream frame blockers (helmet SAMEORIGIN, etc.) so fleet iframes work
     outHeaders.delete("X-Frame-Options");
@@ -450,7 +445,7 @@ export default {
     if (loc) {
       outHeaders.set(
         "Location",
-        rewriteLocation(loc, publicHost, upstreamHost, { publicHost, production }),
+        rewriteLocation(loc, publicHost, upstreamHost, studioOpts),
       );
     }
 

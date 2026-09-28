@@ -9,13 +9,6 @@ import { validateReturnUrl } from "./studioOrigins";
  * (comma-separated hostnames, no scheme) on Railway grudge-api-production.
  */
 
-function isProductionRuntime(explicit?: boolean): boolean {
-  if (typeof explicit === "boolean") return explicit;
-  const nodeEnv =
-    (typeof process !== "undefined" && process.env && process.env.NODE_ENV) || "";
-  return String(nodeEnv).toLowerCase() === "production";
-}
-
 /**
  * Unique deploy + git-branch Vercel hosts.
  * Examples: grudge-builder-4ou1a2tv6-grudgenexus.vercel.app
@@ -48,11 +41,12 @@ export function canonicalSsoReturnOrigin(origin: string): string {
 /** Returns true when `url` may receive SSO tokens after Grudge ID login. */
 export function isFleetAllowedReturnUrl(
   url: string,
-  opts: { production?: boolean; base?: string } = {},
+  opts: { dev?: boolean; extraHosts?: string | string[]; base?: string } = {},
 ): boolean {
   const resolved = validateReturnUrl(url, {
     base: opts.base,
-    production: isProductionRuntime(opts.production),
+    dev: opts.dev,
+    extraHosts: opts.extraHosts,
     fallback: "",
   });
   if (!resolved) return false;
@@ -69,7 +63,7 @@ export function isFleetAllowedReturnUrl(
 export function resolveFleetReturnUrl(
   query: Record<string, string | string[] | undefined>,
   fallback = "https://grudgewarlords.com/",
-  opts: { production?: boolean; base?: string } = {},
+  opts: { dev?: boolean; extraHosts?: string | string[]; base?: string } = {},
 ): string {
   for (const key of ["return", "return_to", "redirect", "redirect_uri", "returnUrl"]) {
     const raw = query[key];
@@ -77,7 +71,8 @@ export function resolveFleetReturnUrl(
     if (!value) continue;
     const resolved = validateReturnUrl(value, {
       base: opts.base,
-      production: isProductionRuntime(opts.production),
+      dev: opts.dev,
+      extraHosts: opts.extraHosts,
       fallback: "",
     });
     if (!resolved) continue;

@@ -61,6 +61,7 @@ import {
   isStudioOrigin,
   validateReturnUrl,
 } from "@shared/fleet/studioOrigins";
+import { serverStudioOriginOpts } from "../studioOriginsEnv";
 
 /** Prefer SESSION_SECRET (auth.ts) then JWT_SECRET / GRUDGE_JWT_SECRET — use first non-empty candidate only. */
 const JWT_SECRET_CANDIDATES = [
@@ -120,7 +121,7 @@ function ttlToSeconds(ttl: string): number {
   }
 }
 
-const IS_PRODUCTION = String(process.env.NODE_ENV || "").toLowerCase() === "production";
+const STUDIO_ORIGIN_OPTS = serverStudioOriginOpts();
 
 function requestBaseUrl(req: Request): string {
   const xfProto = (req.get("x-forwarded-proto") || "").split(",")[0]?.trim();
@@ -132,7 +133,8 @@ function requestBaseUrl(req: Request): string {
 function resolveSafeReturn(value: string | undefined, req: Request, fallback = ""): string {
   return validateReturnUrl(value || "", {
     base: requestBaseUrl(req),
-    production: IS_PRODUCTION,
+    dev: STUDIO_ORIGIN_OPTS.dev,
+    extraHosts: STUDIO_ORIGIN_OPTS.extraHosts,
     fallback,
   });
 }
@@ -484,12 +486,12 @@ function resolveReturnUrl(req: Request): string {
   const fromQuery = resolveFleetReturnUrl(
     req.query as Record<string, string | string[] | undefined>,
     "",
-    { base: requestBaseUrl(req), production: IS_PRODUCTION },
+    { base: requestBaseUrl(req), dev: STUDIO_ORIGIN_OPTS.dev, extraHosts: STUDIO_ORIGIN_OPTS.extraHosts },
   );
   if (fromQuery) return fromQuery;
   const referer = req.get("referer") || req.get("origin") || "";
   const safeReferer = resolveSafeReturn(referer, req, "");
-  if (safeReferer && isFleetAllowedReturnUrl(safeReferer, { production: IS_PRODUCTION })) {
+  if (safeReferer && isFleetAllowedReturnUrl(safeReferer, STUDIO_ORIGIN_OPTS)) {
     try {
       const u = new URL(safeReferer);
       return `${u.origin}/`;
@@ -661,7 +663,7 @@ export function registerAuthRoutes(app: Express) {
       resolveFleetReturnUrl(
         req.query as Record<string, string | string[] | undefined>,
         "",
-        { base: requestBaseUrl(req), production: IS_PRODUCTION },
+        { base: requestBaseUrl(req), dev: STUDIO_ORIGIN_OPTS.dev, extraHosts: STUDIO_ORIGIN_OPTS.extraHosts },
       ) ||
       resolveSafeReturn(req.query.redirect_uri as string, req, "") ||
       resolveSafeReturn(req.query.redirect as string, req, "") ||
@@ -806,7 +808,8 @@ export function registerAuthRoutes(app: Express) {
       "";
     const safeReturn = validateReturnUrl(rawReturn, {
       base: currentBase,
-      production: IS_PRODUCTION,
+      dev: STUDIO_ORIGIN_OPTS.dev,
+      extraHosts: STUDIO_ORIGIN_OPTS.extraHosts,
       fallback: "",
     });
     const safeOrigin = validateReturnUrl(
@@ -815,7 +818,8 @@ export function registerAuthRoutes(app: Express) {
       "",
       {
         base: currentBase,
-        production: IS_PRODUCTION,
+        dev: STUDIO_ORIGIN_OPTS.dev,
+        extraHosts: STUDIO_ORIGIN_OPTS.extraHosts,
         fallback: "",
       },
     );
@@ -836,12 +840,8 @@ export function registerAuthRoutes(app: Express) {
       return res.redirect(302, dest);
     }
 
-    const allowedHosts = JSON.stringify(getAllowedHosts({ production: IS_PRODUCTION }));
-    const localhostFlag = JSON.stringify(
-      !IS_PRODUCTION &&
-        (req.hostname === "localhost" ||
-          req.hostname === "127.0.0.1"),
-    );
+    const allowedHosts = JSON.stringify(getAllowedHosts(STUDIO_ORIGIN_OPTS));
+    const studioDevFlag = JSON.stringify(STUDIO_ORIGIN_OPTS.dev === true);
 
     res.setHeader("Cache-Control", "no-store, must-revalidate");
     let html = fs.readFileSync(pagePath, "utf8");
@@ -850,8 +850,8 @@ export function registerAuthRoutes(app: Express) {
       allowedHosts,
     );
     html = html.replace(
-      "/*__GRUDGE_ALLOW_LOCALHOST__*/false",
-      localhostFlag,
+      "/*__GRUDGE_STUDIO_DEV__*/false",
+      studioDevFlag,
     );
     res.type("html").send(html);
   };
@@ -1103,14 +1103,15 @@ export function registerAuthRoutes(app: Express) {
       try {
         const validated = validateReturnUrl(audience, {
           base: requestBaseUrl(req),
-          production: IS_PRODUCTION,
+          dev: STUDIO_ORIGIN_OPTS.dev,
+          extraHosts: STUDIO_ORIGIN_OPTS.extraHosts,
           fallback: "",
         });
         if (!validated) {
           return res.status(403).json({ error: "Audience not on fleet allowlist" });
         }
         originOnly = new URL(validated).origin;
-        if (!isStudioOrigin(originOnly, { production: IS_PRODUCTION })) {
+        if (!isStudioOrigin(originOnly, STUDIO_ORIGIN_OPTS)) {
           return res.status(403).json({ error: "Audience not on fleet allowlist" });
         }
       } catch {
@@ -1818,7 +1819,8 @@ export function registerAuthRoutes(app: Express) {
       "https://grudgewarlords.com/auth/callback";
     const returnUrl = validateReturnUrl(rawReturn, {
       base: requestBaseUrl(req),
-      production: IS_PRODUCTION,
+      dev: STUDIO_ORIGIN_OPTS.dev,
+      extraHosts: STUDIO_ORIGIN_OPTS.extraHosts,
       fallback: "https://grudgewarlords.com/auth/callback",
     });
     const clientId = process.env.DISCORD_CLIENT_ID;
@@ -1877,7 +1879,8 @@ export function registerAuthRoutes(app: Express) {
     const rawReturn = state || "https://grudgewarlords.com/";
     const returnUrl = validateReturnUrl(rawReturn, {
       base: requestBaseUrl(req),
-      production: IS_PRODUCTION,
+      dev: STUDIO_ORIGIN_OPTS.dev,
+      extraHosts: STUDIO_ORIGIN_OPTS.extraHosts,
       fallback: "https://grudgewarlords.com/",
     });
 

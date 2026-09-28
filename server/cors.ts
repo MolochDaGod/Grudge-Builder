@@ -1,5 +1,6 @@
 import type { CorsOptions } from "cors";
 import { isStudioOrigin } from "@shared/fleet/studioOrigins";
+import { serverStudioOriginOpts } from "./studioOriginsEnv";
 
 const PUBLIC_READ_PATHS = new Set([
   "/api/health",
@@ -8,11 +9,14 @@ const PUBLIC_READ_PATHS = new Set([
   "/grudge-auth-modal.css",
 ]);
 
-const isProduction = String(process.env.NODE_ENV || "").toLowerCase() === "production";
+const ORIGIN_OPTS = serverStudioOriginOpts();
 
-export function isAllowedOrigin(origin: string | undefined, production = isProduction): boolean {
+export function isAllowedOrigin(
+  origin: string | undefined,
+  opts = ORIGIN_OPTS,
+): boolean {
   if (!origin) return true;
-  return isStudioOrigin(origin, { production });
+  return isStudioOrigin(origin, opts);
 }
 
 export function isPublicCorsPath(pathname: string | undefined): boolean {

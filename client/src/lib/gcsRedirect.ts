@@ -20,6 +20,7 @@ import {
 } from "@shared/definitions/gameEras";
 import { getToken } from "./grudgeBackend";
 import { postCreatePlayPath } from "./warlordsOnboarding";
+import { clientStudioOriginOpts } from "./studioOriginsClient";
 
 export type GcsLaunchMode = "landing" | "create";
 
@@ -42,12 +43,12 @@ export function isAllowedReturnUrl(url: string): boolean {
   try {
     const u = new URL(url);
     if (BLOCKED_RETURN_HOSTS.test(u.hostname)) return false;
+    const opts = clientStudioOriginOpts();
     return Boolean(
       validateReturnUrl(url, {
         base: typeof window !== "undefined" ? window.location.origin : warlordsPlayOrigin(),
-        production: typeof process !== "undefined"
-          ? String(process.env.NODE_ENV || "").toLowerCase() === "production"
-          : true,
+        dev: opts.dev,
+        extraHosts: opts.extraHosts,
         fallback: "",
       }),
     );
