@@ -17,7 +17,16 @@ export default defineConfig({
     environment: "jsdom",
     root: path.resolve(__dir),
     setupFiles: [path.resolve(__dir, "src/test/setup.ts")],
-    include: ["src/**/*.test.{ts,tsx}"],
+    include: [
+      "src/**/*.test.{ts,tsx}",
+      // Auth allowlist security suites that live outside client/src
+      "../shared/fleet/authReturn.test.ts",
+      "../shared/fleet/studioOrigins.test.ts",
+      "../server/cors.test.ts",
+      "../server/studioOriginsEnv.test.ts",
+      "../server/authPageSanitize.test.ts",
+      "../workers/id-gateway/src/index.test.js",
+    ],
     css: false,
   },
 });

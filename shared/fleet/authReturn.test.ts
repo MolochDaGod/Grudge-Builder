@@ -1,16 +1,11 @@
-import { afterEach, describe, expect, it } from "vitest";
+import { describe, expect, it } from "vitest";
 import {
   canonicalSsoReturnOrigin,
   isEphemeralVercelHost,
   isFleetAllowedReturnUrl,
+  resolveFleetReturnUrl,
 } from "./authReturn";
 import { validateReturnUrl } from "./studioOrigins";
-
-const originalAllowedHosts = process.env.AUTH_ALLOWED_RETURN_HOSTS;
-
-afterEach(() => {
-  process.env.AUTH_ALLOWED_RETURN_HOSTS = originalAllowedHosts;
-});
 
 describe("ephemeral Vercel SSO hosts", () => {
   it("flags unique deploy hashes and git branch aliases", () => {
@@ -31,22 +26,11 @@ describe("ephemeral Vercel SSO hosts", () => {
 
   it("rejects hash preview as an SSO return URL", () => {
     expect(
-      isFleetAllowedReturnUrl(
-        "https://grudge-builder-4ou1a2tv6-grudgenexus.vercel.app/account",
-        { production: true },
-      ),
+      isFleetAllowedReturnUrl("https://grudge-builder-4ou1a2tv6-grudgenexus.vercel.app/account"),
     ).toBe(false);
-    expect(isFleetAllowedReturnUrl("https://grudgewarlords.com/account", { production: true })).toBe(
-      true,
-    );
-    expect(
-      isFleetAllowedReturnUrl("https://client.grudge-studio.com/account", { production: true }),
-    ).toBe(true);
-    expect(
-      isFleetAllowedReturnUrl("https://warlord-genesis.vercel.app/auth/callback", {
-        production: true,
-      }),
-    ).toBe(true);
+    expect(isFleetAllowedReturnUrl("https://grudgewarlords.com/account")).toBe(true);
+    expect(isFleetAllowedReturnUrl("https://client.grudge-studio.com/account")).toBe(true);
+    expect(isFleetAllowedReturnUrl("https://warlord-genesis.vercel.app/auth/callback")).toBe(true);
   });
 
   it("rewrites preview origin to Warlords apex", () => {
@@ -59,8 +43,8 @@ describe("ephemeral Vercel SSO hosts", () => {
   });
 });
 
-describe("strict return URL validation", () => {
-  it("rejects malicious and wildcard-only hosts in production", () => {
+describe("strict return URL validation (production default)", () => {
+  it("rejects malicious and wildcard-only hosts", () => {
     const rejected = [
       "https://attacker.workers.dev/cb",
       "https://attacker.vercel.app/cb",
@@ -78,46 +62,45 @@ describe("strict return URL validation", () => {
       "http://grudgewarlords.com",
       "http://localhost:5173",
       "https://attacker.grudge-studio.com",
+      "https://puter.com/",
     ];
     for (const value of rejected) {
-      expect(isFleetAllowedReturnUrl(value, { production: true })).toBe(false);
+      expect(isFleetAllowedReturnUrl(value)).toBe(false);
+      expect(isFleetAllowedReturnUrl(value, { dev: false })).toBe(false);
     }
   });
 
-  it("accepts explicit fleet hosts and non-production localhost", () => {
-    expect(isFleetAllowedReturnUrl("https://grudgewarlords.com/cb", { production: true })).toBe(true);
-    expect(isFleetAllowedReturnUrl("https://id.grudge-studio.com/account", { production: true })).toBe(
-      true,
-    );
-    expect(isFleetAllowedReturnUrl("https://mine-loader.vercel.app/", { production: true })).toBe(
-      true,
-    );
-    expect(
-      isFleetAllowedReturnUrl("https://warlord-genesis.vercel.app/auth/callback", {
-        production: true,
-      }),
-    ).toBe(true);
-    expect(isFleetAllowedReturnUrl("https://grudge-crafting.puter.site/", { production: true })).toBe(
-      true,
-    );
+  it("accepts explicit fleet hosts; localhost only with explicit dev", () => {
+    expect(isFleetAllowedReturnUrl("https://grudgewarlords.com/cb")).toBe(true);
+    expect(isFleetAllowedReturnUrl("https://id.grudge-studio.com/account")).toBe(true);
+    expect(isFleetAllowedReturnUrl("https://wallet.grudge-studio.com/cb")).toBe(true);
+    expect(isFleetAllowedReturnUrl("https://mine-loader.vercel.app/")).toBe(true);
+    expect(isFleetAllowedReturnUrl("https://grudge-crafting.puter.site/")).toBe(true);
     expect(
       validateReturnUrl("/account", {
         base: "https://id.grudge-studio.com/login",
-        production: true,
         fallback: "",
       }),
     ).toBe("https://id.grudge-studio.com/account");
-    expect(isFleetAllowedReturnUrl("http://localhost:5173", { production: false })).toBe(true);
-    expect(isFleetAllowedReturnUrl("http://localhost:5173", { production: true })).toBe(false);
+    expect(isFleetAllowedReturnUrl("http://localhost:5173")).toBe(false);
+    expect(isFleetAllowedReturnUrl("http://localhost:5173", { dev: true })).toBe(true);
   });
 
-  it("extends host allowlist from AUTH_ALLOWED_RETURN_HOSTS without subdomain wildcarding", () => {
-    process.env.AUTH_ALLOWED_RETURN_HOSTS = "world-foo.example.com";
-    expect(isFleetAllowedReturnUrl("https://world-foo.example.com/cb", { production: true })).toBe(
-      true,
+  it("extends the allowlist via extraHosts without subdomain wildcarding", () => {
+    const extraHosts = "world-foo.example.com";
+    expect(isFleetAllowedReturnUrl("https://world-foo.example.com/cb")).toBe(false);
+    expect(isFleetAllowedReturnUrl("https://world-foo.example.com/cb", { extraHosts })).toBe(true);
+    expect(isFleetAllowedReturnUrl("https://sub.world-foo.example.com/cb", { extraHosts })).toBe(
+      false,
     );
+  });
+
+  it("resolveFleetReturnUrl skips unsafe aliases and falls back", () => {
     expect(
-      isFleetAllowedReturnUrl("https://sub.world-foo.example.com/cb", { production: true }),
-    ).toBe(false);
+      resolveFleetReturnUrl({ return: "https://attacker.vercel.app/", redirect_uri: "https://wallet.grudge-studio.com/cb" }),
+    ).toBe("https://wallet.grudge-studio.com/cb");
+    expect(resolveFleetReturnUrl({ return: "//evil.example/" }, "https://grudgewarlords.com/")).toBe(
+      "https://grudgewarlords.com/",
+    );
   });
 });

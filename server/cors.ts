@@ -1,5 +1,5 @@
-import type { CorsOptions } from "cors";
-import { isStudioOrigin } from "@shared/fleet/studioOrigins";
+import type { CorsOptions, CorsOptionsDelegate, CorsRequest } from "cors";
+import { isStudioOrigin, type StudioOriginOpts } from "@shared/fleet/studioOrigins";
 import { serverStudioOriginOpts } from "./studioOriginsEnv";
 
 const PUBLIC_READ_PATHS = new Set([
@@ -9,11 +9,11 @@ const PUBLIC_READ_PATHS = new Set([
   "/grudge-auth-modal.css",
 ]);
 
-const ORIGIN_OPTS = serverStudioOriginOpts();
+const ORIGIN_OPTS: StudioOriginOpts = serverStudioOriginOpts();
 
 export function isAllowedOrigin(
   origin: string | undefined,
-  opts = ORIGIN_OPTS,
+  opts: StudioOriginOpts = ORIGIN_OPTS,
 ): boolean {
   if (!origin) return true;
   return isStudioOrigin(origin, opts);
@@ -24,19 +24,7 @@ export function isPublicCorsPath(pathname: string | undefined): boolean {
   return PUBLIC_READ_PATHS.has(pathname);
 }
 
-/**
- * CORS options for Express (`app.use(cors(GRUDGE_CORS_OPTIONS))`).
- * - Allowed studio origins are reflected with credentials.
- * - Disallowed origins are not reflected and do not throw errors.
- * - Known public read-only endpoints may use ACAO "*" without credentials.
- */
-export const GRUDGE_CORS_OPTIONS: CorsOptions = {
-  origin: (origin, cb) => {
-    if (!origin) return cb(null, true);
-    if (isAllowedOrigin(origin)) return cb(null, origin);
-    return cb(null, false);
-  },
-  credentials: true,
+const BASE_CORS_OPTIONS: CorsOptions = {
   methods: ["GET", "POST", "PUT", "PATCH", "DELETE", "OPTIONS"],
   allowedHeaders: [
     "Content-Type",
@@ -44,6 +32,33 @@ export const GRUDGE_CORS_OPTIONS: CorsOptions = {
     "X-Session-Token",
     "X-Admin-Mode",
   ],
+};
+
+/**
+ * Per-request CORS options. Only an exact allowlisted studio Origin is
+ * reflected, and only then is Access-Control-Allow-Credentials sent.
+ * Any other Origin gets neither ACAO nor ACAC (and no error is thrown).
+ */
+export function corsOptionsForOrigin(
+  origin: string | undefined,
+  opts: StudioOriginOpts = ORIGIN_OPTS,
+): CorsOptions {
+  if (origin && isStudioOrigin(origin, opts)) {
+    return { ...BASE_CORS_OPTIONS, origin, credentials: true };
+  }
+  return { ...BASE_CORS_OPTIONS, origin: false, credentials: false };
+}
+
+/**
+ * CORS delegate for Express (`app.use(cors(GRUDGE_CORS_OPTIONS))`).
+ * - Allowed studio origins are reflected with credentials.
+ * - Disallowed origins are not reflected, get no credentials header, and do not throw.
+ * - Known public read-only endpoints may use ACAO "*" without credentials (applyPublicReadCors).
+ */
+export const GRUDGE_CORS_OPTIONS: CorsOptionsDelegate<CorsRequest> = (req, cb) => {
+  const raw = req.headers?.origin;
+  const origin = Array.isArray(raw) ? raw[0] : raw;
+  cb(null, corsOptionsForOrigin(origin || undefined));
 };
 
 /**
