@@ -450,6 +450,58 @@ export async function listLinkedWallets(accountId: string) {
   return db.select().from(linkedWallets).where(eq(linkedWallets.accountId, accountId));
 }
 
+/** Crossmint play wallet, linked Phantom, and trader vault — same linked_wallets rows. */
+export async function composeWalletBook(accountId: string) {
+  const account = await storage.getAccount(accountId);
+  if (!account) return null;
+  const linked = await listLinkedWallets(accountId);
+  const trader = linked.find((w) => w.label === "trader_vault");
+  const funding =
+    linked.find((w) => w.label !== "trader_vault" && w.isPrimary) ||
+    linked.find((w) => w.label !== "trader_vault");
+  const gameWallet = account.walletType === "crossmint" ? account.walletAddress : null;
+  return {
+    accountId,
+    grudgeId: account.grudgeId,
+    fundingWallet: funding?.walletAddress || null,
+    gameWallet: gameWallet || null,
+    traderVault: trader?.walletAddress || null,
+    walletType: account.walletType || null,
+    linkedWallets: linked,
+  };
+}
+
+export async function persistTraderVault(accountId: string, walletAddress: string) {
+  const linked = await listLinkedWallets(accountId);
+  const existing = linked.find((w) => w.label === "trader_vault");
+  if (existing) {
+    if (existing.walletAddress === walletAddress) return existing;
+    const [row] = await db
+      .update(linkedWallets)
+      .set({ walletAddress, verifiedAt: Date.now() })
+      .where(eq(linkedWallets.id, existing.id))
+      .returning();
+    return row;
+  }
+  const saved = await persistLinkedWallet(accountId, walletAddress, "other", "trader_vault");
+  return saved.linked;
+}
+
+export function accountLocationPayload(account: {
+  id: string;
+  grudgeId?: string | null;
+  walletAddress?: string | null;
+  walletType?: string | null;
+}) {
+  return {
+    accountId: account.id,
+    grudgeId: account.grudgeId || null,
+    store: "railway-postgres",
+    walletType: account.walletType || null,
+    walletAddress: account.walletAddress || null,
+  };
+}
+
 export async function setPrimaryLinkedWallet(accountId: string, walletAddress: string) {
   const list = await listLinkedWallets(accountId);
   const row = list.find((w) => w.walletAddress === walletAddress);

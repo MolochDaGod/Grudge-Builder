@@ -14,7 +14,6 @@ import {
   getWalletOverview,
   composeWalletBook,
   persistTraderVault,
-  setPrimaryLinkedWallet,
   accountLocationPayload,
   quoteWalletPurchase,
   createPurchaseIntent,
@@ -271,6 +270,13 @@ export function registerWalletRoutes(app: Express): void {
       const body = req.body as { role?: string; address?: string; walletAddress?: string };
       const role = String(body.role || "");
       const address = String(body.address || body.walletAddress || "").trim();
+      // Fail closed: persistTraderVault stores an unsigned address (no SIWS). Block before any DB write.
+      if (role === "trader_vault") {
+        return res.status(501).json({
+          error: "trader_vault_linking_disabled",
+          message: "Trader vault linking is disabled until signed (SIWS) linking ships.",
+        });
+      }
       if (role !== "trader_vault") {
         return res.status(400).json({
           error: "Only trader_vault can be POSTed here. Link Phantom via /api/wallet/link/*",
