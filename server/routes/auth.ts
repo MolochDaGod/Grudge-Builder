@@ -793,7 +793,11 @@ export function registerAuthRoutes(app: Express) {
 
   // ── GET /api/auth/page — Grudge ID sign-in UI (id.grudge-studio.com) ──
   const serveAuthPage = (req: Request, res: Response) => {
-    const pagePath = authAssetPath("auth-page.html");
+    // Always use the validated template from server/templates (never static fallbacks)
+    const templatePath = path.join(process.cwd(), "server", "templates", "auth-page.html");
+    const distTemplatePath = path.join(process.cwd(), "dist", "templates", "auth-page.html");
+    const pagePath = fs.existsSync(templatePath) ? templatePath : distTemplatePath;
+    
     if (!fs.existsSync(pagePath)) {
       return res.status(503).send("Auth page unavailable");
     }

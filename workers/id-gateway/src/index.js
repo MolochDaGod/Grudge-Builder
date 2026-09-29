@@ -19,11 +19,13 @@
 
 const DEFAULT_UPSTREAM = "https://grudge-api-production-0d46.up.railway.app";
 const DEFAULT_PUBLIC = "https://id.grudge-studio.com";
-const CANONICAL_API_HOST = "grudge-api-production-0d46.up.railway.app";
 import {
   isStudioOrigin,
   validateReturnUrl,
 } from "../../../shared/fleet/studioOrigins.ts";
+import { IDENTITY_ACCOUNTS_API } from "../../../shared/fleet/manifest.ts";
+
+const CANONICAL_API_ORIGIN = IDENTITY_ACCOUNTS_API;
 
 const PUBLIC_READ_PATHS = new Set([
   "/api/health",
@@ -102,18 +104,17 @@ function sanitizeOrigin(raw, opts) {
  * Validate api param: only same-origin or the canonical Railway API origin.
  * Prevents token theft via api=https://evil.example on the login page.
  */
-function sanitizeApi(raw, opts) {
+export function sanitizeApi(raw, opts) {
   if (!raw) return "";
   try {
     const apiUrl = new URL(raw);
     const apiOrigin = apiUrl.origin;
-    const canonicalApiOrigin = `https://${CANONICAL_API_HOST}`;
     // Reject userinfo tricks (evil@host)
     if (apiUrl.username || apiUrl.password) {
       return "";
     }
     // Accept same-origin (localhost dev) or the exact canonical API origin (https only)
-    if (apiOrigin === opts.publicHost.replace(/\/$/, "") || apiOrigin === canonicalApiOrigin) {
+    if (apiOrigin === opts.publicHost.replace(/\/$/, "") || apiOrigin === CANONICAL_API_ORIGIN) {
       return apiOrigin;
     }
   } catch {
@@ -157,7 +158,8 @@ function mapUpstreamPath(url, opts) {
     const origin = sanitizeOrigin(params.get("origin") || params.get("audience"), opts);
     if (origin) q.set("origin", origin);
     if (params.get("handoff")) q.set("handoff", params.get("handoff"));
-    if (params.get("api")) q.set("api", params.get("api"));
+    const safeApiLogin = sanitizeApi(params.get("api"), opts);
+    if (safeApiLogin) q.set("api", safeApiLogin);
     if (params.get("state")) q.set("state", params.get("state"));
     if (params.get("scope")) q.set("scope", params.get("scope"));
     return "/api/auth/page" + (q.toString() ? `?${q}` : "");

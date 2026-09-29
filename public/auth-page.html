@@ -691,7 +691,24 @@ function trimTrailingSlashes(value){
 function resolveApiBase(){
   const qs = new URLSearchParams(location.search);
   const fromQuery = qs.get("api");
-  if (fromQuery) return trimTrailingSlashes(fromQuery);
+  if (fromQuery) {
+    // Validate api param: only same-origin or canonical Railway API origin
+    try {
+      const apiUrl = new URL(fromQuery, location.origin);
+      const apiOrigin = apiUrl.origin;
+      const canonicalApiOrigin = "https://grudge-api-production-0d46.up.railway.app";
+      // Reject userinfo tricks (evil@host)
+      if (apiUrl.username || apiUrl.password) {
+        // Invalid/attacker API: fall through to default
+      } else if (apiOrigin === location.origin || apiOrigin === canonicalApiOrigin) {
+        // Accept same-origin (localhost dev) or the exact canonical API origin (https only)
+        return trimTrailingSlashes(apiOrigin);
+      }
+      // Invalid/attacker API: fall through to default
+    } catch {
+      // Invalid URL: fall through to default
+    }
+  }
   const meta = document.querySelector('meta[name="grudge-api"]');
   if (meta && meta.content.trim()) return trimTrailingSlashes(meta.content.trim());
   const h = location.hostname;

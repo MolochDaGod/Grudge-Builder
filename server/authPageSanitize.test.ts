@@ -114,6 +114,8 @@ describe("auth page query canonicalisation", () => {
       "https://grudge-api.evil.example/api",
       "http://grudge-api-production-0d46.up.railway.app", // http downgrade
       "https://evil@grudge-api-production-0d46.up.railway.app", // userinfo
+      "https://grudge-api-production-0d46.up.railway.app@evil.example", // canonical@evil
+      "https://evil.example%2f@grudge-studio.com", // percent-encoded
       "//evil.example/api", // protocol-relative
       "https://grudge-studio.com.evil.example", // suffix look-alike
     ]) {

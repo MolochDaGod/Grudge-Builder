@@ -1,17 +1,17 @@
 import {
   getAllowedHosts,
   validateReturnUrl,
-  isStudioOrigin,
   type StudioOriginOpts,
 } from "@shared/fleet/studioOrigins";
+import { IDENTITY_ACCOUNTS_API } from "@shared/fleet/manifest";
 
 const RETURN_KEYS = new Set(["redirect_uri", "redirect", "return_to", "return", "returnUrl"]);
 const RETURN_KEY_ORDER = ["redirect_uri", "redirect", "return_to", "return", "returnUrl"];
 const ORIGIN_KEYS = new Set(["origin", "audience"]);
 const ORIGIN_KEY_ORDER = ["origin", "audience"];
 
-/** Canonical API host for Railway game-data backend (the only external API the auth page contacts). */
-const CANONICAL_API_HOST = "grudge-api-production-0d46.up.railway.app";
+/** Canonical API origin for Railway game-data backend (the only external API the auth page contacts). */
+const CANONICAL_API_ORIGIN = IDENTITY_ACCOUNTS_API;
 
 export type AuthPageQueryResult = {
   /** true when the incoming query must be replaced (302) by `query`. */
@@ -26,8 +26,9 @@ export type AuthPageQueryResult = {
  * Return aliases (redirect_uri / redirect / return_to / return / returnUrl) and
  * origin aliases (origin / audience) are validated against the exact studio
  * allowlist and collapsed to `redirect_uri` + `redirect` and `origin`. Unsafe
- * values are dropped. Every other parameter (app, api, handoff, view, state,
- * scope, error, ...) is preserved unchanged.
+ * values are dropped. The `api` parameter is validated to same-origin or the
+ * canonical Railway API origin. Every other parameter (app, handoff, view,
+ * state, scope, error, ...) is preserved unchanged.
  *
  * The comparison is order-insensitive, so the id-gateway Worker's parameter
  * order never triggers a redirect loop.
@@ -82,18 +83,17 @@ export function canonicalAuthPageQuery(
   }
   if (safeOrigin) out.set("origin", safeOrigin);
   
-  // Validate api param: only same-origin or the canonical Railway backend
+  // Validate api param: only same-origin or the canonical Railway API origin
   const rawApi = incoming.get("api");
   let safeApi = "";
   if (rawApi) {
     try {
       const apiUrl = new URL(rawApi, opts.base);
       const apiOrigin = apiUrl.origin;
-      const canonicalApiOrigin = `https://${CANONICAL_API_HOST}`;
       // Reject userinfo tricks (evil@host)
       if (apiUrl.username || apiUrl.password) {
         // Drop it
-      } else if (apiOrigin === opts.base.replace(/\/$/, "") || apiOrigin === canonicalApiOrigin) {
+      } else if (apiOrigin === opts.base.replace(/\/$/, "") || apiOrigin === CANONICAL_API_ORIGIN) {
         // Accept same-origin (e.g., localhost:5000 during dev) or the exact canonical API origin (https only)
         safeApi = apiOrigin;
       }

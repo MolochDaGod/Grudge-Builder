@@ -1,5 +1,5 @@
 import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
-import worker from "./index.js";
+import worker, { sanitizeApi } from "./index.js";
 
 const PROD_ENV = {
   ENVIRONMENT: "production",
@@ -124,5 +124,88 @@ describe("id-gateway return URL sanitising", () => {
       ENVIRONMENT: "development",
     });
     expect(dev.get("redirect_uri")).toBe("http://localhost:5173/cb");
+  });
+});
+
+describe("id-gateway api param sanitization", () => {
+  const opts = { publicHost: "https://id.grudge-studio.com" };
+
+  it("accepts same-origin (id.grudge-studio.com)", () => {
+    const result = sanitizeApi("https://id.grudge-studio.com", opts);
+    expect(result).toBe("https://id.grudge-studio.com");
+  });
+
+  it("accepts the canonical Railway API origin", () => {
+    const result = sanitizeApi("https://grudge-api-production-0d46.up.railway.app", opts);
+    expect(result).toBe("https://grudge-api-production-0d46.up.railway.app");
+  });
+
+  it("rejects attacker hosts", () => {
+    for (const bad of [
+      "https://evil.example/api",
+      "https://grudge-api.evil.example/api",
+      "https://grudge-studio.com.evil.com",
+      "https://attacker.workers.dev",
+    ]) {
+      const result = sanitizeApi(bad, opts);
+      expect(result).toBe("");
+    }
+  });
+
+  it("rejects http downgrade of canonical host", () => {
+    const result = sanitizeApi("http://grudge-api-production-0d46.up.railway.app", opts);
+    expect(result).toBe("");
+  });
+
+  it("rejects userinfo tricks (evil@host)", () => {
+    for (const bad of [
+      "https://evil@grudge-api-production-0d46.up.railway.app",
+      "https://user:pass@grudge-api-production-0d46.up.railway.app",
+      "https://evil@id.grudge-studio.com",
+    ]) {
+      const result = sanitizeApi(bad, opts);
+      expect(result).toBe("");
+    }
+  });
+
+  it("rejects good host with evil userinfo (canonical@evil)", () => {
+    const result = sanitizeApi("https://grudge-api-production-0d46.up.railway.app@evil.example", opts);
+    expect(result).toBe("");
+  });
+
+  it("rejects percent-encoded variants", () => {
+    const result = sanitizeApi("https://evil.example%2f@grudge-studio.com", opts);
+    expect(result).toBe("");
+  });
+
+  it("rejects backslash tricks", () => {
+    const result = sanitizeApi("https://grudge-studio.com\\@evil.example", opts);
+    expect(result).toBe("");
+  });
+
+  it("rejects protocol-relative (//evil)", () => {
+    const result = sanitizeApi("//evil.example/api", opts);
+    expect(result).toBe("");
+  });
+
+  it("rejects non-443 port", () => {
+    const result = sanitizeApi("https://grudge-api-production-0d46.up.railway.app:8080", opts);
+    expect(result).toBe("");
+  });
+
+  it("rejects javascript: protocol", () => {
+    const result = sanitizeApi("javascript:alert(1)", opts);
+    expect(result).toBe("");
+  });
+
+  it("rejects data: protocol", () => {
+    const result = sanitizeApi("data:text/html,<script>alert(1)</script>", opts);
+    expect(result).toBe("");
+  });
+
+  it("returns empty string for empty input", () => {
+    expect(sanitizeApi("", opts)).toBe("");
+    expect(sanitizeApi(null, opts)).toBe("");
+    expect(sanitizeApi(undefined, opts)).toBe("");
   });
 });
