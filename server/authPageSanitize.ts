@@ -89,8 +89,12 @@ export function canonicalAuthPageQuery(
     try {
       const apiUrl = new URL(rawApi, opts.base);
       const apiOrigin = apiUrl.origin;
-      // Accept same-origin (e.g., localhost:5000 during dev) or the exact canonical API host
-      if (apiOrigin === opts.base.replace(/\/$/, "") || apiUrl.hostname === CANONICAL_API_HOST) {
+      const canonicalApiOrigin = `https://${CANONICAL_API_HOST}`;
+      // Reject userinfo tricks (evil@host)
+      if (apiUrl.username || apiUrl.password) {
+        // Drop it
+      } else if (apiOrigin === opts.base.replace(/\/$/, "") || apiOrigin === canonicalApiOrigin) {
+        // Accept same-origin (e.g., localhost:5000 during dev) or the exact canonical API origin (https only)
         safeApi = apiOrigin;
       }
     } catch {

@@ -99,7 +99,7 @@ function sanitizeOrigin(raw, opts) {
 }
 
 /**
- * Validate api param: only same-origin or the canonical Railway API host.
+ * Validate api param: only same-origin or the canonical Railway API origin.
  * Prevents token theft via api=https://evil.example on the login page.
  */
 function sanitizeApi(raw, opts) {
@@ -107,8 +107,13 @@ function sanitizeApi(raw, opts) {
   try {
     const apiUrl = new URL(raw);
     const apiOrigin = apiUrl.origin;
-    // Accept same-origin (localhost dev) or the exact canonical API host
-    if (apiOrigin === opts.publicHost.replace(/\/$/, "") || apiUrl.hostname === CANONICAL_API_HOST) {
+    const canonicalApiOrigin = `https://${CANONICAL_API_HOST}`;
+    // Reject userinfo tricks (evil@host)
+    if (apiUrl.username || apiUrl.password) {
+      return "";
+    }
+    // Accept same-origin (localhost dev) or the exact canonical API origin (https only)
+    if (apiOrigin === opts.publicHost.replace(/\/$/, "") || apiOrigin === canonicalApiOrigin) {
       return apiOrigin;
     }
   } catch {

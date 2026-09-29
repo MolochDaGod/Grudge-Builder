@@ -693,13 +693,16 @@ function resolveApiBase(){
   const qs = new URLSearchParams(location.search);
   const fromQuery = qs.get("api");
   if (fromQuery) {
-    // Validate api param: only same-origin or canonical Railway API
+    // Validate api param: only same-origin or canonical Railway API origin
     try {
       const apiUrl = new URL(fromQuery, location.origin);
       const apiOrigin = apiUrl.origin;
-      const canonicalApiHost = "grudge-api-production-0d46.up.railway.app";
-      // Accept same-origin (localhost dev) or the exact canonical API host
-      if (apiOrigin === location.origin || apiUrl.hostname === canonicalApiHost) {
+      const canonicalApiOrigin = "https://grudge-api-production-0d46.up.railway.app";
+      // Reject userinfo tricks (evil@host)
+      if (apiUrl.username || apiUrl.password) {
+        // Invalid/attacker API: fall through to default
+      } else if (apiOrigin === location.origin || apiOrigin === canonicalApiOrigin) {
+        // Accept same-origin (localhost dev) or the exact canonical API origin (https only)
         return trimTrailingSlashes(apiOrigin);
       }
       // Invalid/attacker API: fall through to default
