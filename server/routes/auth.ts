@@ -57,11 +57,11 @@ import {
 } from "../services/walletAccess";
 import type { LinkedWalletProvider } from "@shared/schema";
 import {
-  getAllowedHosts,
   isStudioOrigin,
   validateReturnUrl,
 } from "@shared/fleet/studioOrigins";
 import { serverStudioOriginOpts } from "../studioOriginsEnv";
+import { canonicalAuthPageQuery, injectAuthPageConfig } from "../authPageSanitize";
 
 /** Prefer SESSION_SECRET (auth.ts) then JWT_SECRET / GRUDGE_JWT_SECRET — use first non-empty candidate only. */
 const JWT_SECRET_CANDIDATES = [
@@ -797,62 +797,20 @@ export function registerAuthRoutes(app: Express) {
     if (!fs.existsSync(pagePath)) {
       return res.status(503).send("Auth page unavailable");
     }
-    const currentBase = requestBaseUrl(req);
-    const query = req.query as Record<string, string | string[] | undefined>;
-    const rawReturn =
-      (Array.isArray(query.redirect_uri) ? query.redirect_uri[0] : query.redirect_uri) ||
-      (Array.isArray(query.redirect) ? query.redirect[0] : query.redirect) ||
-      (Array.isArray(query.return_to) ? query.return_to[0] : query.return_to) ||
-      (Array.isArray(query.return) ? query.return[0] : query.return) ||
-      (Array.isArray(query.returnUrl) ? query.returnUrl[0] : query.returnUrl) ||
-      "";
-    const safeReturn = validateReturnUrl(rawReturn, {
-      base: currentBase,
+    // Validate return/origin aliases against the exact studio allowlist; keep
+    // every other param. Order-insensitive, so the id-gateway never loops.
+    const canonical = canonicalAuthPageQuery(req.url.split("?")[1] || "", {
+      base: requestBaseUrl(req),
       dev: STUDIO_ORIGIN_OPTS.dev,
       extraHosts: STUDIO_ORIGIN_OPTS.extraHosts,
-      fallback: "",
     });
-    const safeOrigin = validateReturnUrl(
-      (Array.isArray(query.origin) ? query.origin[0] : query.origin) ||
-      (Array.isArray(query.audience) ? query.audience[0] : query.audience) ||
-      "",
-      {
-        base: currentBase,
-        dev: STUDIO_ORIGIN_OPTS.dev,
-        extraHosts: STUDIO_ORIGIN_OPTS.extraHosts,
-        fallback: "",
-      },
-    );
-    const expected = new URLSearchParams();
-    if (safeReturn) {
-      expected.set("redirect_uri", safeReturn);
-      expected.set("redirect", safeReturn);
-    }
-    if (query.app) expected.set("app", String(Array.isArray(query.app) ? query.app[0] : query.app));
-    if (query.api) expected.set("api", String(Array.isArray(query.api) ? query.api[0] : query.api));
-    if (safeOrigin) expected.set("origin", new URL(safeOrigin).origin);
-    if (query.handoff) expected.set("handoff", String(Array.isArray(query.handoff) ? query.handoff[0] : query.handoff));
-    if (query.view) expected.set("view", String(Array.isArray(query.view) ? query.view[0] : query.view));
-    const expectedQuery = expected.toString();
-    const incomingQuery = new URLSearchParams(req.url.split("?")[1] || "").toString();
-    if (incomingQuery !== expectedQuery) {
-      const dest = req.path + (expectedQuery ? `?${expectedQuery}` : "");
+    if (canonical.changed) {
+      const dest = req.path + (canonical.query ? `?${canonical.query}` : "");
       return res.redirect(302, dest);
     }
 
-    const allowedHosts = JSON.stringify(getAllowedHosts(STUDIO_ORIGIN_OPTS));
-    const studioDevFlag = JSON.stringify(STUDIO_ORIGIN_OPTS.dev === true);
-
     res.setHeader("Cache-Control", "no-store, must-revalidate");
-    let html = fs.readFileSync(pagePath, "utf8");
-    html = html.replace(
-      "/*__GRUDGE_ALLOWED_RETURN_HOSTS__*/[]",
-      allowedHosts,
-    );
-    html = html.replace(
-      "/*__GRUDGE_STUDIO_DEV__*/false",
-      studioDevFlag,
-    );
+    const html = injectAuthPageConfig(fs.readFileSync(pagePath, "utf8"), STUDIO_ORIGIN_OPTS);
     res.type("html").send(html);
   };
   app.get("/api/auth/page", serveAuthPage);
