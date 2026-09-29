@@ -1,6 +1,7 @@
 import {
   getAllowedHosts,
   validateReturnUrl,
+  isStudioOrigin,
   type StudioOriginOpts,
 } from "@shared/fleet/studioOrigins";
 
@@ -8,6 +9,9 @@ const RETURN_KEYS = new Set(["redirect_uri", "redirect", "return_to", "return", 
 const RETURN_KEY_ORDER = ["redirect_uri", "redirect", "return_to", "return", "returnUrl"];
 const ORIGIN_KEYS = new Set(["origin", "audience"]);
 const ORIGIN_KEY_ORDER = ["origin", "audience"];
+
+/** Canonical API host for Railway game-data backend (the only external API the auth page contacts). */
+const CANONICAL_API_HOST = "grudge-api-production-0d46.up.railway.app";
 
 export type AuthPageQueryResult = {
   /** true when the incoming query must be replaced (302) by `query`. */
@@ -77,10 +81,30 @@ export function canonicalAuthPageQuery(
     out.set("redirect", safeReturn);
   }
   if (safeOrigin) out.set("origin", safeOrigin);
+  
+  // Validate api param: only same-origin or the canonical Railway backend
+  const rawApi = incoming.get("api");
+  let safeApi = "";
+  if (rawApi) {
+    try {
+      const apiUrl = new URL(rawApi, opts.base);
+      const apiOrigin = apiUrl.origin;
+      // Accept same-origin (e.g., localhost:5000 during dev) or the exact canonical API host
+      if (apiOrigin === opts.base.replace(/\/$/, "") || apiUrl.hostname === CANONICAL_API_HOST) {
+        safeApi = apiOrigin;
+      }
+    } catch {
+      // Invalid URL: drop it
+    }
+  }
+  
   incoming.forEach((value, key) => {
     if (RETURN_KEYS.has(key) || ORIGIN_KEYS.has(key)) return;
+    if (key === "api") return; // Already validated above
     out.append(key, value);
   });
+  
+  if (safeApi) out.set("api", safeApi);
 
   const a = new URLSearchParams(incoming);
   a.sort();

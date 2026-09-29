@@ -55,7 +55,7 @@ describe("auth page query canonicalisation", () => {
     q.set("app", "wallet");
     q.set("origin", "https://wallet.grudge-studio.com");
     q.set("handoff", "1");
-    q.set("api", "https://id.grudge-studio.com");
+    q.set("api", "https://grudge-api-production-0d46.up.railway.app");
     q.set("state", "abc");
     q.set("scope", "profile");
     const res = canonicalAuthPageQuery(q.toString(), PROD);
@@ -105,5 +105,38 @@ describe("auth page query canonicalisation", () => {
     const q = "redirect_uri=http%3A%2F%2Flocalhost%3A5173%2Fcb&redirect=http%3A%2F%2Flocalhost%3A5173%2Fcb";
     expect(canonicalAuthPageQuery(q, { base: BASE, dev: true }).changed).toBe(false);
     expect(canonicalAuthPageQuery(q, PROD).changed).toBe(true);
+  });
+
+  it("drops attacker api hosts (token leak prevention)", () => {
+    // Test various attacker payloads
+    for (const bad of [
+      "https://evil.example/api",
+      "https://grudge-api.evil.example/api",
+      "http://grudge-api-production-0d46.up.railway.app", // http downgrade
+      "https://evil@grudge-api-production-0d46.up.railway.app", // userinfo
+      "//evil.example/api", // protocol-relative
+      "https://grudge-studio.com.evil.example", // suffix look-alike
+    ]) {
+      const q = new URLSearchParams({ api: bad, state: "keep" });
+      const res = canonicalAuthPageQuery(q.toString(), PROD);
+      expect(res.changed).toBe(true);
+      const out = new URLSearchParams(res.query);
+      expect(out.get("api")).toBeNull();
+      expect(out.get("state")).toBe("keep");
+    }
+  });
+
+  it("accepts same-origin api (localhost dev)", () => {
+    const res = canonicalAuthPageQuery("api=https://id.grudge-studio.com", PROD);
+    expect(res.changed).toBe(false);
+    const out = new URLSearchParams(res.query);
+    expect(out.get("api")).toBe("https://id.grudge-studio.com");
+  });
+
+  it("accepts canonical Railway API host", () => {
+    const res = canonicalAuthPageQuery("api=https://grudge-api-production-0d46.up.railway.app", PROD);
+    expect(res.changed).toBe(false);
+    const out = new URLSearchParams(res.query);
+    expect(out.get("api")).toBe("https://grudge-api-production-0d46.up.railway.app");
   });
 });

@@ -138,9 +138,9 @@ export const STUDIO_HOSTS = [
   "mine-loader.vercel.app",
   "grudge-drive.vercel.app",
   "grudge-dungeons.vercel.app",
-  // pages
-  "anim-studio.pages.dev",
-  "grudge-studio-dash.pages.dev",
+  // pages.dev hosts removed: ownership unverified (can be re-added after verification)
+  // "anim-studio.pages.dev",
+  // "grudge-studio-dash.pages.dev",
 ] as const;
 
 export type StudioOriginOpts = {

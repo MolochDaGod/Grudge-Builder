@@ -19,6 +19,7 @@
 
 const DEFAULT_UPSTREAM = "https://grudge-api-production-0d46.up.railway.app";
 const DEFAULT_PUBLIC = "https://id.grudge-studio.com";
+const CANONICAL_API_HOST = "grudge-api-production-0d46.up.railway.app";
 import {
   isStudioOrigin,
   validateReturnUrl,
@@ -97,6 +98,25 @@ function sanitizeOrigin(raw, opts) {
   }
 }
 
+/**
+ * Validate api param: only same-origin or the canonical Railway API host.
+ * Prevents token theft via api=https://evil.example on the login page.
+ */
+function sanitizeApi(raw, opts) {
+  if (!raw) return "";
+  try {
+    const apiUrl = new URL(raw);
+    const apiOrigin = apiUrl.origin;
+    // Accept same-origin (localhost dev) or the exact canonical API host
+    if (apiOrigin === opts.publicHost.replace(/\/$/, "") || apiUrl.hostname === CANONICAL_API_HOST) {
+      return apiOrigin;
+    }
+  } catch {
+    // Invalid URL: drop it
+  }
+  return "";
+}
+
 function mapUpstreamPath(url, opts) {
   const publicHost = opts.publicHost;
   const path = url.pathname;
@@ -106,7 +126,8 @@ function mapUpstreamPath(url, opts) {
   if (path === "/account" || path === "/account/") {
     const q = new URLSearchParams();
     q.set("view", "account");
-    if (params.get("api")) q.set("api", params.get("api"));
+    const safeApi = sanitizeApi(params.get("api"), opts);
+    if (safeApi) q.set("api", safeApi);
     return "/api/auth/page?" + q.toString();
   }
 
@@ -155,7 +176,8 @@ function mapUpstreamPath(url, opts) {
     const origin = sanitizeOrigin(params.get("origin") || params.get("audience"), opts);
     if (origin) q.set("origin", origin);
     if (params.get("handoff")) q.set("handoff", params.get("handoff"));
-    if (params.get("api")) q.set("api", params.get("api"));
+    const safeApiAuth = sanitizeApi(params.get("api"), opts);
+    if (safeApiAuth) q.set("api", safeApiAuth);
     if (params.get("state")) q.set("state", params.get("state"));
     if (params.get("scope")) q.set("scope", params.get("scope"));
     return "/api/auth/page" + (q.toString() ? `?${q}` : "");
@@ -186,7 +208,8 @@ function mapUpstreamPath(url, opts) {
     const origin = sanitizeOrigin(params.get("origin") || params.get("audience"), opts);
     if (origin) q.set("origin", origin);
     if (params.get("handoff")) q.set("handoff", params.get("handoff"));
-    if (params.get("api")) q.set("api", params.get("api"));
+    const safeApi3 = sanitizeApi(params.get("api"), opts);
+    if (safeApi3) q.set("api", safeApi3);
     if (params.get("state")) q.set("state", params.get("state"));
     if (params.get("scope")) q.set("scope", params.get("scope"));
     return "/api/auth/page" + (q.toString() ? `?${q}` : "");
@@ -247,6 +270,11 @@ function prettyLoginLocation(searchParams, opts = {}) {
         opts,
       );
       if (origin) q.set("origin", origin);
+      continue;
+    }
+    if (key === "api") {
+      const safeApi = sanitizeApi(searchParams.get(key), opts);
+      if (safeApi) q.set("api", safeApi);
       continue;
     }
     if (searchParams.get(key)) q.set(key, searchParams.get(key));

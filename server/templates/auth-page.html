@@ -8,6 +8,7 @@
 <meta name="description" content="Sign in with your Grudge Studio account — one identity for every game and tool." />
 <link rel="icon" type="image/svg+xml" href="data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 32 32'%3E%3Cpath d='M16 2l11 5v8c0 7-4.7 12.4-11 15C9.7 27.4 5 22 5 15V7z' fill='%231a1405' stroke='%23d4af37' stroke-width='1.6'/%3E%3C/svg%3E" />
 <meta name="grudge-api" content="" />
+<meta http-equiv="Content-Security-Policy-Report-Only" content="connect-src 'self' https://grudge-api-production-0d46.up.railway.app https://api.twilio.com https://discord.com https://phantom.app wss://grudge-api-production-0d46.up.railway.app" />
 <script src="https://js.puter.com/v2/"></script>
 <link rel="preconnect" href="https://fonts.googleapis.com" />
 <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
@@ -691,7 +692,21 @@ function trimTrailingSlashes(value){
 function resolveApiBase(){
   const qs = new URLSearchParams(location.search);
   const fromQuery = qs.get("api");
-  if (fromQuery) return trimTrailingSlashes(fromQuery);
+  if (fromQuery) {
+    // Validate api param: only same-origin or canonical Railway API
+    try {
+      const apiUrl = new URL(fromQuery, location.origin);
+      const apiOrigin = apiUrl.origin;
+      const canonicalApiHost = "grudge-api-production-0d46.up.railway.app";
+      // Accept same-origin (localhost dev) or the exact canonical API host
+      if (apiOrigin === location.origin || apiUrl.hostname === canonicalApiHost) {
+        return trimTrailingSlashes(apiOrigin);
+      }
+      // Invalid/attacker API: fall through to default
+    } catch {
+      // Invalid URL: fall through to default
+    }
+  }
   const meta = document.querySelector('meta[name="grudge-api"]');
   if (meta && meta.content.trim()) return trimTrailingSlashes(meta.content.trim());
   const h = location.hostname;
