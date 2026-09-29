@@ -357,6 +357,12 @@ async function assertWalletAvailable(accountId: string, walletAddress: string): 
 const HOUSE_PUBKEY = "aUp3XZqAt27phQNEM7k5KiP6cL3ihyG7uEJuEADbEks";
 const LINKED_WALLET_CAP = 8;
 
+/** Trader vault rows are display-only: never primary, never written to accounts.wallet_address. */
+export const TRADER_VAULT_LABEL = "trader_vault";
+export function isTraderVaultRow(row: { label?: string | null } | null | undefined): boolean {
+  return Boolean(row && row.label === TRADER_VAULT_LABEL);
+}
+
 export async function persistLinkedWallet(
   accountId: string,
   walletAddress: string,
@@ -381,6 +387,7 @@ export async function persistLinkedWallet(
 
   const now = Date.now();
   let row = existing;
+  const vault = label === TRADER_VAULT_LABEL || (!label && isTraderVaultRow(existing));
 
   if (!row) {
     const linkedCount = await db
@@ -390,7 +397,8 @@ export async function persistLinkedWallet(
     if (linkedCount.length >= LINKED_WALLET_CAP) {
       throw new Error("Maximum 8 linked wallets on this Grudge ID");
     }
-    const isPrimary = linkedCount.length === 0;
+    const nonVaultCount = linkedCount.filter((w) => !isTraderVaultRow(w)).length;
+    const isPrimary = !vault && nonVaultCount === 0;
     const nextLabel = label || `Wallet ${linkedCount.length + 1}`;
 
     [row] = await db
@@ -407,7 +415,11 @@ export async function persistLinkedWallet(
   } else {
     [row] = await db
       .update(linkedWallets)
-      .set({ provider, label: label || row.label, verifiedAt: now })
+      .set(
+        vault
+          ? { provider, label: label || row.label, verifiedAt: now, isPrimary: false }
+          : { provider, label: label || row.label, verifiedAt: now },
+      )
       .where(eq(linkedWallets.id, row.id))
       .returning();
   }
@@ -417,7 +429,8 @@ export async function persistLinkedWallet(
   const custodial =
     account?.walletType === "crossmint" && Boolean(account.walletAddress);
   // Never replace a Crossmint play wallet with a linked Phantom. Linked row is the user's Solana.
-  if (account && !custodial && (!account.walletAddress || row.isPrimary)) {
+  // Never write a trader vault into accounts.wallet_address.
+  if (account && !custodial && !vault && (!account.walletAddress || row.isPrimary)) {
     await storage.updateAccount(accountId, {
       walletAddress,
       walletType: "external",
@@ -471,19 +484,19 @@ export async function composeWalletBook(accountId: string) {
   };
 }
 
+/**
+ * Unsigned trader vault write. The HTTP route returns 501 before reaching this;
+ * kept fail-closed: it never changes an existing vault address without a SIWS proof
+ * and never makes the vault primary or touches accounts.wallet_address.
+ */
 export async function persistTraderVault(accountId: string, walletAddress: string) {
   const linked = await listLinkedWallets(accountId);
-  const existing = linked.find((w) => w.label === "trader_vault");
+  const existing = linked.find((w) => w.label === TRADER_VAULT_LABEL);
   if (existing) {
     if (existing.walletAddress === walletAddress) return existing;
-    const [row] = await db
-      .update(linkedWallets)
-      .set({ walletAddress, verifiedAt: Date.now() })
-      .where(eq(linkedWallets.id, existing.id))
-      .returning();
-    return row;
+    throw new Error("Changing the trader vault requires a signed (SIWS) link");
   }
-  const saved = await persistLinkedWallet(accountId, walletAddress, "other", "trader_vault");
+  const saved = await persistLinkedWallet(accountId, walletAddress, "other", TRADER_VAULT_LABEL);
   return saved.linked;
 }
 
@@ -506,6 +519,7 @@ export async function setPrimaryLinkedWallet(accountId: string, walletAddress: s
   const list = await listLinkedWallets(accountId);
   const row = list.find((w) => w.walletAddress === walletAddress);
   if (!row) throw new Error("Wallet is not linked to this Grudge ID");
+  if (isTraderVaultRow(row)) throw new Error("The trader vault cannot be the primary wallet");
 
   await db
     .update(linkedWallets)
@@ -542,11 +556,12 @@ export async function unlinkLinkedWallet(accountId: string, walletAddress: strin
 
   if (row.isPrimary) {
     const rest = await listLinkedWallets(accountId);
-    if (rest[0]) {
-      await db.update(linkedWallets).set({ isPrimary: true }).where(eq(linkedWallets.id, rest[0].id));
+    const next = rest.find((w) => !isTraderVaultRow(w));
+    if (next) {
+      await db.update(linkedWallets).set({ isPrimary: true }).where(eq(linkedWallets.id, next.id));
       if (account && !custodial) {
         await storage.updateAccount(accountId, {
-          walletAddress: rest[0].walletAddress,
+          walletAddress: next.walletAddress,
           walletType: "external",
         } as any);
       }
