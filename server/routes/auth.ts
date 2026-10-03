@@ -16,6 +16,7 @@
  *   POST /api/auth/spawn-link        — Link Spawn player onto the signed-in Grudge account
  *   GET  /api/auth/sso-check         — Cross-app SSO bootstrap (session → return URL)
  *   GET  /api/auth/discord/callback  — Discord OAuth callback
+ *   GET/POST /api/auth/telegram/callback — Telegram Login Widget (@grudagamebot)
  *   GET  /api/auth/google/start      — Google OAuth (delegates to Puter SDK)
  *   POST /api/auth/phone/send        — Send SMS verification code
  *   POST /api/auth/phone/verify      — Verify SMS code and login
@@ -49,9 +50,15 @@ import {
   linkSpawnToGrudgeUser,
   readSpawnLink,
   SpawnLinkConflict,
+  resolveTelegramGrudgeAccount,
+  stampTelegramLink,
   type IdentityUser,
 } from "../lib/identityLink";
 import { verifySpawnToken, SpawnTokenError, type SpawnAccount } from "../lib/spawnIdentity";
+import {
+  verifyTelegramLoginWidget,
+  telegramBotUsername,
+} from "../lib/telegramLoginWidget";
 import {
   createLinkChallenge,
   createLoginChallenge,
@@ -349,6 +356,7 @@ function isAutoUsername(username: string): boolean {
     u.startsWith("discord:") ||
     u.startsWith("phone:") ||
     u.startsWith("spawn:") ||
+    u.startsWith("telegram:") ||
     u.startsWith("google:") ||
     u.startsWith("github:") ||
     /^puter_[a-f0-9]+$/i.test(u) ||
@@ -2025,6 +2033,140 @@ export function registerAuthRoutes(app: Express) {
   };
   app.get("/api/auth/discord/callback", discordCallback);
   app.get("/auth/discord/callback", discordCallback);
+
+  /**
+   * Telegram Login Widget (@grudagamebot)
+   * BotFather domain: id.grudge-studio.com  (/empty to clear)
+   * Widget docs: https://core.telegram.org/widgets/login
+   */
+  const telegramLogin = async (req: Request, res: Response) => {
+    const rawReturn =
+      String(
+        (req.method === "POST" ? (req.body as any)?.returnTo : undefined) ||
+          req.query.returnTo ||
+          req.query.state ||
+          "https://grudgewarlords.com/",
+      ) || "https://grudgewarlords.com/";
+    const returnUrl = isFleetAllowedReturnUrl(rawReturn)
+      ? rawReturn
+      : "https://grudgewarlords.com/";
+
+    const data =
+      req.method === "POST"
+        ? { ...(req.body || {}) }
+        : { ...(req.query as Record<string, unknown>) };
+    delete data.returnTo;
+    delete data.state;
+
+    const verified = verifyTelegramLoginWidget(data);
+    if (!verified.ok) {
+      if (req.method === "POST") {
+        return res.status(401).json({ success: false, error: verified.error });
+      }
+      return res.redirect(
+        `${returnUrl}${returnUrl.includes("?") ? "&" : "?"}error=${encodeURIComponent(verified.error)}`,
+      );
+    }
+
+    try {
+      const tg = verified.payload;
+      const { user: identity, isNew } = await resolveTelegramGrudgeAccount({
+        id: String(tg.id),
+        username: tg.username || null,
+        first_name: tg.first_name || null,
+        last_name: tg.last_name || null,
+      });
+      const user = asSchemaUser(identity);
+      const account = await ensureAccount(user.id);
+      const displayName =
+        [tg.first_name, tg.last_name].filter(Boolean).join(" ").trim() ||
+        tg.username ||
+        account?.displayName ||
+        identity.display_name ||
+        "Telegram Player";
+
+      if (account) {
+        await stampTelegramLink(account.id, account.walletAddress, {
+          id: String(tg.id),
+          username: tg.username || null,
+        });
+        if (!account.displayName || String(account.displayName).startsWith("telegram:")) {
+          await storage.updateAccount(account.id, { displayName });
+        }
+      }
+
+      const grudgeId = user.grudgeId || account?.grudgeId || "";
+      const role = resolveUserStudioRole({
+        user,
+        account,
+        puterUsername: displayName,
+      });
+      const ssoToken = signToken({
+        userId: user.id,
+        grudgeId,
+        username: displayName,
+        email: user.email || null,
+        role,
+        isAdmin: isStudioAdminRole(role),
+      });
+      setSessionCookie(res, ssoToken);
+
+      console.log(
+        `[Auth/Telegram] ${isNew ? "created" : "login"} @${telegramBotUsername()} tg=${tg.id} grudge_id=${grudgeId}`,
+      );
+
+      if (req.method === "POST") {
+        let launchToken = "";
+        try {
+          const aud = new URL(returnUrl).origin;
+          launchToken = mintLaunchToken(user.id, grudgeId, aud);
+        } catch {
+          /* ignore */
+        }
+        return res.json({
+          success: true,
+          token: ssoToken,
+          access_token: ssoToken,
+          grudgeId,
+          username: displayName,
+          isNew,
+          returnTo: appendSsoParams(returnUrl, ssoToken, grudgeId, displayName, launchToken),
+        });
+      }
+
+      let launchToken = "";
+      try {
+        const aud = new URL(returnUrl).origin;
+        launchToken = mintLaunchToken(user.id, grudgeId, aud);
+      } catch {
+        /* ignore */
+      }
+      return res.redirect(
+        302,
+        appendSsoParams(returnUrl, ssoToken, grudgeId, displayName, launchToken),
+      );
+    } catch (e: any) {
+      console.error("[Auth/Telegram]", e);
+      if (req.method === "POST") {
+        return res.status(500).json({ success: false, error: e?.message || "Telegram auth error" });
+      }
+      return res.redirect(`${returnUrl}?error=Telegram+auth+error`);
+    }
+  };
+  app.get("/api/auth/telegram/callback", telegramLogin);
+  app.get("/auth/telegram/callback", telegramLogin);
+  app.post("/api/auth/telegram", telegramLogin);
+  app.post("/api/auth/telegram/callback", telegramLogin);
+  app.get("/api/auth/telegram/widget-config", (_req: Request, res: Response) => {
+    res.json({
+      success: true,
+      botUsername: telegramBotUsername(),
+      domain: "id.grudge-studio.com",
+      authUrl: "https://id.grudge-studio.com/api/auth/telegram/callback",
+      docs: "https://core.telegram.org/widgets/login",
+      botFather: "Link website domain id.grudge-studio.com — use /empty to remove",
+    });
+  });
 
   // ── GET /api/auth/me — Full user profile from JWT ─────────────────
 

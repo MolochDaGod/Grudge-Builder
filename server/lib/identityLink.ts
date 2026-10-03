@@ -440,12 +440,115 @@ export async function linkSpawnToGrudgeUser(
   return refreshed;
 }
 
+/**
+ * Resolve Telegram Login Widget → one Grudge user via telegram_links (+ username telegram:id).
+ * Caller must ensureAccount(user.id) then stampTelegramLink(...).
+ */
+export async function resolveTelegramGrudgeAccount(tg: {
+  id: string;
+  username?: string | null;
+  first_name?: string | null;
+  last_name?: string | null;
+}): Promise<{ user: IdentityUser; isNew: boolean }> {
+  const telegramUserId = String(tg.id || "").trim();
+  if (!telegramUserId) throw new Error("Telegram id required");
+
+  const linkRows = await q<{ account_id: string }>(
+    `SELECT account_id FROM telegram_links WHERE telegram_user_id = $1 LIMIT 1`,
+    [telegramUserId],
+  );
+  if (linkRows[0]?.account_id) {
+    const accRows = await q<{ user_id: string }>(
+      `SELECT user_id FROM accounts WHERE id = $1 LIMIT 1`,
+      [linkRows[0].account_id],
+    );
+    if (accRows[0]?.user_id) {
+      const user = await fetchIdentityUserById(String(accRows[0].user_id));
+      if (user) return { user, isNew: false };
+    }
+  }
+
+  const byName = await q(
+    `SELECT id, username, password, grudge_id, email,
+            discord_id, discord_username, discord_email,
+            puter_user_id, puter_username, puter_email,
+            auth_method, display_name, is_admin
+     FROM users WHERE username = $1 LIMIT 1`,
+    [`telegram:${telegramUserId}`],
+  );
+  let user = byName[0] ? mapRow(byName[0]) : null;
+  let isNew = false;
+
+  if (!user) {
+    isNew = true;
+    const grudgeId = generateGrudgeId();
+    const dummyPw = await hashPassword(crypto.randomBytes(32).toString("hex"));
+    const [created] = await db
+      .insert(users)
+      .values({
+        username: `telegram:${telegramUserId}`,
+        password: dummyPw,
+        grudgeId,
+        email: null,
+      } as any)
+      .onConflictDoNothing()
+      .returning();
+    user = created
+      ? {
+          id: created.id,
+          username: created.username,
+          password: created.password,
+          grudgeId: created.grudgeId,
+          email: created.email,
+        }
+      : (await q(
+          `SELECT id, username, password, grudge_id, email,
+                  discord_id, discord_username, discord_email,
+                  puter_user_id, puter_username, puter_email,
+                  auth_method, display_name, is_admin
+           FROM users WHERE username = $1 LIMIT 1`,
+          [`telegram:${telegramUserId}`],
+        ).then((rows) => (rows[0] ? mapRow(rows[0]) : null)));
+    if (!user) throw new Error("Failed to create Telegram-linked Grudge account");
+  }
+
+  const refreshed = await fetchIdentityUserById(user.id);
+  if (!refreshed) throw new Error("Telegram user vanished after create");
+  return { user: refreshed, isNew };
+}
+
+/** Upsert telegram_links after ensureAccount. */
+export async function stampTelegramLink(
+  accountId: string,
+  walletAddress: string | null | undefined,
+  tg: { id: string; username?: string | null },
+): Promise<void> {
+  const telegramUserId = String(tg.id || "").trim();
+  if (!telegramUserId || !accountId) return;
+  await q(
+    `INSERT INTO telegram_links (telegram_user_id, account_id, wallet_address, telegram_username, linked_at)
+     VALUES ($1, $2, $3, $4, extract(epoch from now()) * 1000)
+     ON CONFLICT (telegram_user_id) DO UPDATE SET
+       account_id = EXCLUDED.account_id,
+       wallet_address = COALESCE(EXCLUDED.wallet_address, telegram_links.wallet_address),
+       telegram_username = COALESCE(EXCLUDED.telegram_username, telegram_links.telegram_username),
+       linked_at = EXCLUDED.linked_at`,
+    [
+      telegramUserId,
+      accountId,
+      walletAddress || `tg_${telegramUserId}`,
+      tg.username || null,
+    ],
+  );
+}
+
 /** Providers visible on an identity row (for /me). */
 export function listLinkedProviders(user: IdentityUser): string[] {
   const p = new Set<string>();
   if (user.discord_id || user.username?.startsWith("discord:")) p.add("discord");
   if (user.puter_user_id || user.username?.startsWith("puter:")) p.add("puter");
   if (user.spawn_user_id || user.username?.startsWith("spawn:")) p.add("spawn");
+  if (user.username?.startsWith("telegram:")) p.add("telegram");
   if (user.username?.startsWith("wallet:")) p.add("phantom");
   if (user.username?.startsWith("phone:")) p.add("phone");
   if (user.email) p.add("email");
