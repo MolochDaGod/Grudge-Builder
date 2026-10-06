@@ -4,14 +4,9 @@
  * API docs: https://polyhaven.com/our-api
  * Requires a unique User-Agent per their ToS.
  */
-const POLY_HAVEN_USER_AGENT = 'GrudgeWarlords/1.0 (grudgewarlords.com)';
-/** Prefer same-origin proxy when present; always fall back to public Poly Haven (CORS OK). */
-const API_BASES = import.meta.env.DEV
-  ? (['https://api.polyhaven.com'] as const)
-  : (['/api/polyhaven', 'https://api.polyhaven.com'] as const);
-const CDN_BASES = import.meta.env.DEV
-  ? (['https://dl.polyhaven.org'] as const)
-  : (['/api/polyhaven-dl', 'https://dl.polyhaven.org'] as const);
+/** Public Poly Haven. Browsers forbid setting User-Agent, and /api/polyhaven on the SPA 404s. */
+const API_BASES = ['https://api.polyhaven.com'] as const;
+const CDN_BASES = ['https://dl.polyhaven.org'] as const;
 
 /** R2 mirror — run scripts/upload-polyhaven-lobby-textures.mjs */
 export const POLYHAVEN_R2_LOBBY_BASE =
@@ -78,9 +73,7 @@ export async function fetchPolyHavenFiles(assetId: string): Promise<FilesRespons
   let lastErr: Error | null = null;
   for (const base of API_BASES) {
     try {
-      const res = await fetch(`${base}/files/${assetId}`, {
-        headers: { 'User-Agent': POLY_HAVEN_USER_AGENT },
-      });
+      const res = await fetch(`${base}/files/${assetId}`);
       if (!res.ok) {
         lastErr = new Error(`Poly Haven files/${assetId}: ${res.status} via ${base}`);
         continue;
@@ -168,9 +161,7 @@ export async function searchPolyHavenTextures(opts: {
 
   for (const base of API_BASES) {
     try {
-      const res = await fetch(`${base}/assets?${params}`, {
-        headers: { 'User-Agent': POLY_HAVEN_USER_AGENT },
-      });
+      const res = await fetch(`${base}/assets?${params}`);
       if (res.ok) return res.json();
     } catch {
       /* next */

@@ -25,6 +25,11 @@ export interface ClassSkillTree {
   tiers: ClassSkillTier[];
 }
 
+/**
+ * The only class skill tree. Create-character, the skill-tree page, and
+ * published/class-skill-trees.json all read this object.
+ * Tiers: 0, 1, 5, 10, 15, 20. Class id for the shapeshifter is `worg`.
+ */
 export const CLASS_SKILL_TREES: Record<string, ClassSkillTree> = {
   warrior: {
     classId: "warrior",
@@ -814,3 +819,12 @@ export function getLockedTiers(classId: string, characterLevel: number): ClassSk
 }
 
 export const SKILL_TIER_LEVELS = [0, 1, 5, 10, 15, 20];
+
+export function exportClassSkillTreesJson() {
+  return {
+    id: "grudge-class-skill-trees",
+    source: "shared/definitions/classSkillTrees.ts",
+    tierLevels: SKILL_TIER_LEVELS,
+    classes: CLASS_SKILL_TREES,
+  };
+}

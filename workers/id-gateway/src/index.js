@@ -38,6 +38,9 @@ const CORS_ORIGINS = [
   "https://puter.com",
   "https://www.puter.com",
   "https://app.puter.com",
+  "https://www.spawn.co",
+  "https://spawn.co",
+  "https://play.bigspawn.net",
 ];
 
 const CORS_SUFFIXES = [
@@ -86,7 +89,7 @@ function corsHeaders(request) {
   );
   h.set(
     "Access-Control-Allow-Headers",
-    "Content-Type,Authorization,X-Session-Token,If-Match,X-Progress-Revision,X-Requested-With",
+    "Content-Type,Authorization,X-Session-Token,X-Spawn-Token,If-Match,X-Progress-Revision,X-Requested-With",
   );
   h.set("Access-Control-Expose-Headers", "X-Progress-Revision,ETag");
   h.set("Access-Control-Max-Age", "86400");

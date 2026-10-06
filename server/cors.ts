@@ -47,6 +47,11 @@ export const GRUDGE_EXACT_ORIGINS: string[] = [
   "https://studio.grudge-studio.com",
   "https://client.grudge-studio.com",
   "https://dash.grudge-studio.com",
+
+  // Spawn play + account surfaces (Grudge ID accepts a verified Spawn player)
+  "https://www.spawn.co",
+  "https://spawn.co",
+  "https://play.bigspawn.net",
 ];
 
 // ── Regex-match origins (subdomains, preview deploys, Puter) ──────────────────
@@ -118,6 +123,7 @@ export const GRUDGE_CORS_OPTIONS = {
     "Authorization",
     "X-Session-Token",
     "X-Admin-Mode",
+    "X-Spawn-Token",
   ],
 };
 

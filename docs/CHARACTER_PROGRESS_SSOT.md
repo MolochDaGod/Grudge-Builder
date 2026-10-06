@@ -195,7 +195,7 @@ When adding a game / editor / Puter site:
 |-----|------|
 | Fleet bridge | `public/grudge-fleet.js`, `client/public/grudge-fleet.js` |
 | Crafting (Puter) | `client/public/grudge-crafting.html` → `grudge-crafting.puter.site` |
-| Class skill tree | `public/skill-tree.html` |
+| Class skill tree | `shared/definitions/classSkillTrees.ts` (viewer: `public/skill-tree.html`) |
 | Weapon mastery | `public/weaponmastery.html` |
 | Shared types/validation | `shared/characterProgress.ts` |
 | Mastery definitions | `shared/definitions/weaponMastery.ts` |
