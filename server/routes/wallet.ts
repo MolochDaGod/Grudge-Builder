@@ -270,6 +270,13 @@ export function registerWalletRoutes(app: Express): void {
       const body = req.body as { role?: string; address?: string; walletAddress?: string };
       const role = String(body.role || "");
       const address = String(body.address || body.walletAddress || "").trim();
+      if (role === "trader_vault") {
+        // Fail closed until trader_vault linking requires a SIWS signature proof (same as main #128).
+        return res.status(501).json({
+          error: "trader_vault_linking_disabled",
+          message: "Trader vault linking is disabled until signed (SIWS) linking ships.",
+        });
+      }
       if (role !== "trader_vault") {
         return res.status(400).json({
           error: "Only trader_vault can be POSTed here. Link Phantom via /api/wallet/link/*",
