@@ -291,6 +291,16 @@ export class MeshSceneNavMesh {
       Math.floor((to.z - this.originZ) / this.cellSize),
     ] as const;
 
+    // Early return if start or goal are off-grid
+    if (
+      startG[0] < 0 || startG[0] >= this.gridW ||
+      startG[1] < 0 || startG[1] >= this.gridH ||
+      endG[0] < 0 || endG[0] >= this.gridW ||
+      endG[1] < 0 || endG[1] >= this.gridH
+    ) {
+      return null;
+    }
+
     const key = (gx: number, gz: number) => `${gx},${gz}`;
     const open: Array<{ gx: number; gz: number; g: number; f: number; parent: string | null }> = [];
     const came = new Map<string, string | null>();
@@ -320,7 +330,7 @@ export class MeshSceneNavMesh {
         const nx = cur.gx + dx;
         const nz = cur.gz + dz;
         if (nx < 0 || nz < 0 || nx >= this.gridW || nz >= this.gridH) continue;
-        const cell = this.grid[nz][nx];
+        const cell = this.grid[nz]?.[nx];
         if (!cell?.walkable) continue;
         const nk = key(nx, nz);
         const step = dx !== 0 && dz !== 0 ? Math.SQRT2 : 1;
@@ -338,7 +348,7 @@ export class MeshSceneNavMesh {
     let c: string | null = found;
     while (c) {
       const [gx, gz] = c.split(',').map(Number);
-      const cell = this.grid[gz][gx];
+      const cell = this.grid[gz]?.[gx];
       if (cell) rev.push(new THREE.Vector3(cell.x, cell.y, cell.z));
       c = came.get(c) ?? null;
     }
