@@ -8,6 +8,7 @@
 <meta name="description" content="Sign in with your Grudge Studio account — one identity for every game and tool." />
 <link rel="icon" type="image/svg+xml" href="data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 32 32'%3E%3Cpath d='M16 2l11 5v8c0 7-4.7 12.4-11 15C9.7 27.4 5 22 5 15V7z' fill='%231a1405' stroke='%23d4af37' stroke-width='1.6'/%3E%3C/svg%3E" />
 <meta name="grudge-api" content="" />
+<meta http-equiv="Content-Security-Policy-Report-Only" content="connect-src 'self' https://grudge-api-production-0d46.up.railway.app https://api.twilio.com https://discord.com https://phantom.app wss://grudge-api-production-0d46.up.railway.app" />
 <script src="https://js.puter.com/v2/"></script>
 <link rel="preconnect" href="https://fonts.googleapis.com" />
 <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
@@ -713,7 +714,24 @@ function trimTrailingSlashes(value){
 function resolveApiBase(){
   const qs = new URLSearchParams(location.search);
   const fromQuery = qs.get("api");
-  if (fromQuery) return trimTrailingSlashes(fromQuery);
+  if (fromQuery) {
+    // Validate api param: only same-origin or canonical Railway API origin
+    try {
+      const apiUrl = new URL(fromQuery, location.origin);
+      const apiOrigin = apiUrl.origin;
+      const canonicalApiOrigin = "https://grudge-api-production-0d46.up.railway.app";
+      // Reject userinfo tricks (evil@host)
+      if (apiUrl.username || apiUrl.password) {
+        // Invalid/attacker API: fall through to default
+      } else if (apiOrigin === location.origin || apiOrigin === canonicalApiOrigin) {
+        // Accept same-origin (localhost dev) or the exact canonical API origin (https only)
+        return trimTrailingSlashes(apiOrigin);
+      }
+      // Invalid/attacker API: fall through to default
+    } catch {
+      // Invalid URL: fall through to default
+    }
+  }
   const meta = document.querySelector('meta[name="grudge-api"]');
   if (meta && meta.content.trim()) return trimTrailingSlashes(meta.content.trim());
   const h = location.hostname;
@@ -729,23 +747,71 @@ let lastSessionToken = "";
 
 const qs = new URLSearchParams(location.search);
 const isPopup = (() => { try { return !!window.opener && window.opener !== window; } catch { return false; } })();
+const STUDIO_DEV = /*__GRUDGE_STUDIO_DEV__*/false;
+const ALLOWED_RETURN_HOSTS = new Set(Array.isArray(/*__GRUDGE_ALLOWED_RETURN_HOSTS__*/[]) ? /*__GRUDGE_ALLOWED_RETURN_HOSTS__*/[] : []);
+function hasUnsafeInput(raw){
+  if (!raw || raw !== raw.trim()) return true;
+  if (/[\u0000-\u001f\u007f\s]/.test(raw)) return true;
+  if (raw.includes("\\")) return true;
+  return false;
+}
+function hasDefaultPort(u){
+  return !u.port || (u.protocol === "https:" && u.port === "443") || (u.protocol === "http:" && u.port === "80");
+}
+function isLocalHost(host){
+  const h = String(host || "").toLowerCase();
+  return h === "localhost" || h === "127.0.0.1";
+}
+function isAllowedReturnUrl(raw, opts){
+  opts = opts || {};
+  const value = String(raw || "");
+  if (!value || hasUnsafeInput(value)) return null;
+  if (value.startsWith("/")) {
+    if (!opts.allowRelative) return null;
+    if (value.startsWith("//") || value.startsWith("/\\")) return null;
+    try { return new URL(value, location.origin).toString(); } catch { return null; }
+  }
+  if (value.startsWith("//")) return null;
+  try {
+    const u = new URL(value);
+    if (u.username || u.password) return null;
+    if (isLocalHost(u.hostname)) {
+      if (STUDIO_DEV !== true) return null;
+      if (u.protocol !== "http:") return null;
+      return u.toString();
+    }
+    if (u.protocol !== "https:" || !hasDefaultPort(u)) return null;
+    if (!ALLOWED_RETURN_HOSTS.has(u.hostname.toLowerCase())) return null;
+    return u.toString();
+  } catch {
+    return null;
+  }
+}
+function toAllowedOrigin(raw){
+  const safe = isAllowedReturnUrl(raw, { allowRelative: false });
+  if (!safe) return null;
+  try { return new URL(safe).origin; } catch { return null; }
+}
 /**
  * Fleet return URL after login.
  * Browser bar keeps the public path query (e.g. /login?redirect_uri=https://grudge-crafting.puter.site/)
  * while the gateway may map upstream to ?redirect= — accept every fleet alias.
  */
-let returnTo =
+const queryReturnRaw =
   qs.get("redirect_uri") ||
   qs.get("redirect") ||
   qs.get("return_to") ||
   qs.get("return") ||
   qs.get("returnUrl") ||
-  null;
+  "";
+let returnTo = isAllowedReturnUrl(queryReturnRaw, { allowRelative: true });
 // Recover return if OAuth hop dropped query (sessionStorage set in startOAuth)
 if (!returnTo) {
   try {
     const stashed = sessionStorage.getItem("grudge_auth_return");
-    if (stashed && /^https?:\/\//i.test(stashed)) returnTo = stashed;
+    const safeStash = isAllowedReturnUrl(stashed || "", { allowRelative: true });
+    if (safeStash) returnTo = safeStash;
+    else sessionStorage.removeItem("grudge_auth_return");
   } catch (_) {}
 }
 if (returnTo) {
@@ -753,12 +819,20 @@ if (returnTo) {
 }
 const appKey = (qs.get("app") || "").toLowerCase();
 const isAccountMode = location.pathname === "/account" || qs.get("view") === "account";
-let openerOrigin = qs.get("origin") || qs.get("audience") || null;
-if (!openerOrigin && document.referrer) { try { openerOrigin = new URL(document.referrer).origin; } catch {} }
+let openerOrigin = toAllowedOrigin(qs.get("origin") || qs.get("audience") || "");
+if (!openerOrigin && document.referrer) {
+  try { openerOrigin = toAllowedOrigin(new URL(document.referrer).origin); } catch {}
+}
 const isHandoffReturn = qs.get("handoff") === "1";
 const urlLaunchToken = qs.get("grudge_token");
-window.addEventListener("message", (e) => { if (e?.data?.type === "grudge-auth:init" && typeof e.data.origin === "string") openerOrigin = e.data.origin; });
-if (isPopup) { try { window.opener.postMessage({ type: "grudge-auth:ready" }, "*"); } catch {} }
+window.addEventListener("message", (e) => {
+  if (e?.data?.type !== "grudge-auth:init") return;
+  const origin = toAllowedOrigin(typeof e.data.origin === "string" ? e.data.origin : "");
+  if (origin) openerOrigin = origin;
+});
+if (isPopup && openerOrigin) {
+  try { window.opener.postMessage({ type: "grudge-auth:ready" }, openerOrigin); } catch {}
+}
 
 /* DOM helpers — must exist before applyContextBanner / isAccountMode title setup */
 const $ = (id) => document.getElementById(id);
@@ -932,9 +1006,10 @@ async function mintLaunchToken(audience){
   return r.token;
 }
 function postAuthToOpener(targetOrigin, token, user){
-  const origin = targetOrigin && targetOrigin !== "*" ? targetOrigin : "*";
+  const origin = toAllowedOrigin(targetOrigin || "");
+  if (!origin || !window.opener) return;
   const modern = { type:"grudge-auth:success", source:"grudge-id", token, user };
-  const legacy = { type:"grudge:auth:success", token, player: user, audience: origin !== "*" ? origin : null };
+  const legacy = { type:"grudge:auth:success", token, player: user, audience: origin };
   try { window.opener.postMessage(modern, origin); } catch {}
   try { window.opener.postMessage(legacy, origin); } catch {}
 }
@@ -1011,9 +1086,13 @@ async function handoff(user){
   }
   const sessionToken = await resolveSessionToken(user);
   if (isPopup && window.opener){
-    const audience = openerOrigin || qs.get("audience") || qs.get("origin") || null;
+    const audience = toAllowedOrigin(openerOrigin || qs.get("audience") || qs.get("origin") || "");
+    if (!audience) {
+      renderDone(user, false, destLabel);
+      return;
+    }
     let token = "";
-    try { token = await mintLaunchToken(audience || undefined); } catch (e) {
+    try { token = await mintLaunchToken(audience); } catch (e) {
       if (!sessionToken) throw e;
     }
     // Prefer session JWT for opener; launch is secondary
@@ -1030,7 +1109,7 @@ async function handoff(user){
         sessionToken: sessionToken || undefined,
         launchToken: token || undefined,
         user: user,
-      }, audience && audience !== "*" ? audience : "*");
+      }, audience);
     } catch {}
     renderDone(user, true, destLabel); return;
   }

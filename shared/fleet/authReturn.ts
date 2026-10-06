@@ -1,4 +1,5 @@
 import { warlordsPlayOrigin } from "./warlordsDomains";
+import { validateReturnUrl } from "./studioOrigins";
 
 /**
  * Fleet SSO return-url allowlist — shared by auth routes and client redirects.
@@ -134,16 +135,21 @@ export function canonicalSsoReturnOrigin(origin: string): string {
 }
 
 /** Returns true when `url` may receive SSO tokens after Grudge ID login. */
-export function isFleetAllowedReturnUrl(url: string): boolean {
+export function isFleetAllowedReturnUrl(
+  url: string,
+  opts: { dev?: boolean; extraHosts?: string | string[]; base?: string } = {},
+): boolean {
+  const resolved = validateReturnUrl(url, {
+    base: opts.base,
+    dev: opts.dev,
+    extraHosts: opts.extraHosts,
+    fallback: "",
+  });
+  if (!resolved) return false;
   try {
-    const u = new URL(url);
-    const host = u.hostname.toLowerCase();
-    const local = host === "localhost" || host === "127.0.0.1";
-    if (!local && u.protocol !== "https:") return false;
-    if (extraExactHosts().includes(host)) return true;
-    if (isEphemeralVercelHost(host)) return false;
-    if (EXACT_HOSTS.has(host)) return true;
-    return SUFFIX_HOSTS.some((suffix) => host.endsWith(suffix) || host === suffix.slice(1));
+    const parsed = new URL(resolved);
+    if (isEphemeralVercelHost(parsed.hostname.toLowerCase())) return false;
+    return true;
   } catch {
     return false;
   }
@@ -153,11 +159,25 @@ export function isFleetAllowedReturnUrl(url: string): boolean {
 export function resolveFleetReturnUrl(
   query: Record<string, string | string[] | undefined>,
   fallback = "https://grudgewarlords.com/",
+  opts: { dev?: boolean; extraHosts?: string | string[]; base?: string } = {},
 ): string {
-  for (const key of ["return", "return_to", "redirect", "redirect_uri"]) {
+  for (const key of ["return", "return_to", "redirect", "redirect_uri", "returnUrl"]) {
     const raw = query[key];
     const value = Array.isArray(raw) ? raw[0] : raw;
-    if (value && isFleetAllowedReturnUrl(value)) return value;
+    if (!value) continue;
+    const resolved = validateReturnUrl(value, {
+      base: opts.base,
+      dev: opts.dev,
+      extraHosts: opts.extraHosts,
+      fallback: "",
+    });
+    if (!resolved) continue;
+    try {
+      if (isEphemeralVercelHost(new URL(resolved).hostname.toLowerCase())) continue;
+    } catch {
+      continue;
+    }
+    return resolved;
   }
   return fallback;
 }

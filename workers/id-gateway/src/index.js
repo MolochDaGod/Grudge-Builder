@@ -19,6 +19,33 @@
 
 const DEFAULT_UPSTREAM = "https://grudge-api-production-0d46.up.railway.app";
 const DEFAULT_PUBLIC = "https://id.grudge-studio.com";
+import {
+  isStudioOrigin,
+  validateReturnUrl,
+} from "../../../shared/fleet/studioOrigins.ts";
+import { IDENTITY_ACCOUNTS_API } from "../../../shared/fleet/manifest.ts";
+
+const CANONICAL_API_ORIGIN = IDENTITY_ACCOUNTS_API;
+
+const PUBLIC_READ_PATHS = new Set([
+  "/api/health",
+  "/grudge-game-bootstrap.js",
+  "/grudge-auth-modal.js",
+  "/grudge-auth-modal.css",
+]);
+
+function isSensitivePath(pathname) {
+  return (
+    pathname === "/login" ||
+    pathname === "/account" ||
+    pathname === "/account/" ||
+    pathname === "/auth" ||
+    pathname === "/auth/" ||
+    pathname.startsWith("/auth/") ||
+    pathname === "/api/auth" ||
+    pathname === "/api/auth/" ||
+    pathname.startsWith("/api/auth/")
+  );
 
 const CORS_ORIGINS = [
   "https://grudgewarlords.com",
@@ -73,14 +100,20 @@ function isAllowedOrigin(origin) {
   return false;
 }
 
-function corsHeaders(request) {
+function corsHeaders(request, opts) {
   const origin = request.headers.get("Origin") || "";
+  const pathname = new URL(request.url).pathname;
   const h = new Headers();
-  if (isAllowedOrigin(origin)) {
+  if (origin && isStudioOrigin(origin, opts)) {
     h.set("Access-Control-Allow-Origin", origin);
     h.set("Access-Control-Allow-Credentials", "true");
     h.set("Vary", "Origin");
-  } else {
+  } else if (
+    origin &&
+    !isSensitivePath(pathname) &&
+    PUBLIC_READ_PATHS.has(pathname) &&
+    (request.method === "GET" || request.method === "HEAD" || request.method === "OPTIONS")
+  ) {
     h.set("Access-Control-Allow-Origin", "*");
   }
   h.set(
@@ -99,7 +132,51 @@ function corsHeaders(request) {
 /**
  * Map public id URL path+query → upstream Railway path+query.
  */
-function mapUpstreamPath(url) {
+function sanitizeRedirect(raw, opts) {
+  if (!raw) return "";
+  return validateReturnUrl(raw, {
+    base: opts.publicHost,
+    dev: opts.dev,
+    extraHosts: opts.extraHosts,
+    fallback: "",
+  });
+}
+
+function sanitizeOrigin(raw, opts) {
+  const safe = sanitizeRedirect(raw, opts);
+  if (!safe) return "";
+  try {
+    return new URL(safe).origin;
+  } catch {
+    return "";
+  }
+}
+
+/**
+ * Validate api param: only same-origin or the canonical Railway API origin.
+ * Prevents token theft via api=https://evil.example on the login page.
+ */
+export function sanitizeApi(raw, opts) {
+  if (!raw) return "";
+  try {
+    const apiUrl = new URL(raw);
+    const apiOrigin = apiUrl.origin;
+    // Reject userinfo tricks (evil@host)
+    if (apiUrl.username || apiUrl.password) {
+      return "";
+    }
+    // Accept same-origin (localhost dev) or the exact canonical API origin (https only)
+    if (apiOrigin === opts.publicHost.replace(/\/$/, "") || apiOrigin === CANONICAL_API_ORIGIN) {
+      return apiOrigin;
+    }
+  } catch {
+    // Invalid URL: drop it
+  }
+  return "";
+}
+
+function mapUpstreamPath(url, opts) {
+  const publicHost = opts.publicHost;
   const path = url.pathname;
   const params = new URLSearchParams(url.search);
 
@@ -107,7 +184,8 @@ function mapUpstreamPath(url) {
   if (path === "/account" || path === "/account/") {
     const q = new URLSearchParams();
     q.set("view", "account");
-    if (params.get("api")) q.set("api", params.get("api"));
+    const safeApi = sanitizeApi(params.get("api"), opts);
+    if (safeApi) q.set("api", safeApi);
     return "/api/auth/page?" + q.toString();
   }
 
@@ -122,15 +200,18 @@ function mapUpstreamPath(url) {
       params.get("return_to") ||
       params.get("returnUrl");
     const q = new URLSearchParams();
-    if (redirect) {
+    const safeRedirect = sanitizeRedirect(redirect, opts);
+    if (safeRedirect) {
       // Dual-write: public fleet param + legacy auth-page param
-      q.set("redirect_uri", redirect);
-      q.set("redirect", redirect);
+      q.set("redirect_uri", safeRedirect);
+      q.set("redirect", safeRedirect);
     }
     if (params.get("app")) q.set("app", params.get("app"));
-    if (params.get("origin")) q.set("origin", params.get("origin"));
+    const origin = sanitizeOrigin(params.get("origin") || params.get("audience"), opts);
+    if (origin) q.set("origin", origin);
     if (params.get("handoff")) q.set("handoff", params.get("handoff"));
-    if (params.get("api")) q.set("api", params.get("api"));
+    const safeApiLogin = sanitizeApi(params.get("api"), opts);
+    if (safeApiLogin) q.set("api", safeApiLogin);
     if (params.get("state")) q.set("state", params.get("state"));
     if (params.get("scope")) q.set("scope", params.get("scope"));
     return "/api/auth/page" + (q.toString() ? `?${q}` : "");
@@ -145,14 +226,17 @@ function mapUpstreamPath(url) {
       params.get("return_to") ||
       params.get("returnUrl");
     const q = new URLSearchParams();
-    if (redirect) {
-      q.set("redirect_uri", redirect);
-      q.set("redirect", redirect);
+    const safeRedirect = sanitizeRedirect(redirect, opts);
+    if (safeRedirect) {
+      q.set("redirect_uri", safeRedirect);
+      q.set("redirect", safeRedirect);
     }
     if (params.get("app")) q.set("app", params.get("app"));
-    if (params.get("origin")) q.set("origin", params.get("origin"));
+    const origin = sanitizeOrigin(params.get("origin") || params.get("audience"), opts);
+    if (origin) q.set("origin", origin);
     if (params.get("handoff")) q.set("handoff", params.get("handoff"));
-    if (params.get("api")) q.set("api", params.get("api"));
+    const safeApiAuth = sanitizeApi(params.get("api"), opts);
+    if (safeApiAuth) q.set("api", safeApiAuth);
     if (params.get("state")) q.set("state", params.get("state"));
     if (params.get("scope")) q.set("scope", params.get("scope"));
     return "/api/auth/page" + (q.toString() ? `?${q}` : "");
@@ -174,14 +258,17 @@ function mapUpstreamPath(url) {
       params.get("return_to") ||
       params.get("returnUrl");
     const q = new URLSearchParams();
-    if (redirect) {
-      q.set("redirect_uri", redirect);
-      q.set("redirect", redirect);
+    const safeRedirect = sanitizeRedirect(redirect, opts);
+    if (safeRedirect) {
+      q.set("redirect_uri", safeRedirect);
+      q.set("redirect", safeRedirect);
     }
     if (params.get("app")) q.set("app", params.get("app"));
-    if (params.get("origin")) q.set("origin", params.get("origin"));
+    const origin = sanitizeOrigin(params.get("origin") || params.get("audience"), opts);
+    if (origin) q.set("origin", origin);
     if (params.get("handoff")) q.set("handoff", params.get("handoff"));
-    if (params.get("api")) q.set("api", params.get("api"));
+    const safeApi3 = sanitizeApi(params.get("api"), opts);
+    if (safeApi3) q.set("api", safeApi3);
     if (params.get("state")) q.set("state", params.get("state"));
     if (params.get("scope")) q.set("scope", params.get("scope"));
     return "/api/auth/page" + (q.toString() ? `?${q}` : "");
@@ -195,9 +282,10 @@ function mapUpstreamPath(url) {
       params.get("return") ||
       params.get("return_to");
     const q = new URLSearchParams();
-    if (redirect) {
-      q.set("redirect_uri", redirect);
-      q.set("redirect", redirect);
+    const safeRedirect = sanitizeRedirect(redirect, opts);
+    if (safeRedirect) {
+      q.set("redirect_uri", safeRedirect);
+      q.set("redirect", safeRedirect);
     }
     return "/api/auth/page" + (q.toString() ? `?${q}` : "");
   }
@@ -210,8 +298,8 @@ function mapUpstreamPath(url) {
  * Pick fleet return URL from any accepted alias. NEVER drop this on rewrites —
  * missing return is why users get stuck on id.grudge-studio.com after login.
  */
-function pickRedirectParam(searchParams) {
-  return (
+function pickRedirectParam(searchParams, opts = {}) {
+  const raw = (
     searchParams.get("redirect_uri") ||
     searchParams.get("redirect") ||
     searchParams.get("return") ||
@@ -219,13 +307,14 @@ function pickRedirectParam(searchParams) {
     searchParams.get("returnUrl") ||
     ""
   );
+  return sanitizeRedirect(raw, opts);
 }
 
 /**
  * Pretty /login URL that dual-writes redirect_uri + redirect for auth-page JS.
  */
-function prettyLoginLocation(searchParams) {
-  const redir = pickRedirectParam(searchParams);
+function prettyLoginLocation(searchParams, opts = {}) {
+  const redir = pickRedirectParam(searchParams, opts);
   if (!redir) {
     const raw = searchParams.toString();
     return raw ? `/login?${raw}` : "/login";
@@ -234,6 +323,19 @@ function prettyLoginLocation(searchParams) {
   q.set("redirect_uri", redir);
   q.set("redirect", redir);
   for (const key of ["app", "origin", "handoff", "api", "audience", "state", "scope"]) {
+    if (key === "origin" || key === "audience") {
+      const origin = sanitizeOrigin(
+        searchParams.get(key),
+        opts,
+      );
+      if (origin) q.set("origin", origin);
+      continue;
+    }
+    if (key === "api") {
+      const safeApi = sanitizeApi(searchParams.get(key), opts);
+      if (safeApi) q.set("api", safeApi);
+      continue;
+    }
     if (searchParams.get(key)) q.set(key, searchParams.get(key));
   }
   return `/login?${q.toString()}`;
@@ -242,7 +344,7 @@ function prettyLoginLocation(searchParams) {
 /**
  * Rewrite Location so browsers never leave id.grudge-studio.com for auth hops.
  */
-function rewriteLocation(loc, publicHost, upstreamHost) {
+function rewriteLocation(loc, publicHost, upstreamHost, opts = {}) {
   if (!loc) return loc;
   try {
     // Absolute upstream URL → public host
@@ -255,7 +357,7 @@ function rewriteLocation(loc, publicHost, upstreamHost) {
       ) {
         // Map Railway auth paths back to pretty id paths
         if (u.pathname.startsWith("/api/auth/page") || u.pathname === "/login" || u.pathname === "/login/") {
-          return publicHost.replace(/\/$/, "") + prettyLoginLocation(u.searchParams);
+          return publicHost.replace(/\/$/, "") + prettyLoginLocation(u.searchParams, opts);
         }
         let p = u.pathname + u.search + u.hash;
         return publicHost.replace(/\/$/, "") + p;
@@ -266,7 +368,7 @@ function rewriteLocation(loc, publicHost, upstreamHost) {
     // Relative /api/auth/page or /login → pretty /login with ALL return aliases
     if (loc.startsWith("/api/auth/page") || loc.startsWith("/login")) {
       const u = new URL(loc, publicHost);
-      return prettyLoginLocation(u.searchParams);
+      return prettyLoginLocation(u.searchParams, opts);
     }
     return loc;
   } catch {
@@ -350,13 +452,16 @@ export default {
     const upstreamBase = (env.UPSTREAM || DEFAULT_UPSTREAM).replace(/\/$/, "");
     const publicHost = (env.PUBLIC_HOST || DEFAULT_PUBLIC).replace(/\/$/, "");
     const upstreamHost = new URL(upstreamBase).hostname;
+    const dev = String(env?.ENVIRONMENT || "production").toLowerCase() === "development";
+    const extraHosts = env?.AUTH_ALLOWED_RETURN_HOSTS || "";
+    const studioOpts = { dev, extraHosts, publicHost };
 
     if (request.method === "OPTIONS") {
-      return new Response(null, { status: 204, headers: corsHeaders(request) });
+      return new Response(null, { status: 204, headers: corsHeaders(request, studioOpts) });
     }
 
     const url = new URL(request.url);
-    const mapped = mapUpstreamPath(url);
+    const mapped = mapUpstreamPath(url, studioOpts);
     const target = upstreamBase + mapped;
 
     const init = {
@@ -391,7 +496,7 @@ export default {
           status: 502,
           headers: {
             "Content-Type": "application/json",
-            ...Object.fromEntries(corsHeaders(request)),
+            ...Object.fromEntries(corsHeaders(request, studioOpts)),
           },
         },
       );
@@ -399,7 +504,7 @@ export default {
 
     const outHeaders = new Headers(upstream.headers);
     // CORS overlay
-    const ch = corsHeaders(request);
+    const ch = corsHeaders(request, studioOpts);
     ch.forEach((v, k) => outHeaders.set(k, v));
     // Drop upstream frame blockers (helmet SAMEORIGIN, etc.) so fleet iframes work
     outHeaders.delete("X-Frame-Options");
@@ -427,7 +532,7 @@ export default {
     if (loc) {
       outHeaders.set(
         "Location",
-        rewriteLocation(loc, publicHost, upstreamHost),
+        rewriteLocation(loc, publicHost, upstreamHost, studioOpts),
       );
     }
 
@@ -471,6 +576,10 @@ export default {
         .replace(
           /const returnTo = qs\.get\("redirect_uri"\) \|\| qs\.get\("redirect"\) \|\| qs\.get\("return_to"\) \|\| qs\.get\("return"\) \|\| qs\.get\("returnUrl"\) \|\| null;/,
           'const returnTo = qs.get("redirect_uri") || qs.get("redirect") || qs.get("return_to") || qs.get("return") || qs.get("returnUrl") || null;',
+        )
+        .replace(
+          /let returnTo = qs\.get\("redirect_uri"\) \|\| qs\.get\("redirect"\) \|\| qs\.get\("return_to"\) \|\| qs\.get\("return"\) \|\| qs\.get\("returnUrl"\) \|\| null;/,
+          'let returnTo = isAllowedReturnUrl(qs.get("redirect_uri") || qs.get("redirect") || qs.get("return_to") || qs.get("return") || qs.get("returnUrl") || "", { allowRelative: true });',
         );
 
       // Arrow glyphs before Back/Sign-in render as "ack" / "ign in page" in some fonts.

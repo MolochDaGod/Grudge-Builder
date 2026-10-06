@@ -70,6 +70,12 @@ import {
   listLinkedWallets,
 } from "../services/walletAccess";
 import type { LinkedWalletProvider } from "@shared/schema";
+import {
+  isStudioOrigin,
+  validateReturnUrl,
+} from "@shared/fleet/studioOrigins";
+import { serverStudioOriginOpts } from "../studioOriginsEnv";
+import { canonicalAuthPageQuery, injectAuthPageConfig } from "../authPageSanitize";
 
 /** Prefer SESSION_SECRET (auth.ts) then JWT_SECRET / GRUDGE_JWT_SECRET — use first non-empty candidate only. */
 const JWT_SECRET_CANDIDATES = [
@@ -127,6 +133,24 @@ function ttlToSeconds(ttl: string): number {
     default:
       return n * 24 * 60 * 60;
   }
+}
+
+const STUDIO_ORIGIN_OPTS = serverStudioOriginOpts();
+
+function requestBaseUrl(req: Request): string {
+  const xfProto = (req.get("x-forwarded-proto") || "").split(",")[0]?.trim();
+  const proto = xfProto || req.protocol || "https";
+  const host = req.get("x-forwarded-host") || req.get("host") || "id.grudge-studio.com";
+  return `${proto}://${host}`;
+}
+
+function resolveSafeReturn(value: string | undefined, req: Request, fallback = ""): string {
+  return validateReturnUrl(value || "", {
+    base: requestBaseUrl(req),
+    dev: STUDIO_ORIGIN_OPTS.dev,
+    extraHosts: STUDIO_ORIGIN_OPTS.extraHosts,
+    fallback,
+  });
 }
 
 // ── Simple in-memory rate limiter (per-IP, resets every window) ──────
@@ -476,12 +500,17 @@ function normalizeWalletProvider(raw: unknown): LinkedWalletProvider {
 }
 
 function resolveReturnUrl(req: Request): string {
-  const fromQuery = resolveFleetReturnUrl(req.query as Record<string, string | string[] | undefined>, "");
+  const fromQuery = resolveFleetReturnUrl(
+    req.query as Record<string, string | string[] | undefined>,
+    "",
+    { base: requestBaseUrl(req), dev: STUDIO_ORIGIN_OPTS.dev, extraHosts: STUDIO_ORIGIN_OPTS.extraHosts },
+  );
   if (fromQuery) return fromQuery;
   const referer = req.get("referer") || req.get("origin") || "";
-  if (referer && isFleetAllowedReturnUrl(referer)) {
+  const safeReferer = resolveSafeReturn(referer, req, "");
+  if (safeReferer && isFleetAllowedReturnUrl(safeReferer, STUDIO_ORIGIN_OPTS)) {
     try {
-      const u = new URL(referer);
+      const u = new URL(safeReferer);
       return `${u.origin}/`;
     } catch {
       /* fall through */
@@ -651,12 +680,13 @@ export function registerAuthRoutes(app: Express) {
       resolveFleetReturnUrl(
         req.query as Record<string, string | string[] | undefined>,
         "",
+        { base: requestBaseUrl(req), dev: STUDIO_ORIGIN_OPTS.dev, extraHosts: STUDIO_ORIGIN_OPTS.extraHosts },
       ) ||
-      (req.query.redirect_uri as string) ||
-      (req.query.redirect as string) ||
-      (req.query.return_to as string) ||
-      (req.query.return as string) ||
-      (req.query.returnUrl as string);
+      resolveSafeReturn(req.query.redirect_uri as string, req, "") ||
+      resolveSafeReturn(req.query.redirect as string, req, "") ||
+      resolveSafeReturn(req.query.return_to as string, req, "") ||
+      resolveSafeReturn(req.query.return as string, req, "") ||
+      resolveSafeReturn(req.query.returnUrl as string, req, "");
     // Dual-write: fleet apps use redirect_uri; auth-page historically used redirect
     if (redirect) {
       q.set("redirect_uri", redirect);
@@ -664,7 +694,10 @@ export function registerAuthRoutes(app: Express) {
     }
     if (req.query.app) q.set("app", String(req.query.app));
     if (req.query.api) q.set("api", String(req.query.api));
-    if (req.query.origin) q.set("origin", String(req.query.origin));
+    if (req.query.origin) {
+      const safeOrigin = resolveSafeReturn(String(req.query.origin), req, "");
+      if (safeOrigin) q.set("origin", new URL(safeOrigin).origin);
+    }
     if (req.query.handoff) q.set("handoff", String(req.query.handoff));
     const dest = "/api/auth/page" + (q.toString() ? `?${q.toString()}` : "");
     res.redirect(302, dest);
@@ -776,13 +809,30 @@ export function registerAuthRoutes(app: Express) {
   });
 
   // ── GET /api/auth/page — Grudge ID sign-in UI (id.grudge-studio.com) ──
-  const serveAuthPage = (_req: Request, res: Response) => {
-    const pagePath = authAssetPath("auth-page.html");
+  const serveAuthPage = (req: Request, res: Response) => {
+    // Always use the validated template from server/templates (never static fallbacks)
+    const templatePath = path.join(process.cwd(), "server", "templates", "auth-page.html");
+    const distTemplatePath = path.join(process.cwd(), "dist", "templates", "auth-page.html");
+    const pagePath = fs.existsSync(templatePath) ? templatePath : distTemplatePath;
+    
     if (!fs.existsSync(pagePath)) {
       return res.status(503).send("Auth page unavailable");
     }
+    // Validate return/origin aliases against the exact studio allowlist; keep
+    // every other param. Order-insensitive, so the id-gateway never loops.
+    const canonical = canonicalAuthPageQuery(req.url.split("?")[1] || "", {
+      base: requestBaseUrl(req),
+      dev: STUDIO_ORIGIN_OPTS.dev,
+      extraHosts: STUDIO_ORIGIN_OPTS.extraHosts,
+    });
+    if (canonical.changed) {
+      const dest = req.path + (canonical.query ? `?${canonical.query}` : "");
+      return res.redirect(302, dest);
+    }
+
     res.setHeader("Cache-Control", "no-store, must-revalidate");
-    res.type("html").sendFile(pagePath);
+    const html = injectAuthPageConfig(fs.readFileSync(pagePath, "utf8"), STUDIO_ORIGIN_OPTS);
+    res.type("html").send(html);
   };
   app.get("/api/auth/page", serveAuthPage);
   app.get("/account", serveAuthPage);
@@ -1144,9 +1194,19 @@ export function registerAuthRoutes(app: Express) {
         return res.status(400).json({ error: "Valid audience URL required" });
       }
       // Only fleet / signed production origins may receive launch tokens
+      let originOnly = "";
       try {
-        const originOnly = new URL(audience).origin;
-        if (!isFleetAllowedReturnUrl(originOnly) && !isFleetAllowedReturnUrl(originOnly + "/")) {
+        const validated = validateReturnUrl(audience, {
+          base: requestBaseUrl(req),
+          dev: STUDIO_ORIGIN_OPTS.dev,
+          extraHosts: STUDIO_ORIGIN_OPTS.extraHosts,
+          fallback: "",
+        });
+        if (!validated) {
+          return res.status(403).json({ error: "Audience not on fleet allowlist" });
+        }
+        originOnly = new URL(validated).origin;
+        if (!isStudioOrigin(originOnly, STUDIO_ORIGIN_OPTS)) {
           return res.status(403).json({ error: "Audience not on fleet allowlist" });
         }
       } catch {
@@ -1156,7 +1216,7 @@ export function registerAuthRoutes(app: Express) {
       const [user] = await db.select().from(users).where(eq(users.id, payload.userId)).limit(1);
       if (!user) return res.status(404).json({ error: "User not found" });
 
-      const launch = mintLaunchToken(user.id, user.grudgeId || payload.grudgeId || "", audience);
+      const launch = mintLaunchToken(user.id, user.grudgeId || payload.grudgeId || "", originOnly);
       res.json({
         token: launch,
         expiresIn: LAUNCH_TTL,
@@ -1852,9 +1912,12 @@ export function registerAuthRoutes(app: Express) {
       (req.query.redirect as string) ||
       (req.query.redirect_uri as string) ||
       "https://grudgewarlords.com/auth/callback";
-    const returnUrl = isFleetAllowedReturnUrl(rawReturn)
-      ? rawReturn
-      : "https://grudgewarlords.com/auth/callback";
+    const returnUrl = validateReturnUrl(rawReturn, {
+      base: requestBaseUrl(req),
+      dev: STUDIO_ORIGIN_OPTS.dev,
+      extraHosts: STUDIO_ORIGIN_OPTS.extraHosts,
+      fallback: "https://grudgewarlords.com/auth/callback",
+    });
     const clientId = process.env.DISCORD_CLIENT_ID;
     if (!clientId) {
       return res.status(503).json({ success: false, error: "Discord OAuth not configured" });
@@ -1909,9 +1972,12 @@ export function registerAuthRoutes(app: Express) {
       error?: string;
     };
     const rawReturn = state || "https://grudgewarlords.com/";
-    const returnUrl = isFleetAllowedReturnUrl(rawReturn)
-      ? rawReturn
-      : "https://grudgewarlords.com/";
+    const returnUrl = validateReturnUrl(rawReturn, {
+      base: requestBaseUrl(req),
+      dev: STUDIO_ORIGIN_OPTS.dev,
+      extraHosts: STUDIO_ORIGIN_OPTS.extraHosts,
+      fallback: "https://grudgewarlords.com/",
+    });
 
     if (oauthError || !code) {
       return res.redirect(
