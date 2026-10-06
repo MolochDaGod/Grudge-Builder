@@ -541,8 +541,9 @@ export default function TutorialPage() {
           });
         });
       } catch (err) {
-        console.error('[Tutorial] Multiplayer connection failed:', err);
-        showNotification('Multiplayer server unavailable — retrying on refresh');
+        const msg = err instanceof Error ? err.message : String(err);
+        console.warn('[Tutorial] Multiplayer room unavailable. Solo tutorial continues.', msg);
+        showNotification('Multiplayer server unavailable — playing this tutorial solo');
       }
     }
 

@@ -254,6 +254,24 @@ body {
   color: var(--gold);
   line-height: 1.1;
 }
+.tg-login {
+  margin-top: 12px;
+  padding: 12px;
+  border-radius: var(--radius);
+  border: 1px solid rgba(41, 160, 219, 0.28);
+  background: linear-gradient(180deg, rgba(41, 160, 219, 0.08), rgba(17, 17, 24, 0.4));
+  display: grid;
+  gap: 8px;
+  justify-items: center;
+}
+.tg-login-label {
+  font-size: 0.7rem;
+  font-weight: 600;
+  letter-spacing: 0.06em;
+  text-transform: uppercase;
+  color: #7ec8e8;
+}
+.tg-login iframe { margin: 0 auto; }
 .more-panel {
   margin-top: 12px;
   padding-top: 12px;
@@ -558,6 +576,10 @@ body {
         <img src="/grudge-id-logo.png" width="28" height="28" alt="" decoding="async" />
         <span class="oauth-label">Grudge</span>
       </button>
+    </div>
+    <div class="tg-login" id="tg-login-wrap" aria-label="Telegram Login via @grudagamebot">
+      <div class="tg-login-label">Telegram · @grudagamebot</div>
+      <div id="tg-widget-slot"></div>
     </div>
     <button class="btn-more" id="btn-more-toggle" type="button" aria-expanded="false" aria-controls="more-panel">
       More options
@@ -1168,7 +1190,7 @@ function hasAccountUsername(user){
   const n = String(user.displayName || user.username || "").trim();
   if (!n || n.length < 2) return false;
   // Provider-prefixed / auto usernames still need a real claim
-  if (/^(puter:|Puter_|guest_|Guest_|wallet:|discord:|phone:|google:|github:)/i.test(n)) return false;
+  if (/^(puter:|Puter_|guest_|Guest_|wallet:|discord:|phone:|google:|github:|telegram:)/i.test(n)) return false;
   if (/^puter_[a-f0-9]+$/i.test(n) || /^guest_[a-f0-9]+$/i.test(n)) return false;
   return true;
 }
@@ -1292,6 +1314,56 @@ $("btn-grudge").addEventListener("click", () => runPuterGrudgeLogin($("btn-grudg
 $("btn-google").addEventListener("click", () => runPuterGrudgeLogin($("btn-google")));
 $("btn-discord").addEventListener("click", () => startOAuth("discord"));
 $("btn-github").addEventListener("click", () => startOAuth("github"));
+
+/** Telegram Login Widget (@grudagamebot) — BotFather domain: id.grudge-studio.com */
+let tgWidgetMounted = false;
+async function mountTelegramLoginWidget(){
+  const wrap = $("tg-login-wrap");
+  const slot = $("tg-widget-slot");
+  if (!wrap || !slot || tgWidgetMounted) return;
+  let bot = "grudagamebot";
+  try {
+    const cfg = await fetch(CONFIG.apiBase + "/api/auth/telegram/widget-config", {
+      credentials: "include",
+      headers: { Accept: "application/json" },
+    }).then((r) => (r.ok ? r.json() : null)).catch(() => null);
+    if (cfg && cfg.botUsername) bot = String(cfg.botUsername).replace(/^@/, "");
+  } catch (_) {}
+  window.__grudgeOnTelegramAuth = async function (user) {
+    try {
+      const body = Object.assign({}, user || {});
+      if (returnTo) body.returnTo = returnTo;
+      const data = await api("/api/auth/telegram", {
+        method: "POST",
+        body: JSON.stringify(body),
+      });
+      if (data.token || data.access_token) {
+        lastSessionToken = data.token || data.access_token;
+      }
+      toast("Signed in with Telegram.", "success");
+      await afterAuth({
+        token: data.token || data.access_token,
+        grudgeId: data.grudgeId,
+        displayName: data.username,
+        username: data.username,
+        needsProfile: !!data.isNew,
+      });
+    } catch (e) {
+      toast((e && e.message) || "Telegram sign-in failed.", "error");
+    }
+  };
+  slot.innerHTML = "";
+  const s = document.createElement("script");
+  s.async = true;
+  s.src = "https://telegram.org/js/telegram-widget.js?22";
+  s.setAttribute("data-telegram-login", bot);
+  s.setAttribute("data-size", "large");
+  s.setAttribute("data-radius", "8");
+  s.setAttribute("data-request-access", "write");
+  s.setAttribute("data-onauth", "__grudgeOnTelegramAuth(user)");
+  slot.appendChild(s);
+  tgWidgetMounted = true;
+}
 
 const B58 = "123456789ABCDEFGHJKLMNPQRSTUVWXYZabcdefghijkmnopqrstuvwxyz";
 function base58(bytes){ if (!bytes || !bytes.length) return ""; const digits = [0]; for (let i=0;i<bytes.length;i++){ let carry = bytes[i]; for (let j=0;j<digits.length;j++){ carry += digits[j] << 8; digits[j] = carry % 58; carry = (carry / 58) | 0; } while (carry){ digits.push(carry % 58); carry = (carry / 58) | 0; } } let str = ""; for (let k=0; bytes[k] === 0 && k < bytes.length - 1; k++) str += "1"; for (let q=digits.length-1; q>=0; q--) str += B58[digits[q]]; return str; }
@@ -1681,7 +1753,7 @@ function renderConnectionList(conn){
 function isClaimedHandle(raw){
   const n = String(raw || "").trim();
   if (!n) return false;
-  if (/^(puter:|Puter_|guest_|Guest_|wallet:|discord:|phone:|google:|github:)/i.test(n)) return false;
+  if (/^(puter:|Puter_|guest_|Guest_|wallet:|discord:|phone:|google:|github:|telegram:)/i.test(n)) return false;
   return /^[a-zA-Z0-9_\-]{3,30}$/.test(n);
 }
 
@@ -1806,6 +1878,7 @@ async function boot(){
     }
     show("choose");
     refreshPuterButton();
+    void mountTelegramLoginWidget();
   }
 }
 boot();

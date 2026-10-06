@@ -46,6 +46,58 @@ function isSensitivePath(pathname) {
     pathname === "/api/auth/" ||
     pathname.startsWith("/api/auth/")
   );
+
+const CORS_ORIGINS = [
+  "https://grudgewarlords.com",
+  "https://www.grudgewarlords.com",
+  "https://client.grudge-studio.com",
+  "https://grudge-studio.com",
+  "https://id.grudge-studio.com",
+  "https://launcher.grudge-studio.com",
+  "https://character.grudge-studio.com",
+  "https://forge.grudge-studio.com",
+  "https://grudge-crafting.puter.site",
+  "https://grudgeplatform.io",
+  "https://ui.grudge-studio.com",
+  "https://dash.grudge-studio.com",
+  "https://fleet.grudge-studio.com",
+  "https://ai.grudge-studio.com",
+  "https://puter.com",
+  "https://www.puter.com",
+  "https://app.puter.com",
+  "https://www.spawn.co",
+  "https://spawn.co",
+  "https://play.bigspawn.net",
+];
+
+const CORS_SUFFIXES = [
+  ".grudge-studio.com",
+  ".puter.site",
+  ".puter.work",
+  ".vercel.app",
+  ".pages.dev",
+  ".workers.dev",
+  ".up.railway.app",
+  ".github.io",
+  ".netlify.app",
+  ".netlify.live",
+  ".cloudflarepages.com",
+  ".grok-sandbox.com",
+];
+
+function isAllowedOrigin(origin) {
+  if (!origin) return false;
+  if (CORS_ORIGINS.includes(origin)) return true;
+  try {
+    const u = new URL(origin);
+    if (u.hostname === "localhost" || u.hostname === "127.0.0.1") return true;
+    if (CORS_SUFFIXES.some((s) => u.hostname.endsWith(s) || u.hostname === s.slice(1))) {
+      return true;
+    }
+  } catch {
+    /* ignore */
+  }
+  return false;
 }
 
 function corsHeaders(request, opts) {
@@ -70,7 +122,7 @@ function corsHeaders(request, opts) {
   );
   h.set(
     "Access-Control-Allow-Headers",
-    "Content-Type,Authorization,X-Session-Token,If-Match,X-Progress-Revision,X-Requested-With",
+    "Content-Type,Authorization,X-Session-Token,X-Spawn-Token,If-Match,X-Progress-Revision,X-Requested-With",
   );
   h.set("Access-Control-Expose-Headers", "X-Progress-Revision,ETag");
   h.set("Access-Control-Max-Age", "86400");

@@ -169,6 +169,16 @@ export async function ensureFleetSessionClaim(): Promise<boolean> {
   const cookieTok = readCookie("grudge_auth_token") || readCookie("sso_token");
   if (cookieTok && cookieTok.length > 20) {
     setToken(cookieTok);
+    let accepted = false;
+    try {
+      accepted = (await verifyToken()).valid;
+    } catch {
+      accepted = false;
+    }
+    if (!accepted || isAuthRejected()) {
+      markAuthRejected();
+      return false;
+    }
     try {
       window.dispatchEvent(
         new CustomEvent("grudge:auth:ready", { detail: { source: "fleet_cookie" } }),
@@ -268,6 +278,10 @@ let authRejectedThisLoad = false;
 
 export function markAuthRejected(): void {
   authRejectedThisLoad = true;
+  // Drop the dead JWT, including the parent-domain cookie. Otherwise the next
+  // claim reads it, calls setToken (which clears this flag), and the page
+  // refetches /api/account and /api/characters forever.
+  clearToken();
   if (typeof window !== 'undefined') window.dispatchEvent(new Event('grudge:auth:rejected'));
 }
 
@@ -311,10 +325,22 @@ function setCookie(name: string, value: string, maxAge = COOKIE_MAX_AGE): void {
 
 function clearCookie(name: string): void {
   try {
+    const host = typeof location !== "undefined" ? location.hostname : "";
+    const domains = new Set<string>();
+    if (host === "grudgewarlords.com" || host.endsWith(".grudgewarlords.com")) {
+      domains.add(".grudgewarlords.com");
+    }
+    if (host === "grudge-studio.com" || host.endsWith(".grudge-studio.com")) {
+      domains.add(".grudge-studio.com");
+    }
+    if (host === "grudge.studio" || host.endsWith(".grudge.studio")) {
+      domains.add(".grudge.studio");
+    }
     document.cookie = `${name}=; path=/; max-age=0; SameSite=Lax`;
-    // Also clear fleet-domain cookie
-    if (typeof location !== "undefined" && location.hostname.endsWith("grudge-studio.com")) {
-      document.cookie = `${name}=; path=/; max-age=0; Domain=.grudge-studio.com; SameSite=Lax`;
+    document.cookie = `${name}=; path=/; max-age=0; SameSite=Lax; Secure`;
+    for (const domain of domains) {
+      document.cookie = `${name}=; path=/; max-age=0; Domain=${domain}; SameSite=Lax`;
+      document.cookie = `${name}=; path=/; max-age=0; Domain=${domain}; SameSite=Lax; Secure`;
     }
   } catch { /* SSR/test guard */ }
 }
@@ -883,8 +909,19 @@ export function isPuterReady(): boolean {
 
 /** Wait for the Puter SDK to become available (max 8 s). Resolves true if
  *  ready, false if the script never loaded. */
+function loadPuterSdk(): void {
+  if (typeof document === "undefined" || isPuterReady()) return;
+  if (document.querySelector("script[data-grudge-puter]")) return;
+  const script = document.createElement("script");
+  script.src = "https://js.puter.com/v2/";
+  script.async = true;
+  script.dataset.grudgePuter = "1";
+  document.head.appendChild(script);
+}
+
 function waitForPuter(timeoutMs = 8000): Promise<boolean> {
   if (isPuterReady()) return Promise.resolve(true);
+  loadPuterSdk();
   return new Promise((resolve) => {
     const start = Date.now();
     const check = () => {
