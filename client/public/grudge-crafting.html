@@ -1901,8 +1901,8 @@ body .app {
 // ============================================================
 // STATE
 // ============================================================
-const GRUDGE_API = window.GRUDGE_CONFIG.GAME_DATA;
-const GRUDGE_AUTH = window.GRUDGE_CONFIG.AUTH_GATEWAY;
+const GRUDGE_API = (window.GRUDGE_CONFIG && window.GRUDGE_CONFIG.GAME_DATA) || '';
+const GRUDGE_AUTH = (window.GRUDGE_CONFIG && window.GRUDGE_CONFIG.AUTH_GATEWAY) || 'https://id.grudge-studio.com';
 
 /** Grudge Islands single-frame icons (NOT pack/skill spritesheets).
  *  Source: grudge-islands dist assets — profession + management + eagle-shield + factions.
@@ -5658,16 +5658,19 @@ function renderItemDatabase() {
   }).join('') || '<div style="padding:20px;text-align:center;color:var(--text-dim)">No items found</div>';
 }
 
-GrudgeFleet.onCharacterChange((char) => {
-  STATE.activeCharacterId = char?.id || null;
-  STATE.grudgeCharacters = GrudgeFleet.getCharacters();
-  applyCharacterToState(char);
-  updateCharacterUI();
-  renderAll();
-});
+if (typeof GrudgeFleet !== 'undefined' && typeof GrudgeFleet.onCharacterChange === 'function') {
+  GrudgeFleet.onCharacterChange((char) => {
+    STATE.activeCharacterId = char?.id || null;
+    STATE.grudgeCharacters = GrudgeFleet.getCharacters();
+    applyCharacterToState(char);
+    updateCharacterUI();
+    renderAll();
+    try { refreshCampsAndBenches(); } catch { /* optional */ }
+  });
+}
 
-window.addEventListener('grudge:auth:ready', () => { void refreshFleetState(); });
-window.addEventListener('grudge:sync:complete', () => { renderCharactersList(); updateCharacterUI(); });
+window.addEventListener('grudge:auth:ready', () => { void refreshFleetState(); try { refreshCampsAndBenches(); } catch { /* optional */ } });
+window.addEventListener('grudge:sync:complete', () => { renderCharactersList(); updateCharacterUI(); try { refreshCampsAndBenches(); } catch { /* optional */ } });
 
 // ============================================================
 // INIT
@@ -5718,18 +5721,28 @@ try {
   }
 } catch (e) { console.warn('[init] first paint', e); }
 
+// Camp ownership unlocks all benches — run even before fleet auth resolves.
+try { void refreshCampsAndBenches(); } catch (e) { console.warn('[init] camps', e); }
+
+async function bootCraftAuth() {
+  try { await checkAuth(); } catch (e) { console.warn('[init] checkAuth', e); }
+  try { await refreshCampsAndBenches(); } catch (e) { console.warn('[init] camps after auth', e); }
+  try { updateStationLockBadges(); renderStationTabs(); } catch (e) { /* optional */ }
+}
+
 if (typeof GrudgeFleet !== 'undefined') {
-  checkAuth();
+  void bootCraftAuth();
 } else {
   let tries = 0;
   const waitFleet = setInterval(() => {
     tries++;
     if (typeof GrudgeFleet !== 'undefined') {
       clearInterval(waitFleet);
-      checkAuth();
+      void bootCraftAuth();
     } else if (tries > 40) {
       clearInterval(waitFleet);
       updateAccessGate();
+      try { void refreshCampsAndBenches(); } catch (e) { /* optional */ }
     }
   }, 100);
 }
