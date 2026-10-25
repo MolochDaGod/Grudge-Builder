@@ -4,7 +4,6 @@
 <meta name="referrer" content="no-referrer">
 <meta charset="UTF-8"/>
 <meta name="viewport" content="width=device-width, initial-scale=1.0"/>
-<script src="/main-panel/boot.js" defer></script>
 <title>Grudge Warlords — Crafting &amp; Professions</title>
 <link rel="icon" type="image/png" href="./crafting-icons/management.png"/>
 <!-- Capture SSO tokens BEFORE any other script so login survives fleet load delays -->
@@ -141,7 +140,7 @@
       CRAFTING_URL: CANONICAL_CRAFT,
       CRAFT_HOST_URL: CRAFT_HOST,
       WCS_URL: CANONICAL_CRAFT,
-      MAIN_PANEL_URL: '/main-panel/?era=warlords&tab=craft',
+      MAIN_PANEL_URL: 'https://ui.grudge-studio.com/main-panel.html?era=warlords&tab=craft',
       SKILL_TREE_URL: 'https://grudgewarlords.com/skill-tree.html',
       WEAPON_MASTERY_URL: 'https://grudgewarlords.com/weaponmastery.html',
       INVENTORY_SCOPE: 'account',
@@ -1614,10 +1613,10 @@ body .app {
 
     <div class="sidebar-section">
       <div class="sidebar-section-title">Links</div>
-      <a href="/main-panel/?era=warlords&tab=craft" class="nav-btn"><span class="icon"><img referrerpolicy="no-referrer" class="nav-icon" data-icon-kind="pack" src="./crafting-icons/eagle-shield.png" alt="" loading="lazy" decoding="async"></span><span>Main Panel</span></a>
+      <a href="https://ui.grudge-studio.com/main-panel.html?era=warlords&tab=craft" target="_blank" rel="noopener" class="nav-btn"><span class="icon"><img referrerpolicy="no-referrer" class="nav-icon" data-icon-kind="pack" src="./crafting-icons/eagle-shield.png" alt="" loading="lazy" decoding="async"></span><span>Main Panel</span></a>
       <a href="https://grudgewarlords.com" target="_blank" rel="noopener" class="nav-btn"><span class="icon"><img referrerpolicy="no-referrer" class="nav-icon" data-icon-kind="pack" src="./crafting-icons/management.png" alt="" loading="lazy" decoding="async"></span><span>Grudge Warlords</span></a>
       <a href="https://wcs.grudge-studio.com" target="_blank" rel="noopener" class="nav-btn"><span class="icon"><img referrerpolicy="no-referrer" class="nav-icon" data-icon-kind="pack" src="./crafting-icons/forester.png" alt="" loading="lazy" decoding="async"></span><span>WCS (host)</span></a>
-      <a href="/docs/crafting" class="nav-btn"><span class="icon"><img referrerpolicy="no-referrer" class="nav-icon" data-icon-kind="pack" src="./crafting-icons/management.png" alt="" loading="lazy" decoding="async"></span><span>Craft Skills Docs</span></a>
+      <a href="https://docs.grudge-studio.com/crafting" target="_blank" rel="noopener" class="nav-btn"><span class="icon"><img referrerpolicy="no-referrer" class="nav-icon" data-icon-kind="pack" src="./crafting-icons/management.png" alt="" loading="lazy" decoding="async"></span><span>Craft Skills Docs</span></a>
     </div>
 
     <div class="sidebar-account" id="sidebarAccount">
@@ -1647,7 +1646,7 @@ body .app {
       <span class="sab-actions" id="soft-auth-actions">
         <button type="button" onclick="doSignIn()">Sign in with Grudge ID</button>
         <button type="button" class="secondary" onclick="doCreateAccount()">Create account</button>
-        <a class="sab-btn secondary" href="/main-panel/?era=warlords&tab=craft">Main Panel</a>
+        <a class="sab-btn secondary" href="https://ui.grudge-studio.com/main-panel.html?era=warlords&tab=craft" target="_blank" rel="noopener">Main Panel</a>
       </span>
     </div>
 
@@ -1724,9 +1723,8 @@ body .app {
         <button class="filter-btn" onclick="refreshCampsAndBenches()">🔄 Refresh</button>
       </div>
       <div class="station-hint">
-        Station tabs unlock when you <strong>own</strong> a camp (or boat cabin) with that crafting bench, or are <strong>friendly</strong> with a camp that has one.
-        Home island <strong>Starter Camp</strong> always unlocks <strong>Camp Bench</strong> + <strong>Cooking</strong> (campfire).
-        Place survival-kit props anywhere: tent stages, campfire, workbench (craft), grind wheel (miner), anvil (engineer).
+        <strong>All benches unlock</strong> when you <strong>own</strong> a camp (home island starter, claimed camp, or boat cabin), or are <strong>friendly</strong> with a camp.
+        Survival-kit props (tent, campfire, workbench, grind wheel, anvil) still map to stations for placement — ownership alone opens every craft tab.
       </div>
       <div id="camps-list"></div>
       <div class="card" style="margin-top:12px">
@@ -2086,27 +2084,27 @@ const WCS_STATIONS = [
     iconUrl: CRAFTING_UI_ICONS.Miner,
     bgUrl: CRAFTING_UI_ICONS.Miner,
     unlockKeys: ['smithing', 'forge', 'anvil', 'workbenchanvil', 'grind_wheel', 'workbenchgrind', 'smithy', 'smelter', 'sharpen'],
-    desc: 'Miner station — anvil / forge / grind wheel.' },
+    desc: 'Miner station — unlocked at any owned or friendly camp.' },
   { id: 'lumber',   name: 'Lumber Table',   icon: '🌲', prof: 'Forester',  color: '#22c55e', always: false,
     iconUrl: CRAFTING_UI_ICONS.Forester,
     bgUrl: CRAFTING_UI_ICONS.Forester,
     unlockKeys: ['lumber', 'sawmill', 'lumbermill', 'woodwork', 'carpentry', 'tanner', 'toolaxe'],
-    desc: 'Forester station — bows, leather, planks.' },
+    desc: 'Forester station — unlocked at any owned or friendly camp.' },
   { id: 'loom',     name: 'Loom Table',     icon: '🧵', prof: 'Mystic',    color: '#a78bfa', always: false,
     iconUrl: CRAFTING_UI_ICONS.Mystic,
     bgUrl: CRAFTING_UI_ICONS.Mystic,
     unlockKeys: ['loom', 'spell_table', 'spelltable', 'enchanter', 'arcane table', 'tailor', 'structurecloth'],
-    desc: 'Mystic station — cloth, staves, essence.' },
+    desc: 'Mystic station — unlocked at any owned or friendly camp.' },
   { id: 'cooking',  name: 'Cooking Table',  icon: '🍳', prof: 'Chef',      color: '#f59e0b', always: false,
     iconUrl: CRAFTING_UI_ICONS.Chef,
     bgUrl: CRAFTING_UI_ICONS.Chef,
     unlockKeys: ['cooking', 'kitchen', 'campfire', 'cookfire', 'cooking_bench', 'cooking table', 'stove', 'hearth', 'fishingstand'],
-    desc: 'Chef station — campfire or cooking bench.' },
+    desc: 'Chef station — unlocked at any owned or friendly camp.' },
   { id: 'tinker',   name: 'Tinker Table',   icon: '🔧', prof: 'Engineer',  color: '#60a5fa', always: false,
     iconUrl: CRAFTING_UI_ICONS.Engineer,
     bgUrl: CRAFTING_UI_ICONS.Engineer,
     unlockKeys: ['tinker', 'tinker table', 'workshop', 'engineer', 'workbench', 'gunsmith', 'anvil', 'workbenchanvil'],
-    desc: 'Engineer station — workbench or anvil.' },
+    desc: 'Engineer station — unlocked at any owned or friendly camp.' },
 ];
 
 const WCS_TIER_NAMES = { 0:'Broken',1:'Copper',2:'Iron',3:'Steel',4:'Mithril',5:'Adamantine',6:'Orichalcum',7:'Starmetal',8:'Divine' };
@@ -3656,7 +3654,7 @@ function isStationUnlocked(stationId) {
 function openStation(stationId) {
   // Browse benches without login; craft still soft-gated
   if (!isStationUnlocked(stationId)) {
-    showToast('Station locked — need a friendly/owned camp with this bench', 'error');
+    showToast('Station locked — own or befriend a camp to unlock all benches', 'error');
     navigate('camps');
     return;
   }
@@ -3735,7 +3733,7 @@ function renderStationTabs() {
       ? `<strong style="display:inline-flex;align-items:center;gap:6px">${stationIconHtml(st,16)} ${st.name}</strong> · ${st.desc}
          ${st.prof !== 'All' ? ` · XP goes to <strong>${st.prof}</strong>${char ? ` (${char.name})` : ''}` : ''}
          · <span class="scope-pill account">shared bag</span>`
-      : `<strong>🔒 ${st.name} locked</strong> — unlock by owning or befriending a camp with this bench. <a href="#" onclick="navigate('camps');return false" style="color:var(--gold)">View camps</a>`;
+      : `<strong>🔒 ${st.name} locked</strong> — unlock by owning or befriending any camp (all benches open at camp). <a href="#" onclick="navigate('camps');return false" style="color:var(--gold)">View camps</a>`;
   }
   updateStationLockBadges();
 }
@@ -3842,7 +3840,7 @@ async function craftItem(id) {
   if (!recipe || !checkCanCraft(recipe) || STATE.isCrafting) return;
   const stId = recipe.station || PROF_TO_STATION[recipe.prof] || 'camp';
   if (!isStationUnlocked(stId)) {
-    showToast('Station locked — visit a friendly/owned camp bench', 'error');
+    showToast('Station locked — own or befriend a camp to unlock all benches', 'error');
     return;
   }
   // XP always applies to the active owned character sheet
@@ -4414,18 +4412,22 @@ function buildingAliases(name) {
   return [...out];
 }
 
+function unlockAllStations() {
+  for (const st of WCS_STATIONS) {
+    STATE.unlockedStations[st.id] = true;
+  }
+}
+
 function unlockStationsFromBuildings(buildings, campMeta) {
   const names = [];
   (buildings || []).forEach((b) => buildingAliases(b).forEach((a) => names.push(a)));
-  // Owned / starter camp always: Camp Bench + Cooking (campfire contract)
-  if (campMeta && (campMeta.relation === 'owned' || campMeta.starter)) {
-    STATE.unlockedStations.camp = true;
-    STATE.unlockedStations.cooking = true;
+  // Product law: any owned / starter / friendly camp unlocks ALL benches.
+  // Per-building keys remain for placement UI + future prop-gated recipes.
+  if (campMeta && (campMeta.relation === 'owned' || campMeta.relation === 'friendly' || campMeta.starter)) {
+    unlockAllStations();
+    return;
   }
-  if (campMeta && campMeta.relation === 'friendly') {
-    STATE.unlockedStations.camp = true;
-  }
-  // Explicit campfire / cooking bench
+  // Explicit campfire / cooking bench (no camp meta — prop-only path)
   if (names.some((n) => /campfire|hearth|stove|cook|fishingstand/.test(n))) {
     STATE.unlockedStations.cooking = true;
   }
@@ -4536,8 +4538,11 @@ async function refreshCampsAndBenches() {
   STATE.camps = camps;
   // Reset then re-apply from all owned/friendly sites
   STATE.unlockedStations = { camp: true, cooking: true };
-  for (const c of camps) {
-    if (c.relation === 'owned' || c.relation === 'friendly') {
+  const hasCampAccess = camps.some((c) => c.relation === 'owned' || c.relation === 'friendly' || c.starter);
+  if (hasCampAccess) {
+    unlockAllStations();
+  } else {
+    for (const c of camps) {
       unlockStationsFromBuildings(c.buildings, c);
     }
   }
@@ -5066,6 +5071,7 @@ function resetData() {
   addLog('🗑️ Data reset', 'fail');
   renderAll();
   saveData();
+  try { refreshCampsAndBenches(); } catch { /* optional */ }
   showToast('Data reset!', 'error');
 }
 
