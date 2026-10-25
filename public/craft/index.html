@@ -1723,9 +1723,8 @@ body .app {
         <button class="filter-btn" onclick="refreshCampsAndBenches()">🔄 Refresh</button>
       </div>
       <div class="station-hint">
-        Station tabs unlock when you <strong>own</strong> a camp (or boat cabin) with that crafting bench, or are <strong>friendly</strong> with a camp that has one.
-        Home island <strong>Starter Camp</strong> always unlocks <strong>Camp Bench</strong> + <strong>Cooking</strong> (campfire).
-        Place survival-kit props anywhere: tent stages, campfire, workbench (craft), grind wheel (miner), anvil (engineer).
+        <strong>All benches unlock</strong> when you <strong>own</strong> a camp (home island starter, claimed camp, or boat cabin), or are <strong>friendly</strong> with a camp.
+        Survival-kit props (tent, campfire, workbench, grind wheel, anvil) still map to stations for placement — ownership alone opens every craft tab.
       </div>
       <div id="camps-list"></div>
       <div class="card" style="margin-top:12px">
@@ -1902,8 +1901,8 @@ body .app {
 // ============================================================
 // STATE
 // ============================================================
-const GRUDGE_API = window.GRUDGE_CONFIG.GAME_DATA;
-const GRUDGE_AUTH = window.GRUDGE_CONFIG.AUTH_GATEWAY;
+const GRUDGE_API = (window.GRUDGE_CONFIG && window.GRUDGE_CONFIG.GAME_DATA) || '';
+const GRUDGE_AUTH = (window.GRUDGE_CONFIG && window.GRUDGE_CONFIG.AUTH_GATEWAY) || 'https://id.grudge-studio.com';
 
 /** Grudge Islands single-frame icons (NOT pack/skill spritesheets).
  *  Source: grudge-islands dist assets — profession + management + eagle-shield + factions.
@@ -2085,27 +2084,27 @@ const WCS_STATIONS = [
     iconUrl: CRAFTING_UI_ICONS.Miner,
     bgUrl: CRAFTING_UI_ICONS.Miner,
     unlockKeys: ['smithing', 'forge', 'anvil', 'workbenchanvil', 'grind_wheel', 'workbenchgrind', 'smithy', 'smelter', 'sharpen'],
-    desc: 'Miner station — anvil / forge / grind wheel.' },
+    desc: 'Miner station — unlocked at any owned or friendly camp.' },
   { id: 'lumber',   name: 'Lumber Table',   icon: '🌲', prof: 'Forester',  color: '#22c55e', always: false,
     iconUrl: CRAFTING_UI_ICONS.Forester,
     bgUrl: CRAFTING_UI_ICONS.Forester,
     unlockKeys: ['lumber', 'sawmill', 'lumbermill', 'woodwork', 'carpentry', 'tanner', 'toolaxe'],
-    desc: 'Forester station — bows, leather, planks.' },
+    desc: 'Forester station — unlocked at any owned or friendly camp.' },
   { id: 'loom',     name: 'Loom Table',     icon: '🧵', prof: 'Mystic',    color: '#a78bfa', always: false,
     iconUrl: CRAFTING_UI_ICONS.Mystic,
     bgUrl: CRAFTING_UI_ICONS.Mystic,
     unlockKeys: ['loom', 'spell_table', 'spelltable', 'enchanter', 'arcane table', 'tailor', 'structurecloth'],
-    desc: 'Mystic station — cloth, staves, essence.' },
+    desc: 'Mystic station — unlocked at any owned or friendly camp.' },
   { id: 'cooking',  name: 'Cooking Table',  icon: '🍳', prof: 'Chef',      color: '#f59e0b', always: false,
     iconUrl: CRAFTING_UI_ICONS.Chef,
     bgUrl: CRAFTING_UI_ICONS.Chef,
     unlockKeys: ['cooking', 'kitchen', 'campfire', 'cookfire', 'cooking_bench', 'cooking table', 'stove', 'hearth', 'fishingstand'],
-    desc: 'Chef station — campfire or cooking bench.' },
+    desc: 'Chef station — unlocked at any owned or friendly camp.' },
   { id: 'tinker',   name: 'Tinker Table',   icon: '🔧', prof: 'Engineer',  color: '#60a5fa', always: false,
     iconUrl: CRAFTING_UI_ICONS.Engineer,
     bgUrl: CRAFTING_UI_ICONS.Engineer,
     unlockKeys: ['tinker', 'tinker table', 'workshop', 'engineer', 'workbench', 'gunsmith', 'anvil', 'workbenchanvil'],
-    desc: 'Engineer station — workbench or anvil.' },
+    desc: 'Engineer station — unlocked at any owned or friendly camp.' },
 ];
 
 const WCS_TIER_NAMES = { 0:'Broken',1:'Copper',2:'Iron',3:'Steel',4:'Mithril',5:'Adamantine',6:'Orichalcum',7:'Starmetal',8:'Divine' };
@@ -3655,7 +3654,7 @@ function isStationUnlocked(stationId) {
 function openStation(stationId) {
   // Browse benches without login; craft still soft-gated
   if (!isStationUnlocked(stationId)) {
-    showToast('Station locked — need a friendly/owned camp with this bench', 'error');
+    showToast('Station locked — own or befriend a camp to unlock all benches', 'error');
     navigate('camps');
     return;
   }
@@ -3734,7 +3733,7 @@ function renderStationTabs() {
       ? `<strong style="display:inline-flex;align-items:center;gap:6px">${stationIconHtml(st,16)} ${st.name}</strong> · ${st.desc}
          ${st.prof !== 'All' ? ` · XP goes to <strong>${st.prof}</strong>${char ? ` (${char.name})` : ''}` : ''}
          · <span class="scope-pill account">shared bag</span>`
-      : `<strong>🔒 ${st.name} locked</strong> — unlock by owning or befriending a camp with this bench. <a href="#" onclick="navigate('camps');return false" style="color:var(--gold)">View camps</a>`;
+      : `<strong>🔒 ${st.name} locked</strong> — unlock by owning or befriending any camp (all benches open at camp). <a href="#" onclick="navigate('camps');return false" style="color:var(--gold)">View camps</a>`;
   }
   updateStationLockBadges();
 }
@@ -3841,7 +3840,7 @@ async function craftItem(id) {
   if (!recipe || !checkCanCraft(recipe) || STATE.isCrafting) return;
   const stId = recipe.station || PROF_TO_STATION[recipe.prof] || 'camp';
   if (!isStationUnlocked(stId)) {
-    showToast('Station locked — visit a friendly/owned camp bench', 'error');
+    showToast('Station locked — own or befriend a camp to unlock all benches', 'error');
     return;
   }
   // XP always applies to the active owned character sheet
@@ -4413,18 +4412,22 @@ function buildingAliases(name) {
   return [...out];
 }
 
+function unlockAllStations() {
+  for (const st of WCS_STATIONS) {
+    STATE.unlockedStations[st.id] = true;
+  }
+}
+
 function unlockStationsFromBuildings(buildings, campMeta) {
   const names = [];
   (buildings || []).forEach((b) => buildingAliases(b).forEach((a) => names.push(a)));
-  // Owned / starter camp always: Camp Bench + Cooking (campfire contract)
-  if (campMeta && (campMeta.relation === 'owned' || campMeta.starter)) {
-    STATE.unlockedStations.camp = true;
-    STATE.unlockedStations.cooking = true;
+  // Product law: any owned / starter / friendly camp unlocks ALL benches.
+  // Per-building keys remain for placement UI + future prop-gated recipes.
+  if (campMeta && (campMeta.relation === 'owned' || campMeta.relation === 'friendly' || campMeta.starter)) {
+    unlockAllStations();
+    return;
   }
-  if (campMeta && campMeta.relation === 'friendly') {
-    STATE.unlockedStations.camp = true;
-  }
-  // Explicit campfire / cooking bench
+  // Explicit campfire / cooking bench (no camp meta — prop-only path)
   if (names.some((n) => /campfire|hearth|stove|cook|fishingstand/.test(n))) {
     STATE.unlockedStations.cooking = true;
   }
@@ -4535,8 +4538,11 @@ async function refreshCampsAndBenches() {
   STATE.camps = camps;
   // Reset then re-apply from all owned/friendly sites
   STATE.unlockedStations = { camp: true, cooking: true };
-  for (const c of camps) {
-    if (c.relation === 'owned' || c.relation === 'friendly') {
+  const hasCampAccess = camps.some((c) => c.relation === 'owned' || c.relation === 'friendly' || c.starter);
+  if (hasCampAccess) {
+    unlockAllStations();
+  } else {
+    for (const c of camps) {
       unlockStationsFromBuildings(c.buildings, c);
     }
   }
@@ -5065,6 +5071,7 @@ function resetData() {
   addLog('🗑️ Data reset', 'fail');
   renderAll();
   saveData();
+  try { refreshCampsAndBenches(); } catch { /* optional */ }
   showToast('Data reset!', 'error');
 }
 
@@ -5651,16 +5658,19 @@ function renderItemDatabase() {
   }).join('') || '<div style="padding:20px;text-align:center;color:var(--text-dim)">No items found</div>';
 }
 
-GrudgeFleet.onCharacterChange((char) => {
-  STATE.activeCharacterId = char?.id || null;
-  STATE.grudgeCharacters = GrudgeFleet.getCharacters();
-  applyCharacterToState(char);
-  updateCharacterUI();
-  renderAll();
-});
+if (typeof GrudgeFleet !== 'undefined' && typeof GrudgeFleet.onCharacterChange === 'function') {
+  GrudgeFleet.onCharacterChange((char) => {
+    STATE.activeCharacterId = char?.id || null;
+    STATE.grudgeCharacters = GrudgeFleet.getCharacters();
+    applyCharacterToState(char);
+    updateCharacterUI();
+    renderAll();
+    try { refreshCampsAndBenches(); } catch { /* optional */ }
+  });
+}
 
-window.addEventListener('grudge:auth:ready', () => { void refreshFleetState(); });
-window.addEventListener('grudge:sync:complete', () => { renderCharactersList(); updateCharacterUI(); });
+window.addEventListener('grudge:auth:ready', () => { void refreshFleetState(); try { refreshCampsAndBenches(); } catch { /* optional */ } });
+window.addEventListener('grudge:sync:complete', () => { renderCharactersList(); updateCharacterUI(); try { refreshCampsAndBenches(); } catch { /* optional */ } });
 
 // ============================================================
 // INIT
@@ -5711,18 +5721,28 @@ try {
   }
 } catch (e) { console.warn('[init] first paint', e); }
 
+// Camp ownership unlocks all benches — run even before fleet auth resolves.
+try { void refreshCampsAndBenches(); } catch (e) { console.warn('[init] camps', e); }
+
+async function bootCraftAuth() {
+  try { await checkAuth(); } catch (e) { console.warn('[init] checkAuth', e); }
+  try { await refreshCampsAndBenches(); } catch (e) { console.warn('[init] camps after auth', e); }
+  try { updateStationLockBadges(); renderStationTabs(); } catch (e) { /* optional */ }
+}
+
 if (typeof GrudgeFleet !== 'undefined') {
-  checkAuth();
+  void bootCraftAuth();
 } else {
   let tries = 0;
   const waitFleet = setInterval(() => {
     tries++;
     if (typeof GrudgeFleet !== 'undefined') {
       clearInterval(waitFleet);
-      checkAuth();
+      void bootCraftAuth();
     } else if (tries > 40) {
       clearInterval(waitFleet);
       updateAccessGate();
+      try { void refreshCampsAndBenches(); } catch (e) { /* optional */ }
     }
   }, 100);
 }
