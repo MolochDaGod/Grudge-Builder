@@ -11,7 +11,7 @@ import { WarlordsShell } from '@/components/WarlordsShell';
 import { CrusadeEmblem, FabledEmblem, LegionEmblem } from '@/components/FactionEmblems';
 import { useFleetVideo } from '@/hooks/use-fleet-video';
 import { FACTIONS, GODS, SECTOR_LORE } from '@shared/definitions/lore';
-import { gcsCreateHeroUrl } from '@/lib/warlordsProduct';
+import { gcsCreateHeroUrl, WARLORDS_CONNECTIONS } from '@/lib/warlordsProduct';
 import {
   CLASS_STAGE_BACKGROUNDS,
   CLASS_ACCENT_COLORS,
@@ -242,6 +242,14 @@ export default function WarlordsLandingPage() {
               >
                 ENTER THE LOBBY
               </button>
+              <a
+                href={WARLORDS_CONNECTIONS.spawn}
+                target="_blank"
+                rel="noopener noreferrer"
+                className="px-6 py-3.5 rounded-xl text-sm font-semibold tracking-wide border border-amber-500/40 text-amber-200 no-underline inline-flex items-center gap-2 hover:border-amber-400 hover:bg-amber-500/10"
+              >
+                Play on Spawn
+              </a>
               <Link href="/lore">
                 <a className="px-6 py-3.5 rounded-xl text-sm font-semibold tracking-wide border border-white/10 text-slate-300 no-underline inline-flex items-center gap-2 hover:border-amber-500/40">
                   <BookOpen className="w-4 h-4" />
@@ -481,6 +489,9 @@ export default function WarlordsLandingPage() {
         <Link href="/lobby/maps">Explore maps</Link>
         <Link href="/account">Your account</Link>
         <Link href="/diagnostics">Connection help</Link>
+        <a href={WARLORDS_CONNECTIONS.spawn} target="_blank" rel="noopener noreferrer" className="text-amber-300 no-underline hover:text-amber-200">
+          Play on Spawn
+        </a>
       </section>
     </WarlordsShell>
   );

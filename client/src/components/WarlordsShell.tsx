@@ -188,6 +188,14 @@ export function WarlordsShell({
               Black Tome
             </a>
             <a
+              href={WARLORDS_CONNECTIONS.spawn}
+              className="text-amber-400 hover:text-amber-300 no-underline"
+              target="_blank"
+              rel="noopener noreferrer"
+            >
+              Play on Spawn
+            </a>
+            <a
               href={WARLORDS_CONNECTIONS.engineGallery}
               className="text-slate-500 hover:text-slate-300 no-underline"
               target="_blank"

@@ -41,6 +41,8 @@ export function warlordsOrigin(): string {
 export const WARLORDS_CONNECTIONS = {
   product: WARLORDS_APEX,
   play: WARLORDS_PLAY_ORIGIN,
+  /** Spawn play page for this Warlords world — parallel room, not a DNS swap. */
+  spawn: 'https://www.spawn.co/@racalvin/grudge-warlords',
   auth: FLEET_URLS.auth,
   gameData: FLEET_URLS.gameData,
   assets: FLEET_URLS.assets,
