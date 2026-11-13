@@ -163,13 +163,14 @@ function StatusIcon({
       ? Math.ceil(effect.remainingSec)
       : null;
 
-  // Prefer magic thumb → status icon path (CDN) → marker / emoji
+  // Prefer magic thumb → status icon path (CDN) → marker / emoji.
+  // Empty cdnImageUrl result is a miss (marker), never the original URL.
+  // data:/blob: thumbs pass through the helper; do not skip it.
   const rawIcon = magicThumb || def?.icon || null;
-  const imgSrc = !imgFailed && rawIcon
-    ? (magicThumb && rawIcon === magicThumb ? rawIcon : cdnImageUrl(rawIcon) || rawIcon)
-    : null;
+  const cdnIcon = rawIcon ? cdnImageUrl(rawIcon) : '';
+  const imgSrc = !imgFailed && cdnIcon ? cdnIcon : null;
   const emoji = magic?.emoji ?? def?.emoji ?? '•';
-  const showMissing = imgFailed && !!def?.icon && !magicThumb;
+  const showMissing = !imgSrc && !!rawIcon && !magicThumb;
 
   return (
     <div className="relative group" role="listitem" title={tip}>

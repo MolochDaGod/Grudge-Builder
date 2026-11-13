@@ -96,6 +96,13 @@ function AnimatedSpellPreview({
   const imageRef = useRef<HTMLImageElement | null>(null);
   
   useEffect(() => {
+    const url = cdnImageUrl(spell.basePath);
+    if (!url) {
+      imageRef.current = null;
+      setHasError(true);
+      setImageLoaded(false);
+      return;
+    }
     const img = new Image();
     img.onload = () => {
       imageRef.current = img;
@@ -106,7 +113,7 @@ function AnimatedSpellPreview({
       setHasError(true);
       setImageLoaded(false);
     };
-    img.src = cdnImageUrl(spell.basePath) || spell.basePath;
+    img.src = url;
     
     return () => {
       img.onload = null;

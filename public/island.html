@@ -447,9 +447,15 @@
         const loadedImages = {};
         
         function loadImage(src) {
-            const url = cdnImageUrl(src) || src;
-            if (loadedImages[url]) return loadedImages[url];
+            const url = cdnImageUrl(src);
+            const cacheKey = url || ('__missing__:' + String(src || ''));
+            if (loadedImages[cacheKey]) return loadedImages[cacheKey];
             const img = new Image();
+            if (!url) {
+                img._missing = true;
+                loadedImages[cacheKey] = img;
+                return img;
+            }
             img.onerror = function () {
                 // HTML / 403 / decode failure — mark missing, no Pages or info fallback.
                 img._missing = true;
@@ -462,8 +468,7 @@
                 }
             };
             img.src = url;
-            loadedImages[url] = img;
-            loadedImages[src] = img;
+            loadedImages[cacheKey] = img;
             return img;
         }
         

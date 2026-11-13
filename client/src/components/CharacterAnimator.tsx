@@ -36,7 +36,7 @@ interface CharacterAnimatorProps {
 const imageCache: Record<string, HTMLImageElement> = {};
 
 function preloadImage(src: string): Promise<HTMLImageElement> {
-  const url = cdnImageUrl(src) || src;
+  const url = cdnImageUrl(src);
   if (imageCache[url]) {
     return Promise.resolve(imageCache[url]);
   }

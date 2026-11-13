@@ -185,13 +185,13 @@ export function resolveSkillIcon(
 
   // Already absolute — rewrite deprecated hosts onto the CDN and encode.
   if (/^https?:\/\//i.test(path)) {
-    return cdnImageUrl(path) || fallback;
+    return cdnImageUrl(path);
   }
 
   // Normalize relative → CDN icons URL (encoded; + → %2B)
   const rel = path.startsWith("/") ? path : `/${path}`;
   if (rel.toLowerCase().startsWith("/icons/")) {
-    return cdnImageUrl(rel) || fallback;
+    return cdnImageUrl(rel);
   }
 
   try {

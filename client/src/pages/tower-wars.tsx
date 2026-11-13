@@ -483,9 +483,10 @@ export default function TowerWarsPage() {
           // Use GrudgeOrigins missile sprite if available, else fallback sphere
           const missileInfo = TOWER_MISSILE_SPRITES[t.type];
           let projObj: THREE.Object3D;
-          if (missileInfo) {
+          const spriteUrl = missileInfo ? cdnImageUrl(missileInfo.sprite) : '';
+          if (spriteUrl) {
             const tex = new THREE.TextureLoader().load(
-              cdnImageUrl(missileInfo.sprite) || missileInfo.sprite,
+              spriteUrl,
               undefined,
               undefined,
               () => { /* HTML/403/missing — leave the projectile without a texture */ },
@@ -522,29 +523,32 @@ export default function TowerWarsPage() {
             // Spawn impact sprite on arrival
             const impactInfo = TOWER_MISSILE_SPRITES[p.towerType];
             if (impactInfo && p.life <= 0) {
-              const impTex = new THREE.TextureLoader().load(
-                cdnImageUrl(impactInfo.impact) || impactInfo.impact,
+              const impactUrl = cdnImageUrl(impactInfo.impact);
+              if (impactUrl) {
+                const impTex = new THREE.TextureLoader().load(
+                impactUrl,
                 undefined,
                 undefined,
                 () => { /* HTML/403/missing — skip impact sprite */ },
-              );
-              impTex.colorSpace = THREE.SRGBColorSpace;
-              const impMat = new THREE.SpriteMaterial({ map: impTex, transparent: true, depthTest: false, opacity: 0.9 });
-              const impSprite = new THREE.Sprite(impMat);
-              const impScale = impactInfo.scale * 1.5;
-              impSprite.scale.set(impScale, impScale, impScale);
-              impSprite.position.copy(p.mesh.position);
-              scene.add(impSprite);
-              // Fade out and remove after 0.4s
-              const impStart = performance.now();
-              const fadeImpact = () => {
+                );
+                impTex.colorSpace = THREE.SRGBColorSpace;
+                const impMat = new THREE.SpriteMaterial({ map: impTex, transparent: true, depthTest: false, opacity: 0.9 });
+                const impSprite = new THREE.Sprite(impMat);
+                const impScale = impactInfo.scale * 1.5;
+                impSprite.scale.set(impScale, impScale, impScale);
+                impSprite.position.copy(p.mesh.position);
+                scene.add(impSprite);
+                // Fade out and remove after 0.4s
+                const impStart = performance.now();
+                const fadeImpact = () => {
                 const elapsed = (performance.now() - impStart) / 400;
                 if (elapsed >= 1) { scene.remove(impSprite); impMat.dispose(); impTex.dispose(); return; }
                 impMat.opacity = 0.9 * (1 - elapsed);
                 impSprite.scale.setScalar(impScale * (1 + elapsed * 0.5));
                 requestAnimationFrame(fadeImpact);
-              };
-              requestAnimationFrame(fadeImpact);
+                };
+                requestAnimationFrame(fadeImpact);
+              }
             }
             projectiles.splice(i, 1);
             continue;
