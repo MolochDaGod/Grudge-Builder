@@ -10,7 +10,7 @@ window.GRUDGE_SSOT_CLASS_INFO = {
     "dossier": "https://objectstore.grudge-studio.com/api/v1/classes.json (v1.2.2, 2026-09-22) — lore, starting attributes, and crests only, where 3.1.0 has none",
     "playClasses": "https://objectstore.grudge-studio.com/api/v1/play-classes.json — family order, with id worge (not pack id worg)",
     "grimoire": "Spawn @1c52dfb grimoire-forms.js — Worge F forms, as written",
-    "note": "Skill names, ids, tiers, prerequisites, and descriptions come only from 3.1.0. ObjectStore 3.0.0 trees are not used. The Grudge-Builder 4-class pack is not used for this page's trees."
+    "note": "Skill names, ids, tiers, prerequisites, and descriptions come only from 3.1.0. ObjectStore 3.0.0 trees are not used. Priest and verduror have no ObjectStore dossier (those 3.0.0 texts contradict the 3.1.0 trees). For the other six, dossier fields that contradict a 3.1.0 name were removed. The Grudge-Builder 4-class pack is not used for this page's trees."
   },
   "playOrder": [
     "warrior",
@@ -51,7 +51,6 @@ window.GRUDGE_SSOT_CLASS_INFO = {
     },
     "mage": {
       "id": "mage",
-      "name": "Mage",
       "family": null,
       "emoji": "🔮",
       "color": "#8b5cf6",
@@ -127,32 +126,6 @@ window.GRUDGE_SSOT_CLASS_INFO = {
       "sourceVersion": "classes.json v1.2.2, updated 2026-09-22",
       "sourceNote": "ObjectStore dossier text. Used only where Spawn 3.1.0 has no matching field (lore, starting attributes, class crest, emoji). Not used for skill names, ids, or trees."
     },
-    "priest": {
-      "id": "priest",
-      "name": "Priest",
-      "family": "mage",
-      "emoji": "✚",
-      "color": "#fde68a",
-      "icon": "/icons/warlords/classes/priest.jpg",
-      "iconUrl": "https://assets.grudge-studio.com/icons/warlords/classes/priest.jpg",
-      "description": "Discipline healer — Atonement from damage, shields, mass dispel, pain reflect.",
-      "lore": "Priests bind an ally and turn every holy bolt into a heal. They strip hexes, plant barriers before slams, and reflect pain back as light.",
-      "startingAttributes": {
-        "Strength": 0,
-        "Vitality": 1,
-        "Endurance": 1,
-        "Dexterity": 0,
-        "Agility": 0,
-        "Intellect": 2,
-        "Wisdom": 5,
-        "Tactics": 1
-      },
-      "signatureAbility": "p_l0_dawnvow",
-      "level0Name": "Dawn Vow",
-      "source": "https://objectstore.grudge-studio.com/api/v1/classes.json",
-      "sourceVersion": "classes.json v1.2.2, updated 2026-09-22",
-      "sourceNote": "ObjectStore dossier text. Used only where Spawn 3.1.0 has no matching field (lore, starting attributes, class crest, emoji). Not used for skill names, ids, or trees."
-    },
     "raider": {
       "id": "raider",
       "name": "Raider",
@@ -162,7 +135,6 @@ window.GRUDGE_SSOT_CLASS_INFO = {
       "icon": "/icons/warlords/classes/raider.jpg",
       "iconUrl": "https://assets.grudge-studio.com/icons/warlords/classes/raider.jpg",
       "description": "Two-hand parry tank and execute DPS. Timing is the armor.",
-      "lore": "Raiders dropped the shield. Every swing opens a parry window; a catch becomes Overpower. They offtank slams and cut healing in the arena.",
       "startingAttributes": {
         "Strength": 5,
         "Vitality": 2,
@@ -187,8 +159,6 @@ window.GRUDGE_SSOT_CLASS_INFO = {
       "color": "#ca8a04",
       "icon": "/icons/warlords/classes/thief.jpg",
       "iconUrl": "https://assets.grudge-studio.com/icons/warlords/classes/thief.jpg",
-      "description": "Outlaw rogue — combo, pistol interrupt, blade flurry, smoke bomb peel.",
-      "lore": "Thieves fight dirty and close. A pistol shot stops a cast; a smoke bomb covers the healer; Between the Eyes spends the combo.",
       "startingAttributes": {
         "Strength": 1,
         "Vitality": 1,
@@ -201,32 +171,6 @@ window.GRUDGE_SSOT_CLASS_INFO = {
       },
       "signatureAbility": "t_l0_nightlog",
       "level0Name": "Night Log",
-      "source": "https://objectstore.grudge-studio.com/api/v1/classes.json",
-      "sourceVersion": "classes.json v1.2.2, updated 2026-09-22",
-      "sourceNote": "ObjectStore dossier text. Used only where Spawn 3.1.0 has no matching field (lore, starting attributes, class crest, emoji). Not used for skill names, ids, or trees."
-    },
-    "verduror": {
-      "id": "verduror",
-      "name": "Verduror",
-      "family": "worge",
-      "emoji": "🌿",
-      "color": "#86efac",
-      "icon": "/icons/warlords/classes/verduror.jpg",
-      "iconUrl": "https://assets.grudge-studio.com/icons/warlords/classes/verduror.jpg",
-      "description": "Plant caster — oxygen seeds, vine lash, iguana crawl. Arcanum pages are cactus and Green Tara, found like spells.",
-      "lore": "Verduror drop living plants. Iguana is a level 0 skill, not a form. The Arcanum opens on Barrel Cactus; Green Tara is the heal mantra.",
-      "startingAttributes": {
-        "Strength": 1,
-        "Vitality": 2,
-        "Endurance": 1,
-        "Dexterity": 1,
-        "Agility": 2,
-        "Intellect": 1,
-        "Wisdom": 3,
-        "Tactics": 0
-      },
-      "signatureAbility": "v_l0_groveroot",
-      "level0Name": "Grove Root",
       "source": "https://objectstore.grudge-studio.com/api/v1/classes.json",
       "sourceVersion": "classes.json v1.2.2, updated 2026-09-22",
       "sourceNote": "ObjectStore dossier text. Used only where Spawn 3.1.0 has no matching field (lore, starting attributes, class crest, emoji). Not used for skill names, ids, or trees."

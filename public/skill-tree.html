@@ -755,8 +755,8 @@ function save(opts){
       }));
     }
   }catch(e){}
-  // Push to Railway: selectedSkills is the active class; classSkillPicks and
-  // skillLoadouts carry every persisted explicit class.
+  // Push to Railway: selectedSkills is the class being played; every stored
+  // class build is under skillLoadouts.<classId> (server shallow-merges by key).
   syncSkillTreeToCharacter();
 }
 function flattenPicks(picks){
@@ -803,18 +803,23 @@ async function syncSkillTreeToCharacter(){
     if (!cls || !editedClasses.has(cls)) return;
     const allPicks = allPersistedExplicitPicks();
     const classPicks = allPicks[cls] || picksForPersist(cls);
+    // selectedSkills is only the class being played (server replaces this field).
     const selectedSkills = flattenPicks(classPicks);
-    const classSkillPicks = {};
+    // Each class's build lives under skillLoadouts.<classId>. The server
+    // shallow-merges that object by top-level key. classSkillPicks is not
+    // stored by the server, so the same picks go inside that class's entry.
     const skillLoadouts = {
       _meta: { race: state.race, cls, characterId: id },
     };
     Object.entries(allPicks).forEach(([cid, picks])=>{
-      classSkillPicks[cid] = picks;
-      skillLoadouts[cid] = { picks, ...(cid === cls ? { race: state.race } : {}) };
+      skillLoadouts[cid] = {
+        picks,
+        classSkillPicks: picks,
+        ...(cid === cls ? { race: state.race } : {}),
+      };
     });
     await GrudgeFleet.saveCharacterProgress(id, {
       selectedSkills,
-      classSkillPicks,
       skillLoadouts,
     });
   }catch(e){ console.warn("[skill-tree] sync:", e); }
@@ -850,8 +855,20 @@ async function hydrateFromCharacter(){
         });
       }
     }
-    if (char.skillLoadouts && char.skillLoadouts[state.cls]?.picks) {
-      state.picks[state.cls] = { ...state.picks[state.cls], ...char.skillLoadouts[state.cls].picks };
+    // Restore every class stored under skillLoadouts.<classId> (and any
+    // classSkillPicks nested in that entry). Do not read a top-level
+    // classSkillPicks field — the server drops it.
+    if (char.skillLoadouts && typeof char.skillLoadouts === "object") {
+      Object.entries(char.skillLoadouts).forEach(([cid, entry])=>{
+        if (!entry || typeof entry !== "object") return;
+        if (cid === "_meta" || cid === "__progress") return;
+        const id = canonicalClassId(cid);
+        if (!id) return;
+        const picks = entry.picks || entry.classSkillPicks;
+        if (picks && typeof picks === "object") {
+          state.picks[id] = { ...(state.picks[id] || {}), ...picks };
+        }
+      });
     }
     state.characterId = id;
     localStorage.setItem(storageKey(), JSON.stringify(state));
