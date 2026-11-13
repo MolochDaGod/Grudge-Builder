@@ -125,11 +125,11 @@ const navPairs = [
   ['https://assets.grudge-studio.com/icons/pack/weapons/Crossbow_01.png', './crafting-icons/engineer.png'],
   ['https://assets.grudge-studio.com/icons/pack/weapons/Axe_01.png', './crafting-icons/forester.png'],
   ['https://assets.grudge-studio.com/icons/pack/weapons/Bow_01.png', './crafting-icons/management.png'],
-  ['https://info.grudge-studio.com/icons/skills/class/engineer/engineer_01.png', './crafting-icons/miner.png'],
-  ['https://info.grudge-studio.com/icons/skills/class/hunter/hunter_01.png', './crafting-icons/forester.png'],
-  ['https://info.grudge-studio.com/icons/skills/class/bloodmage/bloodmage_01.png', './crafting-icons/mystic.png'],
-  ['https://info.grudge-studio.com/icons/skills/class/firemage/firemage_01.png', './crafting-icons/chef.png'],
-  ['https://info.grudge-studio.com/icons/skills/class/paladin/paladin_01.png', './crafting-icons/management.png'],
+  ['https://assets.grudge-studio.com/icons/skills/class/engineer/engineer_01.png', './crafting-icons/miner.png'],
+  ['https://assets.grudge-studio.com/icons/skills/class/hunter/hunter_01.png', './crafting-icons/forester.png'],
+  ['https://assets.grudge-studio.com/icons/skills/class/bloodmage/bloodmage_01.png', './crafting-icons/mystic.png'],
+  ['https://assets.grudge-studio.com/icons/skills/class/firemage/firemage_01.png', './crafting-icons/chef.png'],
+  ['https://assets.grudge-studio.com/icons/skills/class/paladin/paladin_01.png', './crafting-icons/management.png'],
 ];
 for (const [from, to] of navPairs) {
   html = html.split(from).join(to);
@@ -174,8 +174,8 @@ html = html.replace(
 
 const newResolve = `
 /** ObjectStore single-frame icons — never multi-sprite pack atlases. */
-const OBJECTSTORE_ICON_GH = 'https://molochdagod.github.io/ObjectStore/icons';
-const OBJECTSTORE_ICON_RAW = 'https://raw.githubusercontent.com/MolochDaGod/ObjectStore/main/icons';
+const OBJECTSTORE_ICON_GH = 'https://assets.grudge-studio.com/icons';
+const OBJECTSTORE_ICON_RAW = 'https://assets.grudge-studio.com/icons';
 
 const CATEGORY_SINGLE_FALLBACK = {
   swords: OBJECTSTORE_ICON_GH + '/496_rpg_icons/S_Sword01.png',
