@@ -246,6 +246,16 @@
             z-index: 100;
         }
         #back-btn:hover { background: linear-gradient(180deg, #5a6a8a 0%, #4a5a7a 100%); }
+    
+        .icon-missing{
+          display:flex;align-items:center;justify-content:center;
+          width:100%;height:100%;min-height:28px;padding:3px 4px;box-sizing:border-box;
+          font:700 8px/1.15 Inter,system-ui,sans-serif;letter-spacing:.04em;
+          text-transform:uppercase;text-align:center;color:#f3c14a;
+          background:rgba(80,16,16,.72);border:1px solid rgba(243,193,74,.7);
+        }
+        .has-icon-missing{outline:1px dashed rgba(243,193,74,.85);}
+
     </style>
 </head>
 <body>
@@ -331,8 +341,55 @@
         canvas.width = GRID_SIZE * TILE_SIZE;
         canvas.height = GRID_SIZE * TILE_SIZE;
         
-        const ASSETS_BASE = '/sprites/tiny_swords/Tiny Swords (Free Pack)/2DAssets';
-        const MAGIC_BASE = '/sprites/magic';
+        const ASSET_CDN = 'https://assets.grudge-studio.com';
+        function encodeCdnKey(pathname) {
+            var raw = String(pathname || '');
+            var leading = raw.charAt(0) === '/' ? '/' : '';
+            var trimmed = raw.replace(/^\/+/, '');
+            if (!trimmed) return leading;
+            return leading + trimmed.split('/').map(function (seg) {
+                try { seg = decodeURIComponent(seg); } catch (e) {}
+                return encodeURIComponent(seg);
+            }).join('/');
+        }
+        function cdnImageUrl(pathOrUrl) {
+            var raw = String(pathOrUrl || '').trim();
+            if (!raw) return '';
+            if (/^(data:|blob:)/i.test(raw)) return raw;
+            if (/(^|\/)sprites\/gbux-token\.png$/i.test(raw.split('?')[0])) return '/sprites/gbux-token.png';
+            raw = raw.split('#')[0];
+            var qi = raw.indexOf('?');
+            if (qi >= 0) raw = raw.slice(0, qi);
+            raw = raw.replace(/\\/g, '/');
+            if (raw.indexOf('//') === 0) raw = 'https:' + raw;
+            raw = raw.replace(/^https?:\/\/(?:www\.)?(?:molochdagod\.github\.io\/ObjectStore|raw\.githubusercontent\.com\/MolochDaGod\/ObjectStore\/(?:main|master)|(?:info|objectstore)\.grudge-studio\.com|grudge-objectstore\.pages\.dev|assets\.grudge-studio\.com)/i, '');
+            raw = raw.replace(/^\/api\/assets\/?/i, '/');
+            if (/^https?:\/\//i.test(raw)) {
+                try { raw = new URL(raw).pathname; } catch (e) { return ''; }
+            }
+            if (raw && raw.charAt(0) !== '/') raw = '/' + raw;
+            if (!raw || raw === '/') return '';
+            // /effects/ has no Vercel rewrite — point straight at the CDN (same as /sprites, /icons).
+            return ASSET_CDN + encodeCdnKey(raw);
+        }
+        function showIconMissing(img) {
+            if (!img) return;
+            img.style.display = 'none';
+            img.removeAttribute('src');
+            var host = img.parentElement;
+            if (host && !host.querySelector('.icon-missing')) {
+                var m = document.createElement('span');
+                m.className = 'icon-missing';
+                m.textContent = 'icon missing';
+                var label = img.getAttribute('alt') || '';
+                if (label) m.setAttribute('title', label);
+                host.appendChild(m);
+                host.classList.add('has-icon-missing');
+            }
+        }
+        // Absolute CDN + encodeURIComponent-per-segment (spaces and parentheses in Tiny Swords).
+        const ASSETS_BASE = cdnImageUrl('/sprites/tiny_swords/Tiny Swords (Free Pack)/2DAssets');
+        const MAGIC_BASE = cdnImageUrl('/sprites/magic');
         
         const TERRAIN_TILES = {
             water: { src: `${ASSETS_BASE}/Terrain/Water Background color.png` },
@@ -390,9 +447,22 @@
         const loadedImages = {};
         
         function loadImage(src) {
-            if (loadedImages[src]) return loadedImages[src];
+            const url = cdnImageUrl(src) || src;
+            if (loadedImages[url]) return loadedImages[url];
             const img = new Image();
-            img.src = src;
+            img.onerror = function () {
+                // HTML / 403 / decode failure — mark missing, no Pages or info fallback.
+                img._missing = true;
+                if (typeof showIconMissing === 'function') showIconMissing(img);
+            };
+            img.onload = function () {
+                if (!img.naturalWidth) {
+                    img._missing = true;
+                    if (typeof showIconMissing === 'function') showIconMissing(img);
+                }
+            };
+            img.src = url;
+            loadedImages[url] = img;
             loadedImages[src] = img;
             return img;
         }
