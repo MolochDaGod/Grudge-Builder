@@ -140,10 +140,18 @@ function ttlToSeconds(ttl: string): number {
 const STUDIO_ORIGIN_OPTS = serverStudioOriginOpts();
 
 function requestBaseUrl(req: Request): string {
-  const xfProto = (req.get("x-forwarded-proto") || "").split(",")[0]?.trim();
-  const proto = xfProto || req.protocol || "https";
-  const host = req.get("x-forwarded-host") || req.get("host") || "id.grudge-studio.com";
-  return `${proto}://${host}`;
+  const host = req.get("host") || "";
+  if (host) {
+    const xfProto = (req.get("x-forwarded-proto") || "").split(",")[0]?.trim();
+    const proto = xfProto || req.protocol || "https";
+    try {
+      const origin = new URL(`${proto}://${host}`).origin;
+      if (isStudioOrigin(origin, STUDIO_ORIGIN_OPTS)) return origin;
+    } catch {
+      /* ignore */
+    }
+  }
+  return "https://id.grudge-studio.com";
 }
 
 function resolveSafeReturn(value: string | undefined, req: Request, fallback = ""): string {
