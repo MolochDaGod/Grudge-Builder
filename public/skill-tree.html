@@ -1,4 +1,4 @@
-﻿<!doctype html>
+<!doctype html>
 <html lang="en">
 <head>
 <meta charset="utf-8" />
@@ -25,9 +25,15 @@
   --gold2:#ffd98a;
   --shadow:0 20px 60px -20px rgba(0,0,0,.55);
   --c-worg:#c792ff;
+  --c-worge:#d97706;
   --c-warrior:#ff6b57;
   --c-mage:#6aa9ff;
   --c-ranger:#6bdc8b;
+  /* ObjectStore classes.json colors */
+  --c-priest:#fde68a;
+  --c-raider:#b91c1c;
+  --c-thief:#ca8a04;
+  --c-verduror:#86efac;
 }
 *{box-sizing:border-box}
 html,body{height:100%;margin:0}
@@ -175,6 +181,12 @@ body{
 .cls[data-k="warrior"] .crest{background:linear-gradient(180deg,#ffb3a6,#ff6b57);color:#2a0a07}
 .cls[data-k="ranger"]  .crest{background:linear-gradient(180deg,#b2f0c4,#6bdc8b);color:#06220f}
 .cls[data-k="worg"]   .crest{background:linear-gradient(180deg,#e1c8ff,#c792ff);color:#1c0a3a}
+.cls[data-k="worge"]  .crest{background:linear-gradient(180deg,#fbbf24,#d97706);color:#1c0a00}
+.cls[data-k="priest"] .crest{background:linear-gradient(180deg,#fff3c2,#fde68a);color:#3a2e08}
+.cls[data-k="raider"] .crest{background:linear-gradient(180deg,#f5a3a3,#b91c1c);color:#2a0707}
+.cls[data-k="thief"]  .crest{background:linear-gradient(180deg,#f5de8a,#ca8a04);color:#2a2204}
+.cls[data-k="verduror"] .crest{background:linear-gradient(180deg,#c8f7d6,#86efac);color:#0a2a14}
+.cls .crest img{width:100%;height:100%;object-fit:cover;border-radius:inherit;display:block}
 
 /* ---------- main grid ---------- */
 .main{display:grid;grid-template-columns:1fr 380px;gap:20px}
@@ -245,7 +257,7 @@ body{
   background:linear-gradient(180deg,rgba(255,255,255,.05),rgba(255,255,255,.015));
   border:1px solid var(--line);
   transition:transform .18s ease,border-color .18s ease,box-shadow .25s ease;
-  overflow:hidden;
+  overflow:visible;
 }
 .node::before{
   content:"";position:absolute;inset:0;border-radius:16px;pointer-events:none;
@@ -262,7 +274,22 @@ body{
   box-shadow:inset 0 0 0 1px rgba(0,0,0,.15),0 6px 22px -12px rgba(255,255,255,.4);
 }
 .node .icon img{width:100%;height:100%;display:block;object-fit:cover}
-.node .name{font-weight:800;font-size:14px;letter-spacing:.2px}
+
+    .icon-missing{
+      display:flex;align-items:center;justify-content:center;
+      width:100%;height:100%;min-height:28px;padding:3px 4px;box-sizing:border-box;
+      font:700 8px/1.15 Inter,system-ui,sans-serif;letter-spacing:.04em;
+      text-transform:uppercase;text-align:center;color:#f3c14a;
+      background:rgba(80,16,16,.72);border:1px solid rgba(243,193,74,.7);
+    }
+    .has-icon-missing{outline:1px dashed rgba(243,193,74,.85);}
+
+.node .head{min-width:0}
+.node .name{
+  font-weight:800;font-size:14px;letter-spacing:.2px;
+  overflow-wrap:break-word;word-break:break-word;white-space:normal;
+  line-height:1.25;min-width:0;flex:1 1 auto;
+}
 .node .desc{color:#c9cfec;font-size:12px;line-height:1.45;margin-top:6px;min-height:34px}
 .node .meta{display:flex;flex-wrap:wrap;gap:6px;margin-top:8px}
 .node .meta span{
@@ -297,6 +324,11 @@ body{
 .tree[data-k="warrior"] .node .icon{background:linear-gradient(180deg,#ffb3a6,#ff6b57);color:#2a0a07}
 .tree[data-k="ranger"]  .node .icon{background:linear-gradient(180deg,#b2f0c4,#6bdc8b);color:#08220f}
 .tree[data-k="worg"]   .node .icon{background:linear-gradient(180deg,#e1c8ff,#c792ff);color:#1c0a3a}
+.tree[data-k="worge"]  .node .icon{background:linear-gradient(180deg,#fbbf24,#d97706);color:#1c0a00}
+.tree[data-k="priest"]  .node .icon{background:linear-gradient(180deg,#fff3c2,#fde68a);color:#3a2e08}
+.tree[data-k="raider"]  .node .icon{background:linear-gradient(180deg,#f5a3a3,#b91c1c);color:#2a0707}
+.tree[data-k="thief"]   .node .icon{background:linear-gradient(180deg,#f5de8a,#ca8a04);color:#2a2204}
+.tree[data-k="verduror"] .node .icon{background:linear-gradient(180deg,#c8f7d6,#86efac);color:#0a2a14}
 
 /* ---------- side panel ---------- */
 .side{
@@ -407,7 +439,31 @@ body{
   .tier-label{text-align:left;border-right:0;border-left:2px solid rgba(255,255,255,.1);padding:0 0 0 10px}
   .node{width:calc(50% - 7px)}
 }
-</style>
+
+    /* Reused from MolochDaGod/ObjectStore profession-trees.html
+     * (preview dpl_FiBKimTbjuib46iW8FRu7KhLaiB9, also profession-trees.html on that repo):
+     * tree container, SVG, branch legend, node tooltip. */
+    .tree-graph-wrap{position:relative;width:100%;height:500px;min-height:360px;overflow:hidden;border:1px solid rgba(212,175,55,.25);border-radius:8px;background:rgba(10,14,20,.45);margin:0 0 18px}
+    .tree-svg .graph-label{pointer-events:auto}
+    .tree-svg{position:absolute;inset:0;width:100%;height:100%}
+    .branch-legend{position:absolute;top:12px;left:12px;background:rgba(10,14,20,.88);border:1px solid rgba(212,175,55,.35);border-radius:8px;padding:12px;z-index:10;max-width:220px}
+    .branch-legend h3{font-family:'Cinzel',serif;font-size:.72em;color:#d4af37;margin:0 0 8px;text-transform:uppercase;letter-spacing:.08em}
+    .legend-item{display:flex;align-items:center;gap:8px;margin-bottom:4px;font-size:.76em;color:#9aa}
+    .legend-dot{width:10px;height:10px;border-radius:50%;flex-shrink:0}
+    .graph-info{position:absolute;top:12px;right:12px;background:rgba(10,14,20,.88);border:1px solid rgba(212,175,55,.35);border-radius:8px;padding:12px;z-index:10;text-align:right}
+    .graph-info .pi-name{font-family:'Cinzel',serif;font-size:1em;color:#f3e6c0}
+    .graph-info .pi-role{font-size:.76em;color:#9aa}
+    .graph-info .pi-count{font-size:.7em;color:#9aa;margin-top:4px}
+    .graph-src{position:absolute;bottom:8px;left:12px;font-size:10px;color:#778;z-index:10;max-width:70%}
+    .grimoire-box{margin:12px 0;padding:12px;border:1px solid rgba(217,119,6,.45);border-radius:8px;background:rgba(217,119,6,.06)}
+    .grimoire-box .g-title{font-family:'Cinzel',serif;font-size:12px;color:#fbbf24;margin-bottom:6px}
+    .grimoire-box .g-src{font-size:10px;color:#8a8070;margin-bottom:8px;line-height:1.4}
+    .grimoire-box .g-lead{font-size:11px;color:#c8c0b0;margin-bottom:8px;line-height:1.4}
+    .grimoire-box ul{margin:0 0 8px;padding-left:18px}
+    .grimoire-box li{font-size:12px;color:#ddd;line-height:1.45}
+    .grimoire-box .g-h{font-size:11px;color:#d97706;margin:8px 0 4px;text-transform:uppercase;letter-spacing:.06em}
+
+  </style>
 </head>
 <body>
 
@@ -417,6 +473,11 @@ body{
   <div class="bg" data-k="warrior" style="background-image:url('https://i.imgur.com/Wj2mUH2.png')"></div>
   <div class="bg" data-k="ranger"  style="background-image:url('https://i.imgur.com/5A6e5kL.png')"></div>
   <div class="bg" data-k="worg"   style="background-image:url('https://i.imgur.com/BrQH0Bx.png')"></div>
+  <div class="bg" data-k="worge"  style="background-image:url('https://i.imgur.com/BrQH0Bx.png')"></div>
+  <div class="bg" data-k="priest" ></div>
+  <div class="bg" data-k="raider" ></div>
+  <div class="bg" data-k="thief"  ></div>
+  <div class="bg" data-k="verduror" ></div>
   <div class="sheen"></div>
   <div class="particles" id="particles"></div>
 </div>
@@ -469,7 +530,9 @@ body{
 <div class="toast" id="toast">Build Locked</div>
 <div class="curtain" id="curtain"></div>
 
-<script src="/class-skill-trees.js"></script>
+<script src="/master-skillTrees-3.1.0.js"></script>
+<script src="/ssot-class-info.js"></script>
+<script src="/worge-grimoire-forms.js"></script>
 <script>
 /* -------- races -------- */
 const RACES = {
@@ -488,50 +551,162 @@ const CLASS_ART = {
   warrior: "https://i.imgur.com/Wj2mUH2.png",
   ranger: "https://i.imgur.com/5A6e5kL.png",
   worg: "https://i.imgur.com/BrQH0Bx.png",
+  worge: "https://i.imgur.com/BrQH0Bx.png",
+  // priest, raider, thief, verduror have no real crest/hero file on the CDN
+  // (the .jpg URLs 200 as Game Info Hub HTML at /icons and /game-assets). No substitute art.
 };
+const CLASS_EMOJI = { mage:"🔮", warrior:"🗡️", ranger:"🏹", worg:"🐺", worge:"🐺", priest:"✚", raider:"⚔", thief:"🗡", verduror:"🌿" };
+const SSOT_INFO = window.GRUDGE_SSOT_CLASS_INFO || { classes:{}, dossier:{}, playOrder:[] };
+const PLAY_ORDER = SSOT_INFO.playOrder || ["warrior","raider","mage","priest","ranger","thief","worge","verduror"];
+const CLASS_DOSSIER = SSOT_INFO.dossier || {};
+/* Icon host rewrite from ObjectStore weapon-skill-tree.js `defaultAsset` (lines 139–146),
+ * plus a /game-assets/icons/ prefix for short /icons/ paths. Most skill icons 200 as
+ * Game Info Hub HTML (44964 B, lying image/png) at /icons/skill_nobg and
+ * /icons/skills/class, but are real PNGs under /game-assets/icons/…. Class crests at
+ * /icons/warlords/classes/*.png exist only there — do not rewrite those.
+ * info/objectstore return HTML (200) for /icons — never load those hosts.
+ * Content-Type is not proof: always confirm magic bytes on probes. */
+const ASSET_CDN = "https://assets.grudge-studio.com";
+/* Filenames that 200 HTML (or 404) at both /icons and /game-assets. Do not emit a src. */
+const MISSING_ASSET_FILES = {
+  "Mageskill_01_nobg.png": 1, // Mana Flow
+  "priest.jpg": 1,
+  "raider.jpg": 1,
+  "thief.jpg": 1,
+  "verduror.jpg": 1,
+};
+function isMissingAsset(u){
+  if (!u) return true;
+  let name = String(u).split("?")[0];
+  name = name.substring(name.lastIndexOf("/") + 1);
+  try { name = decodeURIComponent(name); } catch (e) {}
+  return Object.prototype.hasOwnProperty.call(MISSING_ASSET_FILES, name);
+}
+function preferGameAssets(u){
+  const abs = /^(https?:\/\/assets\.grudge-studio\.com)(\/.*)$/i.exec(u);
+  const path = abs ? abs[2] : u;
+  if (path.startsWith("/game-assets/icons/")) return u;
+  // Working class PNGs live only at /icons/warlords/classes/; /game-assets copies are HTML.
+  if (path.startsWith("/icons/warlords/")) return u;
+  if (path.startsWith("/icons/")) {
+    const next = "/game-assets" + path;
+    return abs ? (ASSET_CDN + next) : next;
+  }
+  return u;
+}
+function defaultAsset(url){
+  if (!url) return url;
+  let u = String(url).trim();
+  u = u.replace(/^https?:\/\/(www\.)?(info|objectstore)\.grudge-studio\.com/i, ASSET_CDN);
+  u = preferGameAssets(u);
+  if (/^(https?:|data:|blob:)/i.test(u)) return u;
+  if (u.startsWith("/icons/") || u.startsWith("/game-assets/icons/")) return ASSET_CDN + u;
+  return u;
+}
+function assetUrl(path){
+  const u = defaultAsset(path);
+  if (!u || isMissingAsset(u)) return "";
+  const s = String(u);
+  if (s.startsWith("http://") || s.startsWith("https://")) return encodeURI(s);
+  return "";
+}
+function dossierFor(id){
+  const cid = canonicalClassId(id);
+  if (CLASS_DOSSIER[cid]) return CLASS_DOSSIER[cid];
+  // Legacy pack id worg → dossier for canonical worge
+  if (cid === "worge" && CLASS_DOSSIER.worge) return CLASS_DOSSIER.worge;
+  return null;
+}
 function skillStats(s){
-  const stats = { Type: s.effectType || "" };
+  const stats = {};
+  if (s.effectType) stats.Type = s.effectType;
   if (s.cooldown != null) stats.CD = s.cooldown + "s";
   if (s.manaCost) stats.Mana = s.manaCost;
   if (s.staminaCost) stats.Stamina = s.staminaCost;
+  if (s.effect && s.effect !== "None") stats.Effect = s.effect;
+  if (s.maxPoints != null) stats.MaxPts = s.maxPoints;
   return stats;
 }
 function mapSkill(s){
-  const icon = (s.icon && String(s.icon).startsWith("/"))
-    ? ("https://assets.grudge-studio.com" + s.icon)
-    : "";
-  return { n: s.name, i: s.effectType === "ultimate" ? "✪" : "✶", d: s.description, stats: skillStats(s), icon };
+  let icon = "";
+  // Profession-trees page uses iconUrl then icon; both fields are from the data file.
+  const rawIcon = s.iconUrl || s.icon;
+  if (rawIcon) {
+    const raw = String(rawIcon);
+    if (raw.startsWith("http://") || raw.startsWith("https://") || raw.startsWith("/")) {
+      icon = assetUrl(raw);
+    }
+  }
+  const req = s.requires || s.prerequisite || s.requirement || "";
+  const stats = skillStats(s);
+  if (req) stats.Requires = req;
+  return {
+    n: s.name || "",
+    id: s.id || "",
+    i: s.passive ? "" : (s.effectType === "ultimate" ? "✪" : "✶"),
+    d: s.description || "",
+    stats,
+    icon,
+    effect: s.effect || "",
+    maxPoints: s.maxPoints,
+    effectType: s.effectType || "",
+    requires: req,
+  };
+}
+function skillChoices(t){
+  return t.choices || t.skills || [];
 }
 function buildClasses(classes){
   const out = {};
   for (const [id, tree] of Object.entries(classes || {})) {
+    const dossier = dossierFor(id);
+    const classIcon = assetUrl(tree.classIcon) || assetUrl(dossier && dossier.iconUrl) || "";
+    // 3.1.0 has no pickMode and no specialAbility L0 row. Do not invent one.
+    // A missing description or role stays empty (priest has `role` in 3.1.0).
     out[id] = {
-      name: tree.className,
-      role: tree.specialAbility?.name || "",
-      emoji: ({ mage:"🔮", warrior:"🗡️", ranger:"🏹", worg:"🐺" })[id] || "⚔",
-      desc: tree.specialAbility?.description || "",
-      color: "var(--c-" + id + ")",
-      hero: CLASS_ART[id] || "",
-      tiers: [
-        { lvl: "Innate", label: tree.specialAbility.name, hint: "Always", auto: true, skills: [mapSkill(tree.specialAbility)] },
-        ...tree.tiers.map((t) => ({
-          lvl: t.level,
-          label: t.tierName,
-          hint: t.choices.length > 1 ? ("Pick 1 of " + t.choices.length) : "Granted",
-          auto: t.choices.length === 1,
-          picks: 1,
-          skills: t.choices.map(mapSkill),
-        })),
-      ],
+      name: tree.className || "",
+      role: tree.role || tree.family || "",
+      emoji: tree.emoji || CLASS_EMOJI[id] || (dossier && dossier.emoji) || "",
+      desc: tree.description || tree.role || "",
+      color: tree.color || ("var(--c-" + id + ")"),
+      hero: CLASS_ART[id] || classIcon || "",
+      classIcon,
+      family: tree.family || "",
+      source: tree.source || "Spawn 3.1.0 master-skillTrees.json",
+      catalog: false,
+      dossier,
+      graph: tree.graph || null,
+      specIdentity: tree.specIdentity || null,
+      // Trees start at the file's first tier (requiredLevel 1). No L0 / Innate row.
+      tiers: (tree.tiers || []).map((t) => {
+        const choices = skillChoices(t);
+        const lvl = (t.level != null) ? t.level : t.requiredLevel;
+        return {
+          lvl,
+          label: t.tierName || t.name || "",
+          hint: t.description || "",
+          auto: false,
+          // 3.1.0 has no per-tier pick cap; do not invent "pick 1".
+          picks: (t.picks != null) ? t.picks : null,
+          catalog: false,
+          skills: choices.map(mapSkill),
+        };
+      }),
     };
   }
   return out;
 }
-const TREE_PACK = window.GRUDGE_CLASS_SKILL_TREES;
-if (!TREE_PACK || !TREE_PACK.classes) {
-  throw new Error("Missing class-skill-trees.js — run scripts/publish-class-skill-trees.mjs");
+// Page trees come from Spawn 3.1.0 (all 8 classes). The Grudge-Builder pack
+// and ObjectStore 3.0.0 trees are not used here.
+const MASTER = window.GRUDGE_MASTER_SKILL_TREES;
+if (!MASTER || !MASTER.skillTrees) {
+  throw new Error("Missing master-skillTrees-3.1.0.js");
 }
-const CLASSES = buildClasses(TREE_PACK.classes);
+const MERGED_TREES = Object.assign({}, MASTER.skillTrees);
+const _built = buildClasses(MERGED_TREES);
+const CLASSES = {};
+PLAY_ORDER.forEach(id => { if (_built[id]) CLASSES[id] = _built[id]; });
+Object.keys(_built).forEach(id => { if (!CLASSES[id]) CLASSES[id] = _built[id]; });
 
 /* -------- state (scoped to active character Grudge UUID) -------- */
 const KEY_PREFIX = "gw-selector-v3";
@@ -550,14 +725,16 @@ function activeCharId(){
 }
 function storageKey(){ return KEY_PREFIX + ":" + activeCharId(); }
 const state = load() || {race:null,cls:null,picks:{},characterId:null};
+const editedClasses = new Set();
+function markEdited(id){ if (id) editedClasses.add(id); }
 function load(){
   try{
     // Prefer character-scoped key; migrate legacy global once
     const scoped = localStorage.getItem(storageKey());
-    if (scoped) return JSON.parse(scoped);
+    if (scoped) return remapLoadedState(JSON.parse(scoped));
     const legacy = localStorage.getItem(KEY_PREFIX);
     if (legacy) {
-      const data = JSON.parse(legacy);
+      const data = remapLoadedState(JSON.parse(legacy));
       data.characterId = activeCharId();
       localStorage.setItem(storageKey(), JSON.stringify(data));
       return data;
@@ -565,37 +742,130 @@ function load(){
   }catch(e){}
   return null;
 }
-function save(){
+function canonicalClassId(id){
+  if (id == null || id === "") return id;
+  const c = String(id).toLowerCase();
+  if (c === "worg") return "worge";
+  if (c === "rogue") return "thief";
+  if (c === "mage priest") return "mage";
+  return String(id);
+}
+function remapLoadedState(data){
+  if (!data || typeof data !== "object") return data;
+  if (data.cls) data.cls = canonicalClassId(data.cls);
+  if (data.picks && typeof data.picks === "object" && data.picks.worg != null && data.picks.worge == null) {
+    data.picks.worge = data.picks.worg;
+  }
+  return data;
+}
+function innateLevelsFor(classId){
+  const cls = (typeof CLASSES !== "undefined" && CLASSES[classId]) || null;
+  return new Set((cls && cls.tiers || []).filter(isInnateDisplay).map(t => String(t.lvl)));
+}
+function picksForPersist(classId){
+  const src = (state.picks && state.picks[classId]) || {};
+  const innate = innateLevelsFor(classId);
+  const out = {};
+  Object.entries(src).forEach(([lvl, v])=>{
+    if (innate.has(String(lvl))) return;
+    out[lvl] = v;
+  });
+  return out;
+}
+function save(opts){
   try{
     state.characterId = activeCharId();
     state.updatedAt = Date.now();
-    localStorage.setItem(storageKey(), JSON.stringify(state));
+    if (opts && opts.reset) {
+      editedClasses.clear();
+      localStorage.setItem(storageKey(), JSON.stringify({
+        race: null, cls: null, picks: {},
+        characterId: state.characterId, updatedAt: state.updatedAt,
+      }));
+    } else {
+      let prev = {};
+      try { prev = JSON.parse(localStorage.getItem(storageKey()) || "{}") || {}; } catch(e){ prev = {}; }
+      const picksOut = Object.assign({}, prev.picks || {});
+      // Persist only the active class (if it was explicitly edited) and any
+      // other class the player edited. Merely browsed classes are omitted.
+      const ids = new Set(editedClasses);
+      if (state.cls && editedClasses.has(state.cls)) ids.add(state.cls);
+      ids.forEach((id) => { picksOut[id] = picksForPersist(id); });
+      localStorage.setItem(storageKey(), JSON.stringify({
+        race: state.race,
+        cls: editedClasses.has(state.cls) ? state.cls : (prev.cls || null),
+        picks: picksOut,
+        characterId: state.characterId,
+        updatedAt: state.updatedAt,
+      }));
+    }
   }catch(e){}
-  // Push selectedSkills to Railway for this character UUID
+  // Push to Railway: selectedSkills is the class being played; every stored
+  // class build is under skillLoadouts.<classId> (server shallow-merges by key).
   syncSkillTreeToCharacter();
+}
+function flattenPicks(picks){
+  const out = {};
+  Object.entries(picks || {}).forEach(([tier, skill])=>{
+    if (skill != null) out[String(tier)] = typeof skill === "string" ? skill : (skill.n || skill.id || skill);
+  });
+  return out;
+}
+/** Every explicitly saved class in localStorage, plus this session's edited
+ *  classes, with innates and empty browse-only entries stripped. */
+function allPersistedExplicitPicks(){
+  let stored = {};
+  try { stored = (JSON.parse(localStorage.getItem(storageKey()) || "{}") || {}).picks || {}; } catch(e){ stored = {}; }
+  const ids = new Set();
+  Object.keys(stored || {}).forEach((id) => ids.add(canonicalClassId(id)));
+  editedClasses.forEach((id) => ids.add(canonicalClassId(id)));
+  const out = {};
+  ids.forEach((cid) => {
+    const innate = innateLevelsFor(cid);
+    const storedPicks = stored[cid] || (cid === "worge" ? stored.worg : null) || {};
+    const editedPicks = (state.picks && (state.picks[cid] != null ? state.picks[cid] : (cid === "worge" ? state.picks.worg : null)));
+    const src = (editedClasses.has(cid) && editedPicks != null)
+      ? editedPicks
+      : storedPicks;
+    const picks = {};
+    Object.entries(src || {}).forEach(([lvl, v])=>{
+      if (innate.has(String(lvl))) return;
+      if (v != null) picks[lvl] = v;
+    });
+    if (Object.keys(picks).length) out[cid] = picks;
+  });
+  return out;
 }
 async function syncSkillTreeToCharacter(){
   try{
     if (!window.GrudgeFleet || !GrudgeFleet.isLoggedIn || !GrudgeFleet.isLoggedIn()) return;
     const id = activeCharId();
     if (!id || id === "guest") return;
-    // Flatten picks → selectedSkills map { tierLevel: skillName }
-    const picks = state.picks || {};
-    const selectedSkills = {};
-    Object.entries(picks).forEach(([cls, tiers])=>{
-      if (!tiers || typeof tiers !== "object") return;
-      Object.entries(tiers).forEach(([tier, skill])=>{
-        if (skill != null) selectedSkills[String(tier)] = typeof skill === "string" ? skill : (skill.n || skill.id || skill);
-      });
-      // also store per-class under skillLoadouts
+    // Only sync after an explicit edit (not on browse). The payload itself
+    // carries every persisted class so a server-side field replace cannot
+    // wipe the others.
+    const cls = state.cls;
+    if (!cls || !editedClasses.has(cls)) return;
+    const allPicks = allPersistedExplicitPicks();
+    const classPicks = allPicks[cls] || picksForPersist(cls);
+    // selectedSkills is only the class being played (server replaces this field).
+    const selectedSkills = flattenPicks(classPicks);
+    // Each class's build lives under skillLoadouts.<classId>. The server
+    // shallow-merges that object by top-level key. classSkillPicks is not
+    // stored by the server, so the same picks go inside that class's entry.
+    const skillLoadouts = {
+      _meta: { race: state.race, cls, characterId: id },
+    };
+    Object.entries(allPicks).forEach(([cid, picks])=>{
+      skillLoadouts[cid] = {
+        picks,
+        classSkillPicks: picks,
+        ...(cid === cls ? { race: state.race } : {}),
+      };
     });
     await GrudgeFleet.saveCharacterProgress(id, {
       selectedSkills,
-      classSkillPicks: selectedSkills,
-      skillLoadouts: {
-        ...(state.cls ? { [state.cls]: { picks: picks[state.cls] || {}, race: state.race } } : {}),
-        _meta: { race: state.race, cls: state.cls, characterId: id },
-      },
+      skillLoadouts,
     });
   }catch(e){ console.warn("[skill-tree] sync:", e); }
 }
@@ -616,9 +886,11 @@ async function hydrateFromCharacter(){
     }
     if (char.class || char.classId) {
       const c = String(char.class || char.classId).toLowerCase();
-      // map class ids
-      const map = { warrior:"warrior", mage:"mage", "mage priest":"mage", priest:"mage", rogue:"ranger", ranger:"ranger", cleric:"mage", worg:"worg", worg:"worg" };
-      state.cls = map[c] || (typeof CLASSES !== "undefined" && CLASSES[c] ? c : state.cls);
+      // Exact CLASSES id wins. Legacy aliases only: worg→worge, rogue→thief,
+      // and the Mage Priest display name → id mage.
+      const mapped = canonicalClassId(c);
+      if (typeof CLASSES !== "undefined" && CLASSES[mapped]) state.cls = mapped;
+      else if (typeof CLASSES !== "undefined" && CLASSES[c]) state.cls = c;
     }
     if (char.selectedSkills && typeof char.selectedSkills === "object") {
       if (state.cls) {
@@ -628,8 +900,20 @@ async function hydrateFromCharacter(){
         });
       }
     }
-    if (char.skillLoadouts && char.skillLoadouts[state.cls]?.picks) {
-      state.picks[state.cls] = { ...state.picks[state.cls], ...char.skillLoadouts[state.cls].picks };
+    // Restore every class stored under skillLoadouts.<classId> (and any
+    // classSkillPicks nested in that entry). Do not read a top-level
+    // classSkillPicks field — the server drops it.
+    if (char.skillLoadouts && typeof char.skillLoadouts === "object") {
+      Object.entries(char.skillLoadouts).forEach(([cid, entry])=>{
+        if (!entry || typeof entry !== "object") return;
+        if (cid === "_meta" || cid === "__progress") return;
+        const id = canonicalClassId(cid);
+        if (!id) return;
+        const picks = entry.picks || entry.classSkillPicks;
+        if (picks && typeof picks === "object") {
+          state.picks[id] = { ...(state.picks[id] || {}), ...picks };
+        }
+      });
     }
     state.characterId = id;
     localStorage.setItem(storageKey(), JSON.stringify(state));
@@ -643,76 +927,6 @@ window.addEventListener("grudge:character:selected", ()=>{
   else { state.picks = {}; state.cls = null; }
   hydrateFromCharacter();
 });
-
-/* -------- real skill icons -------- */
-const ICON_DIR = {
-  earth: "/icons-src/EarthMage_Free/EarthMage_Free",
-  fire: "/icons-src/FireMage_Free/FireMage_Free",
-  frost: "/icons-src/FrostMage_Free/FrostMage_Free",
-  hunter: "/icons-src/Hunter_Free/Hunter_Free",
-  necro: "/icons-src/Necromancer_Free/Necromancer_Free"
-};
-const ICONS = {
-  mage: {
-    "Mana Shield":`${ICON_DIR.frost}/FrostMage_21.png`,
-    "Magic Missile":`${ICON_DIR.frost}/FrostMage_14.png`,
-    "Heal":`${ICON_DIR.fire}/FireMage_13.png`,
-    "Fireball":`${ICON_DIR.fire}/FireMage_28.png`,
-    "Greater Heal":`${ICON_DIR.earth}/EarthMage_10.png`,
-    "Lightning Chain":`${ICON_DIR.fire}/FireMage_25.png`,
-    "Blink":`${ICON_DIR.frost}/FrostMage_19.png`,
-    "Group Heal":`${ICON_DIR.fire}/FireMage_22.png`,
-    "Meteor":`${ICON_DIR.fire}/FireMage_35.png`,
-    "Portal":`${ICON_DIR.fire}/FireMage_30.png`,
-    "Archmage":`${ICON_DIR.fire}/FireMage_40.png`,
-    "Reality Tear":`${ICON_DIR.fire}/FireMage_20.png`,
-  },
-  warrior: {
-    "Invulnerability":`${ICON_DIR.earth}/EarthMage_25.png`,
-    "Taunt":`${ICON_DIR.earth}/EarthMage_13.png`,
-    "Quick Strike":`${ICON_DIR.fire}/FireMage_2.png`,
-    "Damage Surge":`${ICON_DIR.fire}/FireMage_26.png`,
-    "Guardian's Aura":`${ICON_DIR.earth}/EarthMage_31.png`,
-    "Dual Wield":`${ICON_DIR.hunter}/Hunter_15.png`,
-    "Shield Specialist":`${ICON_DIR.earth}/EarthMage_4.png`,
-    "Life Drain":`${ICON_DIR.necro}/Necromancer_16.png`,
-    "Execute":`${ICON_DIR.fire}/FireMage_19.png`,
-    "Double Strike":`${ICON_DIR.fire}/FireMage_17.png`,
-    "Avatar Form":`${ICON_DIR.fire}/FireMage_33.png`,
-    "Perfect Counter":`${ICON_DIR.earth}/EarthMage_26.png`,
-  },
-  ranger: {
-    "Precision":`${ICON_DIR.hunter}/Hunter_4.png`,
-    "Power Shot":`${ICON_DIR.hunter}/Hunter_24.png`,
-    "Stealth Strike":`${ICON_DIR.hunter}/Hunter_14.png`,
-    "Multi Shot":`${ICON_DIR.hunter}/Hunter_8.png`,
-    "Shadow Step":`${ICON_DIR.hunter}/Hunter_6.png`,
-    "Explosive Shot":`${ICON_DIR.hunter}/Hunter_17.png`,
-    "Poison Blade":`${ICON_DIR.hunter}/Hunter_25.png`,
-    "Trap Mastery":`${ICON_DIR.hunter}/Hunter_16.png`,
-    "Rain of Arrows":`${ICON_DIR.hunter}/Hunter_22.png`,
-    "Assassinate":`${ICON_DIR.hunter}/Hunter_15.png`,
-    "Storm of Arrows":`${ICON_DIR.hunter}/Hunter_18.png`,
-    "Shadow Master":`${ICON_DIR.hunter}/Hunter_21.png`,
-  },
-  worg: {
-    "Bear Form":`${ICON_DIR.earth}/EarthMage_20.png`,
-    "Howl":`${ICON_DIR.hunter}/Hunter_9.png`,
-    "Pack Hunt":`${ICON_DIR.hunter}/Hunter_1.png`,
-    "Feral Rage":`${ICON_DIR.fire}/FireMage_14.png`,
-    "Alpha Call":`${ICON_DIR.hunter}/Hunter_20.png`,
-    "Alpha Bear":`${ICON_DIR.earth}/EarthMage_31.png`,
-    "Raptor Form":`${ICON_DIR.fire}/FireMage_36.png`,
-    "Blood Frenzy":`${ICON_DIR.fire}/FireMage_3.png`,
-    "Apex Predator":`${ICON_DIR.hunter}/Hunter_7.png`,
-    "Primal Fury":`${ICON_DIR.fire}/FireMage_34.png`,
-    "Worg Lord":`${ICON_DIR.necro}/Necromancer_5.png`,
-    "Primal Avatar":`${ICON_DIR.fire}/FireMage_33.png`,
-  }
-};
-function iconFor(cls, skillName){
-  return ICONS[cls]?.[skillName] || "";
-}
 
 /* -------- particles -------- */
 (function particles(){
@@ -731,6 +945,62 @@ function iconFor(cls, skillName){
     host.appendChild(s);
   }
 })();
+
+/* -------- safe DOM (no unescaped innerHTML of SSOT / pack text) -------- */
+function safeUrl(s){
+  if (!s) return "";
+  const raw = String(s).trim();
+  if (!raw) return "";
+  // Reject backslashes, protocol-relative URLs, and /\… paths.
+  // Do not resolve against a base: new URL("//x", origin) becomes https://x.
+  if (raw.includes("\\") || raw.startsWith("//") || raw.startsWith("/\\")) return "";
+  if (/^https?:\/\//i.test(raw)) {
+    try {
+      const u = new URL(raw);
+      if (u.protocol === "http:" || u.protocol === "https:") return u.href;
+    } catch(e){}
+    return "";
+  }
+  // Same-origin path: a single leading slash, not // or /\
+  if (raw.charAt(0) === "/" && raw.charAt(1) !== "/" && raw.charAt(1) !== "\\") {
+    return encodeURI(raw);
+  }
+  return "";
+}
+if (typeof window !== "undefined") window.__safeUrl = safeUrl;
+
+/* Show a visible "icon missing" marker. No substitute art. */
+function showIconMissing(img){
+  if (!img) return;
+  img.style.display = "none";
+  img.removeAttribute("src");
+  const host = img.parentElement;
+  if (host && !host.querySelector(".icon-missing")) {
+    const m = document.createElement("span");
+    m.className = "icon-missing";
+    m.textContent = "icon missing";
+    const label = img.getAttribute("alt") || "";
+    if (label) m.setAttribute("title", label);
+    host.appendChild(m);
+    host.classList.add("has-icon-missing");
+  }
+}
+function attachImg(parent, src, alt){
+  const img = document.createElement("img");
+  img.setAttribute("alt", alt || "");
+  img.addEventListener("error", function onErr(){
+    img.removeEventListener("error", onErr);
+    showIconMissing(img);
+  });
+  if (!src) {
+    parent.appendChild(img);
+    showIconMissing(img);
+    return img;
+  }
+  img.setAttribute("src", src);
+  parent.appendChild(img);
+  return img;
+}
 
 /* -------- rendering -------- */
 const raceEl   = document.getElementById("racepicker");
@@ -751,15 +1021,21 @@ const toastEl    = document.getElementById("toast");
 const curtain    = document.getElementById("curtain");
 
 function renderRaces(){
-  raceEl.innerHTML = "";
+  raceEl.replaceChildren();
   Object.entries(RACES).forEach(([k,r])=>{
     const n = document.createElement("div");
     n.className = "race"+(state.race===k?" active":"");
     n.dataset.k = k;
-    n.title = `${r.name} â€” ${r.blurb}`;
-    n.innerHTML = `
-      <div class="portrait" style="background-image:url('${r.img}')"></div>
-      <div class="label">${r.name}</div>`;
+    n.title = (r.name || "") + " — " + (r.blurb || "");
+    const portrait = document.createElement("div");
+    portrait.className = "portrait";
+    const raceImg = safeUrl(r.img);
+    if (raceImg) portrait.style.backgroundImage = "url(\"" + raceImg + "\")";
+    const label = document.createElement("div");
+    label.className = "label";
+    label.textContent = r.name || "";
+    n.appendChild(portrait);
+    n.appendChild(label);
     n.onclick = ()=>{
       state.race = (state.race===k) ? null : k;
       save(); render();
@@ -769,30 +1045,68 @@ function renderRaces(){
 }
 
 function renderPicker(){
-  pickerEl.innerHTML = "";
+  pickerEl.replaceChildren();
   Object.entries(CLASSES).forEach(([k,c])=>{
     const n = document.createElement("div");
     n.className = "cls"+(state.cls===k?" active":"");
     n.dataset.k = k;
-    n.innerHTML = `
-      <div class="cover" style="background-image:url('${c.hero}')"></div>
-      <div class="head">
-        <div class="crest">${c.emoji}</div>
-        <div>
-          <h3>${c.name}</h3>
-          <div class="role">${c.role}</div>
-        </div>
-      </div>
-      <p>${c.desc}</p>`;
+
+    const cover = document.createElement("div");
+    cover.className = "cover";
+    const hero = safeUrl(c.hero);
+    if (hero) {
+      cover.style.backgroundImage = "url(\"" + hero + "\")";
+    } else {
+      const m = document.createElement("span");
+      m.className = "icon-missing";
+      m.textContent = "icon missing";
+      if (c.name) m.setAttribute("title", c.name);
+      cover.appendChild(m);
+      cover.classList.add("has-icon-missing");
+    }
+
+    const head = document.createElement("div");
+    head.className = "head";
+    const crest = document.createElement("div");
+    crest.className = "crest";
+    const icon = safeUrl(c.classIcon);
+    if (icon) {
+      attachImg(crest, icon, c.name || "");
+    } else {
+      const m = document.createElement("span");
+      m.className = "icon-missing";
+      m.textContent = "icon missing";
+      if (c.name) m.setAttribute("title", c.name);
+      crest.appendChild(m);
+      crest.classList.add("has-icon-missing");
+    }
+    const titles = document.createElement("div");
+    const h3 = document.createElement("h3");
+    h3.textContent = c.name || "";
+    const role = document.createElement("div");
+    role.className = "role";
+    role.textContent = c.role || "";
+    titles.appendChild(h3);
+    titles.appendChild(role);
+    head.appendChild(crest);
+    head.appendChild(titles);
+
+    const p = document.createElement("p");
+    p.textContent = c.desc || "";
+
+    n.appendChild(cover);
+    n.appendChild(head);
+    n.appendChild(p);
     n.onclick = ()=>selectClass(k);
     pickerEl.appendChild(n);
   });
 }
 
 function selectClass(k){
+  // Browsing a class is not a save. Picks and Railway sync wait for an
+  // explicit action on the tree (toggle / randomize / reset / lock).
   state.cls = k;
   state.picks[k] = state.picks[k] || {};
-  save();
   setBg(k);
   render();
 }
@@ -800,52 +1114,310 @@ function selectClass(k){
 function setBg(k){
   document.querySelectorAll(".stage .bg").forEach(b=>{
     b.classList.toggle("active", b.dataset.k===k);
+    const hasImg = (b.style.backgroundImage || "").replace(/none/i, "").trim();
+    if (!hasImg && !b.querySelector(".icon-missing")) {
+      const m = document.createElement("span");
+      m.className = "icon-missing";
+      m.textContent = "icon missing";
+      const label = b.getAttribute("data-k") || "";
+      if (label) m.setAttribute("title", label);
+      b.appendChild(m);
+      b.classList.add("has-icon-missing");
+    }
   });
 }
 
+function svgEl(tag, attrs){
+  const el = document.createElementNS("http://www.w3.org/2000/svg", tag);
+  Object.entries(attrs || {}).forEach(([k,v])=>{ if (v != null) el.setAttribute(k, String(v)); });
+  return el;
+}
+/** Reused from MolochDaGod/ObjectStore profession-trees.html `renderClassGraph`
+ *  (preview dpl_FiBKimTbjuib46iW8FRu7KhLaiB9): mapX/mapY, PAD=40, parent-edge
+ *  connectors, circle / square (path) / diamond (effect) node shapes, branch
+ *  colors, reqLevel labels. Built with SVG DOM + textContent (Verdict: no
+ *  innerHTML of data). Connector lines come from graph.node.parent in 3.1.0
+ *  Unlock lines also use skill.requires from 3.1.0 (68 edges). Raider, thief,
+ *  and verduror have no requires — parent only. */
+function renderSkillGraph(host, c, k){
+  const graph = c.graph;
+  if (!graph || !graph.nodes || !graph.nodes.length) return;
+  const wrap = document.createElement("div");
+  wrap.className = "tree-graph-wrap";
+  const legend = document.createElement("div");
+  legend.className = "branch-legend";
+  const lh = document.createElement("h3");
+  lh.textContent = "Branches";
+  legend.appendChild(lh);
+  (graph.branches || []).forEach((b)=>{
+    const item = document.createElement("div");
+    item.className = "legend-item";
+    const dot = document.createElement("div");
+    dot.className = "legend-dot";
+    if (b.color && b.color.stroke) dot.style.background = b.color.stroke;
+    item.appendChild(dot);
+    item.appendChild(document.createTextNode((b.name || "") + (b.nodeCount != null ? (" (" + b.nodeCount + ")") : "")));
+    legend.appendChild(item);
+  });
+  const info = document.createElement("div");
+  info.className = "graph-info";
+  const nEl = document.createElement("div");
+  nEl.className = "pi-name";
+  nEl.textContent = c.name || k;
+  const rEl = document.createElement("div");
+  rEl.className = "pi-role";
+  rEl.textContent = c.family || "";
+  const cEl = document.createElement("div");
+  cEl.className = "pi-count";
+  cEl.textContent = (graph.totalNodes != null ? graph.totalNodes : graph.nodes.length) + " nodes";
+  info.appendChild(nEl); info.appendChild(rEl); info.appendChild(cEl);
+  const srcNote = document.createElement("div");
+  srcNote.className = "graph-src";
+  srcNote.textContent = "Layout and connectors reused from profession-trees renderTree / renderClassGraph. Names and unlocks from Spawn 3.1.0 (graph.parent and skill.requires).";
+  const svg = svgEl("svg", { class: "tree-svg", width: "100%", height: "100%" });
+  wrap.appendChild(legend);
+  wrap.appendChild(info);
+  wrap.appendChild(srcNote);
+  wrap.appendChild(svg);
+  host.appendChild(wrap);
+  const W = svg.clientWidth || wrap.clientWidth || 800;
+  const H = svg.clientHeight || 420;
+  const PAD = 40;
+  const mapX = (x) => PAD + (x / 100) * (W - PAD * 2);
+  const mapY = (y) => PAD + ((100 - y) / 100) * (H - PAD * 2);
+  const nodes = graph.nodes;
+  /* Parent connectors: reused from profession-trees.html renderClassGraph :387–391
+   * (and renderTree :250–254): line from parent node to child, branch stroke, opacity 0.5.
+   * Built with SVG DOM instead of innerHTML. Names and coordinates come from 3.1.0 only. */
+  const drawn = new Set();
+  function drawEdge(from, to, color){
+    if (!from || !to) return;
+    const key = String(from.id) + "->" + String(to.id);
+    if (drawn.has(key)) return;
+    drawn.add(key);
+    svg.appendChild(svgEl("line", {
+      x1: mapX(from.x), y1: mapY(from.y),
+      x2: mapX(to.x), y2: mapY(to.y),
+      stroke: color || "#555", "stroke-width": "2", "stroke-opacity": "0.5",
+    }));
+  }
+  nodes.forEach((node)=>{
+    if (node.parent == null) return;
+    const parent = nodes.find(n => n.id === node.parent);
+    if (!parent) return;
+    const color = (node.branchColor && node.branchColor.stroke) || "#555";
+    drawEdge(parent, node, color);
+  });
+  /* Unlock lines from skill.requires (3.1.0). Raider, thief, and verduror have
+   * no requires — their lines are parent-only. These edges are not the same as
+   * parent (parent goes through path nodes); both are drawn, duplicates skipped. */
+  (c.tiers || []).forEach((t)=>{
+    (t.skills || []).forEach((sk)=>{
+      if (!sk.requires || !sk.id) return;
+      const from = nodes.find(n => n.skillId === sk.requires);
+      const to = nodes.find(n => n.skillId === sk.id);
+      if (!from || !to) return;
+      const color = (to.branchColor && to.branchColor.stroke) || "#555";
+      drawEdge(from, to, color);
+    });
+  });
+  nodes.forEach((node)=>{
+    const cx = mapX(node.x), cy = mapY(node.y);
+    const color = (node.branchColor && node.branchColor.stroke) || c.color || "#d4a84b";
+    const fill = (node.branchColor && node.branchColor.fill) || "rgba(212,168,75,0.15)";
+    const r = node.path ? 11 : 16;
+    let shape;
+    if (node.nodeType === "effect") {
+      shape = svgEl("polygon", {
+        points: cx+","+(cy-r)+" "+(cx+r)+","+cy+" "+cx+","+(cy+r)+" "+(cx-r)+","+cy,
+        fill, stroke: color, "stroke-width": "2",
+        class: "graph-node", style: "cursor:pointer",
+      });
+    } else if (node.path) {
+      shape = svgEl("rect", {
+        x: cx-r, y: cy-r, width: r*2, height: r*2, rx: 3,
+        fill, stroke: color, "stroke-width": "2",
+        class: "graph-node", style: "cursor:pointer",
+      });
+    } else {
+      shape = svgEl("circle", {
+        cx, cy, r, fill, stroke: color, "stroke-width": "2",
+        class: "graph-node", style: "cursor:pointer",
+      });
+    }
+    if (node.id != null) shape.setAttribute("data-id", String(node.id));
+    if (node.skillId) shape.setAttribute("data-skill-id", node.skillId);
+    svg.appendChild(shape);
+    const rawName = node.name || "";
+    // Full name (no ellipsis). Wrap at word boundaries; native <title> is the tooltip.
+    const labelLines = (function wrapGraphLabel(name, maxLen){
+      const wrapWords = (s) => {
+        if (!s) return [];
+        if (s.length <= maxLen) return [s];
+        const words = s.split(/\s+/);
+        const lines = [];
+        let cur = "";
+        words.forEach((w)=>{
+          const next = cur ? (cur + " " + w) : w;
+          if (next.length <= maxLen) cur = next;
+          else { if (cur) lines.push(cur); cur = w; }
+        });
+        if (cur) lines.push(cur);
+        return lines;
+      };
+      const raw = String(name || "");
+      if (!raw) return [""];
+      if (raw.length <= maxLen) return [raw];
+      // Path nodes are "Level 15 - Master …": keep the level on its own line.
+      const dash = raw.indexOf(" - ");
+      if (dash > 0) return [raw.slice(0, dash)].concat(wrapWords(raw.slice(dash + 3)));
+      return wrapWords(raw);
+    })(rawName, 20);
+    const gLab = svgEl("g", { class: "graph-label-g" });
+    if (rawName) {
+      const tip = svgEl("title", {});
+      tip.textContent = rawName;
+      gLab.appendChild(tip);
+    }
+    const tx = svgEl("text", {
+      x: cx, y: cy+r+14, "text-anchor": "middle",
+      fill: color, "font-family": "Cinzel,serif", "font-size": "9",
+      "font-weight": "600", opacity: "0.8",
+      class: "graph-label",
+    });
+    labelLines.forEach((line, i)=>{
+      const ts = svgEl("tspan", { x: cx, dy: i === 0 ? 0 : 11 });
+      ts.textContent = line;
+      tx.appendChild(ts);
+    });
+    gLab.appendChild(tx);
+    svg.appendChild(gLab);
+    if (shape && rawName) {
+      const tip2 = svgEl("title", {});
+      tip2.textContent = rawName;
+      shape.appendChild(tip2);
+      shape.setAttribute("aria-label", rawName);
+    }
+    if (node.reqLevel > 0) {
+      const lv = svgEl("text", {
+        x: cx+r+4, y: cy-r+4, fill: "#ef4444", "font-size": "8",
+        "font-family": "Cinzel,serif", opacity: "0.7",
+      });
+      lv.textContent = "Lv" + node.reqLevel;
+      svg.appendChild(lv);
+    }
+    const onEnter = (e)=>{
+      const skill = (c.tiers || []).flatMap(t => (t.skills||[]).map(s => ({s,t}))).find(x => x.s.id === node.skillId || x.s.n === node.name);
+      if (skill) showTip(e, skill.s, skill.t);
+      else {
+        // Path / non-skill graph nodes: show name and description from the graph only.
+        showTip(e, { n: node.name || "", d: node.description || "", icon: "", stats: {} }, { lvl: node.reqLevel, label: "" });
+      }
+    };
+    shape.addEventListener("mouseenter", onEnter);
+    shape.addEventListener("mousemove", (e)=>{ if (typeof showTip === "function") {/* tip follows via showTip */} });
+    shape.addEventListener("mouseleave", hideTip);
+    if (node.skillId && !node.path) {
+      shape.addEventListener("click", ()=>{
+        const found = (c.tiers || []).flatMap(t => (t.skills||[]).map(s => ({s,t}))).find(x => x.s.id === node.skillId);
+        if (!found) return;
+        togglePick(k, found.t.lvl, found.s.n, found.t.picks);
+      });
+    }
+  });
+}
 function renderTree(){
   const k = state.cls;
   treeEl.dataset.k = k || "";
   treeEl.innerHTML = "";
   if(!k){
-    treeEl.innerHTML = `<div style="padding:40px;color:var(--mute);text-align:center;font-size:14px">
-      <div style="font-family:'Cinzel',serif;font-size:18px;letter-spacing:2px;color:#fff;margin-bottom:8px">âš” Select a Class âš”</div>
-      Choose from Mage, Warrior, Ranger, or Worge above to view its skill tree.
-    </div>`;
+    const empty = document.createElement("div");
+    empty.style.cssText = "padding:40px;color:var(--mute);text-align:center;font-size:14px";
+    const title = document.createElement("div");
+    title.style.cssText = "font-family:'Cinzel',serif;font-size:18px;letter-spacing:2px;color:#fff;margin-bottom:8px";
+    title.textContent = "Select a Class";
+    const p = document.createElement("div");
+    p.textContent = "Choose a class above to view its skill tree. The four families are Warrior/Raider, Mage/Priest, Ranger/Thief, and Worge/Verduror.";
+    empty.appendChild(title);
+    empty.appendChild(p);
+    treeEl.appendChild(empty);
     nameEl.textContent = "Choose your Class";
-    roleEl.textContent = "â€”";
+    roleEl.textContent = "";
     return;
   }
   const c = CLASSES[k];
   nameEl.textContent = c.name;
-  roleEl.textContent = c.role;
+  roleEl.textContent = c.role || "";
+
+  renderSkillGraph(treeEl, c, k);
 
   c.tiers.forEach((t,ti)=>{
     const tier = document.createElement("div");
     tier.className = "tier"+(t.auto?" auto":"");
-    const picks = t.picks||1;
-    tier.innerHTML = `
-      <div class="tier-label">
-        <b>Lv ${t.lvl}</b>${t.label}
-        <div class="pickhint">${t.hint}</div>
-      </div>
-      <div class="row"></div>`;
-    const row = tier.querySelector(".row");
+    const picks = t.picks;
+    const label = document.createElement("div");
+    label.className = "tier-label";
+    const lv = document.createElement("b");
+    lv.textContent = "Lv " + t.lvl;
+    label.appendChild(lv);
+    label.appendChild(document.createTextNode(t.label || ""));
+    const hint = document.createElement("div");
+    hint.className = "pickhint";
+    hint.textContent = t.hint || "";
+    label.appendChild(hint);
+    const row = document.createElement("div");
+    row.className = "row";
+    tier.appendChild(label);
+    tier.appendChild(row);
 
     t.skills.forEach(s=>{
-      const picked = isPicked(k,t.lvl,s.n);
-      const iconPath = s.icon || iconFor(k, s.n);
+      const picked = isPicked(k,t.lvl,s.n,t);
+      const iconPath = s.icon || "";
       const n = document.createElement("div");
       n.className = "node"+(t.auto?" auto":"")+(picked?" selected":"");
       n.dataset.name = s.n;
-      n.innerHTML = `
-        ${t.auto?`<div class="badge">AUTO</div>`:""}
-        <div class="head">
-          <div class="icon">${iconPath ? `<img src="${iconPath}" alt="${s.n}">` : s.i}</div>
-          <div class="name">${s.n}</div>
-        </div>
-        <div class="desc">${s.d}</div>
-        <div class="meta">${Object.entries(s.stats).slice(0,4).map(([k,v])=>`<span>${k}: ${v}</span>`).join("")}</div>`;
+      if (s.id) n.dataset.id = s.id;
+      if (t.auto) {
+        const badge = document.createElement("div");
+        badge.className = "badge";
+        badge.textContent = "AUTO";
+        n.appendChild(badge);
+      }
+      const head = document.createElement("div");
+      head.className = "head";
+      const iconEl = document.createElement("div");
+      iconEl.className = "icon";
+      const src = safeUrl(iconPath);
+      if (src) {
+        attachImg(iconEl, src, s.n || "");
+      } else {
+        const m = document.createElement("span");
+        m.className = "icon-missing";
+        m.textContent = "icon missing";
+        if (s.n) m.setAttribute("title", s.n);
+        iconEl.appendChild(m);
+        iconEl.classList.add("has-icon-missing");
+      }
+      const nameEl2 = document.createElement("div");
+      nameEl2.className = "name";
+      nameEl2.textContent = s.n || "";
+      if (s.n) nameEl2.setAttribute("title", s.n);
+      head.appendChild(iconEl);
+      head.appendChild(nameEl2);
+      const desc = document.createElement("div");
+      desc.className = "desc";
+      desc.textContent = s.d || "";
+      const meta = document.createElement("div");
+      meta.className = "meta";
+      Object.entries(s.stats || {}).slice(0,4).forEach(([sk,sv])=>{
+        if (sv == null || sv === "") return;
+        const span = document.createElement("span");
+        span.textContent = sk + ": " + sv;
+        meta.appendChild(span);
+      });
+      n.appendChild(head);
+      n.appendChild(desc);
+      n.appendChild(meta);
 
       n.onmousemove = (e)=>{
         const r = n.getBoundingClientRect();
@@ -861,16 +1433,15 @@ function renderTree(){
       row.appendChild(n);
     });
     treeEl.appendChild(tier);
-
-    // auto-pick the level-0 ability (mark as picked implicitly)
-    if(t.auto){
-      state.picks[k] = state.picks[k]||{};
-      state.picks[k][t.lvl] = [t.skills[0].n];
-    }
+    // No auto-write of picks on browse.
   });
 }
 
-function isPicked(k,lvl,name){
+function isInnateDisplay(t){
+  return !!(t && t.auto && !t.catalog);
+}
+function isPicked(k,lvl,name,t){
+  if (isInnateDisplay(t)) return (t.skills || []).some(s => s.n === name);
   const arr = (state.picks[k]||{})[lvl]||[];
   return arr.includes(name);
 }
@@ -881,9 +1452,13 @@ function togglePick(k,lvl,name,picks){
     arr = arr.filter(x=>x!==name);
   } else {
     arr.push(name);
-    while(arr.length>picks) arr.shift();
+    // Cap only when the data file itself gives a per-tier pick count.
+    if (picks != null && picks > 0) {
+      while(arr.length>picks) arr.shift();
+    }
   }
   state.picks[k][lvl] = arr;
+  markEdited(k);
   save();
   render();
 }
@@ -901,27 +1476,102 @@ function renderSide(){
   }
   const c = CLASSES[k];
   const r = state.race ? RACES[state.race] : null;
-  heroImg.style.backgroundImage = `url('${r ? r.img : PANEL_BG}')`;
+  const heroSrc = safeUrl(r ? r.img : PANEL_BG);
+  heroImg.style.backgroundImage = heroSrc ? ("url(\"" + heroSrc + "\")") : "";
   heroImg.style.backgroundPosition = r ? "center top" : "center";
   heroName.textContent = (r?r.name+" ":"")+c.name;
   heroRole.textContent = r ? (r.blurb+" Â· "+c.role) : c.role;
 
-  // build list
-  buildEl.innerHTML = c.tiers.map(t=>{
-    const arr = (state.picks[k]||{})[t.lvl]||[];
-    const names = arr.length ? arr.join(" + ") : "â€”";
+  // Studio dossier from classes.json — shown alongside the tree, never used to
+  // overwrite a conflicting Grudge-Builder name or skill list.
+  const dos = c.dossier;
+  buildEl.replaceChildren();
+  if (dos) {
+    const nameConflict = dos.name && dos.name !== c.name;
+    const idConflict = dos.id && dos.id !== k;
+    const attrs = dos.startingAttributes
+      ? Object.entries(dos.startingAttributes).map(([n,v]) => n + " " + v).join(" · ")
+      : "";
+    const box = document.createElement("div");
+    box.className = "dossier";
+    box.style.cssText = "margin:0 0 14px;padding:10px 12px;border:1px solid var(--line);border-radius:12px;font-size:12px;line-height:1.45;color:#cfd5f5";
+    const title = document.createElement("div");
+    title.style.cssText = "font-weight:800;letter-spacing:.6px;color:var(--gold);margin-bottom:4px";
+    title.textContent = "ObjectStore dossier · classes.json (only where Spawn 3.1.0 has no text)";
+    box.appendChild(title);
+    const nameRow = document.createElement("div");
+    const nameB = document.createElement("b");
+    nameB.textContent = dos.name || "";
+    const idSp = document.createElement("span");
+    idSp.style.color = "var(--mute)";
+    idSp.textContent = " (id: " + (dos.id || "") + ")";
+    nameRow.appendChild(nameB);
+    nameRow.appendChild(idSp);
+    box.appendChild(nameRow);
+    if (nameConflict || idConflict) {
+      const note = document.createElement("div");
+      note.style.cssText = "color:#ffd98a;margin-top:4px";
+      note.appendChild(document.createTextNode("Conflicts with this page's tree pack: "));
+      const cn = document.createElement("b");
+      cn.textContent = c.name || "";
+      note.appendChild(cn);
+      note.appendChild(document.createTextNode(" (id: " + k + "). Both are shown; neither was picked."));
+      box.appendChild(note);
+    }
+    if (dos.description) {
+      const d = document.createElement("div");
+      d.style.marginTop = "6px";
+      d.textContent = dos.description;
+      box.appendChild(d);
+    }
+    if (dos.lore) {
+      const d = document.createElement("div");
+      d.style.cssText = "margin-top:6px;color:var(--mute)";
+      d.textContent = dos.lore;
+      box.appendChild(d);
+    }
+    if (attrs) {
+      const d = document.createElement("div");
+      d.style.marginTop = "6px";
+      const lab = document.createElement("span");
+      lab.style.color = "var(--mute)";
+      lab.textContent = "Starting attributes: ";
+      d.appendChild(lab);
+      d.appendChild(document.createTextNode(attrs));
+      box.appendChild(d);
+    }
+
+    buildEl.appendChild(box);
+  }
+
+  renderWorgeGrimoire(buildEl);
+  c.tiers.forEach((t,i)=>{
+    const arr = isInnateDisplay(t)
+      ? (t.skills || []).map(s => s.n)
+      : ((state.picks[k]||{})[t.lvl]||[]);
+    const names = arr.length ? arr.join(" + ") : "—";
     const picked = arr.length>0;
-    return `<div class="bline ${picked?"picked":""}">
-      <div class="dot"></div>
-      <div class="lbl">Lv ${t.lvl}</div>
-      <b>${names}</b>
-      <em>${t.auto?"auto":`pick ${t.picks||1}`}</em>
-    </div>`;
-  }).join("");
+    const line = document.createElement("div");
+    line.className = "bline" + (picked ? " picked" : "");
+    const dot = document.createElement("div");
+    dot.className = "dot";
+    const lbl = document.createElement("div");
+    lbl.className = "lbl";
+    lbl.textContent = "Lv " + t.lvl;
+    const b = document.createElement("b");
+    b.textContent = names;
+    const em = document.createElement("em");
+    em.textContent = t.auto ? "auto" : (t.catalog ? "catalog" : (t.picks != null ? ("pick " + t.picks) : ""));
+    line.appendChild(dot);
+    line.appendChild(lbl);
+    line.appendChild(b);
+    line.appendChild(em);
+    buildEl.appendChild(line);
+  });
 
   // progress
-  const need = c.tiers.filter(t=>!t.auto).reduce((a,t)=>a+(t.picks||1),0);
-  const got  = c.tiers.filter(t=>!t.auto).reduce((a,t)=>{
+  const need = c.tiers.filter(t=>!t.auto && !t.catalog).reduce((a,t)=>a+(t.picks != null ? t.picks : 0),0);
+  const got  = c.tiers.filter(t=>!t.auto && !t.catalog).reduce((a,t)=>{
     return a+((state.picks[k]||{})[t.lvl]||[]).length;
   },0);
   const pct = need? Math.min(100,(got/need)*100) : 0;
@@ -930,15 +1580,94 @@ function renderSide(){
 }
 
 /* -------- tooltip -------- */
+function renderWorgeGrimoire(parent){
+  if (state.cls !== "worge") return;
+  const G = window.GRUDGE_WORGE_GRIMOIRE;
+  if (!G || !G.FORMS) return;
+  const box = document.createElement("div");
+  box.className = "grimoire-box";
+  const title = document.createElement("div");
+  title.className = "g-title";
+  title.textContent = G.name || "Grimoire of Forms";
+  const src = document.createElement("div");
+  src.className = "g-src";
+  const srcFile = (G.source && G.source.file) || "grimoire-forms.js";
+  const srcCommit = (G.source && G.source.spawnCommit) || "";
+  src.textContent = "Spawn " + srcFile + (srcCommit ? (" @" + srcCommit.slice(0,7)) : "") + " — F forms as written, not edited.";
+  const lead = document.createElement("div");
+  lead.className = "g-lead";
+  lead.textContent = (G.fChanges || "") + (G.bookLead ? (" " + G.bookLead) : "");
+  box.appendChild(title);
+  box.appendChild(src);
+  box.appendChild(lead);
+  const fh = document.createElement("div");
+  fh.className = "g-h";
+  fh.textContent = "Forms";
+  box.appendChild(fh);
+  const ful = document.createElement("ul");
+  (G.FORMS || []).forEach((f)=>{
+    const li = document.createElement("li");
+    const parts = [];
+    if (f.level != null) parts.push("L" + f.level);
+    if (f.name) parts.push(f.name);
+    if (f.role) parts.push("· " + f.role);
+    li.textContent = parts.join(" ");
+    ful.appendChild(li);
+  });
+  box.appendChild(ful);
+  const sh = document.createElement("div");
+  sh.className = "g-h";
+  sh.textContent = "Spells";
+  box.appendChild(sh);
+  const sul = document.createElement("ul");
+  (G.SPELLS || []).forEach((s)=>{
+    const li = document.createElement("li");
+    const parts = [];
+    if (s.level != null) parts.push("L" + s.level);
+    if (s.name) parts.push(s.name);
+    if (s.text) parts.push("— " + s.text);
+    li.textContent = parts.join(" ");
+    sul.appendChild(li);
+  });
+  box.appendChild(sul);
+  parent.appendChild(box);
+}
 function showTip(e,s,t){
-  const iconPath = s.icon || iconFor(state.cls, s.n);
-  tip.innerHTML = `<div style="display:flex;gap:10px;align-items:flex-start">
-    ${iconPath ? `<div class="thumb"><img src="${iconPath}" alt="${s.n}"></div>` : ``}
-    <div style="flex:1">
-    <b>${s.n}</b> <span style="color:var(--mute);font-size:11px">Â· Lv ${t.lvl}</span>
-    <div style="margin-top:6px">${s.d}</div>
-    <div class="row">${Object.entries(s.stats).map(([k,v])=>`<span>${k}: ${v}</span>`).join("")}</div>
-    </div></div>`;
+  const iconPath = s.icon || "";
+  tip.replaceChildren();
+  const wrap = document.createElement("div");
+  wrap.style.cssText = "display:flex;gap:10px;align-items:flex-start";
+  const src = safeUrl(iconPath);
+  if (src) {
+    const thumb = document.createElement("div");
+    thumb.className = "thumb";
+    attachImg(thumb, src, s.n || "");
+    wrap.appendChild(thumb);
+  }
+  const body = document.createElement("div");
+  body.style.flex = "1";
+  const title = document.createElement("b");
+  title.textContent = s.n || "";
+  const lv = document.createElement("span");
+  lv.style.cssText = "color:var(--mute);font-size:11px";
+  lv.textContent = " · Lv " + t.lvl;
+  body.appendChild(title);
+  body.appendChild(document.createTextNode(" "));
+  body.appendChild(lv);
+  const desc = document.createElement("div");
+  desc.style.marginTop = "6px";
+  desc.textContent = s.d || "";
+  body.appendChild(desc);
+  const row = document.createElement("div");
+  row.className = "row";
+  Object.entries(s.stats || {}).forEach(([sk,sv])=>{
+    const span = document.createElement("span");
+    span.textContent = sk + ": " + sv;
+    row.appendChild(span);
+  });
+  body.appendChild(row);
+  wrap.appendChild(body);
+  tip.appendChild(wrap);
   const pad = 14;
   let x = e.clientX + pad, y = e.clientY + pad;
   if(x+300>innerWidth) x = e.clientX - 300 - pad;
@@ -964,22 +1693,26 @@ randomBtn.onclick = ()=>{
   const c = CLASSES[k];
   state.picks[k] = {};
   c.tiers.forEach(t=>{
-    if(t.auto){ state.picks[k][t.lvl] = [t.skills[0].n]; return; }
-    const picks = t.picks||1;
+    if(t.auto){ return; } // innate: display-only, not stored
+    if (t.picks == null) return; // 3.1.0 has no picks cap — leave unset, do not invent 1
+    const picks = t.picks;
     const pool = [...t.skills].sort(()=>Math.random()-.5).slice(0,picks).map(s=>s.n);
     state.picks[k][t.lvl] = pool;
   });
+  markEdited(k);
   save(); render();
 };
 resetBtn.onclick = ()=>{
   if(!confirm("Reset race, class, and all selections?")) return;
-  Object.assign(state,{race:null,cls:null,picks:{}}); save();
+  Object.assign(state,{race:null,cls:null,picks:{}});
+  save({ reset: true });
   document.querySelectorAll(".stage .bg").forEach(b=>b.classList.remove("active"));
   render();
 };
 
 /* -------- main render -------- */
 function render(){ renderRaces(); renderPicker(); renderTree(); renderSide(); updateCharBanner(); }
+window.addEventListener("resize", ()=>{ if (state.cls) renderTree(); });
 function updateCharBanner(){
   let el = document.getElementById("char-banner");
   if (!el) {
@@ -990,11 +1723,22 @@ function updateCharBanner(){
   }
   const id = activeCharId();
   const char = window.GrudgeFleet?.getActiveCharacter?.();
-  el.innerHTML = char
-    ? `⚔ ${char.name || id} · skills bound to <code style="color:#ffd98a">${String(id).slice(0,8)}…</code>`
-    : id && id !== "guest"
-      ? `Character <code style="color:#ffd98a">${String(id).slice(0,8)}…</code>`
-      : `Not signed in — picks save locally only`;
+  el.replaceChildren();
+  if (char) {
+    el.appendChild(document.createTextNode("⚔ " + (char.name || id) + " · skills bound to "));
+    const code = document.createElement("code");
+    code.style.color = "#ffd98a";
+    code.textContent = String(id).slice(0, 8) + "…";
+    el.appendChild(code);
+  } else if (id && id !== "guest") {
+    el.appendChild(document.createTextNode("Character "));
+    const code = document.createElement("code");
+    code.style.color = "#ffd98a";
+    code.textContent = String(id).slice(0, 8) + "…";
+    el.appendChild(code);
+  } else {
+    el.textContent = "Not signed in — picks save locally only";
+  }
 }
 if(state.cls) setBg(state.cls);
 render();
