@@ -4,6 +4,7 @@
  */
 import { useEffect, useState, useSyncExternalStore } from 'react';
 import { cn } from '@/lib/utils';
+import { cdnImageUrl, ICON_MISSING_STYLE } from '@shared/cdnImageUrl';
 import {
   getStatusDef,
   type ActiveStatusInstance,
@@ -162,9 +163,13 @@ function StatusIcon({
       ? Math.ceil(effect.remainingSec)
       : null;
 
-  // Prefer magic thumb → status icon path → emoji
-  const imgSrc = !imgFailed ? magicThumb || def?.icon || null : null;
+  // Prefer magic thumb → status icon path (CDN) → marker / emoji
+  const rawIcon = magicThumb || def?.icon || null;
+  const imgSrc = !imgFailed && rawIcon
+    ? (magicThumb && rawIcon === magicThumb ? rawIcon : cdnImageUrl(rawIcon) || rawIcon)
+    : null;
   const emoji = magic?.emoji ?? def?.emoji ?? '•';
+  const showMissing = imgFailed && !!def?.icon && !magicThumb;
 
   return (
     <div className="relative group" role="listitem" title={tip}>
@@ -188,6 +193,10 @@ function StatusIcon({
             onError={() => setImgFailed(true)}
             draggable={false}
           />
+        ) : showMissing ? (
+          <span className="icon-missing" style={ICON_MISSING_STYLE} title={def?.label}>
+            icon missing
+          </span>
         ) : (
           <span className="leading-none select-none" aria-hidden>
             {emoji}

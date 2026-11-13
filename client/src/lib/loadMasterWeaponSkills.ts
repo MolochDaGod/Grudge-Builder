@@ -31,6 +31,7 @@ import { PRODUCTION_WEAPON_TYPES } from "@shared/definitions/weaponPrefabCatalog
 import { assetUrl } from "@/lib/assetConfig";
 import { getPackIconForCategory } from "@/lib/iconResolver";
 import { getWeaponSkillDisplay } from "@shared/definitions/weaponSkillDisplay.generated";
+import { cdnImageUrl } from "@shared/cdnImageUrl";
 
 const API_BASES = [
   "https://objectstore.grudge-studio.com/api/v1",
@@ -154,7 +155,15 @@ export function resolveSkillIcon(
 ): string {
   const catalog = ctx.skillId ? getWeaponSkillDisplay(ctx.skillId) : null;
   if (catalog?.icon) {
-    return catalog.icon.startsWith("http") ? catalog.icon : catalog.icon;
+    const icon = catalog.icon;
+    // Short emoji / glyph — keep as display text
+    if (icon.length <= 4 && !icon.includes("/") && !icon.includes(".")) {
+      return icon;
+    }
+    // Catalog keys are root-relative /icons/skills/catalog/*.png — prefix the CDN.
+    // Never return the raw path (that skipped the ASSET_CDN + rel branch below).
+    const resolved = cdnImageUrl(icon);
+    if (resolved) return resolved;
   }
 
   const fallback = getPackIconForCategory({
@@ -174,15 +183,15 @@ export function resolveSkillIcon(
     return fallback;
   }
 
-  // Already absolute allowed host
+  // Already absolute — rewrite deprecated hosts onto the CDN and encode.
   if (/^https?:\/\//i.test(path)) {
-    return path;
+    return cdnImageUrl(path) || fallback;
   }
 
-  // Normalize relative → CDN icons URL
+  // Normalize relative → CDN icons URL (encoded; + → %2B)
   const rel = path.startsWith("/") ? path : `/${path}`;
   if (rel.toLowerCase().startsWith("/icons/")) {
-    return `${ASSET_CDN}${rel}`;
+    return cdnImageUrl(rel) || fallback;
   }
 
   try {
