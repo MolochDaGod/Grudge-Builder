@@ -24,6 +24,7 @@ import {
 import { DataSpreadsheet } from "@/components/DataSpreadsheet";
 import { getCacheStats, clearObjectStoreCache, prefetchCoreData } from "@/lib/objectStoreApi";
 import { assetUrl, OBJECT_STORE_BASE, OBJECT_STORE_API, ASSET_CDN_BASE, OBJECT_STORE_VERSION } from "@/lib/assetConfig";
+import { cdnImageUrl } from "@shared/cdnImageUrl";
 import { 
   MINIWORLD_BUILDINGS, 
   MINIWORLD_MONSTERS, 
@@ -67,22 +68,22 @@ const SPRITE_CATEGORIES: SpriteCategory[] = [
   { id: "ts-units", name: "TinySwords — Units", path: assetUrl("/sprites/tinyswords/Factions"), count: 16, subcategories: ["Warrior", "Archer", "Pawn", "TNT"] },
 
   // ── 2D Island Sprites (473 local files) ──
-  { id: "2d-tiles", name: "2D Island — Tilesets", path: "/sprites/2d-island/tiles", count: 8, subcategories: ["water-island", "fort", "beach"] },
-  { id: "2d-ships", name: "2D Island — Ships", path: "/sprites/2d-island/ships", count: 2, subcategories: ["tiles", "mockup"] },
-  { id: "2d-pirates", name: "2D Island — Pirates", path: "/sprites/2d-island/pirates", count: 7, subcategories: ["blue", "gray", "green", "red"] },
-  { id: "2d-towers", name: "2D Island — Towers", path: "/sprites/2d-island/towers", count: 13, subcategories: ["beam", "catapult", "projectile"] },
-  { id: "2d-bosses", name: "2D Island — Bosses", path: "/sprites/2d-island/bosses", count: 18, subcategories: ["badger", "frogger", "gollux"] },
-  { id: "2d-enemies", name: "2D Island — Enemies", path: "/sprites/2d-island/enemies", count: 78, subcategories: ["bat", "crab", "rat", "slime", "golem", "skull", "pebble"] },
-  { id: "2d-animals", name: "2D Island — Animals", path: "/sprites/2d-island/animals", count: 7, subcategories: ["boar", "pig", "piggy"] },
-  { id: "2d-crawler", name: "2D Island — Pixel Crawler", path: "/sprites/2d-island/crawler", count: 161, subcategories: ["characters", "mobs", "npcs", "environment", "structures", "props", "weapons"] },
-  { id: "2d-abilities", name: "2D Island — Abilities VFX", path: "/sprites/2d-island/abilities", count: 18, subcategories: ["paladin", "bloodmage", "portal"] },
-  { id: "2d-traps", name: "2D Island — Traps & Weapons", path: "/sprites/2d-island/traps-weapons", count: 63, subcategories: ["arrows", "turrets", "shurikens", "rockets"] },
-  { id: "2d-treasure", name: "2D Island — Treasure", path: "/sprites/2d-island/treasure", count: 2, subcategories: ["standard", "snow"] },
-  { id: "2d-undead", name: "2D Island — Undead", path: "/sprites/2d-island/undead", count: 5, subcategories: ["skeleton", "witch-doctor"] },
-  { id: "2d-decor", name: "2D Island — Decorations", path: "/sprites/2d-island/decorations", count: 59, subcategories: ["trees", "bushes", "rocks", "cacti", "snow"] },
-  { id: "2d-ui", name: "2D Island — Game UI", path: "/sprites/2d-island/ui", count: 20, subcategories: ["gold", "iron", "paper", "platinum", "steel", "wood"] },
-  { id: "2d-gameui", name: "2D Island — Pixel UI Pack", path: "/sprites/2d-island/gameui", count: 9, subcategories: ["buttons", "bars", "panels"] },
-  { id: "2d-builder", name: "2D Island — Builder", path: "/sprites/2d-island/builder", count: 3, subcategories: ["wisp", "construction", "collapse"] },
+  { id: "2d-tiles", name: "2D Island — Tilesets", path: cdnImageUrl("/sprites/2d-island/tiles"), count: 8, subcategories: ["water-island", "fort", "beach"] },
+  { id: "2d-ships", name: "2D Island — Ships", path: cdnImageUrl("/sprites/2d-island/ships"), count: 2, subcategories: ["tiles", "mockup"] },
+  { id: "2d-pirates", name: "2D Island — Pirates", path: cdnImageUrl("/sprites/2d-island/pirates"), count: 7, subcategories: ["blue", "gray", "green", "red"] },
+  { id: "2d-towers", name: "2D Island — Towers", path: cdnImageUrl("/sprites/2d-island/towers"), count: 13, subcategories: ["beam", "catapult", "projectile"] },
+  { id: "2d-bosses", name: "2D Island — Bosses", path: cdnImageUrl("/sprites/2d-island/bosses"), count: 18, subcategories: ["badger", "frogger", "gollux"] },
+  { id: "2d-enemies", name: "2D Island — Enemies", path: cdnImageUrl("/sprites/2d-island/enemies"), count: 78, subcategories: ["bat", "crab", "rat", "slime", "golem", "skull", "pebble"] },
+  { id: "2d-animals", name: "2D Island — Animals", path: cdnImageUrl("/sprites/2d-island/animals"), count: 7, subcategories: ["boar", "pig", "piggy"] },
+  { id: "2d-crawler", name: "2D Island — Pixel Crawler", path: cdnImageUrl("/sprites/2d-island/crawler"), count: 161, subcategories: ["characters", "mobs", "npcs", "environment", "structures", "props", "weapons"] },
+  { id: "2d-abilities", name: "2D Island — Abilities VFX", path: cdnImageUrl("/sprites/2d-island/abilities"), count: 18, subcategories: ["paladin", "bloodmage", "portal"] },
+  { id: "2d-traps", name: "2D Island — Traps & Weapons", path: cdnImageUrl("/sprites/2d-island/traps-weapons"), count: 63, subcategories: ["arrows", "turrets", "shurikens", "rockets"] },
+  { id: "2d-treasure", name: "2D Island — Treasure", path: cdnImageUrl("/sprites/2d-island/treasure"), count: 2, subcategories: ["standard", "snow"] },
+  { id: "2d-undead", name: "2D Island — Undead", path: cdnImageUrl("/sprites/2d-island/undead"), count: 5, subcategories: ["skeleton", "witch-doctor"] },
+  { id: "2d-decor", name: "2D Island — Decorations", path: cdnImageUrl("/sprites/2d-island/decorations"), count: 59, subcategories: ["trees", "bushes", "rocks", "cacti", "snow"] },
+  { id: "2d-ui", name: "2D Island — Game UI", path: cdnImageUrl("/sprites/2d-island/ui"), count: 20, subcategories: ["gold", "iron", "paper", "platinum", "steel", "wood"] },
+  { id: "2d-gameui", name: "2D Island — Pixel UI Pack", path: cdnImageUrl("/sprites/2d-island/gameui"), count: 9, subcategories: ["buttons", "bars", "panels"] },
+  { id: "2d-builder", name: "2D Island — Builder", path: cdnImageUrl("/sprites/2d-island/builder"), count: 3, subcategories: ["wisp", "construction", "collapse"] },
 
   // ── Legacy Categories ──
   { id: "2dassets", name: "2D Asset Packs", path: assetUrl("/sprites/2dassets"), count: 500, subcategories: ["icons", "weapons", "armor", "enemies", "chibi"] },

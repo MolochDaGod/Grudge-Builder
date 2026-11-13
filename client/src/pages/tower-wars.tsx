@@ -5,6 +5,7 @@ import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
 import { ArrowLeft, Zap, RefreshCw, Users } from "lucide-react";
 import { useAuthGuard } from '@/hooks/use-auth-guard';
+import { cdnImageUrl } from "@shared/cdnImageUrl";
 
 // ── Constants ─────────────────────────────────────────────────────────────────
 const GRID_W = 22;
@@ -40,16 +41,16 @@ const TOWER_TYPES = {
 
 // ── GrudgeOrigins missile sprite mapping per tower type ───────────────────────
 const TOWER_MISSILE_SPRITES: Record<string, { sprite: string; impact: string; scale: number }> = {
-  arrow:     { sprite: "/sprites/2d-island/missiles/arrow.png",          impact: "/sprites/2d-island/missiles/cannon_explosion.png",             scale: 0.7 },
-  magic:     { sprite: "/sprites/2d-island/missiles/normal_spell.png",   impact: "/sprites/2d-island/missiles/exorcism.png",                     scale: 0.6 },
-  cannon:    { sprite: "/sprites/2d-island/missiles/cannon.png",         impact: "/sprites/2d-island/missiles/cannon-tower_explosion.png",       scale: 0.5 },
-  barricade: { sprite: "/sprites/2d-island/missiles/axe.png",            impact: "/sprites/2d-island/missiles/cannon_explosion.png",             scale: 0.5 },
-  snare:     { sprite: "/sprites/2d-island/missiles/rune.png",           impact: "/sprites/2d-island/missiles/green_cross.png",                  scale: 0.5 },
-  mortar:    { sprite: "/sprites/2d-island/missiles/catapult_rock.png",  impact: "/sprites/2d-island/missiles/ballista-catapult_impact.png",     scale: 0.8 },
-  fire:      { sprite: "/sprites/2d-island/missiles/fireball.png",       impact: "/sprites/2d-island/missiles/explosion.png",                    scale: 0.6 },
-  poison:    { sprite: "/sprites/2d-island/missiles/death_and_decay.png",impact: "/sprites/2d-island/missiles/green_cross.png",                  scale: 0.5 },
-  curse:     { sprite: "/sprites/2d-island/missiles/touch_of_death.png", impact: "/sprites/2d-island/missiles/exorcism.png",                     scale: 0.7 },
-  berserker: { sprite: "/sprites/2d-island/missiles/big_fire.png",       impact: "/sprites/2d-island/missiles/explosion.png",                    scale: 0.7 },
+  arrow:     { sprite: cdnImageUrl("/sprites/2d-island/missiles/arrow.png"),          impact: cdnImageUrl("/sprites/2d-island/missiles/cannon_explosion.png"),             scale: 0.7 },
+  magic:     { sprite: cdnImageUrl("/sprites/2d-island/missiles/normal_spell.png"),   impact: cdnImageUrl("/sprites/2d-island/missiles/exorcism.png"),                     scale: 0.6 },
+  cannon:    { sprite: cdnImageUrl("/sprites/2d-island/missiles/cannon.png"),         impact: cdnImageUrl("/sprites/2d-island/missiles/cannon-tower_explosion.png"),       scale: 0.5 },
+  barricade: { sprite: cdnImageUrl("/sprites/2d-island/missiles/axe.png"),            impact: cdnImageUrl("/sprites/2d-island/missiles/cannon_explosion.png"),             scale: 0.5 },
+  snare:     { sprite: cdnImageUrl("/sprites/2d-island/missiles/rune.png"),           impact: cdnImageUrl("/sprites/2d-island/missiles/green_cross.png"),                  scale: 0.5 },
+  mortar:    { sprite: cdnImageUrl("/sprites/2d-island/missiles/catapult_rock.png"),  impact: cdnImageUrl("/sprites/2d-island/missiles/ballista-catapult_impact.png"),     scale: 0.8 },
+  fire:      { sprite: cdnImageUrl("/sprites/2d-island/missiles/fireball.png"),       impact: cdnImageUrl("/sprites/2d-island/missiles/explosion.png"),                    scale: 0.6 },
+  poison:    { sprite: cdnImageUrl("/sprites/2d-island/missiles/death_and_decay.png"),impact: cdnImageUrl("/sprites/2d-island/missiles/green_cross.png"),                  scale: 0.5 },
+  curse:     { sprite: cdnImageUrl("/sprites/2d-island/missiles/touch_of_death.png"), impact: cdnImageUrl("/sprites/2d-island/missiles/exorcism.png"),                     scale: 0.7 },
+  berserker: { sprite: cdnImageUrl("/sprites/2d-island/missiles/big_fire.png"),       impact: cdnImageUrl("/sprites/2d-island/missiles/explosion.png"),                    scale: 0.7 },
 };
 
 // ── Unit types ────────────────────────────────────────────────────────────────
@@ -483,7 +484,12 @@ export default function TowerWarsPage() {
           const missileInfo = TOWER_MISSILE_SPRITES[t.type];
           let projObj: THREE.Object3D;
           if (missileInfo) {
-            const tex = new THREE.TextureLoader().load(missileInfo.sprite);
+            const tex = new THREE.TextureLoader().load(
+              cdnImageUrl(missileInfo.sprite) || missileInfo.sprite,
+              undefined,
+              undefined,
+              () => { /* HTML/403/missing — leave the projectile without a texture */ },
+            );
             tex.colorSpace = THREE.SRGBColorSpace;
             const spriteMat = new THREE.SpriteMaterial({ map: tex, transparent: true, depthTest: false });
             const sprite = new THREE.Sprite(spriteMat);
@@ -516,7 +522,12 @@ export default function TowerWarsPage() {
             // Spawn impact sprite on arrival
             const impactInfo = TOWER_MISSILE_SPRITES[p.towerType];
             if (impactInfo && p.life <= 0) {
-              const impTex = new THREE.TextureLoader().load(impactInfo.impact);
+              const impTex = new THREE.TextureLoader().load(
+                cdnImageUrl(impactInfo.impact) || impactInfo.impact,
+                undefined,
+                undefined,
+                () => { /* HTML/403/missing — skip impact sprite */ },
+              );
               impTex.colorSpace = THREE.SRGBColorSpace;
               const impMat = new THREE.SpriteMaterial({ map: impTex, transparent: true, depthTest: false, opacity: 0.9 });
               const impSprite = new THREE.Sprite(impMat);
