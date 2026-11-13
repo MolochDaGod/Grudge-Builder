@@ -1,4 +1,4 @@
-﻿<!doctype html>
+<!doctype html>
 <html lang="en">
 <head>
 <meta charset="utf-8" />
@@ -28,6 +28,11 @@
   --c-warrior:#ff6b57;
   --c-mage:#6aa9ff;
   --c-ranger:#6bdc8b;
+  /* ObjectStore classes.json colors */
+  --c-priest:#fde68a;
+  --c-raider:#b91c1c;
+  --c-thief:#ca8a04;
+  --c-verduror:#86efac;
 }
 *{box-sizing:border-box}
 html,body{height:100%;margin:0}
@@ -175,6 +180,11 @@ body{
 .cls[data-k="warrior"] .crest{background:linear-gradient(180deg,#ffb3a6,#ff6b57);color:#2a0a07}
 .cls[data-k="ranger"]  .crest{background:linear-gradient(180deg,#b2f0c4,#6bdc8b);color:#06220f}
 .cls[data-k="worg"]   .crest{background:linear-gradient(180deg,#e1c8ff,#c792ff);color:#1c0a3a}
+.cls[data-k="priest"] .crest{background:linear-gradient(180deg,#fff3c2,#fde68a);color:#3a2e08}
+.cls[data-k="raider"] .crest{background:linear-gradient(180deg,#f5a3a3,#b91c1c);color:#2a0707}
+.cls[data-k="thief"]  .crest{background:linear-gradient(180deg,#f5de8a,#ca8a04);color:#2a2204}
+.cls[data-k="verduror"] .crest{background:linear-gradient(180deg,#c8f7d6,#86efac);color:#0a2a14}
+.cls .crest img{width:100%;height:100%;object-fit:cover;border-radius:inherit;display:block}
 
 /* ---------- main grid ---------- */
 .main{display:grid;grid-template-columns:1fr 380px;gap:20px}
@@ -297,6 +307,10 @@ body{
 .tree[data-k="warrior"] .node .icon{background:linear-gradient(180deg,#ffb3a6,#ff6b57);color:#2a0a07}
 .tree[data-k="ranger"]  .node .icon{background:linear-gradient(180deg,#b2f0c4,#6bdc8b);color:#08220f}
 .tree[data-k="worg"]   .node .icon{background:linear-gradient(180deg,#e1c8ff,#c792ff);color:#1c0a3a}
+.tree[data-k="priest"]  .node .icon{background:linear-gradient(180deg,#fff3c2,#fde68a);color:#3a2e08}
+.tree[data-k="raider"]  .node .icon{background:linear-gradient(180deg,#f5a3a3,#b91c1c);color:#2a0707}
+.tree[data-k="thief"]   .node .icon{background:linear-gradient(180deg,#f5de8a,#ca8a04);color:#2a2204}
+.tree[data-k="verduror"] .node .icon{background:linear-gradient(180deg,#c8f7d6,#86efac);color:#0a2a14}
 
 /* ---------- side panel ---------- */
 .side{
@@ -417,6 +431,10 @@ body{
   <div class="bg" data-k="warrior" style="background-image:url('https://i.imgur.com/Wj2mUH2.png')"></div>
   <div class="bg" data-k="ranger"  style="background-image:url('https://i.imgur.com/5A6e5kL.png')"></div>
   <div class="bg" data-k="worg"   style="background-image:url('https://i.imgur.com/BrQH0Bx.png')"></div>
+  <div class="bg" data-k="priest" style="background-image:url('https://assets.grudge-studio.com/icons/warlords/classes/priest.jpg')"></div>
+  <div class="bg" data-k="raider" style="background-image:url('https://assets.grudge-studio.com/icons/warlords/classes/raider.jpg')"></div>
+  <div class="bg" data-k="thief"  style="background-image:url('https://assets.grudge-studio.com/icons/warlords/classes/thief.jpg')"></div>
+  <div class="bg" data-k="verduror" style="background-image:url('https://assets.grudge-studio.com/icons/warlords/classes/verduror.jpg')"></div>
   <div class="sheen"></div>
   <div class="particles" id="particles"></div>
 </div>
@@ -470,6 +488,7 @@ body{
 <div class="curtain" id="curtain"></div>
 
 <script src="/class-skill-trees.js"></script>
+<script src="/ssot-class-info.js"></script>
 <script>
 /* -------- races -------- */
 const RACES = {
@@ -488,40 +507,94 @@ const CLASS_ART = {
   warrior: "https://i.imgur.com/Wj2mUH2.png",
   ranger: "https://i.imgur.com/5A6e5kL.png",
   worg: "https://i.imgur.com/BrQH0Bx.png",
+  // ObjectStore classes.json iconUrl — no large art in the SSOT for these four
+  priest: "https://assets.grudge-studio.com/icons/warlords/classes/priest.jpg",
+  raider: "https://assets.grudge-studio.com/icons/warlords/classes/raider.jpg",
+  thief: "https://assets.grudge-studio.com/icons/warlords/classes/thief.jpg",
+  verduror: "https://assets.grudge-studio.com/icons/warlords/classes/verduror.jpg",
 };
+const CLASS_EMOJI = { mage:"🔮", warrior:"🗡️", ranger:"🏹", worg:"🐺", priest:"✚", raider:"⚔", thief:"🗡", verduror:"🌿" };
+const SSOT_INFO = window.GRUDGE_SSOT_CLASS_INFO || { classes:{}, dossier:{}, playOrder:[] };
+const PLAY_ORDER = SSOT_INFO.playOrder || ["warrior","raider","mage","priest","ranger","thief","worg","verduror"];
+const CLASS_DOSSIER = SSOT_INFO.dossier || {};
+function assetUrl(path){
+  if (!path) return "";
+  const s = String(path);
+  if (s.startsWith("http://") || s.startsWith("https://")) return encodeURI(s);
+  if (s.startsWith("/")) return "https://assets.grudge-studio.com" + encodeURI(s);
+  return "";
+}
+function dossierFor(id){
+  if (CLASS_DOSSIER[id]) return CLASS_DOSSIER[id];
+  // worg (Grudge-Builder pack id) vs worge (ObjectStore id) — show both, do not alias the tree
+  if (id === "worg" && CLASS_DOSSIER.worge) return CLASS_DOSSIER.worge;
+  return null;
+}
 function skillStats(s){
   const stats = { Type: s.effectType || "" };
   if (s.cooldown != null) stats.CD = s.cooldown + "s";
   if (s.manaCost) stats.Mana = s.manaCost;
   if (s.staminaCost) stats.Stamina = s.staminaCost;
+  if (s.effect && s.effect !== "None") stats.Effect = s.effect;
+  if (s.maxPoints != null) stats.MaxPts = s.maxPoints;
   return stats;
 }
 function mapSkill(s){
-  const icon = (s.icon && String(s.icon).startsWith("/"))
-    ? ("https://assets.grudge-studio.com" + s.icon)
-    : "";
-  return { n: s.name, i: s.effectType === "ultimate" ? "✪" : "✶", d: s.description, stats: skillStats(s), icon };
+  let icon = "";
+  if (s.icon) {
+    const raw = String(s.icon);
+    if (raw.startsWith("http://") || raw.startsWith("https://") || raw.startsWith("/")) {
+      icon = assetUrl(raw);
+    }
+  }
+  return {
+    n: s.name,
+    i: s.effectType === "ultimate" ? "✪" : "✶",
+    d: s.description,
+    stats: skillStats(s),
+    icon,
+    effect: s.effect,
+    maxPoints: s.maxPoints,
+    effectType: s.effectType,
+  };
 }
 function buildClasses(classes){
   const out = {};
   for (const [id, tree] of Object.entries(classes || {})) {
+    const catalog = tree.pickMode === "catalog" || (tree.tiers || []).some(t => t.pickMode === "catalog");
+    const dossier = dossierFor(id);
+    const classIcon = assetUrl(tree.classIcon) || (dossier && dossier.iconUrl) || "";
     out[id] = {
       name: tree.className,
-      role: tree.specialAbility?.name || "",
-      emoji: ({ mage:"🔮", warrior:"🗡️", ranger:"🏹", worg:"🐺" })[id] || "⚔",
-      desc: tree.specialAbility?.description || "",
-      color: "var(--c-" + id + ")",
-      hero: CLASS_ART[id] || "",
+      role: tree.family ? (tree.family + " family") : (tree.specialAbility?.name || ""),
+      emoji: tree.emoji || CLASS_EMOJI[id] || (dossier && dossier.emoji) || "⚔",
+      desc: tree.description || tree.specialAbility?.description || "",
+      color: tree.color || ("var(--c-" + id + ")"),
+      hero: CLASS_ART[id] || classIcon || "",
+      classIcon,
+      family: tree.family || (dossier && dossier.family) || "",
+      source: tree.source || "",
+      catalog,
+      dossier,
       tiers: [
-        { lvl: "Innate", label: tree.specialAbility.name, hint: "Always", auto: true, skills: [mapSkill(tree.specialAbility)] },
-        ...tree.tiers.map((t) => ({
-          lvl: t.level,
-          label: t.tierName,
-          hint: t.choices.length > 1 ? ("Pick 1 of " + t.choices.length) : "Granted",
-          auto: t.choices.length === 1,
-          picks: 1,
-          skills: t.choices.map(mapSkill),
-        })),
+        { lvl: "Innate", label: tree.specialAbility.name, hint: "Always", auto: true, picks: 1, skills: [mapSkill(tree.specialAbility)] },
+        ...tree.tiers.map((t) => {
+          const isCatalog = catalog || t.pickMode === "catalog";
+          const n = (t.choices || []).length;
+          const maxPts = (t.choices || []).map(c => c.maxPoints).filter(v => v != null);
+          const ptsHint = maxPts.length ? (" · max " + Math.max(...maxPts) + " pts") : "";
+          return {
+            lvl: t.level,
+            label: t.tierName,
+            hint: isCatalog
+              ? ("ObjectStore catalog" + ptsHint + (n ? (" · " + n + " skills") : ""))
+              : (n > 1 ? ("Pick 1 of " + n) : "Granted"),
+            auto: isCatalog ? true : n === 1,
+            picks: isCatalog ? n : 1,
+            catalog: isCatalog,
+            skills: t.choices.map(mapSkill),
+          };
+        }),
       ],
     };
   }
@@ -531,7 +604,16 @@ const TREE_PACK = window.GRUDGE_CLASS_SKILL_TREES;
 if (!TREE_PACK || !TREE_PACK.classes) {
   throw new Error("Missing class-skill-trees.js — run scripts/publish-class-skill-trees.mjs");
 }
-const CLASSES = buildClasses(TREE_PACK.classes);
+// Merge ObjectStore-only classes. Never overwrite a Grudge-Builder pack id
+// (warrior, mage, ranger, worg) — those conflict with ObjectStore.
+const MERGED_TREES = Object.assign({}, TREE_PACK.classes);
+for (const [id, tree] of Object.entries(SSOT_INFO.classes || {})) {
+  if (!MERGED_TREES[id]) MERGED_TREES[id] = tree;
+}
+const _built = buildClasses(MERGED_TREES);
+const CLASSES = {};
+PLAY_ORDER.forEach(id => { if (_built[id]) CLASSES[id] = _built[id]; });
+Object.keys(_built).forEach(id => { if (!CLASSES[id]) CLASSES[id] = _built[id]; });
 
 /* -------- state (scoped to active character Grudge UUID) -------- */
 const KEY_PREFIX = "gw-selector-v3";
@@ -617,8 +699,13 @@ async function hydrateFromCharacter(){
     if (char.class || char.classId) {
       const c = String(char.class || char.classId).toLowerCase();
       // map class ids
-      const map = { warrior:"warrior", mage:"mage", "mage priest":"mage", priest:"mage", rogue:"ranger", ranger:"ranger", cleric:"mage", worg:"worg", worg:"worg" };
-      state.cls = map[c] || (typeof CLASSES !== "undefined" && CLASSES[c] ? c : state.cls);
+      // Exact CLASSES id wins (priest, raider, thief, verduror are now on the page).
+      // Aliases below are only for ids the page does not have. Do not map worge→worg
+      // (ObjectStore vs Grudge-Builder id conflict — see PR). rogue→ranger is a
+      // leftover alias; ObjectStore's rogue-like class is thief — also a conflict.
+      const map = { "mage priest":"mage", cleric:"mage", rogue:"ranger" };
+      if (typeof CLASSES !== "undefined" && CLASSES[c]) state.cls = c;
+      else if (map[c]) state.cls = map[c];
     }
     if (char.selectedSkills && typeof char.selectedSkills === "object") {
       if (state.cls) {
@@ -777,7 +864,7 @@ function renderPicker(){
     n.innerHTML = `
       <div class="cover" style="background-image:url('${c.hero}')"></div>
       <div class="head">
-        <div class="crest">${c.emoji}</div>
+        <div class="crest">${c.classIcon ? `<img src="${c.classIcon}" alt="${c.name}">` : c.emoji}</div>
         <div>
           <h3>${c.name}</h3>
           <div class="role">${c.role}</div>
@@ -810,7 +897,7 @@ function renderTree(){
   if(!k){
     treeEl.innerHTML = `<div style="padding:40px;color:var(--mute);text-align:center;font-size:14px">
       <div style="font-family:'Cinzel',serif;font-size:18px;letter-spacing:2px;color:#fff;margin-bottom:8px">âš” Select a Class âš”</div>
-      Choose from Mage, Warrior, Ranger, or Worge above to view its skill tree.
+      Choose a class above to view its skill tree. The four families are Warrior/Raider, Mage/Priest, Ranger/Thief, and Worg/Verduror.
     </div>`;
     nameEl.textContent = "Choose your Class";
     roleEl.textContent = "â€”";
@@ -862,10 +949,10 @@ function renderTree(){
     });
     treeEl.appendChild(tier);
 
-    // auto-pick the level-0 ability (mark as picked implicitly)
+    // auto-pick innate (and ObjectStore catalog tiers: every listed skill)
     if(t.auto){
       state.picks[k] = state.picks[k]||{};
-      state.picks[k][t.lvl] = [t.skills[0].n];
+      state.picks[k][t.lvl] = t.catalog ? t.skills.map(s=>s.n) : [t.skills[0].n];
     }
   });
 }
@@ -906,8 +993,29 @@ function renderSide(){
   heroName.textContent = (r?r.name+" ":"")+c.name;
   heroRole.textContent = r ? (r.blurb+" Â· "+c.role) : c.role;
 
+  // Studio dossier from classes.json — shown alongside the tree, never used to
+  // overwrite a conflicting Grudge-Builder name or skill list.
+  const dos = c.dossier;
+  let dossierHtml = "";
+  if (dos) {
+    const nameConflict = dos.name && dos.name !== c.name;
+    const idConflict = dos.id && dos.id !== k;
+    const attrs = dos.startingAttributes
+      ? Object.entries(dos.startingAttributes).map(([n,v]) => n + " " + v).join(" · ")
+      : "";
+    dossierHtml = `<div class="dossier" style="margin:0 0 14px;padding:10px 12px;border:1px solid var(--line);border-radius:12px;font-size:12px;line-height:1.45;color:#cfd5f5">
+      <div style="font-weight:800;letter-spacing:.6px;color:var(--gold);margin-bottom:4px">Studio dossier · classes.json</div>
+      <div><b>${dos.name}</b> <span style="color:var(--mute)">(id: ${dos.id})</span></div>
+      ${nameConflict || idConflict ? `<div style="color:#ffd98a;margin-top:4px">Conflicts with this page's tree pack: <b>${c.name}</b> (id: ${k}). Both are shown; neither was picked.</div>` : ""}
+      ${dos.description ? `<div style="margin-top:6px">${dos.description}</div>` : ""}
+      ${dos.lore ? `<div style="margin-top:6px;color:var(--mute)">${dos.lore}</div>` : ""}
+      ${attrs ? `<div style="margin-top:6px"><span style="color:var(--mute)">Starting attributes:</span> ${attrs}</div>` : ""}
+      ${dos.level0Name ? `<div style="margin-top:4px"><span style="color:var(--mute)">ObjectStore L0:</span> ${dos.level0Name}</div>` : ""}
+    </div>`;
+  }
+
   // build list
-  buildEl.innerHTML = c.tiers.map(t=>{
+  buildEl.innerHTML = dossierHtml + c.tiers.map(t=>{
     const arr = (state.picks[k]||{})[t.lvl]||[];
     const names = arr.length ? arr.join(" + ") : "â€”";
     const picked = arr.length>0;
