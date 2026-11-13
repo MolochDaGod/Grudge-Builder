@@ -1181,7 +1181,7 @@ export function registerAuthRoutes(app: Express) {
       res.json(
         buildSsoUserPayload(
           { ...user, email: email?.trim().toLowerCase() || user.email },
-          freshAccount,
+          freshAccount ?? null,
           { isNew: false },
         ),
       );
@@ -1571,7 +1571,7 @@ export function registerAuthRoutes(app: Express) {
         const [user] = await db.select().from(users).where(eq(users.id, sessionUserId)).limit(1);
         const fresh = await storage.getAccount(account.id);
         return res.json({
-          ...buildAuthResponse(user!, fresh),
+          ...buildAuthResponse(user!, fresh ?? null),
           linked: true,
           walletAddress,
           setPrimary: result.setPrimary,
@@ -1623,7 +1623,7 @@ export function registerAuthRoutes(app: Express) {
       await persistLinkedWallet(account.id, walletAddress, provider, provider);
 
       const fresh = await storage.getAccount(account.id);
-      res.json(buildAuthResponse(user, fresh));
+      res.json(buildAuthResponse(user, fresh ?? null));
     } catch (e: any) {
       console.error("[Auth/PhantomVerify]", e);
       res.status(400).json({ success: false, error: e.message || "Wallet verify failed" });
@@ -2322,7 +2322,6 @@ export function registerAuthRoutes(app: Express) {
         email,
         walletType,
         walletAddress: account?.walletAddress || null,
-        solanaAddress: account?.walletAddress || null,
         custodialWallet,
         linkedSolana,
         linkedWallets: linkedAddrs,
