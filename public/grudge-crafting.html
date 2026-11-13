@@ -1,4 +1,4 @@
-﻿<!DOCTYPE html>
+<!DOCTYPE html>
 <html lang="en">
 <head>
 <meta name="referrer" content="no-referrer">
@@ -74,30 +74,77 @@
     });
     mo.observe(document.documentElement || document.body, { childList: true, subtree: true });
   } catch (e) {}
+  
+  /* CDN-only image URLs. No info.grudge-studio.com or GitHub Pages fallback.
+     HTML / 403 / non-image → existing "icon missing" marker, no substitute art. */
+  function encodeCdnKey(pathname) {
+    var raw = String(pathname || '');
+    var leading = raw.charAt(0) === '/' ? '/' : '';
+    var trimmed = raw.replace(/^\/+/, '');
+    if (!trimmed) return leading;
+    return leading + trimmed.split('/').map(function (seg) {
+      try { seg = decodeURIComponent(seg); } catch (e) {}
+      return encodeURIComponent(seg);
+    }).join('/');
+  }
+  function cdnImageUrl(pathOrUrl) {
+    var raw = String(pathOrUrl || '').trim();
+    if (!raw) return '';
+    if (/^(data:|blob:)/i.test(raw)) return raw;
+    if (/(^|\/)sprites\/gbux-token\.png$/i.test(raw.split('?')[0])) return '/sprites/gbux-token.png';
+    raw = raw.split('#')[0];
+    var q = raw.indexOf('?');
+    if (q >= 0) raw = raw.slice(0, q);
+    raw = raw.replace(/\\/g, '/');
+    if (raw.indexOf('//') === 0) raw = 'https:' + raw;
+    raw = raw.replace(/^https?:\/\/(?:www\.)?(?:molochdagod\.github\.io\/ObjectStore|raw\.githubusercontent\.com\/MolochDaGod\/ObjectStore\/(?:main|master)|(?:info|objectstore)\.grudge-studio\.com|grudge-objectstore\.pages\.dev|assets\.grudge-studio\.com)/i, '');
+    raw = raw.replace(/^\/api\/assets\/?/i, '/');
+    if (/^https?:\/\//i.test(raw)) {
+      try { raw = new URL(raw).pathname; } catch (e) { return ''; }
+    }
+    if (raw && raw.charAt(0) !== '/') raw = '/' + raw;
+    if (!raw || raw === '/') return '';
+    return 'https://assets.grudge-studio.com' + encodeCdnKey(raw);
+  }
+  function showIconMissing(img) {
+    if (!img) return;
+    img.style.display = 'none';
+    img.removeAttribute('src');
+    var host = img.parentElement;
+    if (host && !host.querySelector('.icon-missing')) {
+      var m = document.createElement('span');
+      m.className = 'icon-missing';
+      m.textContent = 'icon missing';
+      var label = img.getAttribute('alt') || '';
+      if (label) m.setAttribute('title', label);
+      host.appendChild(m);
+      host.classList.add('has-icon-missing');
+    }
+  }
+  if (typeof window !== 'undefined') {
+    window.cdnImageUrl = cdnImageUrl;
+    window.showIconMissing = showIconMissing;
+    window.encodeCdnKey = encodeCdnKey;
+  }
+
   document.addEventListener('error', function (e) {
     var t = e.target;
     if (!t || t.tagName !== 'IMG') return;
-    fix(t);
+    if (typeof fix === 'function') fix(t);
     var src = t.getAttribute('src') || '';
-    if (t.dataset.gfb === '2') { t.style.opacity = '0.4'; return; }
-    if (t.dataset.gfb === '1') {
-      t.dataset.gfb = '2';
-      // Never fall back to management.png for bag/item imgs
-      if (t.closest && t.closest('.recipe-icon-shell')) return;
-      t.src = 'https://molochdagod.github.io/ObjectStore/icons/496_rpg_icons/I_Rock01.png';
+    // Already retried (or already on the CDN and failed: HTML/403/decode). Show the marker — never Pages or info.
+    if (t.dataset.gfb === '1' || t.dataset.gfb === '2') {
+      if (typeof showIconMissing === 'function') showIconMissing(t);
       return;
     }
     t.dataset.gfb = '1';
-    // info.* category paths are often HTML shells — retry same path on assets CDN
-    if (/info\.grudge-studio\.com\/icons\//i.test(src) && !/\/icons\/skills\//i.test(src)) {
-      t.src = src.replace(/https?:\/\/info\.grudge-studio\.com/i, 'https://assets.grudge-studio.com').split('?')[0] + '?nr=1';
-    } else if (/assets\.grudge-studio\.com\/icons\/skills\//i.test(src)) {
-      t.src = src.replace(/https?:\/\/assets\.grudge-studio\.com/i, 'https://info.grudge-studio.com').split('?')[0] + '?nr=1';
-    } else if (/crafting-icons\/management\.png/i.test(src) && !(t.closest && t.closest('.recipe-icon-shell'))) {
-      t.src = 'https://molochdagod.github.io/ObjectStore/icons/496_rpg_icons/I_Rock01.png';
-    } else {
-      t.src = src.split('?')[0] + '?nr=1';
+    var cdn = (typeof cdnImageUrl === 'function') ? cdnImageUrl(src) : '';
+    // Rewrite a deprecated host onto the CDN once. If already on the CDN, this is a miss.
+    if (cdn && src && cdn.split('?')[0] !== src.split('?')[0] && !/assets\.grudge-studio\.com/i.test(src)) {
+      t.src = cdn;
+      return;
     }
+    if (typeof showIconMissing === 'function') showIconMissing(t);
   }, true);
 })();
 </script>
@@ -1514,6 +1561,16 @@ body .app {
   .station-tab { padding: 6px 8px; font-size: 10px; }
   .recipe-grid { max-height: none; }
 }
+
+    .icon-missing{
+      display:flex;align-items:center;justify-content:center;
+      width:100%;height:100%;min-height:28px;padding:3px 4px;box-sizing:border-box;
+      font:700 8px/1.15 Inter,system-ui,sans-serif;letter-spacing:.04em;
+      text-transform:uppercase;text-align:center;color:#f3c14a;
+      background:rgba(80,16,16,.72);border:1px solid rgba(243,193,74,.7);
+    }
+    .has-icon-missing{outline:1px dashed rgba(243,193,74,.85);}
+
 </style>
 </head>
 <body class="access-ready">
@@ -3908,7 +3965,7 @@ function showLevelUpBanner(profName, level, color, icon) {
   const iconVal = icon || STATE.professions[profName]?.iconUrl || PROF_ICON_URLS[profName] || 'âš’ï¸';
   if (badge) {
     if (typeof iconVal === 'string' && (iconVal.startsWith('http') || iconVal.startsWith('/'))) {
-      const src = iconVal.startsWith('http') ? iconVal : (INFO_CDN + iconVal);
+      const src = (typeof cdnImageUrl === 'function') ? cdnImageUrl(iconVal) : ((iconVal.startsWith('http') ? iconVal : ('https://assets.grudge-studio.com' + (iconVal.charAt(0)==='/'?iconVal:('/'+iconVal)))));
       badge.innerHTML = `<img referrerpolicy="no-referrer" src="${src}" alt="${profName}" style="width:64px;height:64px;object-fit:contain">`;
     } else {
       badge.textContent = iconVal;
@@ -4971,7 +5028,7 @@ let dbFilterCat = 'all';
 let MASTER_RECIPES_LOADED = false;
 
 const ASSET_CDN = (window.GRUDGE_CONFIG && window.GRUDGE_CONFIG.ASSETS) || 'https://assets.grudge-studio.com';
-/** Icon host SSOT — skill class icons live on info.*; pack weapons on both (prefer info). */
+/** Icon host SSOT — every image is on assets.grudge-studio.com. INFO_CDN is JSON only. */
 const INFO_CDN = (window.GRUDGE_CONFIG && window.GRUDGE_CONFIG.INFO_ORIGIN) || 'https://info.grudge-studio.com';
 
 /** Definition base URLs — info first (objectstore recipe/item paths currently 404). */
@@ -4990,16 +5047,11 @@ function definitionBases() {
 
 /**
  * Absolute icon host for a path under /icons/…
- * - skills/* only on info (assets 404)
- * - pack/* prefer assets (more complete; info has HTML shells for some Staff/Shield/etc.)
- * - onerror still falls back via iconImgTag
+ * - all /icons/* paths: assets.grudge-studio.com (encodeURI / %2B)
+ * - HTML, 403, or a failed decode → icon-missing marker; no info or Pages fallback
  */
 function iconCdnForPath(path) {
-  const p = String(path || '');
-  // skills/* only on info (assets 404). pack/* on assets CDN (reliable PNGs).
-  if (/\/icons\/skills\//i.test(p)) return INFO_CDN;
-  if (/\/icons\/pack\//i.test(p)) return ASSET_CDN;
-  if (/\/icons\//i.test(p)) return ASSET_CDN;
+  // All 2D icons load from the assets CDN. Never info (HTML impostors) or Pages.
   return ASSET_CDN;
 }
 
@@ -5119,8 +5171,8 @@ const ICON_CAT_TO_PACK = {
 };
 
 /** ObjectStore singles for materials only (not bag weapon art). */
-const OBJECTSTORE_ICON_GH = 'https://molochdagod.github.io/ObjectStore/icons';
-const OBJECTSTORE_ICON_RAW = 'https://raw.githubusercontent.com/MolochDaGod/ObjectStore/main/icons';
+const OBJECTSTORE_ICON_GH = 'https://assets.grudge-studio.com/icons';
+const OBJECTSTORE_ICON_RAW = 'https://assets.grudge-studio.com/icons';
 
 /**
  * Category → assets CDN pack stem (PascalCase file on /icons/pack/weapons|armor).
@@ -5194,7 +5246,7 @@ function resolveCanonicalIcon(urlOrPath, category, name) {
   let raw = (urlOrPath || '').trim();
   // Already assets absolute — use as-is (unless forbidden chrome atlas)
   if (/^https?:\/\/assets\.grudge-studio\.com\/icons\//i.test(raw) && !isForbiddenSpriteIconUrl(raw)) {
-    return raw.split('?')[0];
+    return (typeof cdnImageUrl === 'function' ? cdnImageUrl(raw) : raw.split('?')[0]);
   }
 
   let path = rewriteIconHost(raw);
@@ -5207,17 +5259,17 @@ function resolveCanonicalIcon(urlOrPath, category, name) {
   if (path && !path.startsWith('/') && !path.startsWith('http')) path = '/' + path;
   path = (path || '').replace(/^\/api\/v1/, '');
 
-  // Skill trees stay on info
-  if (/\/icons\/skills\//i.test(path)) return INFO_CDN + path;
+  // Skill icons: assets CDN (never info — those 200 as Hub HTML)
+  if (/\/icons\/skills\//i.test(path)) return (typeof cdnImageUrl === 'function' ? cdnImageUrl(path) : (ASSET_CDN + path));
 
   // info.* HTML shells for category icons → serve PNG from assets (same path)
   // e.g. /icons/swords/sword_01.png, /icons/armor_full/Helm_23.png
   if (path && path.startsWith('/icons/') && !isForbiddenSpriteIconUrl(path)) {
-    return ASSET_CDN + path;
+    return (typeof cdnImageUrl === 'function' ? cdnImageUrl(path) : (ASSET_CDN + path));
   }
 
   if (/molochdagod\.github\.io\/ObjectStore/i.test(raw) || /raw\.githubusercontent\.com\/MolochDaGod\/ObjectStore/i.test(raw)) {
-    return raw;
+    return (typeof cdnImageUrl === 'function' ? cdnImageUrl(raw) : (ASSET_CDN + path));
   }
 
   // Category-only → pack stem on assets (distinct per category, not management)
@@ -5250,22 +5302,18 @@ const ITEM_ICON_BROKEN_FALLBACK = OBJECTSTORE_ICON_GH + '/496_rpg_icons/I_Rock01
 
 function iconImgTag(url, name, cssClass, size) {
   const cls = cssClass || 'item-img';
-  let safe = String(url || ITEM_ICON_BROKEN_FALLBACK).replace(/"/g, '');
+  let safe = String(url || '').replace(/"/g, '');
   // Never render management as an item/bag icon
   if (/crafting-icons\/management\.png/i.test(safe)) {
-    safe = ITEM_ICON_BROKEN_FALLBACK;
+    safe = '';
   }
-  // info category paths often return HTML — prefer assets binary host
-  if (/info\.grudge-studio\.com\/icons\//i.test(safe) && !/\/icons\/skills\//i.test(safe)) {
-    safe = safe.replace(/https?:\/\/info\.grudge-studio\.com/i, ASSET_CDN);
-  }
-  if (/assets\.grudge-studio\.com\/icons\/skills\//i.test(safe)) {
-    safe = safe.replace(/https?:\/\/assets\.grudge-studio\.com/i, INFO_CDN);
-  }
+  if (safe) safe = (typeof cdnImageUrl === 'function' ? cdnImageUrl(safe) : safe);
   const alt = (name || 'item').replace(/"/g, '');
   const dim = size ? ` style="width:${size}px;height:${size}px;object-fit:contain"` : ' style="object-fit:contain"';
-  const fb = ITEM_ICON_BROKEN_FALLBACK.replace(/'/g, "\\'");
-  return `<img referrerpolicy="no-referrer" class="${cls}" data-icon-kind="item" src="${safe}" alt="${alt}" loading="lazy" decoding="async"${dim} onerror="if(this.dataset.fb==='1'){return}this.dataset.fb='1';this.src='${fb}'">`;
+  if (!safe) {
+    return `<span class="icon-missing ${cls}" title="${alt}">icon missing</span>`;
+  }
+  return `<img referrerpolicy="no-referrer" class="${cls}" data-icon-kind="item" src="${safe}" alt="${alt}" loading="lazy" decoding="async"${dim} onerror="if(typeof showIconMissing==='function')showIconMissing(this);else{this.style.display='none'}">`;
 }
 
 // ── Recipe icons: management.png ONLY, tinted by kind + Roman tier ──────────
@@ -5413,7 +5461,7 @@ function itemIcon(name, emoji, cssClass, size) {
   if (/management\.png/i.test(String(url || ''))) {
     url = typeof ITEM_ICON_BROKEN_FALLBACK !== 'undefined'
       ? ITEM_ICON_BROKEN_FALLBACK
-      : 'https://molochdagod.github.io/ObjectStore/icons/496_rpg_icons/I_Rock01.png';
+      : (typeof cdnImageUrl === 'function' ? cdnImageUrl('/icons/496_rpg_icons/I_Rock01.png') : 'https://assets.grudge-studio.com/icons/496_rpg_icons/I_Rock01.png');
   }
   if (url) return iconImgTag(url, name, cls, size);
   return emoji || '📦';
