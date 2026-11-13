@@ -81,7 +81,7 @@ const ATTRIBUTE_SIGILS: Record<string, string> = {
   Intellect: '/sprites/2d-island/ui/attributes/intellect.png',
   Wisdom: '/sprites/2d-island/ui/attributes/wisdom.png',
   Dexterity: '/sprites/2d-island/ui/attributes/dexterity.png',
-  Agility: '/sprites/2d-island/ui/attributes/agility.png',
+  Agility: '/images/attributes/agility.png',
   Tactics: '/sprites/2d-island/ui/attributes/tactics.png',
 };
 
