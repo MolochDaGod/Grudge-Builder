@@ -38,6 +38,8 @@ jobs:
           npm run build:server
       - name: Run client acceptance tests
         run: npm run test:client -- --run
+      - name: Run server unit tests
+        run: npm run test:server
       - name: Verify production route contract
         # The stable test alias may intentionally point at the previous green
         # release while this candidate is being validated. The exact SHA is
