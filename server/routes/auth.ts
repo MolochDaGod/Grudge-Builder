@@ -82,7 +82,9 @@ const JWT_SECRET_CANDIDATES = [
   process.env.SESSION_SECRET,
   process.env.JWT_SECRET,
   process.env.GRUDGE_JWT_SECRET,
-].filter((s): s is string => !!s && s.length > 0);
+]
+  .map((s) => s?.trim())
+  .filter((s): s is string => !!s && s.length > 0);
 
 const JWT_SECRET = JWT_SECRET_CANDIDATES[0] || "";
 /**
@@ -138,10 +140,18 @@ function ttlToSeconds(ttl: string): number {
 const STUDIO_ORIGIN_OPTS = serverStudioOriginOpts();
 
 function requestBaseUrl(req: Request): string {
-  const xfProto = (req.get("x-forwarded-proto") || "").split(",")[0]?.trim();
-  const proto = xfProto || req.protocol || "https";
-  const host = req.get("x-forwarded-host") || req.get("host") || "id.grudge-studio.com";
-  return `${proto}://${host}`;
+  const host = req.get("host") || "";
+  if (host) {
+    const xfProto = (req.get("x-forwarded-proto") || "").split(",")[0]?.trim();
+    const proto = xfProto || req.protocol || "https";
+    try {
+      const origin = new URL(`${proto}://${host}`).origin;
+      if (isStudioOrigin(origin, STUDIO_ORIGIN_OPTS)) return origin;
+    } catch {
+      /* ignore */
+    }
+  }
+  return "https://id.grudge-studio.com";
 }
 
 function resolveSafeReturn(value: string | undefined, req: Request, fallback = ""): string {
