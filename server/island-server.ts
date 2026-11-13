@@ -21,6 +21,9 @@ import cors from "cors";
 import express from "express";
 import jwt from "jsonwebtoken";
 import { GRUDGE_SOCKETIO_CORS } from "./cors";
+import { readEnvSecret, requireSessionAndJwtSecrets } from "./lib/requiredSecrets";
+
+requireSessionAndJwtSecrets();
 
 const NAVMESH_DIR = join(process.cwd(), "server", "data", "navmesh");
 const LOBBY_MAP_DIR = join(process.cwd(), "public", "maps", "lobby");
@@ -140,8 +143,8 @@ const ENEMY_SPAWN_INTERVAL = 15_000; // ms between enemy spawns per island
 const MAX_ENEMIES_PER_ISLAND = 8;
 const NODE_RESPAWN_MS = 60_000;
 
-const JWT_SECRET = process.env.JWT_SECRET || "";
-const REQUIRE_AUTH = !!JWT_SECRET;
+const JWT_SECRET = readEnvSecret("JWT_SECRET");
+const REQUIRE_AUTH = true;
 
 // ─── Rate limiting ───────────────────────────────────────────────────────────
 
@@ -376,8 +379,6 @@ const io = new Server(httpServer, {
 // ─── JWT Auth middleware ──────────────────────────────────────────────────────
 
 io.use((socket, next) => {
-  if (!REQUIRE_AUTH) return next(); // Dev mode — skip auth
-
   const token =
     socket.handshake.auth?.token ||
     socket.handshake.headers?.authorization?.replace("Bearer ", "");
@@ -770,7 +771,7 @@ const PORT = parseInt(process.env.WORLD_PORT ?? process.env.ISLAND_PORT ?? "4321
 httpServer.listen(PORT, "0.0.0.0", () => {
   console.log(`\n[world] Grudge World Server running on port ${PORT}`);
   console.log(`[world] Health check: http://localhost:${PORT}/health`);
-  console.log(`[world] Auth: ${REQUIRE_AUTH ? "JWT required" : "OPEN (no JWT_SECRET set)"}`);
+  console.log("[world] Auth: JWT required");
   console.log("[world] Waiting for connections...\n");
 });
 
