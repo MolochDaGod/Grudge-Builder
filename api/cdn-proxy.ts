@@ -24,7 +24,13 @@ function setCors(res: ServerResponse): void {
   res.setHeader("X-Grudge-Asset-Proxy", "cdn-proxy");
 }
 
-function sanitizeKey(raw: string): string | null {
+/**
+ * Allow letters, digits, `._-/% `, parentheses, and `+`.
+ * `( )` and `+` are part of real R2 key names — do not rename keys.
+ */
+const KEY_CHAR = /^[A-Za-z0-9._\-/% ()+]+$/;
+
+export function sanitizeKey(raw: string): string | null {
   let key = raw.trim();
   try {
     key = decodeURIComponent(key);
@@ -35,15 +41,52 @@ function sanitizeKey(raw: string): string | null {
   if (!key || key.length > MAX_PATH) return null;
   if (key.includes("..") || key.includes("\\") || key.includes("://")) return null;
   if (key.includes("//")) return null;
-  if (!/^[A-Za-z0-9._\-/% ]+$/.test(key)) return null;
+  if (!KEY_CHAR.test(key)) return null;
   return key;
 }
 
-function keyFromReq(req: IncomingMessage): string | null {
+/** Encode each path segment so `+` goes out as `%2B`. Does not rename R2 keys. */
+export function encodeKeyPath(key: string): string {
+  return (
+    "/" +
+    key
+      .split("/")
+      .map((seg) => encodeURIComponent(seg))
+      .join("/")
+  );
+}
+
+/**
+ * Read a query parameter from the raw query string.
+ * Uses decodeURIComponent and does not treat `+` as space
+ * (unlike URLSearchParams / searchParams.get).
+ */
+export function rawQueryParam(search: string, name: string): string | null {
+  const q = search.startsWith("?") ? search.slice(1) : search;
+  if (!q) return null;
+  const prefix = `${name}=`;
+  for (const part of q.split("&")) {
+    if (part === name) return "";
+    if (part.startsWith(prefix)) {
+      const raw = part.slice(prefix.length);
+      try {
+        return decodeURIComponent(raw);
+      } catch {
+        return null;
+      }
+    }
+  }
+  return null;
+}
+
+export function keyFromReq(req: IncomingMessage): string | null {
+  const reqUrl = req.url || "/";
+  const qIdx = reqUrl.indexOf("?");
+  const rawSearch = qIdx >= 0 ? reqUrl.slice(qIdx) : "";
+  const rawKey = rawQueryParam(rawSearch, "key");
+  if (rawKey) return sanitizeKey(rawKey);
   const host = req.headers.host || "localhost";
-  const url = new URL(req.url || "/", `http://${host}`);
-  const q = url.searchParams.get("key");
-  if (q) return sanitizeKey(q);
+  const url = new URL(reqUrl, `http://${host}`);
   const path = url.pathname;
   for (const prefix of ["/api/cdn-proxy/", "/api/assets/"]) {
     if (path.startsWith(prefix)) return sanitizeKey(path.slice(prefix.length));
@@ -78,7 +121,7 @@ export default function handler(req: IncomingMessage, res: ServerResponse): void
     .filter(([k]) => k !== "key")
     .map(([k, v]) => `${encodeURIComponent(k)}=${encodeURIComponent(v)}`)
     .join("&");
-  const path = `/${key}${extra ? `?${extra}` : ""}`;
+  const path = `${encodeKeyPath(key)}${extra ? `?${extra}` : ""}`;
 
   const headers: Record<string, string> = {
     Host: CDN_HOST,

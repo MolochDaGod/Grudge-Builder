@@ -18,6 +18,7 @@ import Layout from "@/components/Layout";
 import { CharacterManager, Character, EquipmentSlots } from "@/lib/characterManager";
 import { ITEMS, resolveItemImage, RESOURCE_NODES } from "@/lib/grudaDB";
 import { resolveIconUrl, iconOnError } from "@/lib/iconResolver";
+import { cdnImageUrl, ICON_MISSING_STYLE } from "@shared/cdnImageUrl";
 import { itemToEquipSlot } from "@/lib/equipmentSlotMap";
 import { useCharacters } from "@/hooks/use-characters";
 import { useAccountInventory } from "@/hooks/use-account";
@@ -74,13 +75,13 @@ function getCharPalette(charId?: string): ColorPalette | undefined {
 
 /** Pixel art sigil paths for each attribute */
 const ATTRIBUTE_SIGILS: Record<string, string> = {
-  Strength: '/sprites/2d-island/ui/attributes/strength.png',
+  Strength: '/images/attributes/strength.png',
   Vitality: '/sprites/2d-island/ui/attributes/vitality.png',
   Endurance: '/sprites/2d-island/ui/attributes/endurance.png',
   Intellect: '/sprites/2d-island/ui/attributes/intellect.png',
   Wisdom: '/sprites/2d-island/ui/attributes/wisdom.png',
   Dexterity: '/sprites/2d-island/ui/attributes/dexterity.png',
-  Agility: '/sprites/2d-island/ui/attributes/agility.png',
+  Agility: '/images/attributes/agility.png',
   Tactics: '/sprites/2d-island/ui/attributes/tactics.png',
 };
 
@@ -98,9 +99,20 @@ const ATTRIBUTE_ICONS: Record<string, string> = {
 /** Renders a pixel-art attribute sigil icon with emoji fallback */
 function AttrSigil({ attr, size = 20 }: { attr: string; size?: number }) {
   const path = ATTRIBUTE_SIGILS[attr];
-  return path ? (
-    <img src={path} alt={attr} className="inline-block" style={{ width: size, height: size }} onError={(e) => { e.currentTarget.replaceWith(document.createTextNode(ATTRIBUTE_ICONS[attr] || '')); }} />
-  ) : <span className="text-sm">{ATTRIBUTE_ICONS[attr]}</span>;
+  const [failed, setFailed] = useState(false);
+  if (!path) return <span className="text-sm">{ATTRIBUTE_ICONS[attr]}</span>;
+  if (failed) {
+    return <span className="icon-missing inline-block" style={{ ...ICON_MISSING_STYLE, width: size, height: size, minHeight: size }} title={attr}>icon missing</span>;
+  }
+  return (
+    <img
+      src={cdnImageUrl(path)}
+      alt={attr}
+      className="inline-block"
+      style={{ width: size, height: size }}
+      onError={() => setFailed(true)}
+    />
+  );
 }
 
 /** cNFT / Avatar actions with mint-lock — checks existing mint before allowing */

@@ -62,6 +62,7 @@ import {
   interpolateKeyframes
 } from "@shared/definitions/animationEditor";
 import { assetUrl } from "@/lib/assetConfig";
+import { cdnImageUrl, ICON_MISSING_STYLE } from "@shared/cdnImageUrl";
 
 const CLASS_ICONS: Record<string, React.ReactNode> = {
   warrior: <Sword className="w-4 h-4" />,
@@ -95,6 +96,13 @@ function AnimatedSpellPreview({
   const imageRef = useRef<HTMLImageElement | null>(null);
   
   useEffect(() => {
+    const url = cdnImageUrl(spell.basePath);
+    if (!url) {
+      imageRef.current = null;
+      setHasError(true);
+      setImageLoaded(false);
+      return;
+    }
     const img = new Image();
     img.onload = () => {
       imageRef.current = img;
@@ -105,7 +113,7 @@ function AnimatedSpellPreview({
       setHasError(true);
       setImageLoaded(false);
     };
-    img.src = spell.basePath;
+    img.src = url;
     
     return () => {
       img.onload = null;
@@ -145,10 +153,10 @@ function AnimatedSpellPreview({
   if (hasError) {
     return (
       <div 
-        className="bg-slate-700 rounded flex items-center justify-center text-slate-400"
+        className="bg-slate-700 rounded flex items-center justify-center text-slate-400 has-icon-missing"
         style={{ width: size, height: size }}
       >
-        <Sparkles className="w-4 h-4" />
+        <span className="icon-missing" style={ICON_MISSING_STYLE}>icon missing</span>
       </div>
     );
   }

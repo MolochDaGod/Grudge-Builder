@@ -8,6 +8,7 @@ import {
   SKELETON_CRUSADER_ANIMATIONS,
   generateFramePath
 } from '@shared/definitions/characterAnimations';
+import { cdnImageUrl, ICON_MISSING_STYLE } from '@shared/cdnImageUrl';
 
 export type CharacterCategory = 'orcs' | 'vampires' | 'skeletons';
 export type Direction = 'down' | 'left' | 'right' | 'up';
@@ -35,17 +36,28 @@ interface CharacterAnimatorProps {
 const imageCache: Record<string, HTMLImageElement> = {};
 
 function preloadImage(src: string): Promise<HTMLImageElement> {
-  if (imageCache[src]) {
-    return Promise.resolve(imageCache[src]);
+  const url = cdnImageUrl(src);
+  if (imageCache[url]) {
+    return Promise.resolve(imageCache[url]);
   }
   return new Promise((resolve, reject) => {
+    if (!url) {
+      reject(new Error('missing image'));
+      return;
+    }
     const img = new Image();
     img.onload = () => {
-      imageCache[src] = img;
+      // A 200 HTML impostor typically fails decode and hits onerror.
+      // If it somehow "loads" with zero size, treat as missing.
+      if (!img.naturalWidth) {
+        reject(new Error('empty image'));
+        return;
+      }
+      imageCache[url] = img;
       resolve(img);
     };
     img.onerror = reject;
-    img.src = src;
+    img.src = url;
   });
 }
 
@@ -207,13 +219,13 @@ export function CharacterAnimator({
     return (
       <div
         className={cn(
-          'flex items-center justify-center bg-slate-800/50 text-slate-500 text-xs border border-slate-700',
+          'flex items-center justify-center bg-slate-800/50 text-slate-500 text-xs border border-slate-700 has-icon-missing',
           className
         )}
         style={{ width: 64 * scale, height: 64 * scale }}
         data-testid="character-animator-error"
       >
-        ?
+        <span className="icon-missing" style={ICON_MISSING_STYLE}>icon missing</span>
       </div>
     );
   }

@@ -26,6 +26,7 @@ export default defineConfig({
       "../server/studioOriginsEnv.test.ts",
       "../server/authPageSanitize.test.ts",
       "../workers/id-gateway/src/index.test.js",
+      "../api/cdn-proxy.test.ts",
     ],
     css: false,
   },
