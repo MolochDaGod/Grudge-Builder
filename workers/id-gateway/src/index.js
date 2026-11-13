@@ -46,6 +46,7 @@ function isSensitivePath(pathname) {
     pathname === "/api/auth/" ||
     pathname.startsWith("/api/auth/")
   );
+}
 
 const CORS_ORIGINS = [
   "https://grudgewarlords.com",
