@@ -106,6 +106,14 @@
     if (!raw || raw === '/') return '';
     return 'https://assets.grudge-studio.com' + encodeCdnKey(raw);
   }
+  function escapeHtml(s) {
+    return String(s == null ? '' : s)
+      .replace(/&/g, '&amp;')
+      .replace(/</g, '&lt;')
+      .replace(/>/g, '&gt;')
+      .replace(/"/g, '&quot;')
+      .replace(/'/g, '&#39;');
+  }
   function showIconMissing(img) {
     if (!img) return;
     img.style.display = 'none';
@@ -124,6 +132,7 @@
   if (typeof window !== 'undefined') {
     window.cdnImageUrl = cdnImageUrl;
     window.showIconMissing = showIconMissing;
+    window.escapeHtml = escapeHtml;
     window.encodeCdnKey = encodeCdnKey;
   }
 
@@ -3611,11 +3620,11 @@ function openStation(stationId) {
 function stationIconHtml(st, size) {
   if (st && st.iconUrl) {
     const s = size || 18;
-    const fb = (typeof CRAFTING_UI_ICONS !== 'undefined' ? CRAFTING_UI_ICONS.camp : './crafting-icons/eagle-shield.png');
-    const src = (typeof isForbiddenSpriteIconUrl === 'function' && isForbiddenSpriteIconUrl(st.iconUrl))
-      ? fb
-      : st.iconUrl;
-    return `<img referrerpolicy="no-referrer" data-icon-kind="single" src="${src}" alt="" width="${s}" height="${s}" style="object-fit:contain" loading="lazy" decoding="async" onerror="if(!this.dataset.fb){this.dataset.fb=1;this.src='${fb}';this.dataset.iconKind='single'}">`;
+    const raw = (typeof cdnImageUrl === 'function') ? cdnImageUrl(st.iconUrl) : '';
+    if (!raw) return '<span class="icon-missing">icon missing</span>';
+    const src = escapeHtml(raw);
+    const dim = escapeHtml(String(s));
+    return `<img referrerpolicy="no-referrer" data-icon-kind="single" src="${src}" alt="" width="${dim}" height="${dim}" style="object-fit:contain" loading="lazy" decoding="async" onerror="if(typeof showIconMissing==='function')showIconMissing(this);">`;
   }
   return st?.icon || "⛺";
 }
@@ -3635,9 +3644,17 @@ function applyStationScene(st) {
     else scene.style.removeProperty('--station-bg');
   }
   if (iconEl) {
-    iconEl.innerHTML = st.iconUrl
-      ? `<img referrerpolicy="no-referrer" data-icon-kind="${/\/skills\//i.test(st.iconUrl) ? "skill" : "pack"}" src="${st.iconUrl}" alt="${st.name}" loading="lazy" decoding="async" onerror="this.onerror=null;this.src='./crafting-icons/eagle-shield.png';this.dataset.iconKind='pack'">`
-      : (st.icon || "âš’");
+    if (st.iconUrl) {
+      const raw = (typeof cdnImageUrl === 'function') ? cdnImageUrl(st.iconUrl) : '';
+      if (!raw) {
+        iconEl.innerHTML = '<span class="icon-missing">icon missing</span>';
+      } else {
+        const kind = /\/skills\//i.test(st.iconUrl) ? "skill" : "pack";
+        iconEl.innerHTML = `<img referrerpolicy="no-referrer" data-icon-kind="${kind}" src="${escapeHtml(raw)}" alt="${escapeHtml(st.name)}" loading="lazy" decoding="async" onerror="if(typeof showIconMissing==='function')showIconMissing(this);">`;
+      }
+    } else {
+      iconEl.textContent = st.icon || "âš’";
+    }
   }
   if (titleEl) titleEl.textContent = st.name;
   if (descEl) descEl.textContent = st.desc || '';
@@ -3965,8 +3982,12 @@ function showLevelUpBanner(profName, level, color, icon) {
   const iconVal = icon || STATE.professions[profName]?.iconUrl || PROF_ICON_URLS[profName] || 'âš’ï¸';
   if (badge) {
     if (typeof iconVal === 'string' && (iconVal.startsWith('http') || iconVal.startsWith('/'))) {
-      const src = (typeof cdnImageUrl === 'function') ? cdnImageUrl(iconVal) : ((iconVal.startsWith('http') ? iconVal : ('https://assets.grudge-studio.com' + (iconVal.charAt(0)==='/'?iconVal:('/'+iconVal)))));
-      badge.innerHTML = `<img referrerpolicy="no-referrer" src="${src}" alt="${profName}" style="width:64px;height:64px;object-fit:contain">`;
+      const src = (typeof cdnImageUrl === 'function') ? cdnImageUrl(iconVal) : '';
+      if (!src) {
+        badge.innerHTML = '<span class="icon-missing">icon missing</span>';
+      } else {
+        badge.innerHTML = `<img referrerpolicy="no-referrer" src="${escapeHtml(src)}" alt="${escapeHtml(profName)}" style="width:64px;height:64px;object-fit:contain" onerror="if(typeof showIconMissing==='function')showIconMissing(this);">`;
+      }
     } else {
       badge.textContent = iconVal;
     }
@@ -5293,12 +5314,12 @@ function resolveCanonicalIcon(urlOrPath, category, name) {
   if (/herb|plant|fiber/i.test(nm)) return OBJECTSTORE_ICON_RAW + '/items/herbs/herbs_01.png';
   if (/meat|food|stew|soup|potion/i.test(nm)) return OBJECTSTORE_ICON_GH + '/496_rpg_icons/I_C_Meat.png';
 
-  // Last resort: ObjectStore generic rock — NEVER management.png for items
-  return OBJECTSTORE_ICON_GH + '/496_rpg_icons/I_Rock01.png';
+  // Last resort: no substitute art — caller shows the missing marker
+  return '';
 }
 
 /** Placeholder when image 404s — not management (avoids recipe-icon spam). */
-const ITEM_ICON_BROKEN_FALLBACK = OBJECTSTORE_ICON_GH + '/496_rpg_icons/I_Rock01.png';
+const ITEM_ICON_BROKEN_FALLBACK = '';
 
 function iconImgTag(url, name, cssClass, size) {
   const cls = cssClass || 'item-img';
@@ -5459,9 +5480,8 @@ function itemIcon(name, emoji, cssClass, size) {
     url = resolveCanonicalIcon(null, cat, name);
   }
   if (/management\.png/i.test(String(url || ''))) {
-    url = typeof ITEM_ICON_BROKEN_FALLBACK !== 'undefined'
-      ? ITEM_ICON_BROKEN_FALLBACK
-      : (typeof cdnImageUrl === 'function' ? cdnImageUrl('/icons/496_rpg_icons/I_Rock01.png') : 'https://assets.grudge-studio.com/icons/496_rpg_icons/I_Rock01.png');
+    // No substitute art (no I_Rock01) — show the missing marker
+    return iconImgTag('', name, cls, size);
   }
   if (url) return iconImgTag(url, name, cls, size);
   return emoji || '📦';
