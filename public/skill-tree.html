@@ -589,8 +589,8 @@ function buildClasses(classes){
             hint: isCatalog
               ? ("ObjectStore catalog" + ptsHint + (n ? (" · " + n + " skills") : ""))
               : (n > 1 ? ("Pick 1 of " + n) : "Granted"),
-            auto: isCatalog ? true : n === 1,
-            picks: isCatalog ? n : 1,
+            auto: isCatalog ? false : n === 1,
+            picks: isCatalog ? 0 : 1,
             catalog: isCatalog,
             skills: t.choices.map(mapSkill),
           };
@@ -819,6 +819,26 @@ function iconFor(cls, skillName){
   }
 })();
 
+/* -------- safe DOM (no unescaped innerHTML of SSOT / pack text) -------- */
+function esc(s){
+  return String(s == null ? "" : s)
+    .replace(/&/g,"&amp;")
+    .replace(/</g,"&lt;")
+    .replace(/>/g,"&gt;")
+    .replace(/"/g,"&quot;")
+    .replace(/'/g,"&#39;");
+}
+function safeUrl(s){
+  if (!s) return "";
+  const raw = String(s).trim();
+  if (!raw) return "";
+  try {
+    const u = new URL(raw, (typeof location !== "undefined" && location.href) ? location.href : "https://grudgewarlords.com/");
+    if (u.protocol === "http:" || u.protocol === "https:") return u.href;
+  } catch(e){}
+  return "";
+}
+
 /* -------- rendering -------- */
 const raceEl   = document.getElementById("racepicker");
 const pickerEl = document.getElementById("classpicker");
@@ -856,30 +876,57 @@ function renderRaces(){
 }
 
 function renderPicker(){
-  pickerEl.innerHTML = "";
+  pickerEl.replaceChildren();
   Object.entries(CLASSES).forEach(([k,c])=>{
     const n = document.createElement("div");
     n.className = "cls"+(state.cls===k?" active":"");
     n.dataset.k = k;
-    n.innerHTML = `
-      <div class="cover" style="background-image:url('${c.hero}')"></div>
-      <div class="head">
-        <div class="crest">${c.classIcon ? `<img src="${c.classIcon}" alt="${c.name}">` : c.emoji}</div>
-        <div>
-          <h3>${c.name}</h3>
-          <div class="role">${c.role}</div>
-        </div>
-      </div>
-      <p>${c.desc}</p>`;
+
+    const cover = document.createElement("div");
+    cover.className = "cover";
+    const hero = safeUrl(c.hero);
+    if (hero) cover.style.backgroundImage = "url(\"" + hero + "\")";
+
+    const head = document.createElement("div");
+    head.className = "head";
+    const crest = document.createElement("div");
+    crest.className = "crest";
+    const icon = safeUrl(c.classIcon);
+    if (icon) {
+      const img = document.createElement("img");
+      img.setAttribute("src", icon);
+      img.setAttribute("alt", c.name || "");
+      crest.appendChild(img);
+    } else {
+      crest.textContent = c.emoji || "";
+    }
+    const titles = document.createElement("div");
+    const h3 = document.createElement("h3");
+    h3.textContent = c.name || "";
+    const role = document.createElement("div");
+    role.className = "role";
+    role.textContent = c.role || "";
+    titles.appendChild(h3);
+    titles.appendChild(role);
+    head.appendChild(crest);
+    head.appendChild(titles);
+
+    const p = document.createElement("p");
+    p.textContent = c.desc || "";
+
+    n.appendChild(cover);
+    n.appendChild(head);
+    n.appendChild(p);
     n.onclick = ()=>selectClass(k);
     pickerEl.appendChild(n);
   });
 }
 
 function selectClass(k){
+  // Browsing a class is not a save. Picks and Railway sync wait for an
+  // explicit action on the tree (toggle / randomize / reset / lock).
   state.cls = k;
   state.picks[k] = state.picks[k] || {};
-  save();
   setBg(k);
   render();
 }
@@ -911,13 +958,20 @@ function renderTree(){
     const tier = document.createElement("div");
     tier.className = "tier"+(t.auto?" auto":"");
     const picks = t.picks||1;
-    tier.innerHTML = `
-      <div class="tier-label">
-        <b>Lv ${t.lvl}</b>${t.label}
-        <div class="pickhint">${t.hint}</div>
-      </div>
-      <div class="row"></div>`;
-    const row = tier.querySelector(".row");
+    const label = document.createElement("div");
+    label.className = "tier-label";
+    const lv = document.createElement("b");
+    lv.textContent = "Lv " + t.lvl;
+    label.appendChild(lv);
+    label.appendChild(document.createTextNode(t.label || ""));
+    const hint = document.createElement("div");
+    hint.className = "pickhint";
+    hint.textContent = t.hint || "";
+    label.appendChild(hint);
+    const row = document.createElement("div");
+    row.className = "row";
+    tier.appendChild(label);
+    tier.appendChild(row);
 
     t.skills.forEach(s=>{
       const picked = isPicked(k,t.lvl,s.n);
@@ -925,14 +979,43 @@ function renderTree(){
       const n = document.createElement("div");
       n.className = "node"+(t.auto?" auto":"")+(picked?" selected":"");
       n.dataset.name = s.n;
-      n.innerHTML = `
-        ${t.auto?`<div class="badge">AUTO</div>`:""}
-        <div class="head">
-          <div class="icon">${iconPath ? `<img src="${iconPath}" alt="${s.n}">` : s.i}</div>
-          <div class="name">${s.n}</div>
-        </div>
-        <div class="desc">${s.d}</div>
-        <div class="meta">${Object.entries(s.stats).slice(0,4).map(([k,v])=>`<span>${k}: ${v}</span>`).join("")}</div>`;
+      if (t.auto) {
+        const badge = document.createElement("div");
+        badge.className = "badge";
+        badge.textContent = "AUTO";
+        n.appendChild(badge);
+      }
+      const head = document.createElement("div");
+      head.className = "head";
+      const iconEl = document.createElement("div");
+      iconEl.className = "icon";
+      const src = safeUrl(iconPath);
+      if (src) {
+        const img = document.createElement("img");
+        img.setAttribute("src", src);
+        img.setAttribute("alt", s.n || "");
+        iconEl.appendChild(img);
+      } else {
+        iconEl.textContent = s.i || "";
+      }
+      const nameEl = document.createElement("div");
+      nameEl.className = "name";
+      nameEl.textContent = s.n || "";
+      head.appendChild(iconEl);
+      head.appendChild(nameEl);
+      const desc = document.createElement("div");
+      desc.className = "desc";
+      desc.textContent = s.d || "";
+      const meta = document.createElement("div");
+      meta.className = "meta";
+      Object.entries(s.stats || {}).slice(0,4).forEach(([sk,sv])=>{
+        const span = document.createElement("span");
+        span.textContent = sk + ": " + sv;
+        meta.appendChild(span);
+      });
+      n.appendChild(head);
+      n.appendChild(desc);
+      n.appendChild(meta);
 
       n.onmousemove = (e)=>{
         const r = n.getBoundingClientRect();
@@ -949,10 +1032,14 @@ function renderTree(){
     });
     treeEl.appendChild(tier);
 
-    // auto-pick innate (and ObjectStore catalog tiers: every listed skill)
-    if(t.auto){
+    // Innate (non-catalog) only: mark the granted L0 skill in memory.
+    // Do not auto-select catalog skills, and do not save() here — browsing
+    // a class must not persist picks or sync to Railway.
+    if(t.auto && !t.catalog){
       state.picks[k] = state.picks[k]||{};
-      state.picks[k][t.lvl] = t.catalog ? t.skills.map(s=>s.n) : [t.skills[0].n];
+      if (!state.picks[k][t.lvl] || !state.picks[k][t.lvl].length) {
+        state.picks[k][t.lvl] = [t.skills[0].n];
+      }
     }
   });
 }
@@ -996,40 +1083,99 @@ function renderSide(){
   // Studio dossier from classes.json — shown alongside the tree, never used to
   // overwrite a conflicting Grudge-Builder name or skill list.
   const dos = c.dossier;
-  let dossierHtml = "";
+  buildEl.replaceChildren();
   if (dos) {
     const nameConflict = dos.name && dos.name !== c.name;
     const idConflict = dos.id && dos.id !== k;
     const attrs = dos.startingAttributes
       ? Object.entries(dos.startingAttributes).map(([n,v]) => n + " " + v).join(" · ")
       : "";
-    dossierHtml = `<div class="dossier" style="margin:0 0 14px;padding:10px 12px;border:1px solid var(--line);border-radius:12px;font-size:12px;line-height:1.45;color:#cfd5f5">
-      <div style="font-weight:800;letter-spacing:.6px;color:var(--gold);margin-bottom:4px">Studio dossier · classes.json</div>
-      <div><b>${dos.name}</b> <span style="color:var(--mute)">(id: ${dos.id})</span></div>
-      ${nameConflict || idConflict ? `<div style="color:#ffd98a;margin-top:4px">Conflicts with this page's tree pack: <b>${c.name}</b> (id: ${k}). Both are shown; neither was picked.</div>` : ""}
-      ${dos.description ? `<div style="margin-top:6px">${dos.description}</div>` : ""}
-      ${dos.lore ? `<div style="margin-top:6px;color:var(--mute)">${dos.lore}</div>` : ""}
-      ${attrs ? `<div style="margin-top:6px"><span style="color:var(--mute)">Starting attributes:</span> ${attrs}</div>` : ""}
-      ${dos.level0Name ? `<div style="margin-top:4px"><span style="color:var(--mute)">ObjectStore L0:</span> ${dos.level0Name}</div>` : ""}
-    </div>`;
+    const box = document.createElement("div");
+    box.className = "dossier";
+    box.style.cssText = "margin:0 0 14px;padding:10px 12px;border:1px solid var(--line);border-radius:12px;font-size:12px;line-height:1.45;color:#cfd5f5";
+    const title = document.createElement("div");
+    title.style.cssText = "font-weight:800;letter-spacing:.6px;color:var(--gold);margin-bottom:4px";
+    title.textContent = "Studio dossier · classes.json";
+    box.appendChild(title);
+    const nameRow = document.createElement("div");
+    const nameB = document.createElement("b");
+    nameB.textContent = dos.name || "";
+    const idSp = document.createElement("span");
+    idSp.style.color = "var(--mute)";
+    idSp.textContent = " (id: " + (dos.id || "") + ")";
+    nameRow.appendChild(nameB);
+    nameRow.appendChild(idSp);
+    box.appendChild(nameRow);
+    if (nameConflict || idConflict) {
+      const note = document.createElement("div");
+      note.style.cssText = "color:#ffd98a;margin-top:4px";
+      note.appendChild(document.createTextNode("Conflicts with this page's tree pack: "));
+      const cn = document.createElement("b");
+      cn.textContent = c.name || "";
+      note.appendChild(cn);
+      note.appendChild(document.createTextNode(" (id: " + k + "). Both are shown; neither was picked."));
+      box.appendChild(note);
+    }
+    if (dos.description) {
+      const d = document.createElement("div");
+      d.style.marginTop = "6px";
+      d.textContent = dos.description;
+      box.appendChild(d);
+    }
+    if (dos.lore) {
+      const d = document.createElement("div");
+      d.style.cssText = "margin-top:6px;color:var(--mute)";
+      d.textContent = dos.lore;
+      box.appendChild(d);
+    }
+    if (attrs) {
+      const d = document.createElement("div");
+      d.style.marginTop = "6px";
+      const lab = document.createElement("span");
+      lab.style.color = "var(--mute)";
+      lab.textContent = "Starting attributes: ";
+      d.appendChild(lab);
+      d.appendChild(document.createTextNode(attrs));
+      box.appendChild(d);
+    }
+    if (dos.level0Name) {
+      const d = document.createElement("div");
+      d.style.marginTop = "4px";
+      const lab = document.createElement("span");
+      lab.style.color = "var(--mute)";
+      lab.textContent = "ObjectStore L0: ";
+      d.appendChild(lab);
+      d.appendChild(document.createTextNode(dos.level0Name));
+      box.appendChild(d);
+    }
+    buildEl.appendChild(box);
   }
 
-  // build list
-  buildEl.innerHTML = dossierHtml + c.tiers.map(t=>{
+  c.tiers.forEach(t=>{
     const arr = (state.picks[k]||{})[t.lvl]||[];
-    const names = arr.length ? arr.join(" + ") : "â€”";
+    const names = arr.length ? arr.join(" + ") : "—";
     const picked = arr.length>0;
-    return `<div class="bline ${picked?"picked":""}">
-      <div class="dot"></div>
-      <div class="lbl">Lv ${t.lvl}</div>
-      <b>${names}</b>
-      <em>${t.auto?"auto":`pick ${t.picks||1}`}</em>
-    </div>`;
-  }).join("");
+    const line = document.createElement("div");
+    line.className = "bline" + (picked ? " picked" : "");
+    const dot = document.createElement("div");
+    dot.className = "dot";
+    const lbl = document.createElement("div");
+    lbl.className = "lbl";
+    lbl.textContent = "Lv " + t.lvl;
+    const b = document.createElement("b");
+    b.textContent = names;
+    const em = document.createElement("em");
+    em.textContent = t.auto ? "auto" : (t.catalog ? "catalog" : ("pick " + (t.picks||1)));
+    line.appendChild(dot);
+    line.appendChild(lbl);
+    line.appendChild(b);
+    line.appendChild(em);
+    buildEl.appendChild(line);
+  });
 
   // progress
-  const need = c.tiers.filter(t=>!t.auto).reduce((a,t)=>a+(t.picks||1),0);
-  const got  = c.tiers.filter(t=>!t.auto).reduce((a,t)=>{
+  const need = c.tiers.filter(t=>!t.auto && !t.catalog).reduce((a,t)=>a+(t.picks||1),0);
+  const got  = c.tiers.filter(t=>!t.auto && !t.catalog).reduce((a,t)=>{
     return a+((state.picks[k]||{})[t.lvl]||[]).length;
   },0);
   const pct = need? Math.min(100,(got/need)*100) : 0;
@@ -1040,13 +1186,43 @@ function renderSide(){
 /* -------- tooltip -------- */
 function showTip(e,s,t){
   const iconPath = s.icon || iconFor(state.cls, s.n);
-  tip.innerHTML = `<div style="display:flex;gap:10px;align-items:flex-start">
-    ${iconPath ? `<div class="thumb"><img src="${iconPath}" alt="${s.n}"></div>` : ``}
-    <div style="flex:1">
-    <b>${s.n}</b> <span style="color:var(--mute);font-size:11px">Â· Lv ${t.lvl}</span>
-    <div style="margin-top:6px">${s.d}</div>
-    <div class="row">${Object.entries(s.stats).map(([k,v])=>`<span>${k}: ${v}</span>`).join("")}</div>
-    </div></div>`;
+  tip.replaceChildren();
+  const wrap = document.createElement("div");
+  wrap.style.cssText = "display:flex;gap:10px;align-items:flex-start";
+  const src = safeUrl(iconPath);
+  if (src) {
+    const thumb = document.createElement("div");
+    thumb.className = "thumb";
+    const img = document.createElement("img");
+    img.setAttribute("src", src);
+    img.setAttribute("alt", s.n || "");
+    thumb.appendChild(img);
+    wrap.appendChild(thumb);
+  }
+  const body = document.createElement("div");
+  body.style.flex = "1";
+  const title = document.createElement("b");
+  title.textContent = s.n || "";
+  const lv = document.createElement("span");
+  lv.style.cssText = "color:var(--mute);font-size:11px";
+  lv.textContent = " · Lv " + t.lvl;
+  body.appendChild(title);
+  body.appendChild(document.createTextNode(" "));
+  body.appendChild(lv);
+  const desc = document.createElement("div");
+  desc.style.marginTop = "6px";
+  desc.textContent = s.d || "";
+  body.appendChild(desc);
+  const row = document.createElement("div");
+  row.className = "row";
+  Object.entries(s.stats || {}).forEach(([sk,sv])=>{
+    const span = document.createElement("span");
+    span.textContent = sk + ": " + sv;
+    row.appendChild(span);
+  });
+  body.appendChild(row);
+  wrap.appendChild(body);
+  tip.appendChild(wrap);
   const pad = 14;
   let x = e.clientX + pad, y = e.clientY + pad;
   if(x+300>innerWidth) x = e.clientX - 300 - pad;
