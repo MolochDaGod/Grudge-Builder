@@ -9,6 +9,6 @@ export default defineConfig({
   root,
   test: {
     environment: "node",
-    include: ["failClosedAuth.test.ts"],
+    include: ["failClosed*.test.ts", "*.failClosed.test.ts"],
   },
 });

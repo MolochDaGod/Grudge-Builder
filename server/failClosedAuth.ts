@@ -4,29 +4,69 @@
  * If JWT secrets, mint API keys, or a valid (non-guest) session are missing
  * or invalid, reject with 401 / 403 / 503 and do nothing.
  * No default-allow, no mock success, no fallback mint.
+ *
+ * Secret readers are live (per-call), never a module-load snapshot.
+ * Crossmint keys are checked at request time (503) and never process.exit.
+ *
+ * `readEnvSecret` / `getJwtSecret` match the shape of Hitch's helpers on
+ * `fix/prod-secret-guards` (`server/lib/requiredSecrets.ts`, PR #135). That
+ * module is not imported here: it loads dotenv and can `process.exit` at boot,
+ * and #135's tip is not final — this branch must not rebase onto it yet.
+ * Difference: `jwtSecretsConfigured` / `getJwtSecret` here do **not** accept
+ * `GRUDGE_JWT_SECRET` by itself (SESSION_SECRET or JWT_SECRET is required).
  */
 import type { Request, Response, NextFunction } from "express";
 import jwt from "jsonwebtoken";
 
-/** Prefer SESSION_SECRET then JWT_SECRET / GRUDGE_JWT_SECRET — same order as routes.ts. */
-export function jwtSecretCandidates(): string[] {
-  return [process.env.SESSION_SECRET, process.env.JWT_SECRET, process.env.GRUDGE_JWT_SECRET]
-    .map((s) => s?.trim())
-    .filter((s): s is string => !!s && s.length > 0);
+const JWT_VERIFY_ALGORITHMS: jwt.Algorithm[] = ["HS256"];
+
+/** Trimmed env value; missing or whitespace-only becomes "". Never logs the value. */
+export function readEnvSecret(name: string): string {
+  const raw = process.env[name];
+  return typeof raw === "string" ? raw.trim() : "";
 }
 
+/**
+ * Signing / primary secret: first non-empty trimmed candidate among
+ * SESSION_SECRET, JWT_SECRET, and GRUDGE_JWT_SECRET — same candidate order as
+ * Hitch's `getJwtSecret`. Throws if SESSION_SECRET and JWT_SECRET are both
+ * unset (GRUDGE_JWT_SECRET alone is not accepted). No default secret.
+ */
+export function getJwtSecret(): string {
+  const session = readEnvSecret("SESSION_SECRET");
+  const jwtSecret = readEnvSecret("JWT_SECRET");
+  if (!session && !jwtSecret) {
+    throw new Error(
+      "SESSION_SECRET or JWT_SECRET is missing or whitespace-only. Refusing to use a default secret.",
+    );
+  }
+  return session || jwtSecret || readEnvSecret("GRUDGE_JWT_SECRET");
+}
+
+/**
+ * Live verify-candidate list (SESSION, JWT, GRUDGE), trimmed, no empties.
+ * Callers must still require SESSION_SECRET or JWT_SECRET via jwtSecretsConfigured().
+ */
+export function jwtVerifyCandidates(): string[] {
+  return [
+    readEnvSecret("SESSION_SECRET"),
+    readEnvSecret("JWT_SECRET"),
+    readEnvSecret("GRUDGE_JWT_SECRET"),
+  ].filter((s) => s.length > 0);
+}
+
+/** True only when SESSION_SECRET or JWT_SECRET is set. GRUDGE_JWT_SECRET alone is not enough. */
 export function jwtSecretsConfigured(): boolean {
-  return jwtSecretCandidates().length > 0;
+  return !!(readEnvSecret("SESSION_SECRET") || readEnvSecret("JWT_SECRET"));
 }
 
-/** Crossmint server key required to mint. Names only — never log values. */
+/** Crossmint server key required to mint. Names only — never log values. Request-time only (no boot exit). */
 export function mintSecretsConfigured(): boolean {
   const key = (
-    process.env.CROSSMINT_SERVER_API_KEY ||
-    process.env.CROSSMINT_SECRET_KEY ||
-    process.env.CROSSMINT_API_KEY ||
-    ""
-  ).trim();
+    readEnvSecret("CROSSMINT_SERVER_API_KEY") ||
+    readEnvSecret("CROSSMINT_SECRET_KEY") ||
+    readEnvSecret("CROSSMINT_API_KEY")
+  );
   return key.length > 0;
 }
 
@@ -57,9 +97,10 @@ function readBearerToken(req: Request): string | null {
 
 function verifyAuthToken(token: string): AuthPayload | null {
   if (!token) return null;
-  for (const secret of jwtSecretCandidates()) {
+  if (!jwtSecretsConfigured()) return null;
+  for (const secret of jwtVerifyCandidates()) {
     try {
-      return jwt.verify(token, secret) as AuthPayload;
+      return jwt.verify(token, secret, { algorithms: JWT_VERIFY_ALGORITHMS }) as AuthPayload;
     } catch {
       /* try next candidate */
     }
@@ -76,6 +117,25 @@ function userIdFromPayload(payload: AuthPayload): string | null {
 }
 
 /**
+ * Identity for a fail-closed handler: `req.userId` set by requireAuthFailClosed.
+ * Ignores `req.body.accountId` and `req.accountId`. No guest fallback.
+ */
+export function authenticatedUserId(req: Request): string | null {
+  const id = (req as { userId?: unknown }).userId;
+  if (typeof id !== "string" || !id.trim()) return null;
+  if (isGuestProductIdentity(id)) return null;
+  return id.trim();
+}
+
+/** True when the record's accountId is the caller's account. */
+export function ownedByAccount(
+  recordAccountId: string | null | undefined,
+  callerAccountId: string | null | undefined,
+): boolean {
+  return !!recordAccountId && !!callerAccountId && recordAccountId === callerAccountId;
+}
+
+/**
  * A mint call succeeded only when the service reports success and an action id.
  * Empty results (missing key, swallowed errors) are failures — not a mock success.
  */
@@ -87,8 +147,9 @@ export function mintDidSucceed(
 
 /**
  * Fail closed on auth:
- *   503 if JWT secrets are unset (misconfigured — do not skip auth)
- *   401 if the token is missing, invalid, or a guest identity
+ *   503 if SESSION_SECRET and JWT_SECRET are both unset (do not skip auth;
+ *       GRUDGE_JWT_SECRET alone is not enough)
+ *   401 if the token is missing, invalid, wrong algorithm, or a guest identity
  *
  * Sets `req.userId` and `req.grudgeId` on success.
  */
@@ -119,7 +180,7 @@ export function requireAuthFailClosed(req: Request, res: Response, next: NextFun
   next();
 }
 
-/** 503 if mint secrets are missing. Do not mint and do not return success. */
+/** 503 if mint secrets are missing. Do not mint and do not return success. Never exits the process. */
 export function requireMintConfigured(_req: Request, res: Response, next: NextFunction): void {
   if (!mintSecretsConfigured()) {
     res.status(503).json({ error: "mint_misconfigured" });
