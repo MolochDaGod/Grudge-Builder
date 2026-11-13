@@ -1054,7 +1054,16 @@ function renderPicker(){
     const cover = document.createElement("div");
     cover.className = "cover";
     const hero = safeUrl(c.hero);
-    if (hero) cover.style.backgroundImage = "url(\"" + hero + "\")";
+    if (hero) {
+      cover.style.backgroundImage = "url(\"" + hero + "\")";
+    } else {
+      const m = document.createElement("span");
+      m.className = "icon-missing";
+      m.textContent = "icon missing";
+      if (c.name) m.setAttribute("title", c.name);
+      cover.appendChild(m);
+      cover.classList.add("has-icon-missing");
+    }
 
     const head = document.createElement("div");
     head.className = "head";
@@ -1064,7 +1073,12 @@ function renderPicker(){
     if (icon) {
       attachImg(crest, icon, c.name || "");
     } else {
-      crest.textContent = c.emoji || "";
+      const m = document.createElement("span");
+      m.className = "icon-missing";
+      m.textContent = "icon missing";
+      if (c.name) m.setAttribute("title", c.name);
+      crest.appendChild(m);
+      crest.classList.add("has-icon-missing");
     }
     const titles = document.createElement("div");
     const h3 = document.createElement("h3");
@@ -1100,6 +1114,16 @@ function selectClass(k){
 function setBg(k){
   document.querySelectorAll(".stage .bg").forEach(b=>{
     b.classList.toggle("active", b.dataset.k===k);
+    const hasImg = (b.style.backgroundImage || "").replace(/none/i, "").trim();
+    if (!hasImg && !b.querySelector(".icon-missing")) {
+      const m = document.createElement("span");
+      m.className = "icon-missing";
+      m.textContent = "icon missing";
+      const label = b.getAttribute("data-k") || "";
+      if (label) m.setAttribute("title", label);
+      b.appendChild(m);
+      b.classList.add("has-icon-missing");
+    }
   });
 }
 
