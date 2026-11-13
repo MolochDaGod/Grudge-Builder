@@ -48,4 +48,13 @@ describe("island verify uses getJwtSecret so API-signed tokens are accepted", ()
     );
     expect(() => verifyIslandToken(token)).toThrow();
   });
+
+  it("rejects a token signed with HS512 when verify is pinned to HS256", () => {
+    const token = jwt.sign(
+      { userId: "user-1", grudgeId: "g1", username: "tester", role: "player" },
+      getJwtSecret(),
+      { expiresIn: "1h", algorithm: "HS512" },
+    );
+    expect(() => verifyIslandToken(token)).toThrow();
+  });
 });
