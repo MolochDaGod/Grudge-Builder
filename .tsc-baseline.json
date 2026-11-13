@@ -1,0 +1,883 @@
+{
+  "version": 1,
+  "total": 175,
+  "notes": "Regenerate only downward with `npm run tsc:baseline` and commit the smaller file. CI never writes this file. Keys are file + code + normalized message (no line/column).",
+  "errors": [
+    {
+      "file": "client/src/components/IslandCutscene.tsx",
+      "code": "TS2322",
+      "message": "Type '{ ref: RefObject<HTMLVideoElement | null>; className: string; src: string; poster: string; muted: true; loop: true; playsInline: true; autoPlay: true; preload: string; referrerPolicy: string; }' is not assignable to type 'DetailedHTMLProps<VideoHTMLAttributes<HTMLVideoElement>, HTMLVideoElement>'. Property 'referrerPolicy' does not exist on type 'DetailedHTMLProps<VideoHTMLAttributes<HTMLVideoElement>, HTMLVideoElement>'.",
+      "count": 1
+    },
+    {
+      "file": "client/src/components/StatusEffectIcons.tsx",
+      "code": "TS2339",
+      "message": "Property 'label' does not exist on type 'StatusEffectDef'.",
+      "count": 2
+    },
+    {
+      "file": "client/src/island/actors/CharacterActor.ts",
+      "code": "TS7016",
+      "message": "Could not find a declaration file for module 'matter-js'. 'node_modules/matter-js/build/matter.js' implicitly has an 'any' type. Try `npm i --save-dev @types/matter-js` if it exists or add a new declaration (.d.ts) file containing `declare module 'matter-js';`",
+      "count": 1
+    },
+    {
+      "file": "client/src/island/actors/ResourceNodeActor.ts",
+      "code": "TS7016",
+      "message": "Could not find a declaration file for module 'matter-js'. 'node_modules/matter-js/build/matter.js' implicitly has an 'any' type. Try `npm i --save-dev @types/matter-js` if it exists or add a new declaration (.d.ts) file containing `declare module 'matter-js';`",
+      "count": 1
+    },
+    {
+      "file": "client/src/island/engine/IslandEngine.ts",
+      "code": "TS7006",
+      "message": "Parameter 'event' implicitly has an 'any' type.",
+      "count": 2
+    },
+    {
+      "file": "client/src/island/engine/IslandEngine.ts",
+      "code": "TS7016",
+      "message": "Could not find a declaration file for module 'matter-js'. 'node_modules/matter-js/build/matter.js' implicitly has an 'any' type. Try `npm i --save-dev @types/matter-js` if it exists or add a new declaration (.d.ts) file containing `declare module 'matter-js';`",
+      "count": 1
+    },
+    {
+      "file": "client/src/island3d/airship/AirshipSoloZone.ts",
+      "code": "TS2339",
+      "message": "Property 'npcOriginalRole' does not exist on type 'AirshipSoloZone'.",
+      "count": 1
+    },
+    {
+      "file": "client/src/island3d/airship/AirshipSoloZone.ts",
+      "code": "TS2339",
+      "message": "Property 'raceId' does not exist on type 'DeckActor'.",
+      "count": 1
+    },
+    {
+      "file": "client/src/island3d/airship/AirshipSoloZone.ts",
+      "code": "TS2353",
+      "message": "Object literal may only specify known properties, and 'heightM' does not exist in type '{ raceId: string; role?: OriginalThirtyRole | undefined; classId?: string | undefined; name: string; }'.",
+      "count": 1
+    },
+    {
+      "file": "client/src/island3d/combat/LargeBossFightSystem.ts",
+      "code": "TS2367",
+      "message": "This comparison appears to be unintentional because the types '\"active\"' and '\"weak\"' have no overlap.",
+      "count": 1
+    },
+    {
+      "file": "client/src/island3d/combat/LargeBossFightSystem.ts",
+      "code": "TS2367",
+      "message": "This comparison appears to be unintentional because the types '\"intro\" | \"idle\" | \"active\" | \"stunned\" | \"weak\" | \"telegraph\" | \"rising\" | \"recover\" | \"submerged\" | \"minion_wave\"' and '\"dead\"' have no overlap.",
+      "count": 1
+    },
+    {
+      "file": "client/src/island3d/engine/Island3DEngine.ts",
+      "code": "TS2339",
+      "message": "Property 'setGetEnemies' does not exist on type 'CampUnitSystem'.",
+      "count": 1
+    },
+    {
+      "file": "client/src/island3d/engine/Island3DEngine.ts",
+      "code": "TS2353",
+      "message": "Object literal may only specify known properties, and 'biome' does not exist in type 'BattleNatureScatterOpts'.",
+      "count": 2
+    },
+    {
+      "file": "client/src/island3d/engine/Island3DEngine.ts",
+      "code": "TS2353",
+      "message": "Object literal may only specify known properties, and 'biome' does not exist in type 'TerrainMaterialConfig'.",
+      "count": 1
+    },
+    {
+      "file": "client/src/island3d/intro/CinemaDeckMages.ts",
+      "code": "TS2367",
+      "message": "This comparison appears to be unintentional because the types '\"idle\" | \"walk\" | \"cast\"' and '\"ragdoll\"' have no overlap.",
+      "count": 1
+    },
+    {
+      "file": "client/src/island3d/intro/CinemaShipDestroy.ts",
+      "code": "TS2304",
+      "message": "Cannot find name 'qSafe'.",
+      "count": 1
+    },
+    {
+      "file": "client/src/island3d/intro/LeviathanOceanCinema.ts",
+      "code": "TS2345",
+      "message": "Argument of type 'Object3D<Object3DEventMap>' is not assignable to parameter of type 'Group<Object3DEventMap>'. Property 'isGroup' is missing in type 'Object3D<Object3DEventMap>' but required in type 'Group<Object3DEventMap>'.",
+      "count": 1
+    },
+    {
+      "file": "client/src/island3d/intro/LeviathanOceanCinema.ts",
+      "code": "TS2352",
+      "message": "Conversion of type 'Float32Array<ArrayBufferLike>' to type 'number[]' may be a mistake because neither type sufficiently overlaps with the other. If this was intentional, convert the expression to 'unknown' first. Type 'Float32Array<ArrayBufferLike>' is missing the following properties from type 'number[]': pop, push, concat, shift, and 5 more.",
+      "count": 1
+    },
+    {
+      "file": "client/src/island3d/physics/LobbyColliderSystem.ts",
+      "code": "TS2322",
+      "message": "Type '(options?: ComputeBVHOptions | undefined) => GeometryBVH' is not assignable to type '(options?: MeshBVHOptions | undefined) => MeshBVH'. Type 'GeometryBVH' is missing the following properties from type 'MeshBVH': raycast, raycastFirst, intersectsSphere, intersectsBox, and 3 more.",
+      "count": 1
+    },
+    {
+      "file": "client/src/island3d/physics/LobbyColliderSystem.ts",
+      "code": "TS2322",
+      "message": "Type 'import(\"node_modules/three-mesh-bvh/src/index\").MeshBVH' is not assignable to type 'import(\"node_modules/@react-three/drei/node_modules/three-mesh-bvh/src/index\").MeshBVH'. The types returned by 'raycastFirst(...)' are incompatible between these types. Type 'Intersection<Object3D<Object3DEventMap>> | null' is not assignable to type 'Intersection<Object3D<Object3DEventMap>>'. Type 'null' is not assignable to type 'Intersection<Object3D<Object3DEventMap>>'.",
+      "count": 1
+    },
+    {
+      "file": "client/src/island3d/player/CharacterController3D.ts",
+      "code": "TS2345",
+      "message": "Argument of type 'Partial<Model3DField> | null' is not assignable to parameter of type 'Partial<Model3DField> | undefined'. Type 'null' is not assignable to type 'Partial<Model3DField> | undefined'.",
+      "count": 1
+    },
+    {
+      "file": "client/src/island3d/terrain/PolyHavenTextures.ts",
+      "code": "TS2352",
+      "message": "Conversion of type '{ [k: string]: MeshStandardMaterial; }' to type 'LobbyMaterialSet' may be a mistake because neither type sufficiently overlaps with the other. If this was intentional, convert the expression to 'unknown' first. Type '{ [k: string]: MeshStandardMaterial; }' is missing the following properties from type 'LobbyMaterialSet': beach, grass, forest, rock, and 4 more.",
+      "count": 1
+    },
+    {
+      "file": "client/src/island3d/vfx/SpellFxSystem.ts",
+      "code": "TS2322",
+      "message": "Type '\"spell_fire_projectile\"' is not assignable to type 'FxPresetId | FxPreset'.",
+      "count": 1
+    },
+    {
+      "file": "client/src/island3d/vfx/SpellFxSystem.ts",
+      "code": "TS2322",
+      "message": "Type '\"spell_fire_trail\"' is not assignable to type 'FxPresetId | FxPreset'.",
+      "count": 4
+    },
+    {
+      "file": "client/src/island3d/zone/prepareBossArenaPlay.ts",
+      "code": "TS2345",
+      "message": "Argument of type 'number | undefined' is not assignable to parameter of type '64 | undefined'. Type 'number' is not assignable to type '64'.",
+      "count": 1
+    },
+    {
+      "file": "client/src/island3d/zone/prepareDockRaftPlay.ts",
+      "code": "TS2345",
+      "message": "Argument of type '96' is not assignable to parameter of type '64'.",
+      "count": 1
+    },
+    {
+      "file": "client/src/island3d/zone/prepareDockRaftPlay.ts",
+      "code": "TS2367",
+      "message": "This comparison appears to be unintentional because the types 'BossArenaLayer' and '\"deck\"' have no overlap.",
+      "count": 1
+    },
+    {
+      "file": "client/src/island3d/zone/prepareDockRaftPlay.ts",
+      "code": "TS2367",
+      "message": "This comparison appears to be unintentional because the types 'BossArenaLayer' and '\"dock\"' have no overlap.",
+      "count": 1
+    },
+    {
+      "file": "client/src/lib/characterAdapter.ts",
+      "code": "TS2339",
+      "message": "Property 'hp' does not exist on type 'ExtendedCharacterData'.",
+      "count": 1
+    },
+    {
+      "file": "client/src/lib/dungeonGenerator.ts",
+      "code": "TS2339",
+      "message": "Property 'spriteKey' does not exist on type 'MonsterDefinition'.",
+      "count": 1
+    },
+    {
+      "file": "client/src/lib/grudaDB.ts",
+      "code": "TS2345",
+      "message": "Argument of type '{ id: any; name: any; type: string; slot: string; rarity: string; tier: number; stats: any; effects: any[]; image: string; description: any; buyPrice: number; craftingProfession: null; weaponType: any; }' is not assignable to parameter of type 'GrudaItem'. Types of property 'rarity' are incompatible. Type 'string' is not assignable to type '\"Common\" | \"Uncommon\" | \"Rare\" | \"Epic\" | \"Legendary\"'.",
+      "count": 1
+    },
+    {
+      "file": "client/src/lib/grudgeBackend.ts",
+      "code": "TS2353",
+      "message": "Object literal may only specify known properties, and 'providerType' does not exist in type '{ addressTypes: DerivationInfoAddressFormatEnum[]; providers: AuthProviderType[]; appId?: string | undefined; apiBaseUrl?: string | undefined; embeddedWalletType?: \"user-wallet\" | ... 1 more ... | undefined; authOptions?: { ...; } | undefined; }'.",
+      "count": 1
+    },
+    {
+      "file": "client/src/lib/loadMasterWeaponSkills.ts",
+      "code": "TS2322",
+      "message": "Type '{ catalog: MasterWeaponSkillsCatalog; byId: Map<string, WeaponTypeDefinition>; playableIds: string[]; }' is not assignable to type 'never'.",
+      "count": 1
+    },
+    {
+      "file": "client/src/lib/modelLoader.ts",
+      "code": "TS18047",
+      "message": "'collada' is possibly 'null'.",
+      "count": 1
+    },
+    {
+      "file": "client/src/lib/playHub.ts",
+      "code": "TS2322",
+      "message": "Type '{ path: string; reason: \"no_character\"; }' is not assignable to type 'PlayDestination'. Types of property 'reason' are incompatible. Type '\"no_character\"' is not assignable to type '\"play_open_world\"'.",
+      "count": 1
+    },
+    {
+      "file": "client/src/lib/playHub.ts",
+      "code": "TS2322",
+      "message": "Type '{ path: string; reason: \"no_island\"; }' is not assignable to type 'PlayDestination'. Types of property 'reason' are incompatible. Type '\"no_island\"' is not assignable to type '\"play_open_world\"'.",
+      "count": 1
+    },
+    {
+      "file": "client/src/lib/playHub.ts",
+      "code": "TS2322",
+      "message": "Type '{ path: string; reason: \"play_home_island\"; }' is not assignable to type 'PlayDestination'. Types of property 'reason' are incompatible. Type '\"play_home_island\"' is not assignable to type '\"play_open_world\"'.",
+      "count": 1
+    },
+    {
+      "file": "client/src/lib/playHub.ts",
+      "code": "TS2322",
+      "message": "Type '{ path: string; reason: \"play_tutorial\"; }' is not assignable to type 'PlayDestination'. Types of property 'reason' are incompatible. Type '\"play_tutorial\"' is not assignable to type '\"play_open_world\"'.",
+      "count": 1
+    },
+    {
+      "file": "client/src/lib/puterIntegration.ts",
+      "code": "TS2339",
+      "message": "Property 'net' does not exist on type '{ ai: { chat: (prompt: string | object[], options?: { model?: string | undefined; stream?: boolean | undefined; max_tokens?: number | undefined; temperature?: number | undefined; tools?: object[] | undefined; } | undefined) => Promise<...>; txt2img: (prompt: string, options?: { ...; } | undefined) => Promise<...>; t...'.",
+      "count": 2
+    },
+    {
+      "file": "client/src/lib/spriteManifest.ts",
+      "code": "TS2538",
+      "message": "Type 'undefined' cannot be used as an index type.",
+      "count": 1
+    },
+    {
+      "file": "client/src/lib/warlordsWorldApi.ts",
+      "code": "TS2352",
+      "message": "Conversion of type 'T & object' to type 'WarlordsZonesDoc' may be a mistake because neither type sufficiently overlaps with the other. If this was intentional, convert the expression to 'unknown' first. Type 'T & object' is missing the following properties from type 'WarlordsZonesDoc': version, zones",
+      "count": 1
+    },
+    {
+      "file": "client/src/pages/admin-combat.tsx",
+      "code": "TS2339",
+      "message": "Property 'frameHeight' does not exist on type 'SpellAnimation'.",
+      "count": 1
+    },
+    {
+      "file": "client/src/pages/admin-combat.tsx",
+      "code": "TS2339",
+      "message": "Property 'frameWidth' does not exist on type 'SpellAnimation'.",
+      "count": 1
+    },
+    {
+      "file": "client/src/pages/admin-island-v2.tsx",
+      "code": "TS2339",
+      "message": "Property 'toFixed' does not exist on type '(delta: number, centerX?: number | undefined, centerY?: number | undefined) => void'.",
+      "count": 1
+    },
+    {
+      "file": "client/src/pages/admin-island-v2.tsx",
+      "code": "TS2339",
+      "message": "Property 'x' does not exist on type 'CameraController'.",
+      "count": 1
+    },
+    {
+      "file": "client/src/pages/admin-island-v2.tsx",
+      "code": "TS2339",
+      "message": "Property 'y' does not exist on type 'CameraController'.",
+      "count": 1
+    },
+    {
+      "file": "client/src/pages/AirshipZonePage.tsx",
+      "code": "TS2345",
+      "message": "Argument of type '\"silents\"' is not assignable to parameter of type '\"scene\" | \"title\" | \"ocean\" | \"explore\" | \"dungeon\" | \"dawn\" | \"tavern\" | \"camp\" | \"chill\" | \"battle\"'.",
+      "count": 1
+    },
+    {
+      "file": "client/src/pages/AirshipZonePage.tsx",
+      "code": "TS2554",
+      "message": "Expected 0 arguments, but got 1.",
+      "count": 1
+    },
+    {
+      "file": "client/src/pages/editor.tsx",
+      "code": "TS2345",
+      "message": "Argument of type 'string' is not assignable to parameter of type 'SetStateAction<\"threejs\">'.",
+      "count": 1
+    },
+    {
+      "file": "client/src/pages/game-character.tsx",
+      "code": "TS2554",
+      "message": "Expected 2 arguments, but got 4.",
+      "count": 1
+    },
+    {
+      "file": "client/src/pages/heroes.tsx",
+      "code": "TS2345",
+      "message": "Argument of type '\"warlords\" | \"nexus\"' is not assignable to parameter of type '\"warlords\" | \"voxel\" | undefined'. Type '\"nexus\"' is not assignable to type '\"warlords\" | \"voxel\" | undefined'.",
+      "count": 1
+    },
+    {
+      "file": "client/src/pages/home-island.tsx",
+      "code": "TS2322",
+      "message": "Type '{ id: string; label: string; centerPercent: { x: number; y: number; }; radiusM: number; regrow: boolean; respawnMs: number; harvestZoneType: string; nodeSlots: { type: string; count: number; }[]; dbNodeTypes: string[]; }[] | undefined' is not assignable to type 'HomeIslandRegrowRegion[] | undefined'. Type '{ id: string; label: string; centerPercent: { x: number; y: number; }; radiusM: number; regrow: boolean; respawnMs: number; harvestZoneType: string; nodeSlots: { type: string; count: number; }[]; dbNodeTypes: string[]; }[]' is not assignable to type 'HomeIslandRegrowRegion[]'. Type '{ id: string; label: string; centerPercent: { x: number; y: number; }; radiusM: number; regrow: boolean; respawnMs: number; harvestZoneType: string; nodeSlots: { type: string; count: number; }[]; dbNodeTypes: string[]; }' is not assignable to type 'HomeIslandRegrowRegion'. Types of property 'id' are incompatible. Type 'string' is not assignable to type 'HomeIslandRegrowRegionId'.",
+      "count": 1
+    },
+    {
+      "file": "client/src/pages/home-island.tsx",
+      "code": "TS2322",
+      "message": "Type '{ version: string; worldSizeM: number; biome: string; seed: number; generatedAt: number; instances: { category: string; modelPath: string; x: number; y: number; z: number; rotation: number; scale: number; }[]; } | undefined' is not assignable to type 'RtsNatureScatterPayload | undefined'. Property 'policy' is missing in type '{ version: string; worldSizeM: number; biome: string; seed: number; generatedAt: number; instances: { category: string; modelPath: string; x: number; y: number; z: number; rotation: number; scale: number; }[]; }' but required in type 'RtsNatureScatterPayload'.",
+      "count": 1
+    },
+    {
+      "file": "client/src/pages/home-island.tsx",
+      "code": "TS2339",
+      "message": "Property 'campPosition' does not exist on type 'HomeIslandDto'.",
+      "count": 1
+    },
+    {
+      "file": "client/src/pages/island-3d.tsx",
+      "code": "TS2367",
+      "message": "This comparison appears to be unintentional because the types '\"procedural\"' and '\"lobby\"' have no overlap.",
+      "count": 1
+    },
+    {
+      "file": "client/src/pages/island.tsx",
+      "code": "TS2322",
+      "message": "Type '{ id: string; label: string; centerPercent: { x: number; y: number; }; radiusM: number; regrow: boolean; respawnMs: number; harvestZoneType: string; nodeSlots: { type: string; count: number; }[]; dbNodeTypes: string[]; }[] | undefined' is not assignable to type 'HomeIslandRegrowRegion[] | undefined'. Type '{ id: string; label: string; centerPercent: { x: number; y: number; }; radiusM: number; regrow: boolean; respawnMs: number; harvestZoneType: string; nodeSlots: { type: string; count: number; }[]; dbNodeTypes: string[]; }[]' is not assignable to type 'HomeIslandRegrowRegion[]'. Type '{ id: string; label: string; centerPercent: { x: number; y: number; }; radiusM: number; regrow: boolean; respawnMs: number; harvestZoneType: string; nodeSlots: { type: string; count: number; }[]; dbNodeTypes: string[]; }' is not assignable to type 'HomeIslandRegrowRegion'. Types of property 'id' are incompatible. Type 'string' is not assignable to type 'HomeIslandRegrowRegionId'.",
+      "count": 1
+    },
+    {
+      "file": "client/src/pages/mission-board.tsx",
+      "code": "TS2322",
+      "message": "Type 'string' is not assignable to type 'never'.",
+      "count": 1
+    },
+    {
+      "file": "client/src/pages/skill-tree.tsx",
+      "code": "TS18046",
+      "message": "'s' is of type 'unknown'.",
+      "count": 1
+    },
+    {
+      "file": "client/src/pages/skill-tree.tsx",
+      "code": "TS2322",
+      "message": "Type '{ id: string; name: string; icon: string; description: string; effect: string; maxPoints: number; requires: null; isPassive: boolean; }[] | Skill[]' is not assignable to type '{ id: string; name: string; icon: string; description: string; effect: string; maxPoints: number; requires: null; isPassive: boolean; } | readonly { id: string; name: string; icon: string; description: string; effect: string; maxPoints: number; requires: null; isPassive: boolean; }[]'. Type 'Skill[]' is not assignable to type '{ id: string; name: string; icon: string; description: string; effect: string; maxPoints: number; requires: null; isPassive: boolean; } | readonly { id: string; name: string; icon: string; description: string; effect: string; maxPoints: number; requires: null; isPassive: boolean; }[]'. Type 'Skill[]' is not assignable to type 'readonly { id: string; name: string; icon: string; description: string; effect: string; maxPoints: number; requires: null; isPassive: boolean; }[]'. Type 'Skill' is not assignable to type '{ id: string; name: string; icon: string; description: string; effect: string; maxPoints: number; requires: null; isPassive: boolean; }'. Types of property 'requires' are incompatible. Type 'string | null' is not assignable to type 'null'. Type 'string' is not assignable to type 'null'.",
+      "count": 1
+    },
+    {
+      "file": "client/src/pages/skill-tree.tsx",
+      "code": "TS2322",
+      "message": "Type 'null' is not assignable to type 'string'.",
+      "count": 5
+    },
+    {
+      "file": "client/src/pages/skill-tree.tsx",
+      "code": "TS2339",
+      "message": "Property 'hasSubtrees' does not exist on type '{ className: string; color: string; tiers: { name: string; skills: { id: string; name: string; icon: string; description: string; effect: string; maxPoints: number; requires: null; isPassive: boolean; }[]; }[]; } | WeaponSkillTree'. Property 'hasSubtrees' does not exist on type '{ className: string; color: string; tiers: { name: string; skills: { id: string; name: string; icon: string; description: string; effect: string; maxPoints: number; requires: null; isPassive: boolean; }[]; }[]; }'.",
+      "count": 1
+    },
+    {
+      "file": "client/src/pages/skill-tree.tsx",
+      "code": "TS2339",
+      "message": "Property 'name' does not exist on type '{}'.",
+      "count": 1
+    },
+    {
+      "file": "client/src/pages/skill-tree.tsx",
+      "code": "TS2339",
+      "message": "Property 'subtrees' does not exist on type '{ className: string; color: string; tiers: { name: string; skills: { id: string; name: string; icon: string; description: string; effect: string; maxPoints: number; requires: null; isPassive: boolean; }[]; }[]; } | WeaponSkillTree'. Property 'subtrees' does not exist on type '{ className: string; color: string; tiers: { name: string; skills: { id: string; name: string; icon: string; description: string; effect: string; maxPoints: number; requires: null; isPassive: boolean; }[]; }[]; }'.",
+      "count": 5
+    },
+    {
+      "file": "client/src/pages/skill-tree.tsx",
+      "code": "TS2345",
+      "message": "Argument of type '{ [x: number]: string | null; }' is not assignable to parameter of type 'SetStateAction<Record<number, string>>'.",
+      "count": 4
+    },
+    {
+      "file": "client/src/pages/skill-tree.tsx",
+      "code": "TS2345",
+      "message": "Argument of type '{ 1: null; 2: null; 3: null; 4: null; 5: null; }' is not assignable to parameter of type 'SetStateAction<Record<number, string>>'. Type '{ 1: null; 2: null; 3: null; 4: null; 5: null; }' is not assignable to type 'Record<number, string>'. Property '1' is incompatible with index signature. Type 'null' is not assignable to type 'string'.",
+      "count": 2
+    },
+    {
+      "file": "client/src/pages/skill-tree.tsx",
+      "code": "TS2532",
+      "message": "Object is possibly 'undefined'.",
+      "count": 1
+    },
+    {
+      "file": "client/src/pages/skill-tree.tsx",
+      "code": "TS2769",
+      "message": "No overload matches this call. Overload 1 of 2, '(o: {}): string[]', gave the following error. Argument of type 'Record<string, { name: string; icon: string; color: string; description: string; tiers: SkillTier[]; }> | undefined' is not assignable to parameter of type '{}'. Type 'undefined' is not assignable to type '{}'. Overload 2 of 2, '(o: object): string[]', gave the following error. Argument of type 'Record<string, { name: string; icon: string; color: string; description: string; tiers: SkillTier[]; }> | undefined' is not assignable to parameter of type 'object'. Type 'undefined' is not assignable to type 'object'.",
+      "count": 1
+    },
+    {
+      "file": "client/src/pages/TreatyPage.tsx",
+      "code": "TS2339",
+      "message": "Property 'token' does not exist on type 'GrudgeSession'.",
+      "count": 1
+    },
+    {
+      "file": "client/src/pages/tutorial.tsx",
+      "code": "TS18047",
+      "message": "'engine.character' is possibly 'null'.",
+      "count": 2
+    },
+    {
+      "file": "client/src/pages/tutorial.tsx",
+      "code": "TS2339",
+      "message": "Property 'setFacingYaw' does not exist on type 'CharacterController3D'.",
+      "count": 2
+    },
+    {
+      "file": "client/src/pages/WalletPage.tsx",
+      "code": "TS2322",
+      "message": "Type 'NoInfer<WalletConfig> | undefined' is not assignable to type '{ network: string; }'. Type 'undefined' is not assignable to type '{ network: string; }'.",
+      "count": 1
+    },
+    {
+      "file": "client/src/pages/warlords-landing.tsx",
+      "code": "TS2322",
+      "message": "Type '{ src: string; autoPlay: true; muted: true; playsInline: true; loop: true; preload: string; referrerPolicy: string; className: string; }' is not assignable to type 'DetailedHTMLProps<VideoHTMLAttributes<HTMLVideoElement>, HTMLVideoElement>'. Property 'referrerPolicy' does not exist on type 'DetailedHTMLProps<VideoHTMLAttributes<HTMLVideoElement>, HTMLVideoElement>'.",
+      "count": 1
+    },
+    {
+      "file": "client/src/tutorial/TutorialGameHUD.tsx",
+      "code": "TS2339",
+      "message": "Property 'id' does not exist on type 'HotbarSlot'.",
+      "count": 1
+    },
+    {
+      "file": "client/src/tutorial/TutorialMainPanel.tsx",
+      "code": "TS2339",
+      "message": "Property 'id' does not exist on type 'HotbarSlot'.",
+      "count": 2
+    },
+    {
+      "file": "server/island-server.ts",
+      "code": "TS2783",
+      "message": "'service' is specified more than once, so this usage will be overwritten.",
+      "count": 1
+    },
+    {
+      "file": "server/routes.ts",
+      "code": "TS2322",
+      "message": "Type 'any[]' is not assignable to type 'Record<string, number>'. Index signature for type 'string' is missing in type 'any[]'.",
+      "count": 1
+    },
+    {
+      "file": "server/routes.ts",
+      "code": "TS2322",
+      "message": "Type 'Record<string, unknown> | undefined' is not assignable to type '{ biome: string; resolution: number; heightsBase64: string; worldSizeM: number; maxHeightM: number; } | undefined'. Type 'Record<string, unknown>' is missing the following properties from type '{ biome: string; resolution: number; heightsBase64: string; worldSizeM: number; maxHeightM: number; }': biome, resolution, heightsBase64, worldSizeM, maxHeightM",
+      "count": 1
+    },
+    {
+      "file": "server/routes.ts",
+      "code": "TS2322",
+      "message": "Type 'Record<string, unknown> | undefined' is not assignable to type '{ biome: string; seed: number; version: string; instances: { scale: number; rotation: number; x: number; y: number; z: number; category: string; modelPath: string; }[]; worldSizeM: number; generatedAt: number; } | undefined'. Type 'Record<string, unknown>' is missing the following properties from type '{ biome: string; seed: number; version: string; instances: { scale: number; rotation: number; x: number; y: number; z: number; category: string; modelPath: string; }[]; worldSizeM: number; generatedAt: number; }': biome, seed, version, instances, and 2 more.",
+      "count": 1
+    },
+    {
+      "file": "server/routes.ts",
+      "code": "TS2322",
+      "message": "Type 'Record<string, unknown> | undefined' is not assignable to type '{ dungeonId: string; modelPath: string; secretPeakIndex: 0 | 1 | 2; anchorPercent: { x: number; y: number; }; mountainScaleM: number; entranceHeightM: number; islandWorldSizeM: number; modelUid: string; peakOffsetsM: { ...; }[]; peakModelPaths?: string[] | undefined; } | undefined'. Type 'Record<string, unknown>' is missing the following properties from type '{ dungeonId: string; modelPath: string; secretPeakIndex: 0 | 1 | 2; anchorPercent: { x: number; y: number; }; mountainScaleM: number; entranceHeightM: number; islandWorldSizeM: number; modelUid: string; peakOffsetsM: { ...; }[]; peakModelPaths?: string[] | undefined; }': dungeonId, modelPath, secretPeakIndex, anchorPercent, and 5 more.",
+      "count": 1
+    },
+    {
+      "file": "server/routes.ts",
+      "code": "TS2322",
+      "message": "Type 'Record<string, unknown> | undefined' is not assignable to type '{ source: \"rts-grudge\"; biome: string; seed: number; exportedAt: number; gridX: number; gridZ: number; appUrl: string; } | undefined'. Type 'Record<string, unknown>' is missing the following properties from type '{ source: \"rts-grudge\"; biome: string; seed: number; exportedAt: number; gridX: number; gridZ: number; appUrl: string; }': source, biome, seed, exportedAt, and 3 more.",
+      "count": 1
+    },
+    {
+      "file": "server/routes.ts",
+      "code": "TS2322",
+      "message": "Type 'string | number' is not assignable to type 'number | undefined'. Type 'string' is not assignable to type 'number'.",
+      "count": 2
+    },
+    {
+      "file": "server/routes.ts",
+      "code": "TS2339",
+      "message": "Property 'email' does not exist on type '{ grudgeId: string | null; id: string; walletAddress: string | null; gbuxBalance: number; walletType: string | null; displayName: string | null; userId: string; avatarUrl: string | null; ... 14 more ...; firstCharacterGranted: boolean; }'.",
+      "count": 2
+    },
+    {
+      "file": "server/routes.ts",
+      "code": "TS2339",
+      "message": "Property 'nodes' does not exist on type '{ id: string; characterId: any; seed: string; mapImageUrl: any; sceneGlbUrl: any; studioProject: any; lastUpdate: number; isFirstVisit: boolean; }'.",
+      "count": 2
+    },
+    {
+      "file": "server/routes.ts",
+      "code": "TS2345",
+      "message": "Argument of type 'string | null' is not assignable to parameter of type 'string | undefined'. Type 'null' is not assignable to type 'string | undefined'.",
+      "count": 1
+    },
+    {
+      "file": "server/routes.ts",
+      "code": "TS2349",
+      "message": "This expression is not callable. Not all constituents of type 'number | ((searchElement: never, fromIndex?: number | undefined) => boolean)' are callable. Type 'number' has no call signatures.",
+      "count": 1
+    },
+    {
+      "file": "server/routes.ts",
+      "code": "TS2352",
+      "message": "Conversion of type 'IslandState' to type 'Record<string, unknown>' may be a mistake because neither type sufficiently overlaps with the other. If this was intentional, convert the expression to 'unknown' first. Index signature for type 'string' is missing in type 'IslandState'.",
+      "count": 1
+    },
+    {
+      "file": "server/routes.ts",
+      "code": "TS2353",
+      "message": "Object literal may only specify known properties, and 'action' does not exist in type '{ description?: string | undefined; previousOwnerAccountId?: string | undefined; previousTier?: number | undefined; recipeId?: string | undefined; quantity?: number | undefined; validationHash?: string | undefined; }'.",
+      "count": 2
+    },
+    {
+      "file": "server/routes.ts",
+      "code": "TS2353",
+      "message": "Object literal may only specify known properties, and 'id' does not exist in type '{ name: string; category: string; metadata?: { source?: string | undefined; artist?: string | undefined; license?: string | undefined; directions?: number | undefined; fps?: number | undefined; loop?: boolean | undefined; } | null | undefined; ... 15 more ...; syncError?: string | ... 1 more ... | undefined; }'.",
+      "count": 1
+    },
+    {
+      "file": "server/routes.ts",
+      "code": "TS2488",
+      "message": "Type 'never[] | Record<string, number>' must have a '[Symbol.iterator]()' method that returns an iterator.",
+      "count": 1
+    },
+    {
+      "file": "server/routes.ts",
+      "code": "TS2740",
+      "message": "Type '{ grudgeDisplayId: string; grudgeCode: string; }' is missing the following properties from type '{ baseModelId: string; equippedMeshes: Record<string, string>; weaponSlots: Record<string, string>; faceVariant: string; skinColor: string; armorColor: string; capeEnabled: boolean; ... 9 more ...; grudgeCode?: string | undefined; }': baseModelId, equippedMeshes, weaponSlots, faceVariant, and 4 more.",
+      "count": 1
+    },
+    {
+      "file": "server/routes.ts",
+      "code": "TS2783",
+      "message": "'createdAt' is specified more than once, so this usage will be overwritten.",
+      "count": 1
+    },
+    {
+      "file": "server/routes.ts",
+      "code": "TS2783",
+      "message": "'id' is specified more than once, so this usage will be overwritten.",
+      "count": 1
+    },
+    {
+      "file": "server/routes.ts",
+      "code": "TS2783",
+      "message": "'mapStyle' is specified more than once, so this usage will be overwritten.",
+      "count": 1
+    },
+    {
+      "file": "server/routes.ts",
+      "code": "TS7016",
+      "message": "Could not find a declaration file for module './ai/gruda-ai-router/server/ai-router.mjs'. './server/ai/gruda-ai-router/server/ai-router.mjs' implicitly has an 'any' type.",
+      "count": 1
+    },
+    {
+      "file": "server/routes.ts",
+      "code": "TS7053",
+      "message": "Element implicitly has an 'any' type because expression of type '0' can't be used to index type '{}'. Property '0' does not exist on type '{}'.",
+      "count": 1
+    },
+    {
+      "file": "server/routes/launcher.ts",
+      "code": "TS2678",
+      "message": "Type '\"grudgedev\"' is not comparable to type '\"unknown\" | \"threejs\" | \"grudgedot\" | \"godot\" | \"phaser\" | \"vite-web\" | \"html5\"'.",
+      "count": 1
+    },
+    {
+      "file": "server/routes/wallet.ts",
+      "code": "TS2367",
+      "message": "This comparison appears to be unintentional because the types '\"backpack\" | \"phantom\" | \"solflare\" | \"other\" | \"crossmint\" | \"metamask\" | \"binance\" | \"coinbase\" | \"brave\" | \"okx\" | \"rabby\" | \"injected_evm\"' and '\"trader\"' have no overlap.",
+      "count": 1
+    },
+    {
+      "file": "server/seed.ts",
+      "code": "TS2339",
+      "message": "Property 'armorType' does not exist on type 'ItemDefinition'.",
+      "count": 1
+    },
+    {
+      "file": "server/seed.ts",
+      "code": "TS2339",
+      "message": "Property 'maxQty' does not exist on type '{ itemId: string; chance: number; }'.",
+      "count": 1
+    },
+    {
+      "file": "server/seed.ts",
+      "code": "TS2339",
+      "message": "Property 'minQty' does not exist on type '{ itemId: string; chance: number; }'.",
+      "count": 1
+    },
+    {
+      "file": "server/seed.ts",
+      "code": "TS2339",
+      "message": "Property 'tier' does not exist on type 'ItemDefinition'.",
+      "count": 1
+    },
+    {
+      "file": "server/seed.ts",
+      "code": "TS2459",
+      "message": "Module '\"@shared/definitions/monsters\"' declares 'MonsterDefinition' locally, but it is not exported.",
+      "count": 1
+    },
+    {
+      "file": "server/seed.ts",
+      "code": "TS2459",
+      "message": "Module '\"@shared/definitions/skills\"' declares 'SkillDefinition' locally, but it is not exported.",
+      "count": 1
+    },
+    {
+      "file": "server/seed.ts",
+      "code": "TS2459",
+      "message": "Module '\"@shared/definitions/spells\"' declares 'SpellDefinition' locally, but it is not exported.",
+      "count": 1
+    },
+    {
+      "file": "server/seed.ts",
+      "code": "TS2769",
+      "message": "No overload matches this call. Overload 1 of 2, '(value: { id: string | SQL<unknown> | Placeholder<string, any>; name: string | SQL<unknown> | Placeholder<string, any>; category: string | SQL<unknown> | Placeholder<string, any>; ... 9 more ...; anchorY?: number | ... 3 more ... | undefined; }): PgInsertBase<...>', gave the following error. Argument of type '{ id: string; name: string; category: string; filePath: string; sheetWidth: number; sheetHeight: number; frameWidth: number; frameHeight: number; framesPerRow: number; framesPerColumn: number; anchorX: number; anchorY: number; animations: { ...; }; } | { ...; } | { ...; }' is not assignable to parameter of type '{ id: string | SQL<unknown> | Placeholder<string, any>; name: string | SQL<unknown> | Placeholder<string, any>; category: string | SQL<unknown> | Placeholder<string, any>; ... 9 more ...; anchorY?: number | ... 3 more ... | undefined; }'. Type '{ id: string; name: string; category: string; filePath: string; sheetWidth: number; sheetHeight: number; frameWidth: number; frameHeight: number; framesPerRow: number; framesPerColumn: number; anchorX: number; anchorY: number; animations: { ...; }; }' is not assignable to type '{ id: string | SQL<unknown> | Placeholder<string, any>; name: string | SQL<unknown> | Placeholder<string, any>; category: string | SQL<unknown> | Placeholder<string, any>; ... 9 more ...; anchorY?: number | ... 3 more ... | undefined; }'. Types of property 'animations' are incompatible. Type '{ idle_down: { row: number; frameCount: number; frameDuration: number; }; walk_down: { row: number; frameCount: number; frameDuration: number; }; idle_left: { row: number; frameCount: number; frameDuration: number; }; ... 5 more ...; default?: undefined; }' is not assignable to type 'SQL<unknown> | Record<string, { row: number; frameCount: number; frameDuration: number; }> | Placeholder<string, any> | null | undefined'. Type '{ idle_down: { row: number; frameCount: number; frameDuration: number; }; walk_down: { row: number; frameCount: number; frameDuration: number; }; idle_left: { row: number; frameCount: number; frameDuration: number; }; ... 5 more ...; default?: undefined; }' is not assignable to type 'Record<string, { row: number; frameCount: number; frameDuration: number; }>'. Property 'default' is incompatible with index signature. Type 'undefined' is not assignable to type '{ row: number; frameCount: number; frameDuration: number; }'. Overload 2 of 2, '(values: { id: string | SQL<unknown> | Placeholder<string, any>; name: string | SQL<unknown> | Placeholder<string, any>; category: string | SQL<unknown> | Placeholder<string, any>; ... 9 more ...; anchorY?: number | ... 3 more ... | undefined; }[]): PgInsertBase<...>', gave the following error. Argument of type '{ id: string; name: string; category: string; filePath: string; sheetWidth: number; sheetHeight: number; frameWidth: number; frameHeight: number; framesPerRow: number; framesPerColumn: number; anchorX: number; anchorY: number; animations: { ...; }; } | { ...; } | { ...; }' is not assignable to parameter of type '{ id: string | SQL<unknown> | Placeholder<string, any>; name: string | SQL<unknown> | Placeholder<string, any>; category: string | SQL<unknown> | Placeholder<string, any>; ... 9 more ...; anchorY?: number | ... 3 more ... | undefined; }[]'. Type '{ id: string; name: string; category: string; filePath: string; sheetWidth: number; sheetHeight: number; frameWidth: number; frameHeight: number; framesPerRow: number; framesPerColumn: number; anchorX: number; anchorY: number; animations: { ...; }; }' is missing the following properties from type '{ id: string | SQL<unknown> | Placeholder<string, any>; name: string | SQL<unknown> | Placeholder<string, any>; category: string | SQL<unknown> | Placeholder<string, any>; ... 9 more ...; anchorY?: number | ... 3 more ... | undefined; }[]': length, pop, push, concat, and 29 more.",
+      "count": 1
+    },
+    {
+      "file": "server/seed.ts",
+      "code": "TS2769",
+      "message": "No overload matches this call. Overload 1 of 2, '(value: { id: string | SQL<unknown> | Placeholder<string, any>; type: string | SQL<unknown> | Placeholder<string, any>; name: string | SQL<unknown> | Placeholder<string, any>; ... 10 more ...; grudgeUuid?: string | ... 3 more ... | undefined; }): PgInsertBase<...>', gave the following error. Argument of type '{ id: string; name: string; type: string; subType: \"Shoulder\" | \"Chest\" | \"Hands\" | \"Feet\" | \"Helm\" | \"Ring\" | \"Necklace\" | \"Relic\" | \"Offhand\"; rarity: string; tier: number; description: string; ... 4 more ...; sellValue: number; }' is not assignable to parameter of type '{ id: string | SQL<unknown> | Placeholder<string, any>; type: string | SQL<unknown> | Placeholder<string, any>; name: string | SQL<unknown> | Placeholder<string, any>; ... 10 more ...; grudgeUuid?: string | ... 3 more ... | undefined; }'. Types of property 'stats' are incompatible. Type '{ hpBase: number; hpPerTier: number; manaBase: number; manaPerTier: number; critBase: number; blockBase: number; defenseBase: number; passive: string; effect: string; proc: string; setBonus: string; }' is not assignable to type 'Record<string, number> | SQL<unknown> | Placeholder<string, any> | null | undefined'. Type '{ hpBase: number; hpPerTier: number; manaBase: number; manaPerTier: number; critBase: number; blockBase: number; defenseBase: number; passive: string; effect: string; proc: string; setBonus: string; }' is not assignable to type 'Record<string, number>'. Property 'passive' is incompatible with index signature. Type 'string' is not assignable to type 'number'. Overload 2 of 2, '(values: { id: string | SQL<unknown> | Placeholder<string, any>; type: string | SQL<unknown> | Placeholder<string, any>; name: string | SQL<unknown> | Placeholder<string, any>; ... 10 more ...; grudgeUuid?: string | ... 3 more ... | undefined; }[]): PgInsertBase<...>', gave the following error. Argument of type '{ id: string; name: string; type: string; subType: \"Shoulder\" | \"Chest\" | \"Hands\" | \"Feet\" | \"Helm\" | \"Ring\" | \"Necklace\" | \"Relic\" | \"Offhand\"; rarity: string; tier: number; description: string; ... 4 more ...; sellValue: number; }' is not assignable to parameter of type '{ id: string | SQL<unknown> | Placeholder<string, any>; type: string | SQL<unknown> | Placeholder<string, any>; name: string | SQL<unknown> | Placeholder<string, any>; ... 10 more ...; grudgeUuid?: string | ... 3 more ... | undefined; }[]'. Type '{ id: string; name: string; type: string; subType: \"Shoulder\" | \"Chest\" | \"Hands\" | \"Feet\" | \"Helm\" | \"Ring\" | \"Necklace\" | \"Relic\" | \"Offhand\"; rarity: string; tier: number; description: string; ... 4 more ...; sellValue: number; }' is missing the following properties from type '{ id: string | SQL<unknown> | Placeholder<string, any>; type: string | SQL<unknown> | Placeholder<string, any>; name: string | SQL<unknown> | Placeholder<string, any>; ... 10 more ...; grudgeUuid?: string | ... 3 more ... | undefined; }[]': length, pop, push, concat, and 29 more.",
+      "count": 1
+    },
+    {
+      "file": "server/seed.ts",
+      "code": "TS2769",
+      "message": "No overload matches this call. Overload 1 of 2, '(value: { id: string | SQL<unknown> | Placeholder<string, any>; type: string | SQL<unknown> | Placeholder<string, any>; name: string | SQL<unknown> | Placeholder<string, any>; ... 10 more ...; grudgeUuid?: string | ... 3 more ... | undefined; }): PgInsertBase<...>', gave the following error. Argument of type '{ id: string; name: string; type: string; subType: \"wood\" | \"leather\" | \"cloth\" | \"ore\" | \"essence\" | \"gem\" | \"component\" | \"infusion\" | \"ingredient\"; rarity: string; tier: number; description: string; stats: { ...; }; stackable: boolean; maxStack: number; sellValue: number; }' is not assignable to parameter of type '{ id: string | SQL<unknown> | Placeholder<string, any>; type: string | SQL<unknown> | Placeholder<string, any>; name: string | SQL<unknown> | Placeholder<string, any>; ... 10 more ...; grudgeUuid?: string | ... 3 more ... | undefined; }'. Types of property 'stats' are incompatible. Type '{ gatheredBy: \"Miner\" | \"Engineer\" | \"Mystic\" | \"Forester\" | \"Chef\" | null; }' is not assignable to type 'Record<string, number> | SQL<unknown> | Placeholder<string, any> | null | undefined'. Type '{ gatheredBy: \"Miner\" | \"Engineer\" | \"Mystic\" | \"Forester\" | \"Chef\" | null; }' is not assignable to type 'Record<string, number>'. Property 'gatheredBy' is incompatible with index signature. Type 'string | null' is not assignable to type 'number'. Type 'null' is not assignable to type 'number'. Overload 2 of 2, '(values: { id: string | SQL<unknown> | Placeholder<string, any>; type: string | SQL<unknown> | Placeholder<string, any>; name: string | SQL<unknown> | Placeholder<string, any>; ... 10 more ...; grudgeUuid?: string | ... 3 more ... | undefined; }[]): PgInsertBase<...>', gave the following error. Argument of type '{ id: string; name: string; type: string; subType: \"wood\" | \"leather\" | \"cloth\" | \"ore\" | \"essence\" | \"gem\" | \"component\" | \"infusion\" | \"ingredient\"; rarity: string; tier: number; description: string; stats: { ...; }; stackable: boolean; maxStack: number; sellValue: number; }' is not assignable to parameter of type '{ id: string | SQL<unknown> | Placeholder<string, any>; type: string | SQL<unknown> | Placeholder<string, any>; name: string | SQL<unknown> | Placeholder<string, any>; ... 10 more ...; grudgeUuid?: string | ... 3 more ... | undefined; }[]'. Type '{ id: string; name: string; type: string; subType: \"wood\" | \"leather\" | \"cloth\" | \"ore\" | \"essence\" | \"gem\" | \"component\" | \"infusion\" | \"ingredient\"; rarity: string; tier: number; description: string; stats: { ...; }; stackable: boolean; maxStack: number; sellValue: number; }' is missing the following properties from type '{ id: string | SQL<unknown> | Placeholder<string, any>; type: string | SQL<unknown> | Placeholder<string, any>; name: string | SQL<unknown> | Placeholder<string, any>; ... 10 more ...; grudgeUuid?: string | ... 3 more ... | undefined; }[]': length, pop, push, concat, and 29 more.",
+      "count": 1
+    },
+    {
+      "file": "server/seed.ts",
+      "code": "TS2769",
+      "message": "No overload matches this call. Overload 1 of 2, '(value: { id: string | SQL<unknown> | Placeholder<string, any>; type: string | SQL<unknown> | Placeholder<string, any>; name: string | SQL<unknown> | Placeholder<string, any>; ... 10 more ...; grudgeUuid?: string | ... 3 more ... | undefined; }): PgInsertBase<...>', gave the following error. Argument of type '{ id: string; name: string; type: string; subType: string; rarity: string; tier: number; description: string; stats: { effects: { stat: string; value: number; }[]; cookTime: number; ingredients: { name: string; amount: number; }[]; special: string | undefined; }; stackable: boolean; maxStack: number; sellValue: numb...' is not assignable to parameter of type '{ id: string | SQL<unknown> | Placeholder<string, any>; type: string | SQL<unknown> | Placeholder<string, any>; name: string | SQL<unknown> | Placeholder<string, any>; ... 10 more ...; grudgeUuid?: string | ... 3 more ... | undefined; }'. Types of property 'stats' are incompatible. Type '{ effects: { stat: string; value: number; }[]; cookTime: number; ingredients: { name: string; amount: number; }[]; special: string | undefined; }' is not assignable to type 'Record<string, number> | SQL<unknown> | Placeholder<string, any> | null | undefined'. Type '{ effects: { stat: string; value: number; }[]; cookTime: number; ingredients: { name: string; amount: number; }[]; special: string | undefined; }' is not assignable to type 'Record<string, number>'. Property 'effects' is incompatible with index signature. Type '{ stat: string; value: number; }[]' is not assignable to type 'number'. Overload 2 of 2, '(values: { id: string | SQL<unknown> | Placeholder<string, any>; type: string | SQL<unknown> | Placeholder<string, any>; name: string | SQL<unknown> | Placeholder<string, any>; ... 10 more ...; grudgeUuid?: string | ... 3 more ... | undefined; }[]): PgInsertBase<...>', gave the following error. Argument of type '{ id: string; name: string; type: string; subType: string; rarity: string; tier: number; description: string; stats: { effects: { stat: string; value: number; }[]; cookTime: number; ingredients: { name: string; amount: number; }[]; special: string | undefined; }; stackable: boolean; maxStack: number; sellValue: numb...' is not assignable to parameter of type '{ id: string | SQL<unknown> | Placeholder<string, any>; type: string | SQL<unknown> | Placeholder<string, any>; name: string | SQL<unknown> | Placeholder<string, any>; ... 10 more ...; grudgeUuid?: string | ... 3 more ... | undefined; }[]'. Type '{ id: string; name: string; type: string; subType: string; rarity: string; tier: number; description: string; stats: { effects: { stat: string; value: number; }[]; cookTime: number; ingredients: { name: string; amount: number; }[]; special: string | undefined; }; stackable: boolean; maxStack: number; sellValue: numb...' is missing the following properties from type '{ id: string | SQL<unknown> | Placeholder<string, any>; type: string | SQL<unknown> | Placeholder<string, any>; name: string | SQL<unknown> | Placeholder<string, any>; ... 10 more ...; grudgeUuid?: string | ... 3 more ... | undefined; }[]': length, pop, push, concat, and 29 more.",
+      "count": 1
+    },
+    {
+      "file": "server/seeds/loreSeed.ts",
+      "code": "TS2322",
+      "message": "Type '{ id: string; entityType: LoreEntityType; name: string; title: string; factionId: string; raceId: \"barbarian\" | \"pirate\" | RaceId; classId: string; level: number; ... 5 more ...; relationships: { ...; }[]; }[]' is not assignable to type '({ id: string; name: string; description: string; entityType: string; title?: string | null | undefined; raceId?: string | null | undefined; classId?: string | null | undefined; level?: number | null | undefined; ... 9 more ...; relationships?: { ...; }[] | ... 1 more ... | undefined; } & { ...; })[]'. Type '{ id: string; entityType: LoreEntityType; name: string; title: string; factionId: string; raceId: \"barbarian\" | \"pirate\" | RaceId; classId: string; level: number; description: string; ... 4 more ...; relationships: { ...; }[]; }' is not assignable to type '{ id: string; name: string; description: string; entityType: string; title?: string | null | undefined; raceId?: string | null | undefined; classId?: string | null | undefined; level?: number | null | undefined; ... 9 more ...; relationships?: { ...; }[] | ... 1 more ... | undefined; } & { ...; }'. Type '{ id: string; entityType: LoreEntityType; name: string; title: string; factionId: string; raceId: \"barbarian\" | \"pirate\" | RaceId; classId: string; level: number; description: string; ... 4 more ...; relationships: { ...; }[]; }' is not assignable to type '{ id: string; name: string; description: string; entityType: string; title?: string | null | undefined; raceId?: string | null | undefined; classId?: string | null | undefined; level?: number | null | undefined; ... 9 more ...; relationships?: { ...; }[] | ... 1 more ... | undefined; }'. Types of property 'relationships' are incompatible. Type '{ targetId: string; type: \"enemy\" | \"rival\" | \"friend\" | \"mentor\" | \"ally\" | \"blood_brother\"; description: string; }[]' is not assignable to type '{ targetId: string; type: \"enemy\" | \"rival\" | \"friend\" | \"mentor\" | \"student\" | \"ally\"; description?: string | undefined; }[]'. Type '{ targetId: string; type: \"enemy\" | \"rival\" | \"friend\" | \"mentor\" | \"ally\" | \"blood_brother\"; description: string; }' is not assignable to type '{ targetId: string; type: \"enemy\" | \"rival\" | \"friend\" | \"mentor\" | \"student\" | \"ally\"; description?: string | undefined; }'. Types of property 'type' are incompatible. Type '\"enemy\" | \"rival\" | \"friend\" | \"mentor\" | \"ally\" | \"blood_brother\"' is not assignable to type '\"enemy\" | \"rival\" | \"friend\" | \"mentor\" | \"student\" | \"ally\"'. Type '\"blood_brother\"' is not assignable to type '\"enemy\" | \"rival\" | \"friend\" | \"mentor\" | \"student\" | \"ally\"'.",
+      "count": 1
+    },
+    {
+      "file": "server/services/gbuxSolana.ts",
+      "code": "TS2769",
+      "message": "No overload matches this call. Overload 1 of 2, '(input: string | URL | Request, init?: RequestInit | undefined): Promise<Response>', gave the following error. Argument of type 'string | undefined' is not assignable to parameter of type 'string | URL | Request'. Type 'undefined' is not assignable to type 'string | URL | Request'. Overload 2 of 2, '(input: URL | RequestInfo, init?: RequestInit | undefined): Promise<Response>', gave the following error. Argument of type 'string | undefined' is not assignable to parameter of type 'URL | RequestInfo'. Type 'undefined' is not assignable to type 'URL | RequestInfo'.",
+      "count": 1
+    },
+    {
+      "file": "server/services/nftMetadata.ts",
+      "code": "TS2769",
+      "message": "No overload matches this call. Overload 1 of 2, '(input: string | URL | Request, init?: RequestInit | undefined): Promise<Response>', gave the following error. Type 'Buffer<ArrayBufferLike>' is not assignable to type 'BodyInit | null | undefined'. Type 'Buffer<ArrayBufferLike>' is missing the following properties from type 'URLSearchParams': size, append, delete, get, and 2 more. Overload 2 of 2, '(input: URL | RequestInfo, init?: RequestInit | undefined): Promise<Response>', gave the following error. Type 'Buffer<ArrayBufferLike>' is not assignable to type 'BodyInit | null | undefined'. Type 'Buffer<ArrayBufferLike>' is missing the following properties from type 'URLSearchParams': size, append, delete, get, and 2 more.",
+      "count": 1
+    },
+    {
+      "file": "server/services/uuidService.ts",
+      "code": "TS2322",
+      "message": "Type 'string | null' is not assignable to type 'number | undefined'. Type 'null' is not assignable to type 'number | undefined'.",
+      "count": 1
+    },
+    {
+      "file": "server/spriteGeneration/services/exchangeService.ts",
+      "code": "TS2307",
+      "message": "Cannot find module '../db' or its corresponding type declarations.",
+      "count": 1
+    },
+    {
+      "file": "server/spriteGeneration/services/exchangeService.ts",
+      "code": "TS2307",
+      "message": "Cannot find module '../storage' or its corresponding type declarations.",
+      "count": 1
+    },
+    {
+      "file": "server/spriteGeneration/services/nftMinting.ts",
+      "code": "TS2353",
+      "message": "Object literal may only specify known properties, and 'custody' does not exist in type '{ characterId?: string | null | undefined; accountId?: string | null | undefined; grudgeId?: string | null | undefined; grudgeCode?: string | null | undefined; }'.",
+      "count": 2
+    },
+    {
+      "file": "server/spriteGeneration/spriteGeneratorService.ts",
+      "code": "TS2503",
+      "message": "Cannot find namespace 'OpenAI'.",
+      "count": 1
+    },
+    {
+      "file": "server/spriteGeneration/spriteGeneratorService.ts",
+      "code": "TS2552",
+      "message": "Cannot find name 'openai'. Did you mean 'open'?",
+      "count": 1
+    },
+    {
+      "file": "server/spriteGeneration/spriteGeneratorService.ts",
+      "code": "TS2769",
+      "message": "No overload matches this call. Overload 1 of 4, '(arrayBuffer: WithImplicitCoercion<ArrayBufferLike>, byteOffset?: number | undefined, length?: number | undefined): Buffer<ArrayBufferLike>', gave the following error. Argument of type 'string | undefined' is not assignable to parameter of type 'WithImplicitCoercion<ArrayBufferLike>'. Type 'undefined' is not assignable to type 'WithImplicitCoercion<ArrayBufferLike>'. Overload 2 of 4, '(string: WithImplicitCoercion<string>, encoding?: BufferEncoding | undefined): Buffer<ArrayBuffer>', gave the following error. Argument of type 'string | undefined' is not assignable to parameter of type 'WithImplicitCoercion<string>'. Type 'undefined' is not assignable to type 'WithImplicitCoercion<string>'.",
+      "count": 1
+    },
+    {
+      "file": "server/storage.ts",
+      "code": "TS2345",
+      "message": "Argument of type '{ updatedAt: number; grudgeUuid?: string | undefined; itemId?: string | null | undefined; itemName?: string | null | undefined; itemTier?: string | null | undefined; isValid?: boolean | undefined; ... 4 more ...; lastEventType?: string | ... 1 more ... | undefined; }' is not assignable to parameter of type '{ grudgeUuid?: string | SQL<unknown> | PgColumn<ColumnBaseConfig<ColumnDataType, string>, {}, {}> | undefined; itemId?: string | SQL<...> | PgColumn<...> | null | undefined; ... 9 more ...; lastEventType?: SQL<...> | ... 11 more ... | undefined; }'. Types of property 'currentState' are incompatible. Type 'string | undefined' is not assignable to type 'SQL<unknown> | PgColumn<ColumnBaseConfig<ColumnDataType, string>, {}, {}> | \"CONSUMED\" | \"DESTROYED\" | \"ARCHIVED\" | \"ACTIVE\" | undefined'. Type 'string' is not assignable to type 'SQL<unknown> | PgColumn<ColumnBaseConfig<ColumnDataType, string>, {}, {}> | \"CONSUMED\" | \"DESTROYED\" | \"ARCHIVED\" | \"ACTIVE\" | undefined'.",
+      "count": 1
+    },
+    {
+      "file": "server/storage.ts",
+      "code": "TS2345",
+      "message": "Argument of type '{ updatedAt: number; status?: string; mintAddress?: string; assetId?: string; crossmintActionId?: string; metadataUri?: string; imageUri?: string; mintedAt?: number; }' is not assignable to parameter of type '{ characterId?: string | SQL<unknown> | PgColumn<ColumnBaseConfig<ColumnDataType, string>, {}, {}> | undefined; accountId?: string | SQL<...> | PgColumn<...> | undefined; ... 15 more ...; transferredAt?: number | ... 3 more ... | undefined; }'. Types of property 'status' are incompatible. Type 'string | undefined' is not assignable to type '\"pending\" | SQL<unknown> | PgColumn<ColumnBaseConfig<ColumnDataType, string>, {}, {}> | \"minting\" | \"minted\" | \"upgrading\" | \"transferred\" | \"burned\" | undefined'. Type 'string' is not assignable to type '\"pending\" | SQL<unknown> | PgColumn<ColumnBaseConfig<ColumnDataType, string>, {}, {}> | \"minting\" | \"minted\" | \"upgrading\" | \"transferred\" | \"burned\" | undefined'.",
+      "count": 1
+    },
+    {
+      "file": "server/storage.ts",
+      "code": "TS2345",
+      "message": "Argument of type '{ updatedAt: number; status?: string; mintAddress?: string; assetId?: string; crossmintActionId?: string; metadataUri?: string; imageUri?: string; mintedAt?: number; }' is not assignable to parameter of type '{ islandId?: string | SQL<unknown> | PgColumn<ColumnBaseConfig<ColumnDataType, string>, {}, {}> | undefined; accountId?: string | SQL<...> | PgColumn<...> | undefined; ... 15 more ...; transferredAt?: number | ... 3 more ... | undefined; }'. Types of property 'status' are incompatible. Type 'string | undefined' is not assignable to type '\"pending\" | SQL<unknown> | PgColumn<ColumnBaseConfig<ColumnDataType, string>, {}, {}> | \"minting\" | \"minted\" | \"upgrading\" | \"transferred\" | \"burned\" | undefined'. Type 'string' is not assignable to type '\"pending\" | SQL<unknown> | PgColumn<ColumnBaseConfig<ColumnDataType, string>, {}, {}> | \"minting\" | \"minted\" | \"upgrading\" | \"transferred\" | \"burned\" | undefined'.",
+      "count": 1
+    },
+    {
+      "file": "server/storage.ts",
+      "code": "TS2345",
+      "message": "Argument of type '{ updatedAt: number; userId?: string | undefined; missionId?: string | undefined; status?: string | undefined; accountId?: string | null | undefined; completedAt?: number | null | undefined; ... 5 more ...; rewardsClaimed?: boolean | undefined; }' is not assignable to parameter of type '{ userId?: string | SQL<unknown> | PgColumn<ColumnBaseConfig<ColumnDataType, string>, {}, {}> | undefined; missionId?: string | SQL<...> | PgColumn<...> | undefined; ... 11 more ...; rewardsClaimed?: boolean | ... 2 more ... | undefined; }'. Types of property 'status' are incompatible. Type 'string | undefined' is not assignable to type 'SQL<unknown> | PgColumn<ColumnBaseConfig<ColumnDataType, string>, {}, {}> | MissionProgressStatus | undefined'. Type 'string' is not assignable to type 'SQL<unknown> | PgColumn<ColumnBaseConfig<ColumnDataType, string>, {}, {}> | MissionProgressStatus | undefined'.",
+      "count": 1
+    },
+    {
+      "file": "server/storage.ts",
+      "code": "TS2345",
+      "message": "Argument of type '{ updatedAt: number; zoneX: number; zoneY: number; type: string; islandSeed?: number; ownerId?: string; playerBlockId?: string; difficulty?: number; expiresAt?: number; lootTheme?: string; state?: any; }' is not assignable to parameter of type '{ type?: \"home\" | \"boss\" | \"wild\" | \"empty\" | SQL<unknown> | PgColumn<ColumnBaseConfig<ColumnDataType, string>, {}, {}> | \"event\" | \"fort\" | undefined; ... 14 more ...; isCleared?: boolean | ... 3 more ... | undefined; }'. Types of property 'type' are incompatible. Type 'string' is not assignable to type '\"home\" | \"boss\" | \"wild\" | \"empty\" | SQL<unknown> | PgColumn<ColumnBaseConfig<ColumnDataType, string>, {}, {}> | \"event\" | \"fort\" | undefined'.",
+      "count": 1
+    },
+    {
+      "file": "server/storage.ts",
+      "code": "TS2345",
+      "message": "Argument of type 'Partial<{ title: string; description: string; missionType: string; status?: string | undefined; rewards?: { xp: number; gold: number; items: { itemId: string; quantity: number; chance?: number | undefined; }[]; reputationChanges?: { ...; }[] | undefined; } | null | undefined; ... 18 more ...; cooldownMinutes?: numbe...' is not assignable to parameter of type '{ title?: string | SQL<unknown> | PgColumn<ColumnBaseConfig<ColumnDataType, string>, {}, {}> | undefined; description?: string | SQL<...> | PgColumn<...> | undefined; ... 23 more ...; cooldownMinutes?: number | ... 3 more ... | undefined; }'. Types of property 'missionType' are incompatible. Type 'string | undefined' is not assignable to type 'SQL<unknown> | PgColumn<ColumnBaseConfig<ColumnDataType, string>, {}, {}> | MissionType | undefined'. Type 'string' is not assignable to type 'SQL<unknown> | PgColumn<ColumnBaseConfig<ColumnDataType, string>, {}, {}> | MissionType | undefined'.",
+      "count": 1
+    },
+    {
+      "file": "server/storage.ts",
+      "code": "TS2741",
+      "message": "Property 'where' is missing in type 'Omit<import(\"node_modules/drizzle-orm/pg-core/query-builders/select\").PgSelectBase<\"uuid_ledger\", { id: import(\"node_modules/drizzle-orm/pg-core/columns/common\").PgColumn<{ name: \"id\"; tableName: \"uuid_ledger\"; dataType: \"string\"; column...' but required in type 'Omit<import(\"node_modules/drizzle-orm/pg-core/query-builders/select\").PgSelectBase<\"uuid_ledger\", { id: import(\"node_modules/drizzle-orm/pg-core/columns/common\").PgColumn<{ name: \"id\"; tableName: \"uuid_ledger\"; dataType: \"string\"; column...'.",
+      "count": 1
+    },
+    {
+      "file": "server/storage.ts",
+      "code": "TS2769",
+      "message": "No overload matches this call. Overload 1 of 2, '(value: { grudgeUuid: string | SQL<unknown> | Placeholder<string, any>; eventType: SQL<unknown> | \"CREATED\" | \"ASSIGNED\" | \"EQUIPPED\" | \"UNEQUIPPED\" | \"UPGRADED\" | \"CONSUMED\" | \"TRANSFERRED\" | \"DESTROYED\" | \"ARCHIVED\" | Placeholder<...>; ... 12 more ...; itemSlot?: string | ... 3 more ... | undefined; }): PgInsertBase<...>', gave the following error. Argument of type '{ grudgeUuid: string; eventType: string; metadata?: { description?: string | undefined; previousOwnerAccountId?: string | undefined; previousTier?: number | undefined; recipeId?: string | undefined; quantity?: number | undefined; validationHash?: string | undefined; } | null | undefined; ... 9 more ...; itemSlot?: s...' is not assignable to parameter of type '{ grudgeUuid: string | SQL<unknown> | Placeholder<string, any>; eventType: SQL<unknown> | \"CREATED\" | \"ASSIGNED\" | \"EQUIPPED\" | \"UNEQUIPPED\" | \"UPGRADED\" | \"CONSUMED\" | \"TRANSFERRED\" | \"DESTROYED\" | \"ARCHIVED\" | Placeholder<...>; ... 12 more ...; itemSlot?: string | ... 3 more ... | undefined; }'. Types of property 'eventType' are incompatible. Type 'string' is not assignable to type 'SQL<unknown> | \"CREATED\" | \"ASSIGNED\" | \"EQUIPPED\" | \"UNEQUIPPED\" | \"UPGRADED\" | \"CONSUMED\" | \"TRANSFERRED\" | \"DESTROYED\" | \"ARCHIVED\" | Placeholder<string, any>'. Overload 2 of 2, '(values: { grudgeUuid: string | SQL<unknown> | Placeholder<string, any>; eventType: SQL<unknown> | \"CREATED\" | \"ASSIGNED\" | \"EQUIPPED\" | \"UNEQUIPPED\" | \"UPGRADED\" | \"CONSUMED\" | \"TRANSFERRED\" | \"DESTROYED\" | \"ARCHIVED\" | Placeholder<...>; ... 12 more ...; itemSlot?: string | ... 3 more ... | undefined; }[]): PgInsertBase<...>', gave the following error. Argument of type '{ grudgeUuid: string; eventType: string; metadata?: { description?: string | undefined; previousOwnerAccountId?: string | undefined; previousTier?: number | undefined; recipeId?: string | undefined; quantity?: number | undefined; validationHash?: string | undefined; } | null | undefined; ... 9 more ...; itemSlot?: s...' is not assignable to parameter of type '{ grudgeUuid: string | SQL<unknown> | Placeholder<string, any>; eventType: SQL<unknown> | \"CREATED\" | \"ASSIGNED\" | \"EQUIPPED\" | \"UNEQUIPPED\" | \"UPGRADED\" | \"CONSUMED\" | \"TRANSFERRED\" | \"DESTROYED\" | \"ARCHIVED\" | Placeholder<...>; ... 12 more ...; itemSlot?: string | ... 3 more ... | undefined; }[]'. Type '{ grudgeUuid: string; eventType: string; metadata?: { description?: string | undefined; previousOwnerAccountId?: string | undefined; previousTier?: number | undefined; recipeId?: string | undefined; quantity?: number | undefined; validationHash?: string | undefined; } | null | undefined; ... 9 more ...; itemSlot?: s...' is missing the following properties from type '{ grudgeUuid: string | SQL<unknown> | Placeholder<string, any>; eventType: SQL<unknown> | \"CREATED\" | \"ASSIGNED\" | \"EQUIPPED\" | \"UNEQUIPPED\" | \"UPGRADED\" | \"CONSUMED\" | \"TRANSFERRED\" | \"DESTROYED\" | \"ARCHIVED\" | Placeholder<...>; ... 12 more ...; itemSlot?: string | ... 3 more ... | undefined; }[]': length, pop, push, concat, and 29 more.",
+      "count": 1
+    },
+    {
+      "file": "server/storage.ts",
+      "code": "TS2769",
+      "message": "No overload matches this call. Overload 1 of 2, '(value: { grudgeUuid: string | SQL<unknown> | Placeholder<string, any>; itemId?: string | SQL<unknown> | Placeholder<string, any> | null | undefined; createdAt?: number | ... 2 more ... | undefined; ... 8 more ...; lastEventType?: SQL<...> | ... 11 more ... | undefined; }): PgInsertBase<...>', gave the following error. Type 'string' is not assignable to type 'SQL<unknown> | \"CREATED\" | \"ASSIGNED\" | \"EQUIPPED\" | \"UNEQUIPPED\" | \"UPGRADED\" | \"CONSUMED\" | \"TRANSFERRED\" | \"DESTROYED\" | \"ARCHIVED\" | Placeholder<string, any> | null | undefined'. Overload 2 of 2, '(values: { grudgeUuid: string | SQL<unknown> | Placeholder<string, any>; itemId?: string | SQL<unknown> | Placeholder<string, any> | null | undefined; createdAt?: number | ... 2 more ... | undefined; ... 8 more ...; lastEventType?: SQL<...> | ... 11 more ... | undefined; }[]): PgInsertBase<...>', gave the following error. Object literal may only specify known properties, and 'grudgeUuid' does not exist in type '{ grudgeUuid: string | SQL<unknown> | Placeholder<string, any>; itemId?: string | SQL<unknown> | Placeholder<string, any> | null | undefined; createdAt?: number | ... 2 more ... | undefined; ... 8 more ...; lastEventType?: SQL<...> | ... 11 more ... | undefined; }[]'.",
+      "count": 1
+    },
+    {
+      "file": "server/storage.ts",
+      "code": "TS2769",
+      "message": "No overload matches this call. Overload 1 of 2, '(value: { name: string | SQL<unknown> | Placeholder<string, any>; encounterUnits: SQL<unknown> | { monsterId?: string | undefined; aiUnitId?: string | undefined; heroId?: string | undefined; count: number; spawnWave?: number | undefined; isElite?: boolean | undefined; isBoss?: boolean | undefined; }[] | Placeholder<...>; ... 14 more ...; dungeonFloorMax?: number | ... 3 more ... | undefined; }): PgInsertBase<...>', gave the following error. Argument of type '{ name: string; encounterUnits: { monsterId?: string | undefined; aiUnitId?: string | undefined; heroId?: string | undefined; count: number; spawnWave?: number | undefined; isElite?: boolean | undefined; isBoss?: boolean | undefined; }[]; ... 12 more ...; dungeonFloorMax?: number | ... 1 more ... | undefined; }' is not assignable to parameter of type '{ name: string | SQL<unknown> | Placeholder<string, any>; encounterUnits: SQL<unknown> | { monsterId?: string | undefined; aiUnitId?: string | undefined; heroId?: string | undefined; count: number; spawnWave?: number | undefined; isElite?: boolean | undefined; isBoss?: boolean | undefined; }[] | Placeholder<...>; .....'. Types of property 'approvalStatus' are incompatible. Type 'string | undefined' is not assignable to type '\"pending\" | SQL<unknown> | \"draft\" | \"approved\" | \"rejected\" | Placeholder<string, any> | undefined'. Type 'string' is not assignable to type '\"pending\" | SQL<unknown> | \"draft\" | \"approved\" | \"rejected\" | Placeholder<string, any> | undefined'. Overload 2 of 2, '(values: { name: string | SQL<unknown> | Placeholder<string, any>; encounterUnits: SQL<unknown> | { monsterId?: string | undefined; aiUnitId?: string | undefined; heroId?: string | undefined; count: number; spawnWave?: number | undefined; isElite?: boolean | undefined; isBoss?: boolean | undefined; }[] | Placeholder<...>; ... 14 more ...; dungeonFloorMax?: number | ... 3 more ... | undefined; }[]): PgInsertBase<...>', gave the following error. Argument of type '{ name: string; encounterUnits: { monsterId?: string | undefined; aiUnitId?: string | undefined; heroId?: string | undefined; count: number; spawnWave?: number | undefined; isElite?: boolean | undefined; isBoss?: boolean | undefined; }[]; ... 12 more ...; dungeonFloorMax?: number | ... 1 more ... | undefined; }' is not assignable to parameter of type '{ name: string | SQL<unknown> | Placeholder<string, any>; encounterUnits: SQL<unknown> | { monsterId?: string | undefined; aiUnitId?: string | undefined; heroId?: string | undefined; count: number; spawnWave?: number | undefined; isElite?: boolean | undefined; isBoss?: boolean | undefined; }[] | Placeholder<...>; .....'. Type '{ name: string; encounterUnits: { monsterId?: string | undefined; aiUnitId?: string | undefined; heroId?: string | undefined; count: number; spawnWave?: number | undefined; isElite?: boolean | undefined; isBoss?: boolean | undefined; }[]; ... 12 more ...; dungeonFloorMax?: number | ... 1 more ... | undefined; }' is missing the following properties from type '{ name: string | SQL<unknown> | Placeholder<string, any>; encounterUnits: SQL<unknown> | { monsterId?: string | undefined; aiUnitId?: string | undefined; heroId?: string | undefined; count: number; spawnWave?: number | undefined; isElite?: boolean | undefined; isBoss?: boolean | undefined; }[] | Placeholder<...>; .....': length, pop, push, concat, and 29 more.",
+      "count": 1
+    },
+    {
+      "file": "server/storage.ts",
+      "code": "TS2769",
+      "message": "No overload matches this call. Overload 1 of 2, '(value: { prompt: string | SQL<unknown> | Placeholder<string, any>; contentType: SQL<unknown> | \"dialogue\" | \"mission\" | \"story_arc\" | \"combat_challenge\" | \"quest_text\" | Placeholder<...>; ... 8 more ...; reviewedAt?: number | ... 3 more ... | undefined; }): PgInsertBase<...>', gave the following error. Argument of type '{ prompt: string; contentType: string; generatedData: Record<string, unknown>; status?: string | undefined; loreContext?: { godId?: string | undefined; factionId?: string | undefined; heroId?: string | undefined; locationId?: string | undefined; playerLevel?: number | undefined; } | null | undefined; reviewedBy?: st...' is not assignable to parameter of type '{ prompt: string | SQL<unknown> | Placeholder<string, any>; contentType: SQL<unknown> | \"dialogue\" | \"mission\" | \"story_arc\" | \"combat_challenge\" | \"quest_text\" | Placeholder<...>; ... 8 more ...; reviewedAt?: number | ... 3 more ... | undefined; }'. Types of property 'contentType' are incompatible. Type 'string' is not assignable to type 'SQL<unknown> | \"dialogue\" | \"mission\" | \"story_arc\" | \"combat_challenge\" | \"quest_text\" | Placeholder<string, any>'. Overload 2 of 2, '(values: { prompt: string | SQL<unknown> | Placeholder<string, any>; contentType: SQL<unknown> | \"dialogue\" | \"mission\" | \"story_arc\" | \"combat_challenge\" | \"quest_text\" | Placeholder<...>; ... 8 more ...; reviewedAt?: number | ... 3 more ... | undefined; }[]): PgInsertBase<...>', gave the following error. Argument of type '{ prompt: string; contentType: string; generatedData: Record<string, unknown>; status?: string | undefined; loreContext?: { godId?: string | undefined; factionId?: string | undefined; heroId?: string | undefined; locationId?: string | undefined; playerLevel?: number | undefined; } | null | undefined; reviewedBy?: st...' is not assignable to parameter of type '{ prompt: string | SQL<unknown> | Placeholder<string, any>; contentType: SQL<unknown> | \"dialogue\" | \"mission\" | \"story_arc\" | \"combat_challenge\" | \"quest_text\" | Placeholder<...>; ... 8 more ...; reviewedAt?: number | ... 3 more ... | undefined; }[]'. Type '{ prompt: string; contentType: string; generatedData: Record<string, unknown>; status?: string | undefined; loreContext?: { godId?: string | undefined; factionId?: string | undefined; heroId?: string | undefined; locationId?: string | undefined; playerLevel?: number | undefined; } | null | undefined; reviewedBy?: st...' is missing the following properties from type '{ prompt: string | SQL<unknown> | Placeholder<string, any>; contentType: SQL<unknown> | \"dialogue\" | \"mission\" | \"story_arc\" | \"combat_challenge\" | \"quest_text\" | Placeholder<...>; ... 8 more ...; reviewedAt?: number | ... 3 more ... | undefined; }[]': length, pop, push, concat, and 29 more.",
+      "count": 1
+    },
+    {
+      "file": "server/storage.ts",
+      "code": "TS2769",
+      "message": "No overload matches this call. Overload 1 of 2, '(value: { title: string | SQL<unknown> | Placeholder<string, any>; description: string | SQL<unknown> | Placeholder<string, any>; missionType: SQL<unknown> | MissionType | Placeholder<...>; ... 22 more ...; cooldownMinutes?: number | ... 3 more ... | undefined; }): PgInsertBase<...>', gave the following error. Argument of type '{ title: string; description: string; missionType: string; status?: string | undefined; rewards?: { xp: number; gold: number; items: { itemId: string; quantity: number; chance?: number | undefined; }[]; reputationChanges?: { ...; }[] | undefined; } | null | undefined; ... 18 more ...; cooldownMinutes?: number | ... ...' is not assignable to parameter of type '{ title: string | SQL<unknown> | Placeholder<string, any>; description: string | SQL<unknown> | Placeholder<string, any>; missionType: SQL<unknown> | MissionType | Placeholder<...>; ... 22 more ...; cooldownMinutes?: number | ... 3 more ... | undefined; }'. Types of property 'missionType' are incompatible. Type 'string' is not assignable to type 'SQL<unknown> | MissionType | Placeholder<string, any>'. Overload 2 of 2, '(values: { title: string | SQL<unknown> | Placeholder<string, any>; description: string | SQL<unknown> | Placeholder<string, any>; missionType: SQL<unknown> | MissionType | Placeholder<...>; ... 22 more ...; cooldownMinutes?: number | ... 3 more ... | undefined; }[]): PgInsertBase<...>', gave the following error. Argument of type '{ title: string; description: string; missionType: string; status?: string | undefined; rewards?: { xp: number; gold: number; items: { itemId: string; quantity: number; chance?: number | undefined; }[]; reputationChanges?: { ...; }[] | undefined; } | null | undefined; ... 18 more ...; cooldownMinutes?: number | ... ...' is not assignable to parameter of type '{ title: string | SQL<unknown> | Placeholder<string, any>; description: string | SQL<unknown> | Placeholder<string, any>; missionType: SQL<unknown> | MissionType | Placeholder<...>; ... 22 more ...; cooldownMinutes?: number | ... 3 more ... | undefined; }[]'. Type '{ title: string; description: string; missionType: string; status?: string | undefined; rewards?: { xp: number; gold: number; items: { itemId: string; quantity: number; chance?: number | undefined; }[]; reputationChanges?: { ...; }[] | undefined; } | null | undefined; ... 18 more ...; cooldownMinutes?: number | ... ...' is missing the following properties from type '{ title: string | SQL<unknown> | Placeholder<string, any>; description: string | SQL<unknown> | Placeholder<string, any>; missionType: SQL<unknown> | MissionType | Placeholder<...>; ... 22 more ...; cooldownMinutes?: number | ... 3 more ... | undefined; }[]': length, pop, push, concat, and 29 more.",
+      "count": 1
+    },
+    {
+      "file": "server/storage.ts",
+      "code": "TS2769",
+      "message": "No overload matches this call. Overload 1 of 2, '(value: { title: string | SQL<unknown> | Placeholder<string, any>; description: string | SQL<unknown> | Placeholder<string, any>; status?: SQL<unknown> | StoryArcStatus | Placeholder<...> | undefined; ... 14 more ...; approvalStatus?: \"pending\" | ... 5 more ... | undefined; }): PgInsertBase<...>', gave the following error. Argument of type '{ title: string; description: string; status?: string | undefined; rewards?: { xp: number; gold: number; items: { itemId: string; quantity: number; }[]; reputationChanges: { factionId: string; change: number; }[]; unlocksArcId?: string | undefined; } | null | undefined; ... 11 more ...; approvalStatus?: string | und...' is not assignable to parameter of type '{ title: string | SQL<unknown> | Placeholder<string, any>; description: string | SQL<unknown> | Placeholder<string, any>; status?: SQL<unknown> | StoryArcStatus | Placeholder<...> | undefined; ... 14 more ...; approvalStatus?: \"pending\" | ... 5 more ... | undefined; }'. Types of property 'status' are incompatible. Type 'string | undefined' is not assignable to type 'SQL<unknown> | StoryArcStatus | Placeholder<string, any> | undefined'. Type 'string' is not assignable to type 'SQL<unknown> | StoryArcStatus | Placeholder<string, any> | undefined'. Overload 2 of 2, '(values: { title: string | SQL<unknown> | Placeholder<string, any>; description: string | SQL<unknown> | Placeholder<string, any>; status?: SQL<unknown> | StoryArcStatus | Placeholder<...> | undefined; ... 14 more ...; approvalStatus?: \"pending\" | ... 5 more ... | undefined; }[]): PgInsertBase<...>', gave the following error. Argument of type '{ title: string; description: string; status?: string | undefined; rewards?: { xp: number; gold: number; items: { itemId: string; quantity: number; }[]; reputationChanges: { factionId: string; change: number; }[]; unlocksArcId?: string | undefined; } | null | undefined; ... 11 more ...; approvalStatus?: string | und...' is not assignable to parameter of type '{ title: string | SQL<unknown> | Placeholder<string, any>; description: string | SQL<unknown> | Placeholder<string, any>; status?: SQL<unknown> | StoryArcStatus | Placeholder<...> | undefined; ... 14 more ...; approvalStatus?: \"pending\" | ... 5 more ... | undefined; }[]'. Type '{ title: string; description: string; status?: string | undefined; rewards?: { xp: number; gold: number; items: { itemId: string; quantity: number; }[]; reputationChanges: { factionId: string; change: number; }[]; unlocksArcId?: string | undefined; } | null | undefined; ... 11 more ...; approvalStatus?: string | und...' is missing the following properties from type '{ title: string | SQL<unknown> | Placeholder<string, any>; description: string | SQL<unknown> | Placeholder<string, any>; status?: SQL<unknown> | StoryArcStatus | Placeholder<...> | undefined; ... 14 more ...; approvalStatus?: \"pending\" | ... 5 more ... | undefined; }[]': length, pop, push, concat, and 29 more.",
+      "count": 1
+    },
+    {
+      "file": "server/treatyDiscordRoutes.ts",
+      "code": "TS2783",
+      "message": "'id' is specified more than once, so this usage will be overwritten.",
+      "count": 1
+    },
+    {
+      "file": "server/treatyTelegramRoutes.ts",
+      "code": "TS2783",
+      "message": "'id' is specified more than once, so this usage will be overwritten.",
+      "count": 1
+    },
+    {
+      "file": "shared/animation/mocap/reconstruct.ts",
+      "code": "TS2322",
+      "message": "Type '{ Bip001_L_Thigh: [number, number, number, number]; Bip001_R_Thigh: [number, number, number, number]; Bip001_L_UpperArm: [number, number, number, number]; Bip001_R_UpperArm: [...]; mixamorigLeftUpLeg?: undefined; mixamorigRightUpLeg?: undefined; mixamorigLeftArm?: undefined; mixamorigRightArm?: undefined; } | { ...; }' is not assignable to type 'Record<string, [number, number, number, number]>'. Type '{ Bip001_L_Thigh: [number, number, number, number]; Bip001_R_Thigh: [number, number, number, number]; Bip001_L_UpperArm: [number, number, number, number]; Bip001_R_UpperArm: [...]; mixamorigLeftUpLeg?: undefined; mixamorigRightUpLeg?: undefined; mixamorigLeftArm?: undefined; mixamorigRightArm?: undefined; }' is not assignable to type 'Record<string, [number, number, number, number]>'. Property 'mixamorigLeftUpLeg' is incompatible with index signature. Type 'undefined' is not assignable to type '[number, number, number, number]'.",
+      "count": 1
+    },
+    {
+      "file": "shared/animation/mocap/reconstruct.ts",
+      "code": "TS2322",
+      "message": "Type '{ Bip001_R_UpperArm: [number, number, number, number]; Bip001_R_Forearm: [number, number, number, number]; Bip001_L_UpperArm?: undefined; Bip001_L_Forearm?: undefined; mixamorigRightArm?: undefined; mixamorigRightForeArm?: undefined; mixamorigLeftArm?: undefined; mixamorigLeftForeArm?: undefined; } | ... 14 more ......' is not assignable to type 'Record<string, [number, number, number, number]>'. Type '{ Bip001_R_UpperArm: [number, number, number, number]; Bip001_R_Forearm: [number, number, number, number]; Bip001_L_UpperArm?: undefined; Bip001_L_Forearm?: undefined; mixamorigRightArm?: undefined; mixamorigRightForeArm?: undefined; mixamorigLeftArm?: undefined; mixamorigLeftForeArm?: undefined; }' is not assignable to type 'Record<string, [number, number, number, number]>'. Property 'Bip001_L_UpperArm' is incompatible with index signature. Type 'undefined' is not assignable to type '[number, number, number, number]'.",
+      "count": 2
+    },
+    {
+      "file": "shared/animation/mocap/reconstruct.ts",
+      "code": "TS2322",
+      "message": "Type '{ Bip001_R_UpperArm: [number, number, number, number]; Bip001_R_Forearm: [number, number, number, number]; Bip001_L_UpperArm?: undefined; Bip001_L_Forearm?: undefined; mixamorigRightArm?: undefined; mixamorigRightForeArm?: undefined; mixamorigLeftArm?: undefined; mixamorigLeftForeArm?: undefined; } | { ...; } | { .....' is not assignable to type 'Record<string, [number, number, number, number]>'. Type '{ Bip001_R_UpperArm: [number, number, number, number]; Bip001_R_Forearm: [number, number, number, number]; Bip001_L_UpperArm?: undefined; Bip001_L_Forearm?: undefined; mixamorigRightArm?: undefined; mixamorigRightForeArm?: undefined; mixamorigLeftArm?: undefined; mixamorigLeftForeArm?: undefined; }' is not assignable to type 'Record<string, [number, number, number, number]>'. Property 'Bip001_L_UpperArm' is incompatible with index signature. Type 'undefined' is not assignable to type '[number, number, number, number]'.",
+      "count": 1
+    },
+    {
+      "file": "shared/animation/mocap/rigidBodyGuard.ts",
+      "code": "TS2367",
+      "message": "This comparison appears to be unintentional because the types '4' and '3' have no overlap.",
+      "count": 1
+    },
+    {
+      "file": "shared/definitions/armorPrefabCatalog.ts",
+      "code": "TS2367",
+      "message": "This comparison appears to be unintentional because the types '\"fallback\" | \"ready\"' and '\"missing\"' have no overlap.",
+      "count": 1
+    },
+    {
+      "file": "shared/definitions/biomeEcosystemCatalog.ts",
+      "code": "TS2322",
+      "message": "Type '[string, string, string, string, string, string]' is not assignable to type '[string, string, string, string, string]'. Source has 6 element(s) but target allows only 5.",
+      "count": 1
+    },
+    {
+      "file": "shared/definitions/campUnits.ts",
+      "code": "TS2741",
+      "message": "Property 'trap' is missing in type '{ flag: { kind: \"flag\"; label: string; aiAbilityMult: number; harvestRateMult: number; harvestYieldMult: number; equipT0Weapons: false; armorBonus: number; weaponSkillUsage: false; maxHpBonus: number; description: string; }; ... 4 more ...; barricade: { ...; }; }' but required in type 'Record<CampUpgradeKind, CampBuildingUnitBuff>'.",
+      "count": 1
+    },
+    {
+      "file": "shared/definitions/index.ts",
+      "code": "TS2308",
+      "message": "Module \"./medievalBattleScene\" has already exported a member named 'areFactionsHostile'. Consider explicitly re-exporting to resolve the ambiguity.",
+      "count": 1
+    },
+    {
+      "file": "shared/definitions/index.ts",
+      "code": "TS2308",
+      "message": "Module \"./medievalBattleScene\" has already exported a member named 'WarFactionId'. Consider explicitly re-exporting to resolve the ambiguity.",
+      "count": 1
+    },
+    {
+      "file": "shared/definitions/index.ts",
+      "code": "TS2308",
+      "message": "Module \"./types\" has already exported a member named 'WeaponType'. Consider explicitly re-exporting to resolve the ambiguity.",
+      "count": 1
+    },
+    {
+      "file": "shared/definitions/index.ts",
+      "code": "TS2308",
+      "message": "Module \"./weaponArsenal\" has already exported a member named 'getWeaponStatsAtTier'. Consider explicitly re-exporting to resolve the ambiguity.",
+      "count": 1
+    },
+    {
+      "file": "shared/definitions/petAnimResolver.ts",
+      "code": "TS2352",
+      "message": "Conversion of type 'PetAnimStates' to type 'Record<string, string | undefined>' may be a mistake because neither type sufficiently overlaps with the other. If this was intentional, convert the expression to 'unknown' first. Index signature for type 'string' is missing in type 'PetAnimStates'.",
+      "count": 1
+    },
+    {
+      "file": "shared/definitions/petAnimResolver.ts",
+      "code": "TS2352",
+      "message": "Conversion of type 'PetAnimStates' to type 'Record<string, string>' may be a mistake because neither type sufficiently overlaps with the other. If this was intentional, convert the expression to 'unknown' first. Index signature for type 'string' is missing in type 'PetAnimStates'.",
+      "count": 2
+    }
+  ]
+}

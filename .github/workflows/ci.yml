@@ -30,7 +30,9 @@ jobs:
       - name: Type check
         env:
           NODE_OPTIONS: --max-old-space-size=6144
-        run: npx tsc --noEmit --project tsconfig.json
+        # Ratchet against .tsc-baseline.json. This step never writes the baseline.
+        # After errors shrink, run `npm run tsc:baseline` locally and commit the smaller file.
+        run: node scripts/tsc-ratchet.mjs
 
       - name: Check for hardcoded backend URLs
         run: |
