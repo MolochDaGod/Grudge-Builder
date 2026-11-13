@@ -632,6 +632,8 @@ function activeCharId(){
 }
 function storageKey(){ return KEY_PREFIX + ":" + activeCharId(); }
 const state = load() || {race:null,cls:null,picks:{},characterId:null};
+const editedClasses = new Set();
+function markEdited(id){ if (id) editedClasses.add(id); }
 function load(){
   try{
     // Prefer character-scoped key; migrate legacy global once
@@ -647,13 +649,49 @@ function load(){
   }catch(e){}
   return null;
 }
-function save(){
+function innateLevelsFor(classId){
+  const cls = (typeof CLASSES !== "undefined" && CLASSES[classId]) || null;
+  return new Set((cls && cls.tiers || []).filter(isInnateDisplay).map(t => String(t.lvl)));
+}
+function picksForPersist(classId){
+  const src = (state.picks && state.picks[classId]) || {};
+  const innate = innateLevelsFor(classId);
+  const out = {};
+  Object.entries(src).forEach(([lvl, v])=>{
+    if (innate.has(String(lvl))) return;
+    out[lvl] = v;
+  });
+  return out;
+}
+function save(opts){
   try{
     state.characterId = activeCharId();
     state.updatedAt = Date.now();
-    localStorage.setItem(storageKey(), JSON.stringify(state));
+    if (opts && opts.reset) {
+      editedClasses.clear();
+      localStorage.setItem(storageKey(), JSON.stringify({
+        race: null, cls: null, picks: {},
+        characterId: state.characterId, updatedAt: state.updatedAt,
+      }));
+    } else {
+      let prev = {};
+      try { prev = JSON.parse(localStorage.getItem(storageKey()) || "{}") || {}; } catch(e){ prev = {}; }
+      const picksOut = Object.assign({}, prev.picks || {});
+      // Persist only the active class (if it was explicitly edited) and any
+      // other class the player edited. Merely browsed classes are omitted.
+      const ids = new Set(editedClasses);
+      if (state.cls && editedClasses.has(state.cls)) ids.add(state.cls);
+      ids.forEach((id) => { picksOut[id] = picksForPersist(id); });
+      localStorage.setItem(storageKey(), JSON.stringify({
+        race: state.race,
+        cls: editedClasses.has(state.cls) ? state.cls : (prev.cls || null),
+        picks: picksOut,
+        characterId: state.characterId,
+        updatedAt: state.updatedAt,
+      }));
+    }
   }catch(e){}
-  // Push selectedSkills to Railway for this character UUID
+  // Push selectedSkills to Railway for this character UUID — edited class only
   syncSkillTreeToCharacter();
 }
 async function syncSkillTreeToCharacter(){
@@ -661,22 +699,20 @@ async function syncSkillTreeToCharacter(){
     if (!window.GrudgeFleet || !GrudgeFleet.isLoggedIn || !GrudgeFleet.isLoggedIn()) return;
     const id = activeCharId();
     if (!id || id === "guest") return;
-    // Flatten picks → selectedSkills map { tierLevel: skillName }
-    const picks = state.picks || {};
+    // Only the active class, and only if the player explicitly edited it.
+    const cls = state.cls;
+    if (!cls || !editedClasses.has(cls)) return;
+    const classPicks = picksForPersist(cls);
     const selectedSkills = {};
-    Object.entries(picks).forEach(([cls, tiers])=>{
-      if (!tiers || typeof tiers !== "object") return;
-      Object.entries(tiers).forEach(([tier, skill])=>{
-        if (skill != null) selectedSkills[String(tier)] = typeof skill === "string" ? skill : (skill.n || skill.id || skill);
-      });
-      // also store per-class under skillLoadouts
+    Object.entries(classPicks).forEach(([tier, skill])=>{
+      if (skill != null) selectedSkills[String(tier)] = typeof skill === "string" ? skill : (skill.n || skill.id || skill);
     });
     await GrudgeFleet.saveCharacterProgress(id, {
       selectedSkills,
       classSkillPicks: selectedSkills,
       skillLoadouts: {
-        ...(state.cls ? { [state.cls]: { picks: picks[state.cls] || {}, race: state.race } } : {}),
-        _meta: { race: state.race, cls: state.cls, characterId: id },
+        [cls]: { picks: classPicks, race: state.race },
+        _meta: { race: state.race, cls, characterId: id },
       },
     });
   }catch(e){ console.warn("[skill-tree] sync:", e); }
@@ -820,24 +856,27 @@ function iconFor(cls, skillName){
 })();
 
 /* -------- safe DOM (no unescaped innerHTML of SSOT / pack text) -------- */
-function esc(s){
-  return String(s == null ? "" : s)
-    .replace(/&/g,"&amp;")
-    .replace(/</g,"&lt;")
-    .replace(/>/g,"&gt;")
-    .replace(/"/g,"&quot;")
-    .replace(/'/g,"&#39;");
-}
 function safeUrl(s){
   if (!s) return "";
   const raw = String(s).trim();
   if (!raw) return "";
-  try {
-    const u = new URL(raw, (typeof location !== "undefined" && location.href) ? location.href : "https://grudgewarlords.com/");
-    if (u.protocol === "http:" || u.protocol === "https:") return u.href;
-  } catch(e){}
+  // Reject backslashes, protocol-relative URLs, and /\… paths.
+  // Do not resolve against a base: new URL("//x", origin) becomes https://x.
+  if (raw.includes("\\") || raw.startsWith("//") || raw.startsWith("/\\")) return "";
+  if (/^https?:\/\//i.test(raw)) {
+    try {
+      const u = new URL(raw);
+      if (u.protocol === "http:" || u.protocol === "https:") return u.href;
+    } catch(e){}
+    return "";
+  }
+  // Same-origin path: a single leading slash, not // or /\
+  if (raw.charAt(0) === "/" && raw.charAt(1) !== "/" && raw.charAt(1) !== "\\") {
+    return encodeURI(raw);
+  }
   return "";
 }
+if (typeof window !== "undefined") window.__safeUrl = safeUrl;
 
 /* -------- rendering -------- */
 const raceEl   = document.getElementById("racepicker");
@@ -858,15 +897,21 @@ const toastEl    = document.getElementById("toast");
 const curtain    = document.getElementById("curtain");
 
 function renderRaces(){
-  raceEl.innerHTML = "";
+  raceEl.replaceChildren();
   Object.entries(RACES).forEach(([k,r])=>{
     const n = document.createElement("div");
     n.className = "race"+(state.race===k?" active":"");
     n.dataset.k = k;
-    n.title = `${r.name} â€” ${r.blurb}`;
-    n.innerHTML = `
-      <div class="portrait" style="background-image:url('${r.img}')"></div>
-      <div class="label">${r.name}</div>`;
+    n.title = (r.name || "") + " — " + (r.blurb || "");
+    const portrait = document.createElement("div");
+    portrait.className = "portrait";
+    const raceImg = safeUrl(r.img);
+    if (raceImg) portrait.style.backgroundImage = "url(\"" + raceImg + "\")";
+    const label = document.createElement("div");
+    label.className = "label";
+    label.textContent = r.name || "";
+    n.appendChild(portrait);
+    n.appendChild(label);
     n.onclick = ()=>{
       state.race = (state.race===k) ? null : k;
       save(); render();
@@ -974,7 +1019,7 @@ function renderTree(){
     tier.appendChild(row);
 
     t.skills.forEach(s=>{
-      const picked = isPicked(k,t.lvl,s.n);
+      const picked = isPicked(k,t.lvl,s.n,t);
       const iconPath = s.icon || iconFor(k, s.n);
       const n = document.createElement("div");
       n.className = "node"+(t.auto?" auto":"")+(picked?" selected":"");
@@ -1032,19 +1077,15 @@ function renderTree(){
     });
     treeEl.appendChild(tier);
 
-    // Innate (non-catalog) only: mark the granted L0 skill in memory.
-    // Do not auto-select catalog skills, and do not save() here — browsing
-    // a class must not persist picks or sync to Railway.
-    if(t.auto && !t.catalog){
-      state.picks[k] = state.picks[k]||{};
-      if (!state.picks[k][t.lvl] || !state.picks[k][t.lvl].length) {
-        state.picks[k][t.lvl] = [t.skills[0].n];
-      }
-    }
+    // Innates are display-only: never write them into state.picks on browse.
   });
 }
 
-function isPicked(k,lvl,name){
+function isInnateDisplay(t){
+  return !!(t && t.auto && !t.catalog);
+}
+function isPicked(k,lvl,name,t){
+  if (isInnateDisplay(t)) return (t.skills || []).some(s => s.n === name);
   const arr = (state.picks[k]||{})[lvl]||[];
   return arr.includes(name);
 }
@@ -1058,6 +1099,7 @@ function togglePick(k,lvl,name,picks){
     while(arr.length>picks) arr.shift();
   }
   state.picks[k][lvl] = arr;
+  markEdited(k);
   save();
   render();
 }
@@ -1075,7 +1117,8 @@ function renderSide(){
   }
   const c = CLASSES[k];
   const r = state.race ? RACES[state.race] : null;
-  heroImg.style.backgroundImage = `url('${r ? r.img : PANEL_BG}')`;
+  const heroSrc = safeUrl(r ? r.img : PANEL_BG);
+  heroImg.style.backgroundImage = heroSrc ? ("url(\"" + heroSrc + "\")") : "";
   heroImg.style.backgroundPosition = r ? "center top" : "center";
   heroName.textContent = (r?r.name+" ":"")+c.name;
   heroRole.textContent = r ? (r.blurb+" Â· "+c.role) : c.role;
@@ -1152,7 +1195,9 @@ function renderSide(){
   }
 
   c.tiers.forEach(t=>{
-    const arr = (state.picks[k]||{})[t.lvl]||[];
+    const arr = isInnateDisplay(t)
+      ? (t.skills || []).map(s => s.n)
+      : ((state.picks[k]||{})[t.lvl]||[]);
     const names = arr.length ? arr.join(" + ") : "—";
     const picked = arr.length>0;
     const line = document.createElement("div");
@@ -1248,16 +1293,18 @@ randomBtn.onclick = ()=>{
   const c = CLASSES[k];
   state.picks[k] = {};
   c.tiers.forEach(t=>{
-    if(t.auto){ state.picks[k][t.lvl] = [t.skills[0].n]; return; }
+    if(t.auto){ return; } // innate: display-only, not stored
     const picks = t.picks||1;
     const pool = [...t.skills].sort(()=>Math.random()-.5).slice(0,picks).map(s=>s.n);
     state.picks[k][t.lvl] = pool;
   });
+  markEdited(k);
   save(); render();
 };
 resetBtn.onclick = ()=>{
   if(!confirm("Reset race, class, and all selections?")) return;
-  Object.assign(state,{race:null,cls:null,picks:{}}); save();
+  Object.assign(state,{race:null,cls:null,picks:{}});
+  save({ reset: true });
   document.querySelectorAll(".stage .bg").forEach(b=>b.classList.remove("active"));
   render();
 };
@@ -1274,11 +1321,22 @@ function updateCharBanner(){
   }
   const id = activeCharId();
   const char = window.GrudgeFleet?.getActiveCharacter?.();
-  el.innerHTML = char
-    ? `⚔ ${char.name || id} · skills bound to <code style="color:#ffd98a">${String(id).slice(0,8)}…</code>`
-    : id && id !== "guest"
-      ? `Character <code style="color:#ffd98a">${String(id).slice(0,8)}…</code>`
-      : `Not signed in — picks save locally only`;
+  el.replaceChildren();
+  if (char) {
+    el.appendChild(document.createTextNode("⚔ " + (char.name || id) + " · skills bound to "));
+    const code = document.createElement("code");
+    code.style.color = "#ffd98a";
+    code.textContent = String(id).slice(0, 8) + "…";
+    el.appendChild(code);
+  } else if (id && id !== "guest") {
+    el.appendChild(document.createTextNode("Character "));
+    const code = document.createElement("code");
+    code.style.color = "#ffd98a";
+    code.textContent = String(id).slice(0, 8) + "…";
+    el.appendChild(code);
+  } else {
+    el.textContent = "Not signed in — picks save locally only";
+  }
 }
 if(state.cls) setBg(state.cls);
 render();
