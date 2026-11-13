@@ -1775,29 +1775,11 @@ export function registerAuthRoutes(app: Express) {
       // Generate unique referral code for new account
       const myReferralCode = await generateUniqueReferralCode();
       
-      // Create Crossmint server-signer wallet for new account
-      const walletEmail = email || `${grudgeId.toLowerCase()}@id.grudge-studio.com`;
-      let walletAddress: string | null = null;
-      try {
-        const wallet = await crossmintService.getOrCreateWallet(walletEmail);
-        if (wallet?.address) {
-          walletAddress = wallet.address;
-        }
-      } catch (walletErr) {
-        console.error('[Auth/Register] Crossmint wallet creation failed:', walletErr);
-        // Non-fatal — account can still be created
-      }
-
-      // Update account with referral code, wallet, and claimed referral
+      // Update account with referral code and claimed referral
       const accountUpdates: any = {
         displayName: username.trim(),
         referralCode: myReferralCode,
       };
-      if (walletAddress) {
-        accountUpdates.walletAddress = walletAddress;
-        accountUpdates.walletType = 'crossmint';
-        accountUpdates.crossmintEmail = walletEmail;
-      }
       
       // Always grant first character on register (one per new account)
       accountUpdates.firstCharacterGranted = true;
