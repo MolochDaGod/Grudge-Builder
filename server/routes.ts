@@ -169,7 +169,12 @@ function isAdmin(req: Request): boolean {
     }) | null = null;
     for (const secret of jwtVerifyCandidates()) {
       try {
-        payload = jwt.verify(token, secret, { algorithms: ["HS256"] }) as typeof payload;
+        payload = jwt.verify(token, secret, { algorithms: ["HS256"] }) as AuthPayload & {
+          role?: string;
+          email?: string;
+          username?: string;
+          grudgeId?: string;
+        };
         break;
       } catch {
         /* try next live candidate */

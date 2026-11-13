@@ -139,9 +139,9 @@ export function ownedByAccount(
  * A mint call succeeded only when the service reports success and an action id.
  * Empty results (missing key, swallowed errors) are failures — not a mock success.
  */
-export function mintDidSucceed(
-  result: { success?: boolean; actionId?: string; error?: string } | null | undefined,
-): boolean {
+export function mintDidSucceed<T extends { success?: boolean; actionId?: string; error?: string }>(
+  result: T | null | undefined,
+): result is T & { actionId: string } {
   return !!result && result.success !== false && !!result.actionId;
 }
 
