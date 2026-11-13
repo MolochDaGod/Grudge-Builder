@@ -18,6 +18,7 @@
     "deploy:client": "node scripts/vercel-prod-guard.mjs && npx vercel deploy --prod --yes",
     "test:client": "vitest run --config client/vitest.config.ts",
     "test:client:watch": "vitest --config client/vitest.config.ts",
+    "test:server": "vitest run --config server/vitest.config.ts",
     "db:push": "node scripts/ensure-auth-schema.mjs",
     "db:push:drizzle": "tsx scripts/db-push.ts",
     "db:smoke:auth": "node scripts/smoke-puter-sso.mjs",
