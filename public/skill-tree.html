@@ -691,29 +691,64 @@ function save(opts){
       }));
     }
   }catch(e){}
-  // Push selectedSkills to Railway for this character UUID — edited class only
+  // Push to Railway: selectedSkills is the active class; classSkillPicks and
+  // skillLoadouts carry every persisted explicit class.
   syncSkillTreeToCharacter();
+}
+function flattenPicks(picks){
+  const out = {};
+  Object.entries(picks || {}).forEach(([tier, skill])=>{
+    if (skill != null) out[String(tier)] = typeof skill === "string" ? skill : (skill.n || skill.id || skill);
+  });
+  return out;
+}
+/** Every explicitly saved class in localStorage, plus this session's edited
+ *  classes, with innates and empty browse-only entries stripped. */
+function allPersistedExplicitPicks(){
+  let stored = {};
+  try { stored = (JSON.parse(localStorage.getItem(storageKey()) || "{}") || {}).picks || {}; } catch(e){ stored = {}; }
+  const ids = new Set(Object.keys(stored || {}));
+  editedClasses.forEach((id) => ids.add(id));
+  const out = {};
+  ids.forEach((cid) => {
+    const innate = innateLevelsFor(cid);
+    const src = (editedClasses.has(cid) && state.picks && state.picks[cid] != null)
+      ? state.picks[cid]
+      : (stored[cid] || {});
+    const picks = {};
+    Object.entries(src || {}).forEach(([lvl, v])=>{
+      if (innate.has(String(lvl))) return;
+      if (v != null) picks[lvl] = v;
+    });
+    if (Object.keys(picks).length) out[cid] = picks;
+  });
+  return out;
 }
 async function syncSkillTreeToCharacter(){
   try{
     if (!window.GrudgeFleet || !GrudgeFleet.isLoggedIn || !GrudgeFleet.isLoggedIn()) return;
     const id = activeCharId();
     if (!id || id === "guest") return;
-    // Only the active class, and only if the player explicitly edited it.
+    // Only sync after an explicit edit (not on browse). The payload itself
+    // carries every persisted class so a server-side field replace cannot
+    // wipe the others.
     const cls = state.cls;
     if (!cls || !editedClasses.has(cls)) return;
-    const classPicks = picksForPersist(cls);
-    const selectedSkills = {};
-    Object.entries(classPicks).forEach(([tier, skill])=>{
-      if (skill != null) selectedSkills[String(tier)] = typeof skill === "string" ? skill : (skill.n || skill.id || skill);
+    const allPicks = allPersistedExplicitPicks();
+    const classPicks = allPicks[cls] || picksForPersist(cls);
+    const selectedSkills = flattenPicks(classPicks);
+    const classSkillPicks = {};
+    const skillLoadouts = {
+      _meta: { race: state.race, cls, characterId: id },
+    };
+    Object.entries(allPicks).forEach(([cid, picks])=>{
+      classSkillPicks[cid] = picks;
+      skillLoadouts[cid] = { picks, ...(cid === cls ? { race: state.race } : {}) };
     });
     await GrudgeFleet.saveCharacterProgress(id, {
       selectedSkills,
-      classSkillPicks: selectedSkills,
-      skillLoadouts: {
-        [cls]: { picks: classPicks, race: state.race },
-        _meta: { race: state.race, cls, characterId: id },
-      },
+      classSkillPicks,
+      skillLoadouts,
     });
   }catch(e){ console.warn("[skill-tree] sync:", e); }
 }
