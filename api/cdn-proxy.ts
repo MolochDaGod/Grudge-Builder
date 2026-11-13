@@ -56,11 +56,37 @@ export function encodeKeyPath(key: string): string {
   );
 }
 
-function keyFromReq(req: IncomingMessage): string | null {
+/**
+ * Read a query parameter from the raw query string.
+ * Uses decodeURIComponent and does not treat `+` as space
+ * (unlike URLSearchParams / searchParams.get).
+ */
+export function rawQueryParam(search: string, name: string): string | null {
+  const q = search.startsWith("?") ? search.slice(1) : search;
+  if (!q) return null;
+  const prefix = `${name}=`;
+  for (const part of q.split("&")) {
+    if (part === name) return "";
+    if (part.startsWith(prefix)) {
+      const raw = part.slice(prefix.length);
+      try {
+        return decodeURIComponent(raw);
+      } catch {
+        return null;
+      }
+    }
+  }
+  return null;
+}
+
+export function keyFromReq(req: IncomingMessage): string | null {
+  const reqUrl = req.url || "/";
+  const qIdx = reqUrl.indexOf("?");
+  const rawSearch = qIdx >= 0 ? reqUrl.slice(qIdx) : "";
+  const rawKey = rawQueryParam(rawSearch, "key");
+  if (rawKey) return sanitizeKey(rawKey);
   const host = req.headers.host || "localhost";
-  const url = new URL(req.url || "/", `http://${host}`);
-  const q = url.searchParams.get("key");
-  if (q) return sanitizeKey(q);
+  const url = new URL(reqUrl, `http://${host}`);
   const path = url.pathname;
   for (const prefix of ["/api/cdn-proxy/", "/api/assets/"]) {
     if (path.startsWith(prefix)) return sanitizeKey(path.slice(prefix.length));
