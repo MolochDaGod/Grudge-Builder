@@ -29,14 +29,14 @@ export const ORC_ANIMATIONS: Record<string, CharacterDefinition> = {
     id: "orc1",
     name: "Orc Warrior",
     description: "Green-skinned orc warrior with axe",
-    basePath: "/sprites/2dassets/orc-topdown/PNG/Orc1/Without_shadow",
+    basePath: "https://assets.grudge-studio.com/sprites/2dassets/orc-topdown/PNG/Orc1/Without_shadow",
     spriteSize: 64,
     directions: 4,
     animations: {
       idle: {
         id: "orc1_idle",
         name: "Idle",
-        basePath: "/sprites/2dassets/orc-topdown/PNG/Orc1/Without_shadow/orc1_idle_without_shadow.png",
+        basePath: "https://assets.grudge-studio.com/sprites/2dassets/orc-topdown/PNG/Orc1/Without_shadow/orc1_idle_without_shadow.png",
         frameCount: 4,
         fps: 8,
         loop: true,
@@ -49,7 +49,7 @@ export const ORC_ANIMATIONS: Record<string, CharacterDefinition> = {
       walk: {
         id: "orc1_walk",
         name: "Walk",
-        basePath: "/sprites/2dassets/orc-topdown/PNG/Orc1/Without_shadow/orc1_walk_without_shadow.png",
+        basePath: "https://assets.grudge-studio.com/sprites/2dassets/orc-topdown/PNG/Orc1/Without_shadow/orc1_walk_without_shadow.png",
         frameCount: 6,
         fps: 10,
         loop: true,
@@ -62,7 +62,7 @@ export const ORC_ANIMATIONS: Record<string, CharacterDefinition> = {
       run: {
         id: "orc1_run",
         name: "Run",
-        basePath: "/sprites/2dassets/orc-topdown/PNG/Orc1/Without_shadow/orc1_run_without_shadow.png",
+        basePath: "https://assets.grudge-studio.com/sprites/2dassets/orc-topdown/PNG/Orc1/Without_shadow/orc1_run_without_shadow.png",
         frameCount: 8,
         fps: 12,
         loop: true,
@@ -75,7 +75,7 @@ export const ORC_ANIMATIONS: Record<string, CharacterDefinition> = {
       attack: {
         id: "orc1_attack",
         name: "Attack",
-        basePath: "/sprites/2dassets/orc-topdown/PNG/Orc1/Without_shadow/orc1_attack_without_shadow.png",
+        basePath: "https://assets.grudge-studio.com/sprites/2dassets/orc-topdown/PNG/Orc1/Without_shadow/orc1_attack_without_shadow.png",
         frameCount: 8,
         fps: 12,
         loop: false,
@@ -88,7 +88,7 @@ export const ORC_ANIMATIONS: Record<string, CharacterDefinition> = {
       death: {
         id: "orc1_death",
         name: "Death",
-        basePath: "/sprites/2dassets/orc-topdown/PNG/Orc1/Without_shadow/orc1_death_without_shadow.png",
+        basePath: "https://assets.grudge-studio.com/sprites/2dassets/orc-topdown/PNG/Orc1/Without_shadow/orc1_death_without_shadow.png",
         frameCount: 8,
         fps: 10,
         loop: false,
@@ -101,7 +101,7 @@ export const ORC_ANIMATIONS: Record<string, CharacterDefinition> = {
       hurt: {
         id: "orc1_hurt",
         name: "Hurt",
-        basePath: "/sprites/2dassets/orc-topdown/PNG/Orc1/Without_shadow/orc1_hurt_without_shadow.png",
+        basePath: "https://assets.grudge-studio.com/sprites/2dassets/orc-topdown/PNG/Orc1/Without_shadow/orc1_hurt_without_shadow.png",
         frameCount: 6,
         fps: 12,
         loop: false,
@@ -114,7 +114,7 @@ export const ORC_ANIMATIONS: Record<string, CharacterDefinition> = {
       walk_attack: {
         id: "orc1_walk_attack",
         name: "Walk Attack",
-        basePath: "/sprites/2dassets/orc-topdown/PNG/Orc1/Without_shadow/orc1_walk_attack_front _without_shadow.png",
+        basePath: "https://assets.grudge-studio.com/sprites/2dassets/orc-topdown/PNG/Orc1/Without_shadow/orc1_walk_attack_front _without_shadow.png",
         frameCount: 6,
         fps: 10,
         loop: false,
@@ -127,7 +127,7 @@ export const ORC_ANIMATIONS: Record<string, CharacterDefinition> = {
       run_attack: {
         id: "orc1_run_attack",
         name: "Run Attack",
-        basePath: "/sprites/2dassets/orc-topdown/PNG/Orc1/Without_shadow/orc1_run_attack_front_without_shadow.png",
+        basePath: "https://assets.grudge-studio.com/sprites/2dassets/orc-topdown/PNG/Orc1/Without_shadow/orc1_run_attack_front_without_shadow.png",
         frameCount: 8,
         fps: 12,
         loop: false,
@@ -143,14 +143,14 @@ export const ORC_ANIMATIONS: Record<string, CharacterDefinition> = {
     id: "orc2",
     name: "Orc Berserker",
     description: "Armored orc berserker",
-    basePath: "/sprites/2dassets/orc-topdown/PNG/Orc2/Without_shadow",
+    basePath: "https://assets.grudge-studio.com/sprites/2dassets/orc-topdown/PNG/Orc2/Without_shadow",
     spriteSize: 64,
     directions: 4,
     animations: {
       idle: {
         id: "orc2_idle",
         name: "Idle",
-        basePath: "/sprites/2dassets/orc-topdown/PNG/Orc2/Without_shadow/orc2_idle_without_shadow.png",
+        basePath: "https://assets.grudge-studio.com/sprites/2dassets/orc-topdown/PNG/Orc2/Without_shadow/orc2_idle_without_shadow.png",
         frameCount: 4,
         fps: 8,
         loop: true,
@@ -163,7 +163,7 @@ export const ORC_ANIMATIONS: Record<string, CharacterDefinition> = {
       walk: {
         id: "orc2_walk",
         name: "Walk",
-        basePath: "/sprites/2dassets/orc-topdown/PNG/Orc2/Without_shadow/orc2_walk_without_shadow.png",
+        basePath: "https://assets.grudge-studio.com/sprites/2dassets/orc-topdown/PNG/Orc2/Without_shadow/orc2_walk_without_shadow.png",
         frameCount: 6,
         fps: 10,
         loop: true,
@@ -176,7 +176,7 @@ export const ORC_ANIMATIONS: Record<string, CharacterDefinition> = {
       run: {
         id: "orc2_run",
         name: "Run",
-        basePath: "/sprites/2dassets/orc-topdown/PNG/Orc2/Without_shadow/orc2_run_without_shadow.png",
+        basePath: "https://assets.grudge-studio.com/sprites/2dassets/orc-topdown/PNG/Orc2/Without_shadow/orc2_run_without_shadow.png",
         frameCount: 8,
         fps: 12,
         loop: true,
@@ -189,7 +189,7 @@ export const ORC_ANIMATIONS: Record<string, CharacterDefinition> = {
       attack: {
         id: "orc2_attack",
         name: "Attack",
-        basePath: "/sprites/2dassets/orc-topdown/PNG/Orc2/Without_shadow/orc2_attack_without_shadow.png",
+        basePath: "https://assets.grudge-studio.com/sprites/2dassets/orc-topdown/PNG/Orc2/Without_shadow/orc2_attack_without_shadow.png",
         frameCount: 8,
         fps: 12,
         loop: false,
@@ -202,7 +202,7 @@ export const ORC_ANIMATIONS: Record<string, CharacterDefinition> = {
       death: {
         id: "orc2_death",
         name: "Death",
-        basePath: "/sprites/2dassets/orc-topdown/PNG/Orc2/Without_shadow/orc2_death_without_shadow.png",
+        basePath: "https://assets.grudge-studio.com/sprites/2dassets/orc-topdown/PNG/Orc2/Without_shadow/orc2_death_without_shadow.png",
         frameCount: 8,
         fps: 10,
         loop: false,
@@ -215,7 +215,7 @@ export const ORC_ANIMATIONS: Record<string, CharacterDefinition> = {
       hurt: {
         id: "orc2_hurt",
         name: "Hurt",
-        basePath: "/sprites/2dassets/orc-topdown/PNG/Orc2/Without_shadow/orc2_hurt_without_shadow.png",
+        basePath: "https://assets.grudge-studio.com/sprites/2dassets/orc-topdown/PNG/Orc2/Without_shadow/orc2_hurt_without_shadow.png",
         frameCount: 6,
         fps: 12,
         loop: false,
@@ -228,7 +228,7 @@ export const ORC_ANIMATIONS: Record<string, CharacterDefinition> = {
       walk_attack: {
         id: "orc2_walk_attack",
         name: "Walk Attack",
-        basePath: "/sprites/2dassets/orc-topdown/PNG/Orc2/Without_shadow/orc2_walk_attack_front_without_shadow.png",
+        basePath: "https://assets.grudge-studio.com/sprites/2dassets/orc-topdown/PNG/Orc2/Without_shadow/orc2_walk_attack_front_without_shadow.png",
         frameCount: 6,
         fps: 10,
         loop: false,
@@ -241,7 +241,7 @@ export const ORC_ANIMATIONS: Record<string, CharacterDefinition> = {
       run_attack: {
         id: "orc2_run_attack",
         name: "Run Attack",
-        basePath: "/sprites/2dassets/orc-topdown/PNG/Orc2/Without_shadow/orc2_run_attack_front_without_shadow.png",
+        basePath: "https://assets.grudge-studio.com/sprites/2dassets/orc-topdown/PNG/Orc2/Without_shadow/orc2_run_attack_front_without_shadow.png",
         frameCount: 8,
         fps: 12,
         loop: false,
@@ -257,14 +257,14 @@ export const ORC_ANIMATIONS: Record<string, CharacterDefinition> = {
     id: "orc3",
     name: "Orc Shaman",
     description: "Cloaked orc shaman",
-    basePath: "/sprites/2dassets/orc-topdown/PNG/Orc3/Without_shadow",
+    basePath: "https://assets.grudge-studio.com/sprites/2dassets/orc-topdown/PNG/Orc3/Without_shadow",
     spriteSize: 64,
     directions: 4,
     animations: {
       idle: {
         id: "orc3_idle",
         name: "Idle",
-        basePath: "/sprites/2dassets/orc-topdown/PNG/Orc3/Without_shadow/orc3_idle_without_shadow.png",
+        basePath: "https://assets.grudge-studio.com/sprites/2dassets/orc-topdown/PNG/Orc3/Without_shadow/orc3_idle_without_shadow.png",
         frameCount: 4,
         fps: 8,
         loop: true,
@@ -277,7 +277,7 @@ export const ORC_ANIMATIONS: Record<string, CharacterDefinition> = {
       walk: {
         id: "orc3_walk",
         name: "Walk",
-        basePath: "/sprites/2dassets/orc-topdown/PNG/Orc3/Without_shadow/orc3_walk_without_shadow.png",
+        basePath: "https://assets.grudge-studio.com/sprites/2dassets/orc-topdown/PNG/Orc3/Without_shadow/orc3_walk_without_shadow.png",
         frameCount: 6,
         fps: 10,
         loop: true,
@@ -290,7 +290,7 @@ export const ORC_ANIMATIONS: Record<string, CharacterDefinition> = {
       run: {
         id: "orc3_run",
         name: "Run",
-        basePath: "/sprites/2dassets/orc-topdown/PNG/Orc3/Without_shadow/orc3_run_without_shadow.png",
+        basePath: "https://assets.grudge-studio.com/sprites/2dassets/orc-topdown/PNG/Orc3/Without_shadow/orc3_run_without_shadow.png",
         frameCount: 8,
         fps: 12,
         loop: true,
@@ -303,7 +303,7 @@ export const ORC_ANIMATIONS: Record<string, CharacterDefinition> = {
       attack: {
         id: "orc3_attack",
         name: "Attack",
-        basePath: "/sprites/2dassets/orc-topdown/PNG/Orc3/Without_shadow/orc3_attack_without_shadow.png",
+        basePath: "https://assets.grudge-studio.com/sprites/2dassets/orc-topdown/PNG/Orc3/Without_shadow/orc3_attack_without_shadow.png",
         frameCount: 8,
         fps: 12,
         loop: false,
@@ -316,7 +316,7 @@ export const ORC_ANIMATIONS: Record<string, CharacterDefinition> = {
       death: {
         id: "orc3_death",
         name: "Death",
-        basePath: "/sprites/2dassets/orc-topdown/PNG/Orc3/Without_shadow/orc3_death_without_shadow.png",
+        basePath: "https://assets.grudge-studio.com/sprites/2dassets/orc-topdown/PNG/Orc3/Without_shadow/orc3_death_without_shadow.png",
         frameCount: 8,
         fps: 10,
         loop: false,
@@ -329,7 +329,7 @@ export const ORC_ANIMATIONS: Record<string, CharacterDefinition> = {
       hurt: {
         id: "orc3_hurt",
         name: "Hurt",
-        basePath: "/sprites/2dassets/orc-topdown/PNG/Orc3/Without_shadow/orc3_hurt_without_shadow.png",
+        basePath: "https://assets.grudge-studio.com/sprites/2dassets/orc-topdown/PNG/Orc3/Without_shadow/orc3_hurt_without_shadow.png",
         frameCount: 6,
         fps: 12,
         loop: false,
@@ -342,7 +342,7 @@ export const ORC_ANIMATIONS: Record<string, CharacterDefinition> = {
       walk_attack: {
         id: "orc3_walk_attack",
         name: "Walk Attack",
-        basePath: "/sprites/2dassets/orc-topdown/PNG/Orc3/Without_shadow/orc3_walk_attack_front_without_shadow.png",
+        basePath: "https://assets.grudge-studio.com/sprites/2dassets/orc-topdown/PNG/Orc3/Without_shadow/orc3_walk_attack_front_without_shadow.png",
         frameCount: 6,
         fps: 10,
         loop: false,
@@ -355,7 +355,7 @@ export const ORC_ANIMATIONS: Record<string, CharacterDefinition> = {
       run_attack: {
         id: "orc3_run_attack",
         name: "Run Attack",
-        basePath: "/sprites/2dassets/orc-topdown/PNG/Orc3/Without_shadow/orc3_run_attack_front_without_shadow.png",
+        basePath: "https://assets.grudge-studio.com/sprites/2dassets/orc-topdown/PNG/Orc3/Without_shadow/orc3_run_attack_front_without_shadow.png",
         frameCount: 8,
         fps: 12,
         loop: false,
@@ -374,14 +374,14 @@ export const VAMPIRE_ANIMATIONS: Record<string, CharacterDefinition> = {
     id: "vampire1",
     name: "Vampire Lord",
     description: "Dark vampire with cape",
-    basePath: "/sprites/2dassets/vampire-4dir/PNG/Vampires1/Without_shadow",
+    basePath: "https://assets.grudge-studio.com/sprites/2dassets/vampire-4dir/PNG/Vampires1/Without_shadow",
     spriteSize: 64,
     directions: 4,
     animations: {
       idle: {
         id: "vampire1_idle",
         name: "Idle",
-        basePath: "/sprites/2dassets/vampire-4dir/PNG/Vampires1/Without_shadow/Vampires1_Idle_without_shadow.png",
+        basePath: "https://assets.grudge-studio.com/sprites/2dassets/vampire-4dir/PNG/Vampires1/Without_shadow/Vampires1_Idle_without_shadow.png",
         frameCount: 4,
         fps: 8,
         loop: true,
@@ -394,7 +394,7 @@ export const VAMPIRE_ANIMATIONS: Record<string, CharacterDefinition> = {
       walk: {
         id: "vampire1_walk",
         name: "Walk",
-        basePath: "/sprites/2dassets/vampire-4dir/PNG/Vampires1/Without_shadow/Vampires1_Walk_without_shadow.png",
+        basePath: "https://assets.grudge-studio.com/sprites/2dassets/vampire-4dir/PNG/Vampires1/Without_shadow/Vampires1_Walk_without_shadow.png",
         frameCount: 6,
         fps: 10,
         loop: true,
@@ -407,7 +407,7 @@ export const VAMPIRE_ANIMATIONS: Record<string, CharacterDefinition> = {
       run: {
         id: "vampire1_run",
         name: "Run",
-        basePath: "/sprites/2dassets/vampire-4dir/PNG/Vampires1/Without_shadow/Vampires1_Run_without_shadow.png",
+        basePath: "https://assets.grudge-studio.com/sprites/2dassets/vampire-4dir/PNG/Vampires1/Without_shadow/Vampires1_Run_without_shadow.png",
         frameCount: 8,
         fps: 12,
         loop: true,
@@ -420,7 +420,7 @@ export const VAMPIRE_ANIMATIONS: Record<string, CharacterDefinition> = {
       attack: {
         id: "vampire1_attack",
         name: "Attack",
-        basePath: "/sprites/2dassets/vampire-4dir/PNG/Vampires1/Without_shadow/Vampires1_Attack_without_shadow.png",
+        basePath: "https://assets.grudge-studio.com/sprites/2dassets/vampire-4dir/PNG/Vampires1/Without_shadow/Vampires1_Attack_without_shadow.png",
         frameCount: 12,
         fps: 14,
         loop: false,
@@ -433,7 +433,7 @@ export const VAMPIRE_ANIMATIONS: Record<string, CharacterDefinition> = {
       death: {
         id: "vampire1_death",
         name: "Death",
-        basePath: "/sprites/2dassets/vampire-4dir/PNG/Vampires1/Without_shadow/Vampires1_Death_without_shadow.png",
+        basePath: "https://assets.grudge-studio.com/sprites/2dassets/vampire-4dir/PNG/Vampires1/Without_shadow/Vampires1_Death_without_shadow.png",
         frameCount: 11,
         fps: 10,
         loop: false,
@@ -446,7 +446,7 @@ export const VAMPIRE_ANIMATIONS: Record<string, CharacterDefinition> = {
       hurt: {
         id: "vampire1_hurt",
         name: "Hurt",
-        basePath: "/sprites/2dassets/vampire-4dir/PNG/Vampires1/Without_shadow/Vampires1_Hurt_without_shadow.png",
+        basePath: "https://assets.grudge-studio.com/sprites/2dassets/vampire-4dir/PNG/Vampires1/Without_shadow/Vampires1_Hurt_without_shadow.png",
         frameCount: 4,
         fps: 12,
         loop: false,
@@ -462,14 +462,14 @@ export const VAMPIRE_ANIMATIONS: Record<string, CharacterDefinition> = {
     id: "vampire2",
     name: "Vampire Knight",
     description: "Armored vampire warrior",
-    basePath: "/sprites/2dassets/vampire-4dir/PNG/Vampires2/Without_shadow",
+    basePath: "https://assets.grudge-studio.com/sprites/2dassets/vampire-4dir/PNG/Vampires2/Without_shadow",
     spriteSize: 64,
     directions: 4,
     animations: {
       idle: {
         id: "vampire2_idle",
         name: "Idle",
-        basePath: "/sprites/2dassets/vampire-4dir/PNG/Vampires2/Without_shadow/Vampires2_Idle_without_shadow.png",
+        basePath: "https://assets.grudge-studio.com/sprites/2dassets/vampire-4dir/PNG/Vampires2/Without_shadow/Vampires2_Idle_without_shadow.png",
         frameCount: 4,
         fps: 8,
         loop: true,
@@ -482,7 +482,7 @@ export const VAMPIRE_ANIMATIONS: Record<string, CharacterDefinition> = {
       walk: {
         id: "vampire2_walk",
         name: "Walk",
-        basePath: "/sprites/2dassets/vampire-4dir/PNG/Vampires2/Without_shadow/Vampires2_Walk_without_shadow.png",
+        basePath: "https://assets.grudge-studio.com/sprites/2dassets/vampire-4dir/PNG/Vampires2/Without_shadow/Vampires2_Walk_without_shadow.png",
         frameCount: 6,
         fps: 10,
         loop: true,
@@ -495,7 +495,7 @@ export const VAMPIRE_ANIMATIONS: Record<string, CharacterDefinition> = {
       run: {
         id: "vampire2_run",
         name: "Run",
-        basePath: "/sprites/2dassets/vampire-4dir/PNG/Vampires2/Without_shadow/Vampires2_Run_without_shadow.png",
+        basePath: "https://assets.grudge-studio.com/sprites/2dassets/vampire-4dir/PNG/Vampires2/Without_shadow/Vampires2_Run_without_shadow.png",
         frameCount: 8,
         fps: 12,
         loop: true,
@@ -508,7 +508,7 @@ export const VAMPIRE_ANIMATIONS: Record<string, CharacterDefinition> = {
       attack: {
         id: "vampire2_attack",
         name: "Attack",
-        basePath: "/sprites/2dassets/vampire-4dir/PNG/Vampires2/Without_shadow/Vampires2_Attack_without_shadow.png",
+        basePath: "https://assets.grudge-studio.com/sprites/2dassets/vampire-4dir/PNG/Vampires2/Without_shadow/Vampires2_Attack_without_shadow.png",
         frameCount: 12,
         fps: 14,
         loop: false,
@@ -521,7 +521,7 @@ export const VAMPIRE_ANIMATIONS: Record<string, CharacterDefinition> = {
       death: {
         id: "vampire2_death",
         name: "Death",
-        basePath: "/sprites/2dassets/vampire-4dir/PNG/Vampires2/Without_shadow/Vampires2_Death_without_shadow.png",
+        basePath: "https://assets.grudge-studio.com/sprites/2dassets/vampire-4dir/PNG/Vampires2/Without_shadow/Vampires2_Death_without_shadow.png",
         frameCount: 11,
         fps: 10,
         loop: false,
@@ -534,7 +534,7 @@ export const VAMPIRE_ANIMATIONS: Record<string, CharacterDefinition> = {
       hurt: {
         id: "vampire2_hurt",
         name: "Hurt",
-        basePath: "/sprites/2dassets/vampire-4dir/PNG/Vampires2/Without_shadow/Vampires2_Hurt_without_shadow.png",
+        basePath: "https://assets.grudge-studio.com/sprites/2dassets/vampire-4dir/PNG/Vampires2/Without_shadow/Vampires2_Hurt_without_shadow.png",
         frameCount: 4,
         fps: 12,
         loop: false,
@@ -550,14 +550,14 @@ export const VAMPIRE_ANIMATIONS: Record<string, CharacterDefinition> = {
     id: "vampire3",
     name: "Vampire Mage",
     description: "Robed vampire spellcaster",
-    basePath: "/sprites/2dassets/vampire-4dir/PNG/Vampires3/Without_shadow",
+    basePath: "https://assets.grudge-studio.com/sprites/2dassets/vampire-4dir/PNG/Vampires3/Without_shadow",
     spriteSize: 64,
     directions: 4,
     animations: {
       idle: {
         id: "vampire3_idle",
         name: "Idle",
-        basePath: "/sprites/2dassets/vampire-4dir/PNG/Vampires3/Without_shadow/Vampires3_Idle_without_shadow.png",
+        basePath: "https://assets.grudge-studio.com/sprites/2dassets/vampire-4dir/PNG/Vampires3/Without_shadow/Vampires3_Idle_without_shadow.png",
         frameCount: 4,
         fps: 8,
         loop: true,
@@ -570,7 +570,7 @@ export const VAMPIRE_ANIMATIONS: Record<string, CharacterDefinition> = {
       walk: {
         id: "vampire3_walk",
         name: "Walk",
-        basePath: "/sprites/2dassets/vampire-4dir/PNG/Vampires3/Without_shadow/Vampires3_Walk_without_shadow.png",
+        basePath: "https://assets.grudge-studio.com/sprites/2dassets/vampire-4dir/PNG/Vampires3/Without_shadow/Vampires3_Walk_without_shadow.png",
         frameCount: 6,
         fps: 10,
         loop: true,
@@ -583,7 +583,7 @@ export const VAMPIRE_ANIMATIONS: Record<string, CharacterDefinition> = {
       run: {
         id: "vampire3_run",
         name: "Run",
-        basePath: "/sprites/2dassets/vampire-4dir/PNG/Vampires3/Without_shadow/Vampires3_Run_without_shadow.png",
+        basePath: "https://assets.grudge-studio.com/sprites/2dassets/vampire-4dir/PNG/Vampires3/Without_shadow/Vampires3_Run_without_shadow.png",
         frameCount: 8,
         fps: 12,
         loop: true,
@@ -596,7 +596,7 @@ export const VAMPIRE_ANIMATIONS: Record<string, CharacterDefinition> = {
       attack: {
         id: "vampire3_attack",
         name: "Attack",
-        basePath: "/sprites/2dassets/vampire-4dir/PNG/Vampires3/Without_shadow/Vampires3_Attack_without_shadow.png",
+        basePath: "https://assets.grudge-studio.com/sprites/2dassets/vampire-4dir/PNG/Vampires3/Without_shadow/Vampires3_Attack_without_shadow.png",
         frameCount: 12,
         fps: 14,
         loop: false,
@@ -609,7 +609,7 @@ export const VAMPIRE_ANIMATIONS: Record<string, CharacterDefinition> = {
       death: {
         id: "vampire3_death",
         name: "Death",
-        basePath: "/sprites/2dassets/vampire-4dir/PNG/Vampires3/Without_shadow/Vampires3_Death_without_shadow.png",
+        basePath: "https://assets.grudge-studio.com/sprites/2dassets/vampire-4dir/PNG/Vampires3/Without_shadow/Vampires3_Death_without_shadow.png",
         frameCount: 11,
         fps: 10,
         loop: false,
@@ -622,7 +622,7 @@ export const VAMPIRE_ANIMATIONS: Record<string, CharacterDefinition> = {
       hurt: {
         id: "vampire3_hurt",
         name: "Hurt",
-        basePath: "/sprites/2dassets/vampire-4dir/PNG/Vampires3/Without_shadow/Vampires3_Hurt_without_shadow.png",
+        basePath: "https://assets.grudge-studio.com/sprites/2dassets/vampire-4dir/PNG/Vampires3/Without_shadow/Vampires3_Hurt_without_shadow.png",
         frameCount: 4,
         fps: 12,
         loop: false,
@@ -662,13 +662,13 @@ export const SKELETON_CRUSADER_ANIMATIONS: Record<string, SkeletonCrusaderDefini
     id: "skeleton_crusader_1",
     name: "Skeleton Crusader (Red)",
     description: "Armored skeleton warrior with red accents",
-    basePath: "/sprites/2dassets/chibi-skeleton-crusader/Skeleton_Crusader_1/PNG/PNG Sequences",
+    basePath: "https://assets.grudge-studio.com/sprites/2dassets/chibi-skeleton-crusader/Skeleton_Crusader_1/PNG/PNG Sequences",
     spriteSize: 900,
     animations: {
       idle: {
         id: "skeleton1_idle",
         name: "Idle",
-        basePath: "/sprites/2dassets/chibi-skeleton-crusader/Skeleton_Crusader_1/PNG/PNG Sequences/Idle",
+        basePath: "https://assets.grudge-studio.com/sprites/2dassets/chibi-skeleton-crusader/Skeleton_Crusader_1/PNG/PNG Sequences/Idle",
         frameCount: 18,
         fps: 12,
         loop: true,
@@ -679,7 +679,7 @@ export const SKELETON_CRUSADER_ANIMATIONS: Record<string, SkeletonCrusaderDefini
       idle_blinking: {
         id: "skeleton1_idle_blinking",
         name: "Idle Blinking",
-        basePath: "/sprites/2dassets/chibi-skeleton-crusader/Skeleton_Crusader_1/PNG/PNG Sequences/Idle Blinking",
+        basePath: "https://assets.grudge-studio.com/sprites/2dassets/chibi-skeleton-crusader/Skeleton_Crusader_1/PNG/PNG Sequences/Idle Blinking",
         frameCount: 18,
         fps: 12,
         loop: true,
@@ -690,7 +690,7 @@ export const SKELETON_CRUSADER_ANIMATIONS: Record<string, SkeletonCrusaderDefini
       walking: {
         id: "skeleton1_walking",
         name: "Walking",
-        basePath: "/sprites/2dassets/chibi-skeleton-crusader/Skeleton_Crusader_1/PNG/PNG Sequences/Walking",
+        basePath: "https://assets.grudge-studio.com/sprites/2dassets/chibi-skeleton-crusader/Skeleton_Crusader_1/PNG/PNG Sequences/Walking",
         frameCount: 24,
         fps: 16,
         loop: true,
@@ -701,7 +701,7 @@ export const SKELETON_CRUSADER_ANIMATIONS: Record<string, SkeletonCrusaderDefini
       running: {
         id: "skeleton1_running",
         name: "Running",
-        basePath: "/sprites/2dassets/chibi-skeleton-crusader/Skeleton_Crusader_1/PNG/PNG Sequences/Running",
+        basePath: "https://assets.grudge-studio.com/sprites/2dassets/chibi-skeleton-crusader/Skeleton_Crusader_1/PNG/PNG Sequences/Running",
         frameCount: 12,
         fps: 14,
         loop: true,
@@ -712,7 +712,7 @@ export const SKELETON_CRUSADER_ANIMATIONS: Record<string, SkeletonCrusaderDefini
       slashing: {
         id: "skeleton1_slashing",
         name: "Slashing",
-        basePath: "/sprites/2dassets/chibi-skeleton-crusader/Skeleton_Crusader_1/PNG/PNG Sequences/Slashing",
+        basePath: "https://assets.grudge-studio.com/sprites/2dassets/chibi-skeleton-crusader/Skeleton_Crusader_1/PNG/PNG Sequences/Slashing",
         frameCount: 12,
         fps: 14,
         loop: false,
@@ -723,7 +723,7 @@ export const SKELETON_CRUSADER_ANIMATIONS: Record<string, SkeletonCrusaderDefini
       slashing_air: {
         id: "skeleton1_slashing_air",
         name: "Slashing in Air",
-        basePath: "/sprites/2dassets/chibi-skeleton-crusader/Skeleton_Crusader_1/PNG/PNG Sequences/Slashing in The Air",
+        basePath: "https://assets.grudge-studio.com/sprites/2dassets/chibi-skeleton-crusader/Skeleton_Crusader_1/PNG/PNG Sequences/Slashing in The Air",
         frameCount: 12,
         fps: 14,
         loop: false,
@@ -734,7 +734,7 @@ export const SKELETON_CRUSADER_ANIMATIONS: Record<string, SkeletonCrusaderDefini
       run_slashing: {
         id: "skeleton1_run_slashing",
         name: "Run Slashing",
-        basePath: "/sprites/2dassets/chibi-skeleton-crusader/Skeleton_Crusader_1/PNG/PNG Sequences/Run Slashing",
+        basePath: "https://assets.grudge-studio.com/sprites/2dassets/chibi-skeleton-crusader/Skeleton_Crusader_1/PNG/PNG Sequences/Run Slashing",
         frameCount: 12,
         fps: 14,
         loop: false,
@@ -745,7 +745,7 @@ export const SKELETON_CRUSADER_ANIMATIONS: Record<string, SkeletonCrusaderDefini
       kicking: {
         id: "skeleton1_kicking",
         name: "Kicking",
-        basePath: "/sprites/2dassets/chibi-skeleton-crusader/Skeleton_Crusader_1/PNG/PNG Sequences/Kicking",
+        basePath: "https://assets.grudge-studio.com/sprites/2dassets/chibi-skeleton-crusader/Skeleton_Crusader_1/PNG/PNG Sequences/Kicking",
         frameCount: 12,
         fps: 14,
         loop: false,
@@ -756,7 +756,7 @@ export const SKELETON_CRUSADER_ANIMATIONS: Record<string, SkeletonCrusaderDefini
       throwing: {
         id: "skeleton1_throwing",
         name: "Throwing",
-        basePath: "/sprites/2dassets/chibi-skeleton-crusader/Skeleton_Crusader_1/PNG/PNG Sequences/Throwing",
+        basePath: "https://assets.grudge-studio.com/sprites/2dassets/chibi-skeleton-crusader/Skeleton_Crusader_1/PNG/PNG Sequences/Throwing",
         frameCount: 12,
         fps: 14,
         loop: false,
@@ -767,7 +767,7 @@ export const SKELETON_CRUSADER_ANIMATIONS: Record<string, SkeletonCrusaderDefini
       throwing_air: {
         id: "skeleton1_throwing_air",
         name: "Throwing in Air",
-        basePath: "/sprites/2dassets/chibi-skeleton-crusader/Skeleton_Crusader_1/PNG/PNG Sequences/Throwing in The Air",
+        basePath: "https://assets.grudge-studio.com/sprites/2dassets/chibi-skeleton-crusader/Skeleton_Crusader_1/PNG/PNG Sequences/Throwing in The Air",
         frameCount: 12,
         fps: 14,
         loop: false,
@@ -778,7 +778,7 @@ export const SKELETON_CRUSADER_ANIMATIONS: Record<string, SkeletonCrusaderDefini
       run_throwing: {
         id: "skeleton1_run_throwing",
         name: "Run Throwing",
-        basePath: "/sprites/2dassets/chibi-skeleton-crusader/Skeleton_Crusader_1/PNG/PNG Sequences/Run Throwing",
+        basePath: "https://assets.grudge-studio.com/sprites/2dassets/chibi-skeleton-crusader/Skeleton_Crusader_1/PNG/PNG Sequences/Run Throwing",
         frameCount: 12,
         fps: 14,
         loop: false,
@@ -789,7 +789,7 @@ export const SKELETON_CRUSADER_ANIMATIONS: Record<string, SkeletonCrusaderDefini
       jump_start: {
         id: "skeleton1_jump_start",
         name: "Jump Start",
-        basePath: "/sprites/2dassets/chibi-skeleton-crusader/Skeleton_Crusader_1/PNG/PNG Sequences/Jump Start",
+        basePath: "https://assets.grudge-studio.com/sprites/2dassets/chibi-skeleton-crusader/Skeleton_Crusader_1/PNG/PNG Sequences/Jump Start",
         frameCount: 6,
         fps: 12,
         loop: false,
@@ -800,7 +800,7 @@ export const SKELETON_CRUSADER_ANIMATIONS: Record<string, SkeletonCrusaderDefini
       jump_loop: {
         id: "skeleton1_jump_loop",
         name: "Jump Loop",
-        basePath: "/sprites/2dassets/chibi-skeleton-crusader/Skeleton_Crusader_1/PNG/PNG Sequences/Jump Loop",
+        basePath: "https://assets.grudge-studio.com/sprites/2dassets/chibi-skeleton-crusader/Skeleton_Crusader_1/PNG/PNG Sequences/Jump Loop",
         frameCount: 6,
         fps: 12,
         loop: true,
@@ -811,7 +811,7 @@ export const SKELETON_CRUSADER_ANIMATIONS: Record<string, SkeletonCrusaderDefini
       falling: {
         id: "skeleton1_falling",
         name: "Falling",
-        basePath: "/sprites/2dassets/chibi-skeleton-crusader/Skeleton_Crusader_1/PNG/PNG Sequences/Falling Down",
+        basePath: "https://assets.grudge-studio.com/sprites/2dassets/chibi-skeleton-crusader/Skeleton_Crusader_1/PNG/PNG Sequences/Falling Down",
         frameCount: 6,
         fps: 12,
         loop: false,
@@ -822,7 +822,7 @@ export const SKELETON_CRUSADER_ANIMATIONS: Record<string, SkeletonCrusaderDefini
       sliding: {
         id: "skeleton1_sliding",
         name: "Sliding",
-        basePath: "/sprites/2dassets/chibi-skeleton-crusader/Skeleton_Crusader_1/PNG/PNG Sequences/Sliding",
+        basePath: "https://assets.grudge-studio.com/sprites/2dassets/chibi-skeleton-crusader/Skeleton_Crusader_1/PNG/PNG Sequences/Sliding",
         frameCount: 6,
         fps: 12,
         loop: true,
@@ -833,7 +833,7 @@ export const SKELETON_CRUSADER_ANIMATIONS: Record<string, SkeletonCrusaderDefini
       hurt: {
         id: "skeleton1_hurt",
         name: "Hurt",
-        basePath: "/sprites/2dassets/chibi-skeleton-crusader/Skeleton_Crusader_1/PNG/PNG Sequences/Hurt",
+        basePath: "https://assets.grudge-studio.com/sprites/2dassets/chibi-skeleton-crusader/Skeleton_Crusader_1/PNG/PNG Sequences/Hurt",
         frameCount: 12,
         fps: 12,
         loop: false,
@@ -844,7 +844,7 @@ export const SKELETON_CRUSADER_ANIMATIONS: Record<string, SkeletonCrusaderDefini
       dying: {
         id: "skeleton1_dying",
         name: "Dying",
-        basePath: "/sprites/2dassets/chibi-skeleton-crusader/Skeleton_Crusader_1/PNG/PNG Sequences/Dying",
+        basePath: "https://assets.grudge-studio.com/sprites/2dassets/chibi-skeleton-crusader/Skeleton_Crusader_1/PNG/PNG Sequences/Dying",
         frameCount: 15,
         fps: 10,
         loop: false,
@@ -858,13 +858,13 @@ export const SKELETON_CRUSADER_ANIMATIONS: Record<string, SkeletonCrusaderDefini
     id: "skeleton_crusader_2",
     name: "Skeleton Crusader (Blue)",
     description: "Armored skeleton warrior with blue accents",
-    basePath: "/sprites/2dassets/chibi-skeleton-crusader/Skeleton_Crusader_2/PNG/PNG Sequences",
+    basePath: "https://assets.grudge-studio.com/sprites/2dassets/chibi-skeleton-crusader/Skeleton_Crusader_2/PNG/PNG Sequences",
     spriteSize: 900,
     animations: {
       idle: {
         id: "skeleton2_idle",
         name: "Idle",
-        basePath: "/sprites/2dassets/chibi-skeleton-crusader/Skeleton_Crusader_2/PNG/PNG Sequences/Idle",
+        basePath: "https://assets.grudge-studio.com/sprites/2dassets/chibi-skeleton-crusader/Skeleton_Crusader_2/PNG/PNG Sequences/Idle",
         frameCount: 18,
         fps: 12,
         loop: true,
@@ -875,7 +875,7 @@ export const SKELETON_CRUSADER_ANIMATIONS: Record<string, SkeletonCrusaderDefini
       idle_blinking: {
         id: "skeleton2_idle_blinking",
         name: "Idle Blinking",
-        basePath: "/sprites/2dassets/chibi-skeleton-crusader/Skeleton_Crusader_2/PNG/PNG Sequences/Idle Blinking",
+        basePath: "https://assets.grudge-studio.com/sprites/2dassets/chibi-skeleton-crusader/Skeleton_Crusader_2/PNG/PNG Sequences/Idle Blinking",
         frameCount: 18,
         fps: 12,
         loop: true,
@@ -886,7 +886,7 @@ export const SKELETON_CRUSADER_ANIMATIONS: Record<string, SkeletonCrusaderDefini
       walking: {
         id: "skeleton2_walking",
         name: "Walking",
-        basePath: "/sprites/2dassets/chibi-skeleton-crusader/Skeleton_Crusader_2/PNG/PNG Sequences/Walking",
+        basePath: "https://assets.grudge-studio.com/sprites/2dassets/chibi-skeleton-crusader/Skeleton_Crusader_2/PNG/PNG Sequences/Walking",
         frameCount: 24,
         fps: 16,
         loop: true,
@@ -897,7 +897,7 @@ export const SKELETON_CRUSADER_ANIMATIONS: Record<string, SkeletonCrusaderDefini
       running: {
         id: "skeleton2_running",
         name: "Running",
-        basePath: "/sprites/2dassets/chibi-skeleton-crusader/Skeleton_Crusader_2/PNG/PNG Sequences/Running",
+        basePath: "https://assets.grudge-studio.com/sprites/2dassets/chibi-skeleton-crusader/Skeleton_Crusader_2/PNG/PNG Sequences/Running",
         frameCount: 12,
         fps: 14,
         loop: true,
@@ -908,7 +908,7 @@ export const SKELETON_CRUSADER_ANIMATIONS: Record<string, SkeletonCrusaderDefini
       slashing: {
         id: "skeleton2_slashing",
         name: "Slashing",
-        basePath: "/sprites/2dassets/chibi-skeleton-crusader/Skeleton_Crusader_2/PNG/PNG Sequences/Slashing",
+        basePath: "https://assets.grudge-studio.com/sprites/2dassets/chibi-skeleton-crusader/Skeleton_Crusader_2/PNG/PNG Sequences/Slashing",
         frameCount: 12,
         fps: 14,
         loop: false,
@@ -919,7 +919,7 @@ export const SKELETON_CRUSADER_ANIMATIONS: Record<string, SkeletonCrusaderDefini
       hurt: {
         id: "skeleton2_hurt",
         name: "Hurt",
-        basePath: "/sprites/2dassets/chibi-skeleton-crusader/Skeleton_Crusader_2/PNG/PNG Sequences/Hurt",
+        basePath: "https://assets.grudge-studio.com/sprites/2dassets/chibi-skeleton-crusader/Skeleton_Crusader_2/PNG/PNG Sequences/Hurt",
         frameCount: 12,
         fps: 12,
         loop: false,
@@ -930,7 +930,7 @@ export const SKELETON_CRUSADER_ANIMATIONS: Record<string, SkeletonCrusaderDefini
       dying: {
         id: "skeleton2_dying",
         name: "Dying",
-        basePath: "/sprites/2dassets/chibi-skeleton-crusader/Skeleton_Crusader_2/PNG/PNG Sequences/Dying",
+        basePath: "https://assets.grudge-studio.com/sprites/2dassets/chibi-skeleton-crusader/Skeleton_Crusader_2/PNG/PNG Sequences/Dying",
         frameCount: 15,
         fps: 10,
         loop: false,
@@ -944,13 +944,13 @@ export const SKELETON_CRUSADER_ANIMATIONS: Record<string, SkeletonCrusaderDefini
     id: "skeleton_crusader_3",
     name: "Skeleton Crusader (Green)",
     description: "Armored skeleton warrior with green accents",
-    basePath: "/sprites/2dassets/chibi-skeleton-crusader/Skeleton_Crusader_3/PNG/PNG Sequences",
+    basePath: "https://assets.grudge-studio.com/sprites/2dassets/chibi-skeleton-crusader/Skeleton_Crusader_3/PNG/PNG Sequences",
     spriteSize: 900,
     animations: {
       idle: {
         id: "skeleton3_idle",
         name: "Idle",
-        basePath: "/sprites/2dassets/chibi-skeleton-crusader/Skeleton_Crusader_3/PNG/PNG Sequences/Idle",
+        basePath: "https://assets.grudge-studio.com/sprites/2dassets/chibi-skeleton-crusader/Skeleton_Crusader_3/PNG/PNG Sequences/Idle",
         frameCount: 18,
         fps: 12,
         loop: true,
@@ -961,7 +961,7 @@ export const SKELETON_CRUSADER_ANIMATIONS: Record<string, SkeletonCrusaderDefini
       idle_blinking: {
         id: "skeleton3_idle_blinking",
         name: "Idle Blinking",
-        basePath: "/sprites/2dassets/chibi-skeleton-crusader/Skeleton_Crusader_3/PNG/PNG Sequences/Idle Blinking",
+        basePath: "https://assets.grudge-studio.com/sprites/2dassets/chibi-skeleton-crusader/Skeleton_Crusader_3/PNG/PNG Sequences/Idle Blinking",
         frameCount: 18,
         fps: 12,
         loop: true,
@@ -972,7 +972,7 @@ export const SKELETON_CRUSADER_ANIMATIONS: Record<string, SkeletonCrusaderDefini
       walking: {
         id: "skeleton3_walking",
         name: "Walking",
-        basePath: "/sprites/2dassets/chibi-skeleton-crusader/Skeleton_Crusader_3/PNG/PNG Sequences/Walking",
+        basePath: "https://assets.grudge-studio.com/sprites/2dassets/chibi-skeleton-crusader/Skeleton_Crusader_3/PNG/PNG Sequences/Walking",
         frameCount: 24,
         fps: 16,
         loop: true,
@@ -983,7 +983,7 @@ export const SKELETON_CRUSADER_ANIMATIONS: Record<string, SkeletonCrusaderDefini
       running: {
         id: "skeleton3_running",
         name: "Running",
-        basePath: "/sprites/2dassets/chibi-skeleton-crusader/Skeleton_Crusader_3/PNG/PNG Sequences/Running",
+        basePath: "https://assets.grudge-studio.com/sprites/2dassets/chibi-skeleton-crusader/Skeleton_Crusader_3/PNG/PNG Sequences/Running",
         frameCount: 12,
         fps: 14,
         loop: true,
@@ -994,7 +994,7 @@ export const SKELETON_CRUSADER_ANIMATIONS: Record<string, SkeletonCrusaderDefini
       slashing: {
         id: "skeleton3_slashing",
         name: "Slashing",
-        basePath: "/sprites/2dassets/chibi-skeleton-crusader/Skeleton_Crusader_3/PNG/PNG Sequences/Slashing",
+        basePath: "https://assets.grudge-studio.com/sprites/2dassets/chibi-skeleton-crusader/Skeleton_Crusader_3/PNG/PNG Sequences/Slashing",
         frameCount: 12,
         fps: 14,
         loop: false,
@@ -1005,7 +1005,7 @@ export const SKELETON_CRUSADER_ANIMATIONS: Record<string, SkeletonCrusaderDefini
       hurt: {
         id: "skeleton3_hurt",
         name: "Hurt",
-        basePath: "/sprites/2dassets/chibi-skeleton-crusader/Skeleton_Crusader_3/PNG/PNG Sequences/Hurt",
+        basePath: "https://assets.grudge-studio.com/sprites/2dassets/chibi-skeleton-crusader/Skeleton_Crusader_3/PNG/PNG Sequences/Hurt",
         frameCount: 12,
         fps: 12,
         loop: false,
@@ -1016,7 +1016,7 @@ export const SKELETON_CRUSADER_ANIMATIONS: Record<string, SkeletonCrusaderDefini
       dying: {
         id: "skeleton3_dying",
         name: "Dying",
-        basePath: "/sprites/2dassets/chibi-skeleton-crusader/Skeleton_Crusader_3/PNG/PNG Sequences/Dying",
+        basePath: "https://assets.grudge-studio.com/sprites/2dassets/chibi-skeleton-crusader/Skeleton_Crusader_3/PNG/PNG Sequences/Dying",
         frameCount: 15,
         fps: 10,
         loop: false,
@@ -1054,7 +1054,7 @@ export const ELF_HEROES: Record<string, RPGBattleEnemy> = {
     id: "launa",
     name: "Launa",
     description: "Swift elf rogue with dual daggers from Blandia - agile attacks",
-    sheetPath: "/sprites/heroes/elf/launa_sheet.png",
+    sheetPath: "https://assets.grudge-studio.com/sprites/heroes/elf/launa_sheet.png",
     sheetWidth: 1600,
     sheetHeight: 400,
     transparencyColor: "#FF00FF",
@@ -1140,7 +1140,7 @@ export const HUMAN_HEROES: Record<string, RPGBattleEnemy> = {
     id: "retsuzen",
     name: "Retsu Zen",
     description: "Samurai warrior with katana from Blandia - fast sword techniques",
-    sheetPath: "/sprites/heroes/human/retsuzen_sheet.png",
+    sheetPath: "https://assets.grudge-studio.com/sprites/heroes/human/retsuzen_sheet.png",
     sheetWidth: 1600,
     sheetHeight: 2032,
     transparencyColor: "#FF00FF",
@@ -1250,7 +1250,7 @@ export const HUMAN_HEROES: Record<string, RPGBattleEnemy> = {
     id: "diokles",
     name: "Diokles",
     description: "Golden armored knight with sword and shield from Blandia",
-    sheetPath: "/sprites/heroes/barbarian/diokles_sheet.png",
+    sheetPath: "https://assets.grudge-studio.com/sprites/heroes/barbarian/diokles_sheet.png",
     sheetWidth: 1600,
     sheetHeight: 1760,
     transparencyColor: "#FF00FF",
@@ -1363,7 +1363,7 @@ export const BARBARIAN_ENEMIES: Record<string, RPGBattleEnemy> = {
     id: "mcgill",
     name: "McGill",
     description: "Muscular barbarian warrior with broadsword from Blandia",
-    sheetPath: "/sprites/enemies/barbarian/mcgill_sheet.png",
+    sheetPath: "https://assets.grudge-studio.com/sprites/enemies/barbarian/mcgill_sheet.png",
     sheetWidth: 1600,
     sheetHeight: 2096,
     transparencyColor: "#FF00FF",
@@ -1480,12 +1480,12 @@ export interface GrassDecoration {
 }
 
 export const GRASS_DECORATIONS: GrassDecoration[] = [
-  { id: "grass_1", name: "Grass Tuft 1", path: "/sprites/tiles/grass/1.png", width: 5, height: 6 },
-  { id: "grass_2", name: "Grass Tuft 2", path: "/sprites/tiles/grass/2.png", width: 9, height: 6 },
-  { id: "grass_3", name: "Grass Tuft 3", path: "/sprites/tiles/grass/3.png", width: 5, height: 7 },
-  { id: "grass_4", name: "Grass Tuft 4", path: "/sprites/tiles/grass/4.png", width: 8, height: 5 },
-  { id: "grass_5", name: "Grass Tuft 5", path: "/sprites/tiles/grass/5.png", width: 6, height: 10 },
-  { id: "grass_6", name: "Grass Tuft 6", path: "/sprites/tiles/grass/6.png", width: 5, height: 8 }
+  { id: "grass_1", name: "Grass Tuft 1", path: "https://assets.grudge-studio.com/sprites/tiles/grass/1.png", width: 5, height: 6 },
+  { id: "grass_2", name: "Grass Tuft 2", path: "https://assets.grudge-studio.com/sprites/tiles/grass/2.png", width: 9, height: 6 },
+  { id: "grass_3", name: "Grass Tuft 3", path: "https://assets.grudge-studio.com/sprites/tiles/grass/3.png", width: 5, height: 7 },
+  { id: "grass_4", name: "Grass Tuft 4", path: "https://assets.grudge-studio.com/sprites/tiles/grass/4.png", width: 8, height: 5 },
+  { id: "grass_5", name: "Grass Tuft 5", path: "https://assets.grudge-studio.com/sprites/tiles/grass/5.png", width: 6, height: 10 },
+  { id: "grass_6", name: "Grass Tuft 6", path: "https://assets.grudge-studio.com/sprites/tiles/grass/6.png", width: 5, height: 8 }
 ];
 
 export const ALL_CHARACTERS = {
