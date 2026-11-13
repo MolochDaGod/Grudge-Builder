@@ -43,8 +43,6 @@ window.GRUDGE_SSOT_CLASS_INFO = {
         "Wisdom": 0,
         "Tactics": 0
       },
-      "signatureAbility": "w_l0_warbound",
-      "level0Name": "Warbound",
       "source": "https://objectstore.grudge-studio.com/api/v1/classes.json",
       "sourceVersion": "classes.json v1.2.2, updated 2026-09-22",
       "sourceNote": "ObjectStore dossier text. Used only where Spawn 3.1.0 has no matching field (lore, starting attributes, class crest, emoji). Not used for skill names, ids, or trees."
@@ -68,8 +66,6 @@ window.GRUDGE_SSOT_CLASS_INFO = {
         "Wisdom": 4,
         "Tactics": 1
       },
-      "signatureAbility": "m_l0_leyline",
-      "level0Name": "Leyline",
       "source": "https://objectstore.grudge-studio.com/api/v1/classes.json",
       "sourceVersion": "classes.json v1.2.2, updated 2026-09-22",
       "sourceNote": "ObjectStore dossier text. Used only where Spawn 3.1.0 has no matching field (lore, starting attributes, class crest, emoji). Not used for skill names, ids, or trees."
@@ -94,8 +90,6 @@ window.GRUDGE_SSOT_CLASS_INFO = {
         "Wisdom": 1,
         "Tactics": 0
       },
-      "signatureAbility": "wr_l0_bear",
-      "level0Name": "Bear Form",
       "source": "https://objectstore.grudge-studio.com/api/v1/classes.json",
       "sourceVersion": "classes.json v1.2.2, updated 2026-09-22",
       "sourceNote": "ObjectStore dossier text. Used only where Spawn 3.1.0 has no matching field (lore, starting attributes, class crest, emoji). Not used for skill names, ids, or trees."
@@ -120,8 +114,6 @@ window.GRUDGE_SSOT_CLASS_INFO = {
         "Wisdom": 0,
         "Tactics": 1
       },
-      "signatureAbility": "r_l0_log",
-      "level0Name": "Trail Log",
       "source": "https://objectstore.grudge-studio.com/api/v1/classes.json",
       "sourceVersion": "classes.json v1.2.2, updated 2026-09-22",
       "sourceNote": "ObjectStore dossier text. Used only where Spawn 3.1.0 has no matching field (lore, starting attributes, class crest, emoji). Not used for skill names, ids, or trees."
@@ -145,8 +137,6 @@ window.GRUDGE_SSOT_CLASS_INFO = {
         "Wisdom": 0,
         "Tactics": 0
       },
-      "signatureAbility": "rd_l0_bloodbound",
-      "level0Name": "Bloodbound",
       "source": "https://objectstore.grudge-studio.com/api/v1/classes.json",
       "sourceVersion": "classes.json v1.2.2, updated 2026-09-22",
       "sourceNote": "ObjectStore dossier text. Used only where Spawn 3.1.0 has no matching field (lore, starting attributes, class crest, emoji). Not used for skill names, ids, or trees."
@@ -169,8 +159,6 @@ window.GRUDGE_SSOT_CLASS_INFO = {
         "Wisdom": 0,
         "Tactics": 1
       },
-      "signatureAbility": "t_l0_nightlog",
-      "level0Name": "Night Log",
       "source": "https://objectstore.grudge-studio.com/api/v1/classes.json",
       "sourceVersion": "classes.json v1.2.2, updated 2026-09-22",
       "sourceNote": "ObjectStore dossier text. Used only where Spawn 3.1.0 has no matching field (lore, starting attributes, class crest, emoji). Not used for skill names, ids, or trees."

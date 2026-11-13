@@ -257,7 +257,7 @@ body{
   background:linear-gradient(180deg,rgba(255,255,255,.05),rgba(255,255,255,.015));
   border:1px solid var(--line);
   transition:transform .18s ease,border-color .18s ease,box-shadow .25s ease;
-  overflow:hidden;
+  overflow:visible;
 }
 .node::before{
   content:"";position:absolute;inset:0;border-radius:16px;pointer-events:none;
@@ -274,7 +274,22 @@ body{
   box-shadow:inset 0 0 0 1px rgba(0,0,0,.15),0 6px 22px -12px rgba(255,255,255,.4);
 }
 .node .icon img{width:100%;height:100%;display:block;object-fit:cover}
-.node .name{font-weight:800;font-size:14px;letter-spacing:.2px}
+
+    .icon-missing{
+      display:flex;align-items:center;justify-content:center;
+      width:100%;height:100%;min-height:28px;padding:3px 4px;box-sizing:border-box;
+      font:700 8px/1.15 Inter,system-ui,sans-serif;letter-spacing:.04em;
+      text-transform:uppercase;text-align:center;color:#f3c14a;
+      background:rgba(80,16,16,.72);border:1px solid rgba(243,193,74,.7);
+    }
+    .has-icon-missing{outline:1px dashed rgba(243,193,74,.85);}
+
+.node .head{min-width:0}
+.node .name{
+  font-weight:800;font-size:14px;letter-spacing:.2px;
+  overflow-wrap:break-word;word-break:break-word;white-space:normal;
+  line-height:1.25;min-width:0;flex:1 1 auto;
+}
 .node .desc{color:#c9cfec;font-size:12px;line-height:1.45;margin-top:6px;min-height:34px}
 .node .meta{display:flex;flex-wrap:wrap;gap:6px;margin-top:8px}
 .node .meta span{
@@ -428,7 +443,8 @@ body{
     /* Reused from MolochDaGod/ObjectStore profession-trees.html
      * (preview dpl_FiBKimTbjuib46iW8FRu7KhLaiB9, also profession-trees.html on that repo):
      * tree container, SVG, branch legend, node tooltip. */
-    .tree-graph-wrap{position:relative;width:100%;height:420px;min-height:320px;overflow:hidden;border:1px solid rgba(212,175,55,.25);border-radius:8px;background:rgba(10,14,20,.45);margin:0 0 18px}
+    .tree-graph-wrap{position:relative;width:100%;height:500px;min-height:360px;overflow:hidden;border:1px solid rgba(212,175,55,.25);border-radius:8px;background:rgba(10,14,20,.45);margin:0 0 18px}
+    .tree-svg .graph-label{pointer-events:auto}
     .tree-svg{position:absolute;inset:0;width:100%;height:100%}
     .branch-legend{position:absolute;top:12px;left:12px;background:rgba(10,14,20,.88);border:1px solid rgba(212,175,55,.35);border-radius:8px;padding:12px;z-index:10;max-width:220px}
     .branch-legend h3{font-family:'Cinzel',serif;font-size:.72em;color:#d4af37;margin:0 0 8px;text-transform:uppercase;letter-spacing:.08em}
@@ -458,10 +474,10 @@ body{
   <div class="bg" data-k="ranger"  style="background-image:url('https://i.imgur.com/5A6e5kL.png')"></div>
   <div class="bg" data-k="worg"   style="background-image:url('https://i.imgur.com/BrQH0Bx.png')"></div>
   <div class="bg" data-k="worge"  style="background-image:url('https://i.imgur.com/BrQH0Bx.png')"></div>
-  <div class="bg" data-k="priest" style="background-image:url('https://assets.grudge-studio.com/icons/warlords/classes/priest.jpg')"></div>
-  <div class="bg" data-k="raider" style="background-image:url('https://assets.grudge-studio.com/icons/warlords/classes/raider.jpg')"></div>
-  <div class="bg" data-k="thief"  style="background-image:url('https://assets.grudge-studio.com/icons/warlords/classes/thief.jpg')"></div>
-  <div class="bg" data-k="verduror" style="background-image:url('https://assets.grudge-studio.com/icons/warlords/classes/verduror.jpg')"></div>
+  <div class="bg" data-k="priest" ></div>
+  <div class="bg" data-k="raider" ></div>
+  <div class="bg" data-k="thief"  ></div>
+  <div class="bg" data-k="verduror" ></div>
   <div class="sheen"></div>
   <div class="particles" id="particles"></div>
 </div>
@@ -514,7 +530,6 @@ body{
 <div class="toast" id="toast">Build Locked</div>
 <div class="curtain" id="curtain"></div>
 
-<script src="/class-skill-trees.js"></script>
 <script src="/master-skillTrees-3.1.0.js"></script>
 <script src="/ssot-class-info.js"></script>
 <script src="/worge-grimoire-forms.js"></script>
@@ -537,30 +552,60 @@ const CLASS_ART = {
   ranger: "https://i.imgur.com/5A6e5kL.png",
   worg: "https://i.imgur.com/BrQH0Bx.png",
   worge: "https://i.imgur.com/BrQH0Bx.png",
-  // ObjectStore classes.json iconUrl — no large art in the SSOT for these four
-  priest: "https://assets.grudge-studio.com/icons/warlords/classes/priest.jpg",
-  raider: "https://assets.grudge-studio.com/icons/warlords/classes/raider.jpg",
-  thief: "https://assets.grudge-studio.com/icons/warlords/classes/thief.jpg",
-  verduror: "https://assets.grudge-studio.com/icons/warlords/classes/verduror.jpg",
+  // priest, raider, thief, verduror have no real crest/hero file on the CDN
+  // (the .jpg URLs 200 as Game Info Hub HTML at /icons and /game-assets). No substitute art.
 };
 const CLASS_EMOJI = { mage:"🔮", warrior:"🗡️", ranger:"🏹", worg:"🐺", worge:"🐺", priest:"✚", raider:"⚔", thief:"🗡", verduror:"🌿" };
 const SSOT_INFO = window.GRUDGE_SSOT_CLASS_INFO || { classes:{}, dossier:{}, playOrder:[] };
 const PLAY_ORDER = SSOT_INFO.playOrder || ["warrior","raider","mage","priest","ranger","thief","worge","verduror"];
 const CLASS_DOSSIER = SSOT_INFO.dossier || {};
-/* Icon host rewrite from ObjectStore weapon-skill-tree.js `defaultAsset` (lines 139–146).
- * info/objectstore return HTML (200) for /icons — never load those hosts. */
+/* Icon host rewrite from ObjectStore weapon-skill-tree.js `defaultAsset` (lines 139–146),
+ * plus a /game-assets/icons/ prefix for short /icons/ paths. Most skill icons 200 as
+ * Game Info Hub HTML (44964 B, lying image/png) at /icons/skill_nobg and
+ * /icons/skills/class, but are real PNGs under /game-assets/icons/…. Class crests at
+ * /icons/warlords/classes/*.png exist only there — do not rewrite those.
+ * info/objectstore return HTML (200) for /icons — never load those hosts.
+ * Content-Type is not proof: always confirm magic bytes on probes. */
 const ASSET_CDN = "https://assets.grudge-studio.com";
+/* Filenames that 200 HTML (or 404) at both /icons and /game-assets. Do not emit a src. */
+const MISSING_ASSET_FILES = {
+  "Mageskill_01_nobg.png": 1, // Mana Flow
+  "priest.jpg": 1,
+  "raider.jpg": 1,
+  "thief.jpg": 1,
+  "verduror.jpg": 1,
+};
+function isMissingAsset(u){
+  if (!u) return true;
+  let name = String(u).split("?")[0];
+  name = name.substring(name.lastIndexOf("/") + 1);
+  try { name = decodeURIComponent(name); } catch (e) {}
+  return Object.prototype.hasOwnProperty.call(MISSING_ASSET_FILES, name);
+}
+function preferGameAssets(u){
+  const abs = /^(https?:\/\/assets\.grudge-studio\.com)(\/.*)$/i.exec(u);
+  const path = abs ? abs[2] : u;
+  if (path.startsWith("/game-assets/icons/")) return u;
+  // Working class PNGs live only at /icons/warlords/classes/; /game-assets copies are HTML.
+  if (path.startsWith("/icons/warlords/")) return u;
+  if (path.startsWith("/icons/")) {
+    const next = "/game-assets" + path;
+    return abs ? (ASSET_CDN + next) : next;
+  }
+  return u;
+}
 function defaultAsset(url){
   if (!url) return url;
   let u = String(url).trim();
   u = u.replace(/^https?:\/\/(www\.)?(info|objectstore)\.grudge-studio\.com/i, ASSET_CDN);
+  u = preferGameAssets(u);
   if (/^(https?:|data:|blob:)/i.test(u)) return u;
   if (u.startsWith("/icons/") || u.startsWith("/game-assets/icons/")) return ASSET_CDN + u;
   return u;
 }
 function assetUrl(path){
   const u = defaultAsset(path);
-  if (!u) return "";
+  if (!u || isMissingAsset(u)) return "";
   const s = String(u);
   if (s.startsWith("http://") || s.startsWith("https://")) return encodeURI(s);
   return "";
@@ -615,7 +660,7 @@ function buildClasses(classes){
   const out = {};
   for (const [id, tree] of Object.entries(classes || {})) {
     const dossier = dossierFor(id);
-    const classIcon = assetUrl(tree.classIcon) || (dossier && dossier.iconUrl) || "";
+    const classIcon = assetUrl(tree.classIcon) || assetUrl(dossier && dossier.iconUrl) || "";
     // 3.1.0 has no pickMode and no specialAbility L0 row. Do not invent one.
     // A missing description or role stays empty (priest has `role` in 3.1.0).
     out[id] = {
@@ -883,76 +928,6 @@ window.addEventListener("grudge:character:selected", ()=>{
   hydrateFromCharacter();
 });
 
-/* -------- real skill icons -------- */
-const ICON_DIR = {
-  earth: "/icons-src/EarthMage_Free/EarthMage_Free",
-  fire: "/icons-src/FireMage_Free/FireMage_Free",
-  frost: "/icons-src/FrostMage_Free/FrostMage_Free",
-  hunter: "/icons-src/Hunter_Free/Hunter_Free",
-  necro: "/icons-src/Necromancer_Free/Necromancer_Free"
-};
-const ICONS = {
-  mage: {
-    "Mana Shield":`${ICON_DIR.frost}/FrostMage_21.png`,
-    "Magic Missile":`${ICON_DIR.frost}/FrostMage_14.png`,
-    "Heal":`${ICON_DIR.fire}/FireMage_13.png`,
-    "Fireball":`${ICON_DIR.fire}/FireMage_28.png`,
-    "Greater Heal":`${ICON_DIR.earth}/EarthMage_10.png`,
-    "Lightning Chain":`${ICON_DIR.fire}/FireMage_25.png`,
-    "Blink":`${ICON_DIR.frost}/FrostMage_19.png`,
-    "Group Heal":`${ICON_DIR.fire}/FireMage_22.png`,
-    "Meteor":`${ICON_DIR.fire}/FireMage_35.png`,
-    "Portal":`${ICON_DIR.fire}/FireMage_30.png`,
-    "Archmage":`${ICON_DIR.fire}/FireMage_40.png`,
-    "Reality Tear":`${ICON_DIR.fire}/FireMage_20.png`,
-  },
-  warrior: {
-    "Invulnerability":`${ICON_DIR.earth}/EarthMage_25.png`,
-    "Taunt":`${ICON_DIR.earth}/EarthMage_13.png`,
-    "Quick Strike":`${ICON_DIR.fire}/FireMage_2.png`,
-    "Damage Surge":`${ICON_DIR.fire}/FireMage_26.png`,
-    "Guardian's Aura":`${ICON_DIR.earth}/EarthMage_31.png`,
-    "Dual Wield":`${ICON_DIR.hunter}/Hunter_15.png`,
-    "Shield Specialist":`${ICON_DIR.earth}/EarthMage_4.png`,
-    "Life Drain":`${ICON_DIR.necro}/Necromancer_16.png`,
-    "Execute":`${ICON_DIR.fire}/FireMage_19.png`,
-    "Double Strike":`${ICON_DIR.fire}/FireMage_17.png`,
-    "Avatar Form":`${ICON_DIR.fire}/FireMage_33.png`,
-    "Perfect Counter":`${ICON_DIR.earth}/EarthMage_26.png`,
-  },
-  ranger: {
-    "Precision":`${ICON_DIR.hunter}/Hunter_4.png`,
-    "Power Shot":`${ICON_DIR.hunter}/Hunter_24.png`,
-    "Stealth Strike":`${ICON_DIR.hunter}/Hunter_14.png`,
-    "Multi Shot":`${ICON_DIR.hunter}/Hunter_8.png`,
-    "Shadow Step":`${ICON_DIR.hunter}/Hunter_6.png`,
-    "Explosive Shot":`${ICON_DIR.hunter}/Hunter_17.png`,
-    "Poison Blade":`${ICON_DIR.hunter}/Hunter_25.png`,
-    "Trap Mastery":`${ICON_DIR.hunter}/Hunter_16.png`,
-    "Rain of Arrows":`${ICON_DIR.hunter}/Hunter_22.png`,
-    "Assassinate":`${ICON_DIR.hunter}/Hunter_15.png`,
-    "Storm of Arrows":`${ICON_DIR.hunter}/Hunter_18.png`,
-    "Shadow Master":`${ICON_DIR.hunter}/Hunter_21.png`,
-  },
-  worg: {
-    "Bear Form":`${ICON_DIR.earth}/EarthMage_20.png`,
-    "Howl":`${ICON_DIR.hunter}/Hunter_9.png`,
-    "Pack Hunt":`${ICON_DIR.hunter}/Hunter_1.png`,
-    "Feral Rage":`${ICON_DIR.fire}/FireMage_14.png`,
-    "Alpha Call":`${ICON_DIR.hunter}/Hunter_20.png`,
-    "Alpha Bear":`${ICON_DIR.earth}/EarthMage_31.png`,
-    "Raptor Form":`${ICON_DIR.fire}/FireMage_36.png`,
-    "Blood Frenzy":`${ICON_DIR.fire}/FireMage_3.png`,
-    "Apex Predator":`${ICON_DIR.hunter}/Hunter_7.png`,
-    "Primal Fury":`${ICON_DIR.fire}/FireMage_34.png`,
-    "Worg Lord":`${ICON_DIR.necro}/Necromancer_5.png`,
-    "Primal Avatar":`${ICON_DIR.fire}/FireMage_33.png`,
-  }
-};
-function iconFor(cls, skillName){
-  return ICONS[cls]?.[skillName] || "";
-}
-
 /* -------- particles -------- */
 (function particles(){
   const host = document.getElementById("particles");
@@ -993,6 +968,39 @@ function safeUrl(s){
   return "";
 }
 if (typeof window !== "undefined") window.__safeUrl = safeUrl;
+
+/* Show a visible "icon missing" marker. No substitute art. */
+function showIconMissing(img){
+  if (!img) return;
+  img.style.display = "none";
+  img.removeAttribute("src");
+  const host = img.parentElement;
+  if (host && !host.querySelector(".icon-missing")) {
+    const m = document.createElement("span");
+    m.className = "icon-missing";
+    m.textContent = "icon missing";
+    const label = img.getAttribute("alt") || "";
+    if (label) m.setAttribute("title", label);
+    host.appendChild(m);
+    host.classList.add("has-icon-missing");
+  }
+}
+function attachImg(parent, src, alt){
+  const img = document.createElement("img");
+  img.setAttribute("alt", alt || "");
+  img.addEventListener("error", function onErr(){
+    img.removeEventListener("error", onErr);
+    showIconMissing(img);
+  });
+  if (!src) {
+    parent.appendChild(img);
+    showIconMissing(img);
+    return img;
+  }
+  img.setAttribute("src", src);
+  parent.appendChild(img);
+  return img;
+}
 
 /* -------- rendering -------- */
 const raceEl   = document.getElementById("racepicker");
@@ -1054,10 +1062,7 @@ function renderPicker(){
     crest.className = "crest";
     const icon = safeUrl(c.classIcon);
     if (icon) {
-      const img = document.createElement("img");
-      img.setAttribute("src", icon);
-      img.setAttribute("alt", c.name || "");
-      crest.appendChild(img);
+      attachImg(crest, icon, c.name || "");
     } else {
       crest.textContent = c.emoji || "";
     }
@@ -1220,14 +1225,55 @@ function renderSkillGraph(host, c, k){
     if (node.skillId) shape.setAttribute("data-skill-id", node.skillId);
     svg.appendChild(shape);
     const rawName = node.name || "";
-    const label = rawName.length > 16 ? rawName.substring(0, 14) + "…" : rawName;
+    // Full name (no ellipsis). Wrap at word boundaries; native <title> is the tooltip.
+    const labelLines = (function wrapGraphLabel(name, maxLen){
+      const wrapWords = (s) => {
+        if (!s) return [];
+        if (s.length <= maxLen) return [s];
+        const words = s.split(/\s+/);
+        const lines = [];
+        let cur = "";
+        words.forEach((w)=>{
+          const next = cur ? (cur + " " + w) : w;
+          if (next.length <= maxLen) cur = next;
+          else { if (cur) lines.push(cur); cur = w; }
+        });
+        if (cur) lines.push(cur);
+        return lines;
+      };
+      const raw = String(name || "");
+      if (!raw) return [""];
+      if (raw.length <= maxLen) return [raw];
+      // Path nodes are "Level 15 - Master …": keep the level on its own line.
+      const dash = raw.indexOf(" - ");
+      if (dash > 0) return [raw.slice(0, dash)].concat(wrapWords(raw.slice(dash + 3)));
+      return wrapWords(raw);
+    })(rawName, 20);
+    const gLab = svgEl("g", { class: "graph-label-g" });
+    if (rawName) {
+      const tip = svgEl("title", {});
+      tip.textContent = rawName;
+      gLab.appendChild(tip);
+    }
     const tx = svgEl("text", {
       x: cx, y: cy+r+14, "text-anchor": "middle",
       fill: color, "font-family": "Cinzel,serif", "font-size": "9",
       "font-weight": "600", opacity: "0.8",
+      class: "graph-label",
     });
-    tx.textContent = label;
-    svg.appendChild(tx);
+    labelLines.forEach((line, i)=>{
+      const ts = svgEl("tspan", { x: cx, dy: i === 0 ? 0 : 11 });
+      ts.textContent = line;
+      tx.appendChild(ts);
+    });
+    gLab.appendChild(tx);
+    svg.appendChild(gLab);
+    if (shape && rawName) {
+      const tip2 = svgEl("title", {});
+      tip2.textContent = rawName;
+      shape.appendChild(tip2);
+      shape.setAttribute("aria-label", rawName);
+    }
     if (node.reqLevel > 0) {
       const lv = svgEl("text", {
         x: cx+r+4, y: cy-r+4, fill: "#ef4444", "font-size": "8",
@@ -1302,7 +1348,7 @@ function renderTree(){
 
     t.skills.forEach(s=>{
       const picked = isPicked(k,t.lvl,s.n,t);
-      const iconPath = s.icon || iconFor(k, s.n);
+      const iconPath = s.icon || "";
       const n = document.createElement("div");
       n.className = "node"+(t.auto?" auto":"")+(picked?" selected":"");
       n.dataset.name = s.n;
@@ -1319,16 +1365,19 @@ function renderTree(){
       iconEl.className = "icon";
       const src = safeUrl(iconPath);
       if (src) {
-        const img = document.createElement("img");
-        img.setAttribute("src", src);
-        img.setAttribute("alt", s.n || "");
-        iconEl.appendChild(img);
+        attachImg(iconEl, src, s.n || "");
       } else {
-        iconEl.textContent = s.i || "";
+        const m = document.createElement("span");
+        m.className = "icon-missing";
+        m.textContent = "icon missing";
+        if (s.n) m.setAttribute("title", s.n);
+        iconEl.appendChild(m);
+        iconEl.classList.add("has-icon-missing");
       }
       const nameEl2 = document.createElement("div");
       nameEl2.className = "name";
       nameEl2.textContent = s.n || "";
+      if (s.n) nameEl2.setAttribute("title", s.n);
       head.appendChild(iconEl);
       head.appendChild(nameEl2);
       const desc = document.createElement("div");
@@ -1467,16 +1516,7 @@ function renderSide(){
       d.appendChild(document.createTextNode(attrs));
       box.appendChild(d);
     }
-    if (dos.level0Name) {
-      const d = document.createElement("div");
-      d.style.marginTop = "4px";
-      const lab = document.createElement("span");
-      lab.style.color = "var(--mute)";
-      lab.textContent = "ObjectStore L0: ";
-      d.appendChild(lab);
-      d.appendChild(document.createTextNode(dos.level0Name));
-      box.appendChild(d);
-    }
+
     buildEl.appendChild(box);
   }
 
@@ -1497,7 +1537,7 @@ function renderSide(){
     const b = document.createElement("b");
     b.textContent = names;
     const em = document.createElement("em");
-    em.textContent = t.auto ? "auto" : (t.catalog ? "catalog" : ("pick " + (t.picks||1)));
+    em.textContent = t.auto ? "auto" : (t.catalog ? "catalog" : (t.picks != null ? ("pick " + t.picks) : ""));
     line.appendChild(dot);
     line.appendChild(lbl);
     line.appendChild(b);
@@ -1506,7 +1546,7 @@ function renderSide(){
   });
 
   // progress
-  const need = c.tiers.filter(t=>!t.auto && !t.catalog).reduce((a,t)=>a+(t.picks||1),0);
+  const need = c.tiers.filter(t=>!t.auto && !t.catalog).reduce((a,t)=>a+(t.picks != null ? t.picks : 0),0);
   const got  = c.tiers.filter(t=>!t.auto && !t.catalog).reduce((a,t)=>{
     return a+((state.picks[k]||{})[t.lvl]||[]).length;
   },0);
@@ -1569,7 +1609,7 @@ function renderWorgeGrimoire(parent){
   parent.appendChild(box);
 }
 function showTip(e,s,t){
-  const iconPath = s.icon || iconFor(state.cls, s.n);
+  const iconPath = s.icon || "";
   tip.replaceChildren();
   const wrap = document.createElement("div");
   wrap.style.cssText = "display:flex;gap:10px;align-items:flex-start";
@@ -1577,10 +1617,7 @@ function showTip(e,s,t){
   if (src) {
     const thumb = document.createElement("div");
     thumb.className = "thumb";
-    const img = document.createElement("img");
-    img.setAttribute("src", src);
-    img.setAttribute("alt", s.n || "");
-    thumb.appendChild(img);
+    attachImg(thumb, src, s.n || "");
     wrap.appendChild(thumb);
   }
   const body = document.createElement("div");
@@ -1633,7 +1670,8 @@ randomBtn.onclick = ()=>{
   state.picks[k] = {};
   c.tiers.forEach(t=>{
     if(t.auto){ return; } // innate: display-only, not stored
-    const picks = t.picks||1;
+    if (t.picks == null) return; // 3.1.0 has no picks cap — leave unset, do not invent 1
+    const picks = t.picks;
     const pool = [...t.skills].sort(()=>Math.random()-.5).slice(0,picks).map(s=>s.n);
     state.picks[k][t.lvl] = pool;
   });
