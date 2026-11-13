@@ -75,7 +75,7 @@ function getCharPalette(charId?: string): ColorPalette | undefined {
 
 /** Pixel art sigil paths for each attribute */
 const ATTRIBUTE_SIGILS: Record<string, string> = {
-  Strength: '/sprites/2d-island/ui/attributes/strength.png',
+  Strength: '/images/attributes/strength.png',
   Vitality: '/sprites/2d-island/ui/attributes/vitality.png',
   Endurance: '/sprites/2d-island/ui/attributes/endurance.png',
   Intellect: '/sprites/2d-island/ui/attributes/intellect.png',
