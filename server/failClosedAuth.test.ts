@@ -92,7 +92,10 @@ describe("fail-closed auth and mint gates", () => {
   it("does not accept GRUDGE_JWT_SECRET by itself", () => {
     process.env.GRUDGE_JWT_SECRET = SECRET;
     expect(jwtSecretsConfigured()).toBe(false);
-    expect(() => getJwtSecret()).toThrow(/SESSION_SECRET or JWT_SECRET/);
+    // Hitch's getJwtSecret may return GRUDGE as the third candidate; the
+    // fail-closed auth gate still 503s when SESSION_SECRET and JWT_SECRET
+    // are both unset.
+    expect(getJwtSecret()).toBe(SECRET);
     const res = mockRes();
     let nextCalled = false;
     const token = jwt.sign({ userId: "user-1" }, SECRET);
@@ -106,6 +109,10 @@ describe("fail-closed auth and mint gates", () => {
     expect(nextCalled).toBe(false);
     expect(res.statusCode).toBe(503);
     expect(res.body).toEqual({ error: "auth_misconfigured" });
+  });
+
+  it("getJwtSecret throws when no candidate is set", () => {
+    expect(() => getJwtSecret()).toThrow(/SESSION_SECRET or JWT_SECRET/);
   });
 
   it("getJwtSecret returns SESSION_SECRET first, then JWT_SECRET (Hitch candidate order)", () => {
@@ -359,6 +366,20 @@ describe("3. gated handlers use req.userId, not getUserId guest fallback", () =>
       }
     }
     expect(missing).toEqual([]);
+  });
+
+  it("failClosedAuth imports getJwtSecret from jwtSecret.ts, not requiredSecrets.ts", () => {
+    const auth = readFileSync(join(DIR, "failClosedAuth.ts"), "utf8");
+    expect(auth).toMatch(/from ["']\.\/lib\/jwtSecret["']/);
+    expect(auth).not.toMatch(/from ["']\.\/lib\/requiredSecrets["']/);
+    const boot = readFileSync(join(DIR, "lib/requiredSecrets.ts"), "utf8");
+    expect(boot).toMatch(/from ["']\.\/jwtSecret["']/);
+    expect(boot).toContain("dotenv");
+    const pure = readFileSync(join(DIR, "lib/jwtSecret.ts"), "utf8");
+    expect(pure).not.toMatch(/from\s+["']dotenv["']/);
+    expect(pure).not.toMatch(/process\.exit\s*\(/);
+    expect(pure).toContain("JWT_SECRET_CANDIDATE_ENVS");
+    expect(pure).toContain("export function getJwtSecret");
   });
 
   it("routes.ts JWT verify uses live candidates, not a module-load snapshot", () => {

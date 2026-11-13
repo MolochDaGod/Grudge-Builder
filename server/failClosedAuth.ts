@@ -8,51 +8,35 @@
  * Secret readers are live (per-call), never a module-load snapshot.
  * Crossmint keys are checked at request time (503) and never process.exit.
  *
- * `readEnvSecret` / `getJwtSecret` match the shape of Hitch's helpers on
- * `fix/prod-secret-guards` (`server/lib/requiredSecrets.ts`, PR #135). That
- * module is not imported here: it loads dotenv and can `process.exit` at boot,
- * and #135's tip is not final — this branch must not rebase onto it yet.
- * Difference: `jwtSecretsConfigured` / `getJwtSecret` here do **not** accept
- * `GRUDGE_JWT_SECRET` by itself (SESSION_SECRET or JWT_SECRET is required).
+ * `readEnvSecret`, `getJwtSecret`, and `JWT_SECRET_CANDIDATE_ENVS` are
+ * imported from `server/lib/jwtSecret.ts` (pure getters: no dotenv, no
+ * process.exit). `server/lib/requiredSecrets.ts` re-exports the same
+ * helpers after loading dotenv at boot, so #135 boot behaviour is unchanged.
+ * This file does not import requiredSecrets.ts.
+ *
+ * Auth still fails closed: `jwtSecretsConfigured` does not accept
+ * `GRUDGE_JWT_SECRET` by itself (503 auth_misconfigured). Hitch's
+ * `getJwtSecret` may return GRUDGE as a third signing candidate when
+ * SESSION_SECRET and JWT_SECRET are both unset; the middleware still 503s.
  */
 import type { Request, Response, NextFunction } from "express";
 import jwt from "jsonwebtoken";
+import {
+  readEnvSecret,
+  getJwtSecret,
+  JWT_SECRET_CANDIDATE_ENVS,
+} from "./lib/jwtSecret";
+
+export { readEnvSecret, getJwtSecret, JWT_SECRET_CANDIDATE_ENVS };
 
 const JWT_VERIFY_ALGORITHMS: jwt.Algorithm[] = ["HS256"];
-
-/** Trimmed env value; missing or whitespace-only becomes "". Never logs the value. */
-export function readEnvSecret(name: string): string {
-  const raw = process.env[name];
-  return typeof raw === "string" ? raw.trim() : "";
-}
-
-/**
- * Signing / primary secret: first non-empty trimmed candidate among
- * SESSION_SECRET, JWT_SECRET, and GRUDGE_JWT_SECRET — same candidate order as
- * Hitch's `getJwtSecret`. Throws if SESSION_SECRET and JWT_SECRET are both
- * unset (GRUDGE_JWT_SECRET alone is not accepted). No default secret.
- */
-export function getJwtSecret(): string {
-  const session = readEnvSecret("SESSION_SECRET");
-  const jwtSecret = readEnvSecret("JWT_SECRET");
-  if (!session && !jwtSecret) {
-    throw new Error(
-      "SESSION_SECRET or JWT_SECRET is missing or whitespace-only. Refusing to use a default secret.",
-    );
-  }
-  return session || jwtSecret || readEnvSecret("GRUDGE_JWT_SECRET");
-}
 
 /**
  * Live verify-candidate list (SESSION, JWT, GRUDGE), trimmed, no empties.
  * Callers must still require SESSION_SECRET or JWT_SECRET via jwtSecretsConfigured().
  */
 export function jwtVerifyCandidates(): string[] {
-  return [
-    readEnvSecret("SESSION_SECRET"),
-    readEnvSecret("JWT_SECRET"),
-    readEnvSecret("GRUDGE_JWT_SECRET"),
-  ].filter((s) => s.length > 0);
+  return JWT_SECRET_CANDIDATE_ENVS.map(readEnvSecret).filter((s) => s.length > 0);
 }
 
 /** True only when SESSION_SECRET or JWT_SECRET is set. GRUDGE_JWT_SECRET alone is not enough. */
