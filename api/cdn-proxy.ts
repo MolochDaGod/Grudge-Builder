@@ -24,7 +24,13 @@ function setCors(res: ServerResponse): void {
   res.setHeader("X-Grudge-Asset-Proxy", "cdn-proxy");
 }
 
-function sanitizeKey(raw: string): string | null {
+/**
+ * Allow letters, digits, `._-/% `, parentheses, and `+`.
+ * `( )` and `+` are part of real R2 key names — do not rename keys.
+ */
+const KEY_CHAR = /^[A-Za-z0-9._\-/% ()+]+$/;
+
+export function sanitizeKey(raw: string): string | null {
   let key = raw.trim();
   try {
     key = decodeURIComponent(key);
@@ -35,8 +41,19 @@ function sanitizeKey(raw: string): string | null {
   if (!key || key.length > MAX_PATH) return null;
   if (key.includes("..") || key.includes("\\") || key.includes("://")) return null;
   if (key.includes("//")) return null;
-  if (!/^[A-Za-z0-9._\-/% ]+$/.test(key)) return null;
+  if (!KEY_CHAR.test(key)) return null;
   return key;
+}
+
+/** Encode each path segment so `+` goes out as `%2B`. Does not rename R2 keys. */
+export function encodeKeyPath(key: string): string {
+  return (
+    "/" +
+    key
+      .split("/")
+      .map((seg) => encodeURIComponent(seg))
+      .join("/")
+  );
 }
 
 function keyFromReq(req: IncomingMessage): string | null {
@@ -78,7 +95,7 @@ export default function handler(req: IncomingMessage, res: ServerResponse): void
     .filter(([k]) => k !== "key")
     .map(([k, v]) => `${encodeURIComponent(k)}=${encodeURIComponent(v)}`)
     .join("&");
-  const path = `/${key}${extra ? `?${extra}` : ""}`;
+  const path = `${encodeKeyPath(key)}${extra ? `?${extra}` : ""}`;
 
   const headers: Record<string, string> = {
     Host: CDN_HOST,
