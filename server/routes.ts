@@ -58,6 +58,7 @@ import {
 } from "./utilities/islandGeneration";
 import { mapStudioProjectToIslandState } from "./utilities/studioProjectMapper";
 import { CrossmintWalletService } from "./services/crossmintWallet";
+import { requireAuthFailClosed, requireMintConfigured, mintDidSucceed } from "./failClosedAuth";
 
 const crossmintService = new CrossmintWalletService();
 
@@ -200,8 +201,12 @@ function isGuestProductIdentity(id?: string | null, name?: string | null): boole
   );
 }
 
-/** Middleware: require authenticated user (reject guests) */
+/** Middleware: require authenticated user (reject guests). Fail closed if secrets are missing. */
 function requireAuth(req: Request, res: Response, next: NextFunction): void {
+  if (JWT_SECRET_CANDIDATES.length === 0) {
+    res.status(503).json({ error: "auth_misconfigured" });
+    return;
+  }
   const userId = extractUserId(req);
   if (userId === "guest" || isGuestProductIdentity(userId)) {
     res.status(401).json({ error: "Authentication required" });
@@ -1109,7 +1114,7 @@ export async function registerRoutes(
   });
 
   // ── GET /api/islands/:id — fetch a specific island by DB id ─────────────
-  app.get("/api/islands/:id", async (req, res) => {
+  app.get("/api/islands/:id", requireAuthFailClosed, async (req, res) => {
     try {
       const userId = getUserId(req);
       const island = await storage.getHomeIsland(req.params.id);
@@ -1130,7 +1135,7 @@ export async function registerRoutes(
   });
 
   // ── Phase 1: Step 6 - Reroll Island ─────────────────────────────────────
-  app.post("/api/islands/:id/regenerate", async (req, res) => {
+  app.post("/api/islands/:id/regenerate", requireAuthFailClosed, async (req, res) => {
     try {
       const userId = getUserId(req);
       const islandId = req.params.id;
@@ -1951,7 +1956,7 @@ export async function registerRoutes(
   });
 
   // Commit home island after player approves 2D overhead preview
-  app.post("/api/island/commit", async (req, res) => {
+  app.post("/api/island/commit", requireAuthFailClosed, requireMintConfigured, async (req, res) => {
     try {
       const userId = getUserId(req);
       const { characterId, islandId, islandState, mapImageData, studioProject, sceneGlbUrl } = req.body;
@@ -2018,6 +2023,28 @@ export async function registerRoutes(
         isFirstVisit: true,
       };
 
+      // Mint first; do not commit (validatedAt / homeIsland) on mint failure.
+      let mintResult: { actionId?: string; mintAddress?: string; walletAddress?: string | null };
+      try {
+        const { nftMintingService } = await import("./services/nftMinting");
+        const r = await nftMintingService.mintIslandAsCNFT(account.id, {
+          ...island,
+          mapImageUrl: mapImageUrl ?? island.mapImageUrl,
+        });
+        if (!mintDidSucceed(r)) {
+          console.error("Island cNFT mint failed on commit:", r?.error || "no action id");
+          return res.status(503).json({ error: r?.error || "mint_failed" });
+        }
+        mintResult = {
+          actionId: r.actionId,
+          mintAddress: r.mintAddress,
+          walletAddress: r.walletAddress,
+        };
+      } catch (mintErr) {
+        console.error("Island cNFT mint failed on commit:", mintErr);
+        return res.status(503).json({ error: "mint_failed" });
+      }
+
       const updatedIsland = await storage.updateHomeIsland(island.id, {
         state: committedState,
         mapImageUrl: mapImageUrl ?? island.mapImageUrl,
@@ -2028,7 +2055,18 @@ export async function registerRoutes(
       await storage.updateAccount(account.id, {
         homeIsland: true,
         homeIslandId: island.id,
+        ...(mintResult.actionId ? { homeIslandMintActionId: mintResult.actionId } : {}),
       });
+
+      await db.insert(islandNFTs).values({
+        islandId: island.id,
+        accountId: account.id,
+        status: mintResult.mintAddress ? "minted" : "minting",
+        mintAddress: mintResult.mintAddress || null,
+        crossmintActionId: mintResult.actionId || null,
+        ownerWalletAddress: mintResult.walletAddress || account.walletAddress || null,
+        isCompressed: true,
+      }).onConflictDoNothing();
 
       const nodes = Array.isArray(committedState.nodes) ? committedState.nodes : [];
       for (const node of nodes) {
@@ -2036,31 +2074,6 @@ export async function registerRoutes(
         try {
           await storage.updateResourceNode(userId, String(nodeId), 0);
         } catch { /* node row created on first gather */ }
-      }
-
-      let mintResult: { actionId?: string; mintAddress?: string; walletAddress?: string | null } = {};
-      try {
-        const { nftMintingService } = await import("./services/nftMinting");
-        const r = await nftMintingService.mintIslandAsCNFT(account.id, updatedIsland);
-        mintResult = {
-          actionId: r.actionId,
-          mintAddress: r.mintAddress,
-          walletAddress: r.walletAddress,
-        };
-        if (r.actionId) {
-          await storage.updateAccount(account.id, { homeIslandMintActionId: r.actionId });
-        }
-        await db.insert(islandNFTs).values({
-          islandId: island.id,
-          accountId: account.id,
-          status: r.mintAddress ? "minted" : "minting",
-          mintAddress: r.mintAddress || null,
-          crossmintActionId: r.actionId || null,
-          ownerWalletAddress: r.walletAddress || account.walletAddress || null,
-          isCompressed: true,
-        }).onConflictDoNothing();
-      } catch (mintErr) {
-        console.warn("Island cNFT mint skipped:", mintErr);
       }
 
       const normalizedState = normalizeIslandState(updatedIsland);
@@ -2079,7 +2092,7 @@ export async function registerRoutes(
   });
 
   // Initialize island after cutscene (set homeIsland = true, mint cNFT)
-  app.post("/api/island/initialize", async (req, res) => {
+  app.post("/api/island/initialize", requireAuthFailClosed, requireMintConfigured, async (req, res) => {
     try {
       const userId = getUserId(req);
       const account = await storage.getOrCreateAccountForUser(userId);
@@ -2107,45 +2120,46 @@ export async function registerRoutes(
         });
       }
 
-      // Update account with homeIsland = true
-      const updatedAccount = await storage.updateAccount(account.id, {
-        homeIsland: true,
-        homeIslandId: island.id,
-      });
-
-      // Set validatedAt timestamp to mark as committed
-      const now = Date.now();
-      await storage.updateHomeIsland(island.id, {
-        validatedAt: now,
-      } as any);
-      
-      // Mint island cNFT → singular account.walletAddress (same as characters)
-      let mintResult: { actionId?: string; mintAddress?: string; walletAddress?: string | null } = {};
+      // Mint first; do not set homeIsland / validatedAt on mint failure (no mock success).
+      let mintResult: { actionId?: string; mintAddress?: string; walletAddress?: string | null };
       try {
         const { nftMintingService } = await import("./services/nftMinting");
         const r = await nftMintingService.mintIslandAsCNFT(account.id, island);
+        if (!mintDidSucceed(r)) {
+          console.error("Island cNFT mint failed on initialize:", r?.error || "no action id");
+          return res.status(503).json({ error: r?.error || "mint_failed" });
+        }
         mintResult = {
           actionId: r.actionId,
           mintAddress: r.mintAddress,
           walletAddress: r.walletAddress,
         };
-        if (r.actionId) {
-          await storage.updateAccount(account.id, { homeIslandMintActionId: r.actionId });
-        }
-        // Record in islandNFTs table
-        await db.insert(islandNFTs).values({
-          islandId: island.id,
-          accountId: account.id,
-          status: r.mintAddress ? 'minted' : 'minting',
-          mintAddress: r.mintAddress || null,
-          crossmintActionId: r.actionId || null,
-          ownerWalletAddress: r.walletAddress || account.walletAddress || null,
-          isCompressed: true,
-        }).onConflictDoNothing();
       } catch (mintErr) {
-        console.warn("Island cNFT mint skipped or failed:", mintErr);
+        console.error("Island cNFT mint failed on initialize:", mintErr);
+        return res.status(503).json({ error: "mint_failed" });
       }
-      
+
+      const now = Date.now();
+      const updatedAccount = await storage.updateAccount(account.id, {
+        homeIsland: true,
+        homeIslandId: island.id,
+        homeIslandMintActionId: mintResult.actionId,
+      });
+
+      await storage.updateHomeIsland(island.id, {
+        validatedAt: now,
+      } as any);
+
+      await db.insert(islandNFTs).values({
+        islandId: island.id,
+        accountId: account.id,
+        status: mintResult.mintAddress ? 'minted' : 'minting',
+        mintAddress: mintResult.mintAddress || null,
+        crossmintActionId: mintResult.actionId || null,
+        ownerWalletAddress: mintResult.walletAddress || account.walletAddress || null,
+        isCompressed: true,
+      }).onConflictDoNothing();
+
       res.json({
         success: true,
         message: "Island initialized successfully",
@@ -2161,7 +2175,7 @@ export async function registerRoutes(
   });
 
   // Update island state (nodes, buildings, sheep, etc.)
-  app.patch("/api/island/state", async (req, res) => {
+  app.patch("/api/island/state", requireAuthFailClosed, async (req, res) => {
     try {
       const { state } = req.body;
       if (!state) {
@@ -2188,7 +2202,7 @@ export async function registerRoutes(
   });
 
   // RTS-Grudge → Warlords: server-authoritative full island state from procedural export
-  app.post("/api/island/export-from-rts", async (req, res) => {
+  app.post("/api/island/export-from-rts", requireAuthFailClosed, async (req, res) => {
     try {
       const { gridX, gridZ, seed, biome, appUrl, heightmap } = req.body ?? {};
       if (gridX === undefined || gridZ === undefined || seed === undefined) {
@@ -2264,7 +2278,7 @@ export async function registerRoutes(
   });
 
   // Update island metadata (name, mapStyle, etc.)
-  app.patch("/api/island", async (req, res) => {
+  app.patch("/api/island", requireAuthFailClosed, async (req, res) => {
     try {
       // Validate metadata
       const parseResult = islandMetadataSchema.safeParse(req.body);
@@ -2297,7 +2311,7 @@ export async function registerRoutes(
   });
 
   // Boss clear → unlock new character creation token
-  app.post("/api/island/boss-clear", async (req, res) => {
+  app.post("/api/island/boss-clear", requireAuthFailClosed, async (req, res) => {
     try {
       const userId = getUserId(req);
       const account = await storage.getOrCreateAccountForUser(userId);
@@ -2325,7 +2339,7 @@ export async function registerRoutes(
   });
 
   // Generate island map image using AI (deterministic from seed)
-  app.post("/api/island/generate-map", async (req, res) => {
+  app.post("/api/island/generate-map", requireAuthFailClosed, async (req, res) => {
     try {
       const userId = getUserId(req);
       const account = await storage.getOrCreateAccountForUser(userId);
@@ -6310,7 +6324,7 @@ Also suggest metadata values in this exact JSON format:
   });
 
   // POST /api/nfts/mint - Mint a character as a compressed NFT
-  app.post("/api/nfts/mint", async (req, res) => {
+  app.post("/api/nfts/mint", requireAuthFailClosed, requireMintConfigured, async (req, res) => {
     try {
       const userId = getUserId(req);
       const { characterId, email, externalWallet } = req.body;
@@ -6348,9 +6362,9 @@ Also suggest metadata values in this exact JSON format:
         { escrowOnly },
       );
 
-      if (!result.success) {
-        console.error(`[NFT] Mint failed: ${result.error}`);
-        return res.status(400).json({ error: result.error });
+      if (!mintDidSucceed(result)) {
+        console.error(`[NFT] Mint failed: ${result.error || "no action id"}`);
+        return res.status(503).json({ error: result.error || "mint_failed" });
       }
 
       console.log(`[NFT] Mint initiated successfully: ${result.actionId}`);
@@ -6648,7 +6662,7 @@ Also suggest metadata values in this exact JSON format:
   // ==================== ISLAND NFT Routes ====================
 
   // GET /api/island-nfts - Get all island NFTs for account
-  app.get("/api/island-nfts", async (req, res) => {
+  app.get("/api/island-nfts", requireAuthFailClosed, async (req, res) => {
     try {
       const userId = getUserId(req);
       const account = await storage.getAccountByUserId(userId);
@@ -6669,7 +6683,7 @@ Also suggest metadata values in this exact JSON format:
   });
 
   // GET /api/island-nfts/island/:islandId - Get NFT for specific island
-  app.get("/api/island-nfts/island/:islandId", async (req, res) => {
+  app.get("/api/island-nfts/island/:islandId", requireAuthFailClosed, async (req, res) => {
     try {
       const { islandId } = req.params;
       
@@ -6691,7 +6705,7 @@ Also suggest metadata values in this exact JSON format:
   });
 
   // POST /api/island-nfts/mint - Mint home island as cNFT
-  app.post("/api/island-nfts/mint", async (req, res) => {
+  app.post("/api/island-nfts/mint", requireAuthFailClosed, requireMintConfigured, async (req, res) => {
     try {
       const userId = getUserId(req);
       const account = await storage.getAccountByUserId(userId);
@@ -6745,8 +6759,8 @@ Also suggest metadata values in this exact JSON format:
         return res.status(400).json({ error: "Email or external wallet required" });
       }
 
-      if (!mintResult) {
-        return res.status(500).json({ error: "Failed to mint island NFT" });
+      if (!mintDidSucceed(mintResult)) {
+        return res.status(503).json({ error: (mintResult as { error?: string } | null)?.error || "mint_failed" });
       }
 
       // Create NFT record
@@ -6791,7 +6805,7 @@ Also suggest metadata values in this exact JSON format:
   });
 
   // POST /api/island-nfts/:nftId/check-status - Check island NFT minting status
-  app.post("/api/island-nfts/:nftId/check-status", async (req, res) => {
+  app.post("/api/island-nfts/:nftId/check-status", requireAuthFailClosed, async (req, res) => {
     try {
       const { nftId } = req.params;
       
@@ -7526,7 +7540,7 @@ Also suggest metadata values in this exact JSON format:
   const uuidService = new UUIDService(storage);
 
   // POST /api/island/resolve-drops — Stamp Grudge UUIDs on rolled loot drops
-  app.post("/api/island/resolve-drops", requireAuth, async (req: any, res) => {
+  app.post("/api/island/resolve-drops", requireAuthFailClosed, async (req: any, res) => {
     try {
       const accountId = req.accountId || req.body.accountId;
       if (!accountId) return res.status(401).json({ error: "accountId required" });

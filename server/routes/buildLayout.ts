@@ -3,12 +3,16 @@
  * Soft API for frontend autosave. Primary store is still localStorage on client;
  * this persists across devices when authenticated.
  *
- * GET  /api/island/build-layout?accountId=&islandKey=
- * PATCH /api/island/build-layout  body: BuildLayoutDoc
+ * Fail closed: both routes require a valid (non-guest) session.
+ * The store key is the authenticated user id — client-supplied accountId is ignored.
+ *
+ * GET  /api/island/build-layout?islandKey=
+ * PATCH /api/island/build-layout  body: BuildLayoutDoc (accountId ignored)
  */
 import type { Express, Request, Response } from "express";
 import fs from "node:fs";
 import path from "node:path";
+import { requireAuthFailClosed } from "../failClosedAuth";
 
 interface BuildLayoutDoc {
   version: number;
@@ -75,8 +79,12 @@ function writeDoc(doc: BuildLayoutDoc): void {
 }
 
 export function registerBuildLayoutRoutes(app: Express): void {
-  app.get("/api/island/build-layout", (req: Request, res: Response) => {
-    const accountId = String(req.query.accountId || "guest");
+  app.get("/api/island/build-layout", requireAuthFailClosed, (req: Request, res: Response) => {
+    const accountId = String((req as { userId?: string }).userId || "");
+    if (!accountId) {
+      res.status(401).json({ error: "Authentication required" });
+      return;
+    }
     const islandKey = String(req.query.islandKey || "default");
     const doc = readDoc(accountId, islandKey);
     if (!doc) {
@@ -86,7 +94,12 @@ export function registerBuildLayoutRoutes(app: Express): void {
     res.json(doc);
   });
 
-  app.patch("/api/island/build-layout", (req: Request, res: Response) => {
+  app.patch("/api/island/build-layout", requireAuthFailClosed, (req: Request, res: Response) => {
+    const accountId = String((req as { userId?: string }).userId || "");
+    if (!accountId) {
+      res.status(401).json({ error: "Authentication required" });
+      return;
+    }
     const body = req.body as Partial<BuildLayoutDoc>;
     if (!body || !Array.isArray(body.props)) {
       res.status(400).json({ error: "props array required" });
@@ -95,7 +108,7 @@ export function registerBuildLayoutRoutes(app: Express): void {
     const doc: BuildLayoutDoc = {
       version: 1,
       updatedAt: Date.now(),
-      accountId: String(body.accountId || "guest"),
+      accountId,
       islandKey: String(body.islandKey || "default"),
       seed: body.seed,
       props: body.props.map((p) => ({
