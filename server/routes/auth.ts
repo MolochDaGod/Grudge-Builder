@@ -1181,7 +1181,7 @@ export function registerAuthRoutes(app: Express) {
       res.json(
         buildSsoUserPayload(
           { ...user, email: email?.trim().toLowerCase() || user.email },
-          freshAccount,
+          freshAccount ?? null,
           { isNew: false },
         ),
       );
@@ -1571,7 +1571,7 @@ export function registerAuthRoutes(app: Express) {
         const [user] = await db.select().from(users).where(eq(users.id, sessionUserId)).limit(1);
         const fresh = await storage.getAccount(account.id);
         return res.json({
-          ...buildAuthResponse(user!, fresh),
+          ...buildAuthResponse(user!, fresh ?? null),
           linked: true,
           walletAddress,
           setPrimary: result.setPrimary,
@@ -1623,7 +1623,7 @@ export function registerAuthRoutes(app: Express) {
       await persistLinkedWallet(account.id, walletAddress, provider, provider);
 
       const fresh = await storage.getAccount(account.id);
-      res.json(buildAuthResponse(user, fresh));
+      res.json(buildAuthResponse(user, fresh ?? null));
     } catch (e: any) {
       console.error("[Auth/PhantomVerify]", e);
       res.status(400).json({ success: false, error: e.message || "Wallet verify failed" });
@@ -1775,29 +1775,11 @@ export function registerAuthRoutes(app: Express) {
       // Generate unique referral code for new account
       const myReferralCode = await generateUniqueReferralCode();
       
-      // Create Crossmint server-signer wallet for new account
-      const walletEmail = email || `${grudgeId.toLowerCase()}@id.grudge-studio.com`;
-      let walletAddress: string | null = null;
-      try {
-        const wallet = await crossmintService.getOrCreateWallet(walletEmail);
-        if (wallet?.address) {
-          walletAddress = wallet.address;
-        }
-      } catch (walletErr) {
-        console.error('[Auth/Register] Crossmint wallet creation failed:', walletErr);
-        // Non-fatal — account can still be created
-      }
-
-      // Update account with referral code, wallet, and claimed referral
+      // Update account with referral code and claimed referral
       const accountUpdates: any = {
         displayName: username.trim(),
         referralCode: myReferralCode,
       };
-      if (walletAddress) {
-        accountUpdates.walletAddress = walletAddress;
-        accountUpdates.walletType = 'crossmint';
-        accountUpdates.crossmintEmail = walletEmail;
-      }
       
       // Always grant first character on register (one per new account)
       accountUpdates.firstCharacterGranted = true;
@@ -2322,7 +2304,6 @@ export function registerAuthRoutes(app: Express) {
         email,
         walletType,
         walletAddress: account?.walletAddress || null,
-        solanaAddress: account?.walletAddress || null,
         custodialWallet,
         linkedSolana,
         linkedWallets: linkedAddrs,
