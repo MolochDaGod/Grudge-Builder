@@ -30,10 +30,12 @@ Do not use the trademarked OhMyGame name or logo as Grudge branding. Refer to th
 Requires [Bun](https://bun.sh) 1.4.2+ and Node.js 22.19+.
 
 ```bash
-git clone --branch main https://github.com/WhiteTowerAI/ohmygame.git
+git clone https://github.com/WhiteTowerAI/ohmygame.git
 cd ohmygame
+git checkout d6eac67856583820f2ff2795851fc3787fae02f5
 bun install --frozen-lockfile
-export OHMYGAME_DAEMON_TOKEN  # required on studio machines; do not start tokenless
+export OHMYGAME_DAEMON_TOKEN="$(openssl rand -hex 32)"  # generated, non-empty; required on studio machines
+# start the daemon in this same shell so it inherits the token; do not start tokenless
 bun run dev            # web renderer + local daemon
 # or
 bun run dev:desktop    # Electron app
@@ -41,7 +43,7 @@ bun run dev:desktop    # Electron app
 
 | Process | Default bind | Notes |
 |---------|--------------|--------|
-| Daemon | `127.0.0.1:43110` | `GET /health` → `{ "status": "ok" }`. **Studio policy: set `OHMYGAME_DAEMON_TOKEN` before `bun run dev`.** Upstream is tokenless by default; do not run it that way here. |
+| Daemon | `127.0.0.1:43110` | Once `OHMYGAME_DAEMON_TOKEN` is set, `GET /health` returns 401 unless the request includes `Authorization: Bearer <token>`; with the header it returns `{ "status": "ok" }`. **Studio policy: generate a non-empty token and start the daemon in that same shell (`bun run dev`).** Upstream is tokenless by default; do not run it that way here. |
 | Renderer | `127.0.0.1:43120` | Vite; `/api` is proxied to the daemon. |
 
 Official desktop builds send the token on stdin and force loopback. **Never set `DAEMON_HOST=0.0.0.0`**, and do not tunnel or deploy the daemon.
