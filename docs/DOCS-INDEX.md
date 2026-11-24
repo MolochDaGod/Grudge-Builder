@@ -67,6 +67,14 @@ Organized entry point for APIs, UUID systems, and fleet integration.
 
 ---
 
+## Local AI tools
+
+| Topic | Doc |
+|-------|-----|
+| **Local AI game studio** (WhiteTowerAI/ohmygame — Phaser / Three.js / R3F prototypes; loopback + token required; not SSOT, not a host) | [OHMYGAME.md](./OHMYGAME.md) |
+
+---
+
 ## ObjectStore (game data API)
 
 | Resource | URL |
