@@ -43,3 +43,38 @@ test('production release workflow verifies and probes apex production domains', 
   assert.match(workflow, /vercel deploy --prebuilt --prod --skip-domain --yes/);
   assert.match(workflow, /vercel promote "\$RELEASE_URL" --yes/);
 });
+
+function jobBody(workflow, name) {
+  const marker = `\n  ${name}:\n`;
+  const start = workflow.indexOf(marker);
+  assert.ok(start >= 0, `missing job ${name}`);
+  const rest = workflow.slice(start + 1);
+  const next = rest.slice(1).search(/\n {2}[a-z0-9-]+:\n/);
+  return next === -1 ? rest : rest.slice(0, next + 1);
+}
+
+test('production deploys are manual, confirmed, and the test realm does not upload Railway', () => {
+  const workflow = fs.readFileSync(
+    path.join(root, '.github/workflows/production-release.yml'),
+    'utf8',
+  );
+  const testRealm = fs.readFileSync(
+    path.join(root, '.github/workflows/vercel-test.yml'),
+    'utf8',
+  );
+  const onBlock = workflow.slice(workflow.indexOf('\non:\n'), workflow.indexOf('\nconcurrency:'));
+  const triggerKeys = [...onBlock.matchAll(/^ {2}([A-Za-z0-9_]+):/gm)].map((match) => match[1]);
+  assert.deepEqual(triggerKeys, ['workflow_dispatch']);
+
+  const confirm = jobBody(workflow, 'confirm');
+  assert.match(confirm, /git fetch --no-tags origin main/);
+  assert.match(confirm, /git merge-base --is-ancestor "\$sha" origin\/main/);
+
+  for (const name of ['deploy-api', 'deploy-client']) {
+    const body = jobBody(workflow, name);
+    assert.match(body, /inputs\.confirm == 'deploy-production'/);
+    assert.match(body, /environment:\n {6}name: production\n/);
+  }
+
+  assert.equal(testRealm.includes('railway up'), false);
+});

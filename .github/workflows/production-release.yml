@@ -12,7 +12,9 @@
 #
 # deploy-api and deploy-client both use that environment. The Railway
 # deployment message records the resolved commit, and both jobs check out
-# that commit rather than whatever main moves to later.
+# that commit rather than whatever main moves to later. The confirm job
+# fetches origin/main in full and refuses any commit that is not an
+# ancestor of it before those deploy jobs can start.
 
 name: Production release — Grudge Warlords
 
@@ -85,6 +87,7 @@ jobs:
       - uses: actions/checkout@v4
         with:
           ref: ${{ steps.gate.outputs.ref }}
+          fetch-depth: 0
           persist-credentials: false
 
       - name: Record the commit that will be deployed
@@ -99,6 +102,21 @@ jobs:
             echo "::error::Checked out ${sha}, which is not the requested commit ${EXPECTED_SHA}. Nothing was deployed."
             exit 1
           fi
+          # Full history of main. A shallow fetch can reject a real ancestor
+          # or fail to prove that a side-branch commit is not on main.
+          git fetch --no-tags origin main
+          if [ -f "$(git rev-parse --git-path shallow)" ]; then
+            echo "::error::Refusing production deploy. Main history is shallow, so ancestry cannot be proven. Nothing was deployed."
+            exit 1
+          fi
+          if ! git rev-parse --verify --quiet origin/main >/dev/null; then
+            echo "::error::Refusing production deploy. origin/main was not fetched. Nothing was deployed."
+            exit 1
+          fi
+          if ! git merge-base --is-ancestor "$sha" origin/main; then
+            echo "::error::Refusing production deploy. ${sha} is not reachable from origin/main. Nothing was deployed."
+            exit 1
+          fi
           printf 'sha=%s\n' "$sha" >> "$GITHUB_OUTPUT"
           {
             echo "### Production deploy target"
@@ -106,6 +124,7 @@ jobs:
             echo "- Selected ref: \`${GITHUB_REF_NAME}\`"
             echo "- Commit source: \`${REF_SOURCE}\`"
             echo "- Resolved commit: \`${sha}\`"
+            echo "- Ancestry: reachable from origin/main"
             echo "- Railway: project \`92f039ec-2cce-4e1e-b06a-dd0ac6256d70\`, environment \`production\`, service \`grudge-api\`"
             echo "- Vercel production client promote runs only after that API deploy succeeds"
             echo ""
@@ -154,7 +173,7 @@ jobs:
 
   deploy-api:
     needs: [confirm, validate]
-    if: needs.confirm.result == 'success' && needs.validate.result == 'success'
+    if: needs.confirm.result == 'success' && needs.validate.result == 'success' && inputs.confirm == 'deploy-production'
     runs-on: ubuntu-latest
     timeout-minutes: 30
     environment:
@@ -211,7 +230,7 @@ jobs:
 
   deploy-client:
     needs: [confirm, validate, deploy-api]
-    if: needs.confirm.result == 'success' && needs.validate.result == 'success' && needs.deploy-api.result == 'success'
+    if: needs.confirm.result == 'success' && needs.validate.result == 'success' && needs.deploy-api.result == 'success' && inputs.confirm == 'deploy-production'
     runs-on: ubuntu-latest
     timeout-minutes: 30
     environment:
