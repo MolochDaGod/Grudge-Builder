@@ -21,8 +21,11 @@ FROM base AS builder
 
 COPY server/island-server.ts ./server/
 COPY server/cors.ts ./server/
+COPY server/studioOriginsEnv.ts ./server/
 COPY server/lib/requiredSecrets.ts ./server/lib/
 COPY server/lib/verifyIslandToken.ts ./server/lib/
+COPY server/lib/jwtSecret.ts ./server/lib/
+COPY shared/fleet/studioOrigins.ts ./shared/fleet/
 COPY tsconfig.json ./
 
 RUN npx esbuild server/island-server.ts \
@@ -31,6 +34,7 @@ RUN npx esbuild server/island-server.ts \
     --format=cjs \
     --outfile=dist/world-server.cjs \
     --packages=external \
+    --alias:@shared=./shared \
     --minify
 
 # ── Final stage ──────────────────────────────────────────────────────────────

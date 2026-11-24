@@ -6,5 +6,5 @@ import { getJwtSecret } from "./requiredSecrets";
  * (getJwtSecret: first non-blank of SESSION_SECRET, JWT_SECRET, GRUDGE_JWT_SECRET).
  */
 export function verifyIslandToken(token: string): string | jwt.JwtPayload {
-  return jwt.verify(token, getJwtSecret());
+  return jwt.verify(token, getJwtSecret(), { algorithms: ["HS256"] });
 }

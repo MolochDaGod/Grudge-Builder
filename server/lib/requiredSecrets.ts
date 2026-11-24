@@ -5,17 +5,22 @@
  * are for local env files only and are not compiled into this module.
  */
 import dotenv from "dotenv";
+import {
+  readEnvSecret,
+  getJwtSecret,
+  JWT_SECRET_CANDIDATE_ENVS,
+} from "./jwtSecret";
 
 // Load local files first so module-level readers see them. Does not override
 // variables already present in the process environment.
 dotenv.config({ path: ".env.local" });
 dotenv.config();
 
-/** Trimmed env value; missing or whitespace-only becomes "". Never logs the value. */
-export function readEnvSecret(name: string): string {
-  const raw = process.env[name];
-  return typeof raw === "string" ? raw.trim() : "";
-}
+// Pure getters live in jwtSecret.ts (no dotenv, no process.exit) so
+// request-time auth can import them without boot side effects. Re-export
+// so existing callers (`import { getJwtSecret, readEnvSecret } from
+// "./lib/requiredSecrets"`) keep the same behaviour after dotenv loads.
+export { readEnvSecret, getJwtSecret, JWT_SECRET_CANDIDATE_ENVS };
 
 /**
  * In every environment, exit if SESSION_SECRET or JWT_SECRET is missing or
@@ -33,21 +38,4 @@ export function requireSessionAndJwtSecrets(): void {
     `[boot] Refusing to start: ${named} ${verb} missing or whitespace-only. Set ${named} in the environment (see .env.example). There is no default secret.`,
   );
   process.exit(1);
-}
-
-/**
- * Signing secret: first non-empty trimmed candidate among SESSION_SECRET,
- * JWT_SECRET, and GRUDGE_JWT_SECRET. Throws if none are set — no fallback.
- */
-export function getJwtSecret(): string {
-  const secret =
-    readEnvSecret("SESSION_SECRET") ||
-    readEnvSecret("JWT_SECRET") ||
-    readEnvSecret("GRUDGE_JWT_SECRET");
-  if (!secret) {
-    throw new Error(
-      "SESSION_SECRET or JWT_SECRET is missing or whitespace-only. Refusing to use a default secret.",
-    );
-  }
-  return secret;
 }

@@ -26,6 +26,8 @@ jobs:
         run: npm run build
       - name: Client unit tests
         run: npm run test:client
+      - name: Server unit tests
+        run: npm run test:server
 
       - name: Type check
         env:
