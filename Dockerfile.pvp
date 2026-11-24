@@ -21,6 +21,8 @@ FROM base AS builder
 
 COPY server/island-server.ts ./server/
 COPY server/cors.ts ./server/
+COPY server/lib/requiredSecrets.ts ./server/lib/
+COPY server/lib/verifyIslandToken.ts ./server/lib/
 COPY tsconfig.json ./
 
 RUN npx esbuild server/island-server.ts \

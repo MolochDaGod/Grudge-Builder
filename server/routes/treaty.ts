@@ -26,8 +26,9 @@ import {
   sendServerChannelMessage,
   ensureTreatyServerChannels,
 } from "../services/treatyChat";
+import { getJwtSecret } from "../lib/requiredSecrets";
 
-const JWT_SECRET = process.env.SESSION_SECRET || process.env.JWT_SECRET || "grudge-dev-secret";
+const JWT_SECRET = getJwtSecret();
 
 function requireAuth(req: Request, res: Response, next: NextFunction): void {
   const authHeader = req.get("Authorization") || req.get("X-Session-Token");

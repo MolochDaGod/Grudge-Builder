@@ -25,6 +25,7 @@ export default defineConfig({
       "../server/cors.test.ts",
       "../server/studioOriginsEnv.test.ts",
       "../server/authPageSanitize.test.ts",
+      "../server/islandJwt.test.ts",
       "../workers/id-gateway/src/index.test.js",
     ],
     css: false,

@@ -261,6 +261,7 @@ export function validateReturnUrl(raw: string, options: ValidateReturnUrlOpts = 
     try {
       const resolved = new URL(value, options.base);
       if (!resolved.pathname.startsWith("/")) return fallback;
+      if (!isStudioOrigin(resolved.origin, options)) return fallback;
       return resolved.toString();
     } catch {
       return fallback;
@@ -280,6 +281,7 @@ export function validateReturnUrl(raw: string, options: ValidateReturnUrlOpts = 
     if (!hasDefaultPort(url)) return fallback;
     const allowed = new Set(getAllowedHosts({ dev, extraHosts: options.extraHosts }));
     if (!allowed.has(host)) return fallback;
+    if (!isStudioOrigin(url.origin, options)) return fallback;
     return url.toString();
   } catch {
     return fallback;

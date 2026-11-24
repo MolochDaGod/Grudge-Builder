@@ -27,6 +27,8 @@ import dotenv from "dotenv";
 // dotenv.config() does NOT override already-set vars, so .env.local wins.
 dotenv.config({ path: ".env.local" });
 dotenv.config();
+import { requireSessionAndJwtSecrets } from "./lib/requiredSecrets";
+requireSessionAndJwtSecrets();
 import { fileURLToPath } from "url";
 import { dirname } from "path";
 // import.meta.url is undefined when esbuild bundles to CJS — fall back to cwd

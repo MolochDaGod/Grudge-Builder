@@ -82,7 +82,9 @@ const JWT_SECRET_CANDIDATES = [
   process.env.SESSION_SECRET,
   process.env.JWT_SECRET,
   process.env.GRUDGE_JWT_SECRET,
-].filter((s): s is string => !!s && s.length > 0);
+]
+  .map((s) => s?.trim())
+  .filter((s): s is string => !!s && s.length > 0);
 
 const JWT_SECRET = JWT_SECRET_CANDIDATES[0] || "";
 /**
@@ -138,10 +140,18 @@ function ttlToSeconds(ttl: string): number {
 const STUDIO_ORIGIN_OPTS = serverStudioOriginOpts();
 
 function requestBaseUrl(req: Request): string {
-  const xfProto = (req.get("x-forwarded-proto") || "").split(",")[0]?.trim();
-  const proto = xfProto || req.protocol || "https";
-  const host = req.get("x-forwarded-host") || req.get("host") || "id.grudge-studio.com";
-  return `${proto}://${host}`;
+  const host = req.get("host") || "";
+  if (host) {
+    const xfProto = (req.get("x-forwarded-proto") || "").split(",")[0]?.trim();
+    const proto = xfProto || req.protocol || "https";
+    try {
+      const origin = new URL(`${proto}://${host}`).origin;
+      if (isStudioOrigin(origin, STUDIO_ORIGIN_OPTS)) return origin;
+    } catch {
+      /* ignore */
+    }
+  }
+  return "https://id.grudge-studio.com";
 }
 
 function resolveSafeReturn(value: string | undefined, req: Request, fallback = ""): string {
@@ -1171,7 +1181,7 @@ export function registerAuthRoutes(app: Express) {
       res.json(
         buildSsoUserPayload(
           { ...user, email: email?.trim().toLowerCase() || user.email },
-          freshAccount,
+          freshAccount ?? null,
           { isNew: false },
         ),
       );
@@ -1561,7 +1571,7 @@ export function registerAuthRoutes(app: Express) {
         const [user] = await db.select().from(users).where(eq(users.id, sessionUserId)).limit(1);
         const fresh = await storage.getAccount(account.id);
         return res.json({
-          ...buildAuthResponse(user!, fresh),
+          ...buildAuthResponse(user!, fresh ?? null),
           linked: true,
           walletAddress,
           setPrimary: result.setPrimary,
@@ -1613,7 +1623,7 @@ export function registerAuthRoutes(app: Express) {
       await persistLinkedWallet(account.id, walletAddress, provider, provider);
 
       const fresh = await storage.getAccount(account.id);
-      res.json(buildAuthResponse(user, fresh));
+      res.json(buildAuthResponse(user, fresh ?? null));
     } catch (e: any) {
       console.error("[Auth/PhantomVerify]", e);
       res.status(400).json({ success: false, error: e.message || "Wallet verify failed" });
@@ -1765,29 +1775,11 @@ export function registerAuthRoutes(app: Express) {
       // Generate unique referral code for new account
       const myReferralCode = await generateUniqueReferralCode();
       
-      // Create Crossmint server-signer wallet for new account
-      const walletEmail = email || `${grudgeId.toLowerCase()}@id.grudge-studio.com`;
-      let walletAddress: string | null = null;
-      try {
-        const wallet = await crossmintService.getOrCreateWallet(walletEmail);
-        if (wallet?.address) {
-          walletAddress = wallet.address;
-        }
-      } catch (walletErr) {
-        console.error('[Auth/Register] Crossmint wallet creation failed:', walletErr);
-        // Non-fatal — account can still be created
-      }
-
-      // Update account with referral code, wallet, and claimed referral
+      // Update account with referral code and claimed referral
       const accountUpdates: any = {
         displayName: username.trim(),
         referralCode: myReferralCode,
       };
-      if (walletAddress) {
-        accountUpdates.walletAddress = walletAddress;
-        accountUpdates.walletType = 'crossmint';
-        accountUpdates.crossmintEmail = walletEmail;
-      }
       
       // Always grant first character on register (one per new account)
       accountUpdates.firstCharacterGranted = true;
@@ -2312,7 +2304,6 @@ export function registerAuthRoutes(app: Express) {
         email,
         walletType,
         walletAddress: account?.walletAddress || null,
-        solanaAddress: account?.walletAddress || null,
         custodialWallet,
         linkedSolana,
         linkedWallets: linkedAddrs,

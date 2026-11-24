@@ -123,6 +123,17 @@ describe("studioOrigins: exact-host allowlist (no wildcard / suffix matching)", 
     expect(validateReturnUrl("/account")).toBe("");
   });
 
+  it("re-checks the resolved origin so a forged base cannot leak a relative return URL", () => {
+    // Simulates /api/auth/sso-check with X-Forwarded-Host: evil.example
+    expect(validateReturnUrl("/path", { base: "https://evil.example" })).toBe("");
+    expect(validateReturnUrl("/path", { base: "https://evil.example", fallback: "https://id.grudge-studio.com/" })).toBe(
+      "https://id.grudge-studio.com/",
+    );
+    expect(validateReturnUrl("//evil.example")).toBe("");
+    expect(validateReturnUrl("https://id.grudge-studio.com/x")).toBe("https://id.grudge-studio.com/x");
+    expect(validateReturnUrl("https://evil.example")).toBe("");
+  });
+
   it("honours extraHosts as exact hosts without subdomain wildcarding", () => {
     expect(validateReturnUrl("https://partner.example.com/cb")).toBe("");
     expect(
