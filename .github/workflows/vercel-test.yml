@@ -1,5 +1,11 @@
 name: Deploy Warlords test realm
 
+# Publishes the test alias only. This workflow must not deploy Railway.
+# Production grudge-api (environment production, service grudge-api) ships
+# only from production-release.yml, which is a manual workflow_dispatch.
+# Do not point a Railway upload in this file at that service, and do not
+# default a missing test target to production.
+
 on:
   push:
     branches: [codex/warlords-test-realm]
@@ -18,7 +24,6 @@ jobs:
     timeout-minutes: 60
     env:
       VERCEL_TOKEN: ${{ secrets.VERCEL_TOKEN }}
-      RAILWAY_TOKEN: ${{ secrets.RAILWAY_TOKEN }}
       VERCEL_ORG_ID: team_VZ7uiFGiR9QBdqtzne04xygG
       VERCEL_PROJECT_ID: prj_AT8CcdGZRjg838A2B0EyYtw65Fvb
       GRUDGE_MONOREPO_GIT_TOKEN: ${{ secrets.GRUDGE_MONOREPO_GIT_TOKEN }}
@@ -54,38 +59,13 @@ jobs:
         run: node --import tsx --test scripts/test-warlords-lobby.mjs
       - name: Verify client account and gameplay tests
         run: npm run test:client
-      - name: Build compatible server
+      - name: Build server locally
         run: npm run build:server
       - name: Stamp client release identity
         run: |
           node --input-type=module <<'JS'
           import fs from 'node:fs';
           fs.writeFileSync('.vercel/output/static/release.json', JSON.stringify({ commit: process.env.GITHUB_SHA, builtAt: new Date().toISOString(), target: 'test.grudge-studio.com' }));
-          JS
-      - name: Deploy compatible multiplayer server
-        run: |
-          set -euo pipefail
-          if [ -z "$RAILWAY_TOKEN" ]; then
-            echo 'RAILWAY_TOKEN is missing. Compatible server deployment is required before publishing the multiplayer client.'
-            exit 1
-          fi
-          npx --yes @railway/cli@5.49.2 up --ci \
-            --project 92f039ec-2cce-4e1e-b06a-dd0ac6256d70 \
-            --environment production --service grudge-api \
-            --message "Warlords compatibility $GITHUB_SHA"
-      - name: Verify new room protocol is live
-        run: |
-          node --input-type=module <<'JS'
-          const url = 'https://grudge-api-production-0d46.up.railway.app/api/colyseus/health';
-          let ready = false;
-          for (let attempt = 0; attempt < 24; attempt++) {
-            const response = await fetch(url, { signal: AbortSignal.timeout(10000) }).catch(() => null);
-            const data = response?.ok ? await response.json() : null;
-            if (data?.matchMakerReady && data?.definedRooms?.includes('custom_lobby') && data?.definedRooms?.includes('game_lobby')) { ready = true; break; }
-            await new Promise(resolve => setTimeout(resolve, 5000));
-          }
-          if (!ready) throw new Error('The compatible multiplayer server is not ready; test alias was not changed.');
-          console.log('Verified game_lobby and custom_lobby on the live multiplayer server.');
           JS
       - name: Deploy preview and verify before assigning test domain
         run: |
@@ -95,6 +75,8 @@ jobs:
           vercel alias set "$DEPLOYMENT_URL" test.grudge-studio.com --scope "$VERCEL_ORG_ID" --token "$VERCEL_TOKEN"
           vercel cache purge --yes --scope "$VERCEL_ORG_ID" --token "$VERCEL_TOKEN"
           node scripts/probe-warlords-test.mjs https://test.grudge-studio.com
-          echo "Test deployment: $DEPLOYMENT_URL" >> "$GITHUB_STEP_SUMMARY"
-          echo 'Vercel CDN and data caches purged; stable-domain checks passed.' >> "$GITHUB_STEP_SUMMARY"
-          echo 'Target: https://test.grudge-studio.com. HTTP checks passed; authenticated gameplay acceptance remains required.' >> "$GITHUB_STEP_SUMMARY"
+          {
+            echo "Test deployment: $DEPLOYMENT_URL"
+            echo 'Vercel CDN and data caches purged; stable-domain checks passed.'
+            echo 'Target: https://test.grudge-studio.com. HTTP checks passed; authenticated gameplay acceptance remains required.'
+          } >> "$GITHUB_STEP_SUMMARY"
