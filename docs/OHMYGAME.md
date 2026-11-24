@@ -36,15 +36,18 @@ git checkout d6eac67856583820f2ff2795851fc3787fae02f5
 bun install --frozen-lockfile
 export OHMYGAME_DAEMON_TOKEN="$(openssl rand -hex 32)"  # generated, non-empty; required on studio machines
 # start the daemon in this same shell so it inherits the token; do not start tokenless
-bun run dev            # web renderer + local daemon
-# or
-bun run dev:desktop    # Electron app
+bun run dev            # starts the loopback daemon + Vite; the browser UI at :43120 will 401 once a token is set
+bun run dev:desktop    # token-required UI path (Electron injects the Bearer token)
 ```
 
 | Process | Default bind | Notes |
 |---------|--------------|--------|
 | Daemon | `127.0.0.1:43110` | Once `OHMYGAME_DAEMON_TOKEN` is set, `GET /health` returns 401 unless the request includes `Authorization: Bearer <token>`; with the header it returns `{ "status": "ok" }`. **Studio policy: generate a non-empty token and start the daemon in that same shell (`bun run dev`).** Upstream is tokenless by default; do not run it that way here. |
-| Renderer | `127.0.0.1:43120` | Vite; `/api` is proxied to the daemon. |
+| Renderer | `127.0.0.1:43120` | Vite proxies `/api` to `:43110` with no `Authorization` header. The web renderer (`runtimeHeaders()`) also sends none unless Electron is present, so the browser UI returns 401 once a token is set. Use `bun run dev:desktop` for the UI, or send `Authorization: Bearer <token>` on direct `:43110` calls. |
+
+With a token set, the browser UI at `bun run dev` (`http://127.0.0.1:43120`) will 401: the Vite `/api` proxy does not add `Authorization`, and the web renderer only sends `Bearer` inside Electron. Use `bun run dev:desktop` for the token-required UI, or call `http://127.0.0.1:43110` directly with `Authorization: Bearer <token>` (and the same for local MCP). Do not commit a token into `vite.config.ts`; a local, uncommitted proxy header is optional and must stay off git.
+
+Keep the token on the workstation: never commit it, never put it in a tracked `.env`, and never paste it into chat, PRs, or logs.
 
 Official desktop builds send the token on stdin and force loopback. **Never set `DAEMON_HOST=0.0.0.0`**, and do not tunnel or deploy the daemon.
 
