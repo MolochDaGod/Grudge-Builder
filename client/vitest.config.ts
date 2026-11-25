@@ -27,6 +27,7 @@ export default defineConfig({
       "../server/authPageSanitize.test.ts",
       "../server/islandJwt.test.ts",
       "../workers/id-gateway/src/index.test.js",
+      "../api/cdn-proxy.test.ts",
     ],
     css: false,
   },

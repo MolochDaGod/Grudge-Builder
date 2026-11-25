@@ -246,6 +246,16 @@
             z-index: 100;
         }
         #back-btn:hover { background: linear-gradient(180deg, #5a6a8a 0%, #4a5a7a 100%); }
+    
+        .icon-missing{
+          display:flex;align-items:center;justify-content:center;
+          width:100%;height:100%;min-height:28px;padding:3px 4px;box-sizing:border-box;
+          font:700 8px/1.15 Inter,system-ui,sans-serif;letter-spacing:.04em;
+          text-transform:uppercase;text-align:center;color:#f3c14a;
+          background:rgba(80,16,16,.72);border:1px solid rgba(243,193,74,.7);
+        }
+        .has-icon-missing{outline:1px dashed rgba(243,193,74,.85);}
+
     </style>
 </head>
 <body>
@@ -331,8 +341,55 @@
         canvas.width = GRID_SIZE * TILE_SIZE;
         canvas.height = GRID_SIZE * TILE_SIZE;
         
-        const ASSETS_BASE = '/sprites/tiny_swords/Tiny Swords (Free Pack)/2DAssets';
-        const MAGIC_BASE = '/sprites/magic';
+        const ASSET_CDN = 'https://assets.grudge-studio.com';
+        function encodeCdnKey(pathname) {
+            var raw = String(pathname || '');
+            var leading = raw.charAt(0) === '/' ? '/' : '';
+            var trimmed = raw.replace(/^\/+/, '');
+            if (!trimmed) return leading;
+            return leading + trimmed.split('/').map(function (seg) {
+                try { seg = decodeURIComponent(seg); } catch (e) {}
+                return encodeURIComponent(seg);
+            }).join('/');
+        }
+        function cdnImageUrl(pathOrUrl) {
+            var raw = String(pathOrUrl || '').trim();
+            if (!raw) return '';
+            if (/^(data:|blob:)/i.test(raw)) return raw;
+            if (/(^|\/)sprites\/gbux-token\.png$/i.test(raw.split('?')[0])) return '/sprites/gbux-token.png';
+            raw = raw.split('#')[0];
+            var qi = raw.indexOf('?');
+            if (qi >= 0) raw = raw.slice(0, qi);
+            raw = raw.replace(/\\/g, '/');
+            if (raw.indexOf('//') === 0) raw = 'https:' + raw;
+            raw = raw.replace(/^https?:\/\/(?:www\.)?(?:molochdagod\.github\.io\/ObjectStore|raw\.githubusercontent\.com\/MolochDaGod\/ObjectStore\/(?:main|master)|(?:info|objectstore)\.grudge-studio\.com|grudge-objectstore\.pages\.dev|assets\.grudge-studio\.com)/i, '');
+            raw = raw.replace(/^\/api\/assets\/?/i, '/');
+            if (/^https?:\/\//i.test(raw)) {
+                try { raw = new URL(raw).pathname; } catch (e) { return ''; }
+            }
+            if (raw && raw.charAt(0) !== '/') raw = '/' + raw;
+            if (!raw || raw === '/') return '';
+            // /effects/ has no Vercel rewrite — point straight at the CDN (same as /sprites, /icons).
+            return ASSET_CDN + encodeCdnKey(raw);
+        }
+        function showIconMissing(img) {
+            if (!img) return;
+            img.style.display = 'none';
+            img.removeAttribute('src');
+            var host = img.parentElement;
+            if (host && !host.querySelector('.icon-missing')) {
+                var m = document.createElement('span');
+                m.className = 'icon-missing';
+                m.textContent = 'icon missing';
+                var label = img.getAttribute('alt') || '';
+                if (label) m.setAttribute('title', label);
+                host.appendChild(m);
+                host.classList.add('has-icon-missing');
+            }
+        }
+        // Absolute CDN + encodeURIComponent-per-segment (spaces and parentheses in Tiny Swords).
+        const ASSETS_BASE = cdnImageUrl('/sprites/tiny_swords/Tiny Swords (Free Pack)/2DAssets');
+        const MAGIC_BASE = cdnImageUrl('/sprites/magic');
         
         const TERRAIN_TILES = {
             water: { src: `${ASSETS_BASE}/Terrain/Water Background color.png` },
@@ -390,11 +447,48 @@
         const loadedImages = {};
         
         function loadImage(src) {
-            if (loadedImages[src]) return loadedImages[src];
+            const url = cdnImageUrl(src);
+            const cacheKey = url || ('__missing__:' + String(src || ''));
+            if (loadedImages[cacheKey]) return loadedImages[cacheKey];
             const img = new Image();
-            img.src = src;
-            loadedImages[src] = img;
+            if (!url) {
+                img._missing = true;
+                loadedImages[cacheKey] = img;
+                return img;
+            }
+            img.onerror = function () {
+                // HTML / 403 / decode failure — mark missing, no Pages or info fallback.
+                img._missing = true;
+                if (typeof showIconMissing === 'function') showIconMissing(img);
+            };
+            img.onload = function () {
+                if (!img.naturalWidth) {
+                    img._missing = true;
+                    if (typeof showIconMissing === 'function') showIconMissing(img);
+                }
+            };
+            img.src = url;
+            loadedImages[cacheKey] = img;
             return img;
+        }
+
+        function imageIsMissing(img) {
+            return !img || img._missing || (img.complete && !img.naturalWidth);
+        }
+
+        function drawMissingMarker(ctx, x, y, w, h) {
+            ctx.save();
+            ctx.fillStyle = 'rgba(80,16,16,.72)';
+            ctx.strokeStyle = 'rgba(243,193,74,.7)';
+            ctx.lineWidth = 1;
+            ctx.fillRect(x, y, w, h);
+            ctx.strokeRect(x, y, w, h);
+            ctx.fillStyle = '#f3c14a';
+            ctx.font = '700 8px Inter,system-ui,sans-serif';
+            ctx.textAlign = 'center';
+            ctx.textBaseline = 'middle';
+            ctx.fillText('icon missing', x + w / 2, y + h / 2);
+            ctx.restore();
         }
         
         function generateIsland() {
@@ -836,6 +930,10 @@
                         ctx.fillStyle = `rgba(60, 120, 180, ${0.3 + Math.sin(waterAnimTime * 3 + x + y) * 0.15})`;
                         const wo = Math.sin(waterAnimTime * 2 + x) * 2;
                         ctx.fillRect(px + wo, py + 3, TILE_SIZE - 4, 2);
+                    } else if (tile === 'grass' && imageIsMissing(grassImg)) {
+                        drawMissingMarker(ctx, px, py, TILE_SIZE, TILE_SIZE);
+                    } else if (tile === 'dirt' && imageIsMissing(dirtImg)) {
+                        drawMissingMarker(ctx, px, py, TILE_SIZE, TILE_SIZE);
                     } else if (tile === 'grass' && grassImg.complete) {
                         ctx.drawImage(grassImg, 64, 64, 64, 64, px, py, TILE_SIZE, TILE_SIZE);
                     } else if (tile === 'dirt' && dirtImg.complete) {
@@ -873,16 +971,22 @@
             placedDecorations.forEach(d => {
                 const decor = DECORATIONS[d.type];
                 const img = loadImage(decor.src);
-                if (img.complete) {
-                    ctx.drawImage(img, d.x * TILE_SIZE - 4, d.y * TILE_SIZE - 8, TILE_SIZE + 8, TILE_SIZE + 8);
+                const dx = d.x * TILE_SIZE - 4, dy = d.y * TILE_SIZE - 8, dw = TILE_SIZE + 8, dh = TILE_SIZE + 8;
+                if (imageIsMissing(img)) {
+                    drawMissingMarker(ctx, dx, dy, dw, dh);
+                } else if (img.complete) {
+                    ctx.drawImage(img, dx, dy, dw, dh);
                 }
             });
             
             placedBuildings.forEach(b => {
                 const building = BUILDINGS[b.type];
                 const img = loadImage(building.src);
-                if (img.complete) {
-                    ctx.drawImage(img, b.x * TILE_SIZE, b.y * TILE_SIZE - TILE_SIZE * 0.8, TILE_SIZE * 2, TILE_SIZE * 2.8);
+                const bx = b.x * TILE_SIZE, by = b.y * TILE_SIZE - TILE_SIZE * 0.8, bw = TILE_SIZE * 2, bh = TILE_SIZE * 2.8;
+                if (imageIsMissing(img)) {
+                    drawMissingMarker(ctx, bx, by, bw, bh);
+                } else if (img.complete) {
+                    ctx.drawImage(img, bx, by, bw, bh);
                 }
             });
             
@@ -890,15 +994,20 @@
                 const unitData = UNITS[worker.type];
                 const imgSrc = worker.state === 'walking' ? (unitData.runSrc || unitData.src) : unitData.src;
                 const img = loadImage(imgSrc);
-                if (img.complete) {
+                const ww = TILE_SIZE * 1.6, wh = TILE_SIZE * 1.6;
+                if (imageIsMissing(img)) {
+                    const mx = worker.flipX ? worker.x : (worker.x - TILE_SIZE * 0.8);
+                    const my = worker.y - TILE_SIZE * 0.8;
+                    drawMissingMarker(ctx, mx, my, ww, wh);
+                } else if (img.complete) {
                     const frameW = img.width / (unitData.frames || 6);
                     ctx.save();
                     if (worker.flipX) {
                         ctx.translate(worker.x + TILE_SIZE * 0.8, worker.y - TILE_SIZE * 0.8);
                         ctx.scale(-1, 1);
-                        ctx.drawImage(img, worker.frame * frameW, 0, frameW, img.height, 0, 0, TILE_SIZE * 1.6, TILE_SIZE * 1.6);
+                        ctx.drawImage(img, worker.frame * frameW, 0, frameW, img.height, 0, 0, ww, wh);
                     } else {
-                        ctx.drawImage(img, worker.frame * frameW, 0, frameW, img.height, worker.x - TILE_SIZE * 0.8, worker.y - TILE_SIZE * 0.8, TILE_SIZE * 1.6, TILE_SIZE * 1.6);
+                        ctx.drawImage(img, worker.frame * frameW, 0, frameW, img.height, worker.x - TILE_SIZE * 0.8, worker.y - TILE_SIZE * 0.8, ww, wh);
                     }
                     ctx.restore();
                     
