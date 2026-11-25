@@ -56,6 +56,8 @@ const EXACT_HOSTS = new Set([
   // Mine-Loader / Voxel Realms
   "mine-loader.vercel.app",
   "mine.grudge-studio.com",
+  "puter-monitor-ai.vercel.app",
+  "grudaskill.grok.me",
 ]);
 
 const SUFFIX_HOSTS = [
