@@ -63,6 +63,8 @@ const EXACT_HOSTS = new Set([
   // Mine-Loader / Voxel Realms
   "mine-loader.vercel.app", // legacy Vercel — primary = mine.grudge-studio.com
   "mine.grudge-studio.com",
+  "puter-monitor-ai.vercel.app",
+  "grudaskill.grok.me",
   // Spawn worlds that hand a player back to Grudge ID
   "spawn.co",
   "www.spawn.co",

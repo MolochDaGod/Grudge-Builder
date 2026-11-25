@@ -185,6 +185,7 @@ function mapUpstreamPath(url, opts) {
   if (path === "/account" || path === "/account/") {
     const q = new URLSearchParams();
     q.set("view", "account");
+    if (params.get("api")) q.set("api", params.get("api"));
     const safeApi = sanitizeApi(params.get("api"), opts);
     if (safeApi) q.set("api", safeApi);
     return "/api/auth/page?" + q.toString();
@@ -398,6 +399,13 @@ function securityHeaders() {
     "https://*.workers.dev",
     "https://*.github.io",
     "https://*.netlify.app",
+    "https://*.grok.me",
+    "https://*.grok-sandbox.com",
+    "https://www.spawn.co",
+    "https://spawn.co",
+    "https://*.spawn.co",
+    "https://play.bigspawn.net",
+    "https://*.bigspawn.net",
     "https://*.grok-sandbox.com",
     "http://localhost:5173",
     "http://localhost:5000",
@@ -407,7 +415,9 @@ function securityHeaders() {
   return {
     "X-Content-Type-Options": "nosniff",
     "Referrer-Policy": "strict-origin-when-cross-origin",
-    // Strip legacy frame blocker if upstream set it (helmet, etc.)
+    // Keep window.opener so Puter / Google / wallet sign-in popups can return.
+    "Cross-Origin-Opener-Policy": "same-origin-allow-popups",
+    "Permissions-Policy": "popups=*",
     "Content-Security-Policy": `frame-ancestors ${frameAncestors}`,
   };
 }
@@ -419,6 +429,89 @@ function securityHeaders() {
  */
 /** Match Railway JWT_SESSION_TTL default (365d) — max allowed fleet cookie */
 const SESSION_COOKIE_MAX_AGE = 365 * 24 * 60 * 60;
+const TELEGRAM_CLIENT_ID = "8680051064";
+
+function b64urlToBytes(s) {
+  const pad = s.length % 4 === 0 ? "" : "=".repeat(4 - (s.length % 4));
+  const b64 = s.replace(/-/g, "+").replace(/_/g, "/") + pad;
+  const bin = atob(b64);
+  const out = new Uint8Array(bin.length);
+  for (let i = 0; i < bin.length; i++) out[i] = bin.charCodeAt(i);
+  return out;
+}
+
+async function verifyTelegramIdToken(idToken) {
+  const parts = String(idToken || "").split(".");
+  if (parts.length !== 3) throw new Error("Invalid Telegram token");
+  const header = JSON.parse(new TextDecoder().decode(b64urlToBytes(parts[0])));
+  const payload = JSON.parse(new TextDecoder().decode(b64urlToBytes(parts[1])));
+  if (payload.iss !== "https://oauth.telegram.org") throw new Error("Unexpected Telegram issuer");
+  if (String(payload.aud) !== TELEGRAM_CLIENT_ID) throw new Error("Unexpected Telegram audience");
+  if (!payload.exp || payload.exp * 1000 < Date.now() - 60000) throw new Error("Telegram login expired");
+  const jwks = await fetch("https://oauth.telegram.org/.well-known/jwks.json").then((r) => r.json());
+  const jwk = (jwks.keys || []).find((k) => k.kid === header.kid) || (jwks.keys || [])[0];
+  if (!jwk) throw new Error("Telegram key missing");
+  const algo = jwk.kty === "EC"
+    ? { name: "ECDSA", namedCurve: jwk.crv }
+    : { name: "RSASSA-PKCS1-v1_5", hash: "SHA-256" };
+  const key = await crypto.subtle.importKey("jwk", jwk, algo, false, ["verify"]);
+  const ok = await crypto.subtle.verify(
+    jwk.kty === "EC" ? { name: "ECDSA", hash: "SHA-256" } : "RSASSA-PKCS1-v1_5",
+    key,
+    b64urlToBytes(parts[2]),
+    new TextEncoder().encode(`${parts[0]}.${parts[1]}`),
+  );
+  if (!ok) throw new Error("Telegram signature rejected");
+  return payload;
+}
+
+async function handleTelegramLogin(request, upstreamBase, upstreamHost) {
+  let body = {};
+  try { body = await request.json(); } catch { body = {}; }
+  let claims;
+  try {
+    claims = await verifyTelegramIdToken(body.id_token);
+  } catch (err) {
+    return new Response(JSON.stringify({ success: false, error: String(err.message || err) }), {
+      status: 401,
+      headers: { "content-type": "application/json", ...Object.fromEntries(corsHeaders(request)) },
+    });
+  }
+  const tgId = String(claims.id || "");
+  if (!tgId) {
+    return new Response(JSON.stringify({ success: false, error: "Telegram user id missing" }), {
+      status: 400,
+      headers: { "content-type": "application/json" },
+    });
+  }
+  const name = claims.preferred_username || claims.name || "";
+  const headers = {
+    "content-type": "application/json",
+    accept: "application/json",
+    host: upstreamHost,
+  };
+  let upstream = await fetch(`${upstreamBase}/api/auth/telegram`, {
+    method: "POST",
+    headers,
+    body: JSON.stringify({ id_token: body.id_token }),
+  });
+  if (upstream.status === 404) {
+    upstream = await fetch(`${upstreamBase}/api/auth/puter-sso`, {
+      method: "POST",
+      headers,
+      body: JSON.stringify({ puterId: `telegram:${tgId}`, puterUsername: name }),
+    });
+  }
+  const outHeaders = new Headers(upstream.headers);
+  corsHeaders(request).forEach((v, k) => outHeaders.set(k, v));
+  Object.entries(securityHeaders()).forEach(([k, v]) => outHeaders.set(k, v));
+  const cookies = typeof outHeaders.getSetCookie === "function" ? outHeaders.getSetCookie() : [];
+  if (cookies.length) {
+    outHeaders.delete("Set-Cookie");
+    for (const sc of cookies) outHeaders.append("Set-Cookie", rewriteSetCookie(sc));
+  }
+  return new Response(upstream.body, { status: upstream.status, headers: outHeaders });
+}
 
 function rewriteSetCookie(setCookieHeader) {
   if (!setCookieHeader) return setCookieHeader;
@@ -462,6 +555,10 @@ export default {
     }
 
     const url = new URL(request.url);
+    if (url.pathname === "/api/auth/telegram" && request.method === "POST") {
+      return handleTelegramLogin(request, upstreamBase, upstreamHost);
+    }
+    const mapped = mapUpstreamPath(url);
     const mapped = mapUpstreamPath(url, studioOpts);
     const target = upstreamBase + mapped;
 
@@ -510,6 +607,10 @@ export default {
     // Drop upstream frame blockers (helmet SAMEORIGIN, etc.) so fleet iframes work
     outHeaders.delete("X-Frame-Options");
     outHeaders.delete("x-frame-options");
+    outHeaders.delete("Cross-Origin-Opener-Policy");
+    outHeaders.delete("Cross-Origin-Embedder-Policy");
+    outHeaders.delete("cross-origin-opener-policy");
+    outHeaders.delete("cross-origin-embedder-policy");
     Object.entries(securityHeaders()).forEach(([k, v]) => outHeaders.set(k, v));
     outHeaders.set("X-Grudge-Auth-Gateway", "id-gateway");
     outHeaders.set("X-Grudge-Upstream", upstreamHost);
@@ -635,6 +736,12 @@ export default {
         );
       }
 
+      if (!patched.includes("btn-telegram")) {
+        patched = patched.replace(
+          "</body>",
+          `<script>(function(){var id=${TELEGRAM_CLIENT_ID};function load(){if(window.Telegram&&Telegram.Login&&Telegram.Login.auth)return Promise.resolve();return new Promise(function(ok,bad){var s=document.createElement("script");s.src="https://telegram.org/js/telegram-login.js";s.async=true;s.onload=function(){ok();};s.onerror=function(){bad(new Error("Telegram login failed to load"));};document.head.appendChild(s);});}var row=document.querySelector(".oauth-row");var btn=document.getElementById("btn-telegram");if(!btn&&row){btn=document.createElement("button");btn.className="oauth";btn.id="btn-telegram";btn.type="button";btn.title="Telegram";btn.setAttribute("aria-label","Sign in with Telegram");btn.textContent="Tg";row.appendChild(btn);}if(!btn)return;btn.addEventListener("click",async function(){if(typeof busy==="function")busy(btn,true,"Opening…");try{await load();var result=await new Promise(function(ok){Telegram.Login.auth({client_id:id,scope:["profile","write"],lang:"en"},ok);});if(!result||result.error||!result.id_token){if(result&&result.error&&result.error!=="popup_closed"&&typeof toast==="function")toast(String(result.error||"Telegram sign-in was cancelled."),"error");return;}var user=await api("/api/auth/telegram",{method:"POST",body:JSON.stringify({id_token:result.id_token})});await afterAuth(user);}catch(e){if(typeof toast==="function")toast((e&&e.message)||"Telegram sign-in failed.","error");}finally{if(typeof busy==="function")busy(btn,false);}});})();</script></body>`,
+        );
+      }
       outHeaders.delete("content-length");
       outHeaders.set("X-Grudge-Auth-ReturnTo-Patch", "1");
       outHeaders.set("X-Grudge-Auth-Ui-Patch", "warlord-login-v1");

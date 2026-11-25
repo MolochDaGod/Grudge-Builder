@@ -26,6 +26,7 @@ import type { Express, Request, Response } from "express";
 import fs from "node:fs";
 import path from "node:path";
 import { db } from "../db";
+import { users, accounts, telegramLinks } from "@shared/schema";
 import { users, accounts, characters } from "@shared/schema";
 import { eq, sql } from "drizzle-orm";
 import jwt from "jsonwebtoken";
@@ -1068,6 +1069,78 @@ export function registerAuthRoutes(app: Express) {
    * POST /api/auth/puter-sso
    * Auth-page flow: simple Puter identity → scoped Grudge ID (email links existing accounts).
    */
+  app.post("/api/auth/telegram", authRateLimit, async (req: Request, res: Response) => {
+    try {
+      const idToken = String(req.body?.id_token || "");
+      const parts = idToken.split(".");
+      if (parts.length !== 3) return res.status(401).json({ success: false, error: "Invalid Telegram token" });
+      const payload = JSON.parse(Buffer.from(parts[1], "base64url").toString()) as {
+        id?: number;
+        preferred_username?: string;
+        name?: string;
+        iss?: string;
+        aud?: string | number;
+        exp?: number;
+      };
+      if (payload.iss !== "https://oauth.telegram.org" || String(payload.aud) !== "8680051064") {
+        return res.status(401).json({ success: false, error: "Unexpected Telegram token" });
+      }
+      if (!payload.exp || payload.exp * 1000 < Date.now() - 60_000) {
+        return res.status(401).json({ success: false, error: "Telegram login expired" });
+      }
+      const tgId = String(payload.id || "");
+      if (!tgId) return res.status(400).json({ success: false, error: "Telegram user id missing" });
+      const display = payload.preferred_username || payload.name || `tg${tgId}`;
+      const keys = [`telegram:${tgId}`, `puter:telegram:${tgId}`];
+      let [user] = await db.select().from(users).where(eq(users.username, keys[0])).limit(1);
+      if (!user) {
+        [user] = await db.select().from(users).where(eq(users.username, keys[1])).limit(1);
+      }
+      if (!user) {
+        const [link] = await db.select().from(telegramLinks).where(eq(telegramLinks.telegramUserId, tgId)).limit(1);
+        if (link?.accountId) {
+          const [account] = await db.select().from(accounts).where(eq(accounts.id, link.accountId)).limit(1);
+          if (account?.userId) {
+            [user] = await db.select().from(users).where(eq(users.id, account.userId)).limit(1);
+          }
+        }
+      }
+      if (!user) {
+        const grudgeId = generateGrudgeId();
+        const password = await hashPassword(crypto.randomBytes(32).toString("hex"));
+        const [created] = await db.insert(users).values({
+          username: keys[0],
+          password,
+          grudgeId,
+        }).returning();
+        user = created;
+      }
+      if (!user) return res.status(500).json({ success: false, error: "Could not open the Grudge account" });
+      const account = await ensureAccount(user.id);
+      if (account?.walletAddress) {
+        await db.insert(telegramLinks).values({
+          telegramUserId: tgId,
+          accountId: account.id,
+          walletAddress: account.walletAddress,
+          telegramUsername: payload.preferred_username || null,
+        }).onConflictDoUpdate({
+          target: telegramLinks.telegramUserId,
+          set: {
+            accountId: account.id,
+            walletAddress: account.walletAddress,
+            telegramUsername: payload.preferred_username || null,
+          },
+        });
+      }
+      const response = buildAuthResponse(user, account, display);
+      setSessionCookie(res, response.token);
+      res.json({ ...response, ...buildSsoUserPayload(user, account, { isNew: false, puterUsername: display }) });
+    } catch (e: any) {
+      console.error("[Auth/Telegram]", e);
+      res.status(500).json({ success: false, error: e.message || "Telegram sign-in failed" });
+    }
+  });
+
   app.post("/api/auth/puter-sso", authRateLimit, async (req: Request, res: Response) => {
     try {
       const puterId = req.body.puterId || req.body.puterUuid;
