@@ -1,3 +1,4 @@
+import { authenticateGameJoin } from '../gameAuth';
 /**
  * WorldRoom.ts
  * ─────────────────────────────────────────────────────────────
@@ -56,7 +57,13 @@ interface WorldClient {
 
 // ── WorldRoom ───────────────────────────────────────────────────
 
-export class WorldRoom extends Room<WorldState> {
+export class WorldRoom extends Room<{ state: WorldState }> {
+  async onAuth(client: Client, options: any, context: any) {
+    const identity = await authenticateGameJoin(context?.token, options, false);
+    Object.assign(options, identity.join);
+    return identity;
+  }
+
   maxClients = 200;
   private clients_: Map<string, WorldClient> = new Map();
   private pollInterval: ReturnType<typeof setInterval> | null = null;
@@ -164,7 +171,7 @@ export class WorldRoom extends Room<WorldState> {
 
   // ── Player Leave ────────────────────────────────────────────
 
-  async onLeave(client: Client, consented?: boolean) {
+  async onLeave(client: Client, consented?: number) {
     const wc = this.clients_.get(client.sessionId);
     const { leaveWithReconnect } = await import("../reconnect");
 

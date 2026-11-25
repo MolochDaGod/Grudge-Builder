@@ -9,9 +9,9 @@ Do not invent a second roster or bag DB. Do not collapse brands.
 
 | Era | Brand | Pipeline | Slots | Create | Play | Worlds |
 |-----|-------|----------|------:|--------|------|--------|
-| **warlords** | Grudge Warlords | grudge6 | **4** | `character.*/foundry?era=warlords` | **grudgewarlords.com** | islands / zones |
-| **voxel** | GRUDOX / Grudges | voxel | **4** | `character.*?era=voxel` | **grudox.grudge-studio.com** | Mine-Loader maker |
-| **nexus** | Toon (deferred) | toon (interim voxel mesh) | **12** | `character.*?era=nexus` | Foundry hub until toon ships | — |
+| **warlords** | Grudge Warlords | grudge6 | **4 characters** | `character.*/foundry?era=warlords` | **grudgewarlords.com** airship (`/combat`) — **not** `/heroes` | islands / zones |
+| **voxel** | GRUDOX / Grudges | voxel | **4** | `character.*?era=voxel` | **grudox.grudge-studio.com** | **mine.grudge-studio.com** |
+| **nexus** | Nexus | toon (interim) | **12 characters** | `character.*?era=nexus` | **character.grudge-studio.com/?era=nexus** (Foundry hub until toon ships) | — |
 | **armada** | Mech | mech | **4** | Mech Builder | mech-playground | hangar |
 
 Code: `shared/definitions/gameEras.ts`  
@@ -23,9 +23,10 @@ Auth: `id.grudge-studio.com` only — **guest product login is closed**.
 | Wrong | Correct |
 |-------|---------|
 | One DB per game / era | One Railway Postgres; filter `?era=` |
-| Warlords play = `client.*` only | Apex **grudgewarlords.com** (client.* is legacy alias) |
+| Warlords `/heroes` as 4-slot | **One** Warlords 4-character surface: **airship** (`grudgewarlords.com/combat`). `/heroes` is **Nexus only**. |
+| Calling airship heroes “crew” | **Crew** = RTS units on ships/camps. Airship shows **4 Warlords characters**, not crew. |
+| Nexus 4-char / wrong host | Nexus = **12 characters**, play via **`character.grudge-studio.com/?era=nexus`** until toon ships |
 | GRUDOX = Nexus toon | GRUDOX = **voxel** cabinets |
-| Nexus play = GRUDOX | Nexus is deferred Toon — **not** GRUDOX |
 | `foundry.grudgewarlords.com` = play SPA | Redirect → `character.grudge-studio.com/foundry` |
 | Guest auto-heroes | 403; create via Grudge ID + Foundry |
 

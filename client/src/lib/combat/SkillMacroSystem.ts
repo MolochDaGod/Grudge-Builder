@@ -53,7 +53,7 @@ export interface ResolveHotbarInput {
 }
 
 export type MacroResolveResult =
-  | { ok: true; kind: MacroSlotKind; skillId: string; hudKey: number; macroId?: string }
+  | { ok: true; kind: Exclude<MacroSlotKind, 'macro'>; skillId: string; hudKey: number; macroId?: string }
   | { ok: true; kind: 'macro'; macro: SkillMacro; hudKey: number }
   | { ok: false; reason: 'empty' | 'unknown_slot' | 'macro_missing' };
 

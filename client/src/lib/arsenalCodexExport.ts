@@ -4,7 +4,7 @@
  * Output shape is deployable to:
  *   client/public/codex/equipment-production.json
  *   R2: codex/equipment-production.json
- *   info.grudge-studio.com / ObjectStore master registry consumers
+ *   objectstore.grudge-studio.com / ObjectStore master registry consumers
  */
 
 import {

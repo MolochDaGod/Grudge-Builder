@@ -26,6 +26,12 @@ Bells: Dawn · Rise · Heat · Ash · Dusk · Night
 
 Seasons: Dawnfall Spring · Iron Sun Summer · Hollow Harvest Autumn · Black Frost Winter
 
+Long form matches `getGameClockSnapshot`: `Year N, {Season} {dayInSeason}, Week W, {gods’ day}, Bell of {bell}`.
+
+Short form: `YN / S# / W# / D# / H#`. **D** is the gods’ day 1–8, not the day inside the season. Each season opens on Oathday.
+
+Three gods only (Odin, Madra, The Omni). Racalvin Tidebreaker is the Pirate King at Convergence Nexus, not a patron.
+
 ## Visual system
 
 - **Looks:** Illuminated black tome — void backdrop, gold chrome nav, parchment content, faction-accent cards

@@ -137,7 +137,7 @@ export async function loadWarlordsMapLandmarks(
   scene: THREE.Scene,
   opts: {
     landmarks?: MapLandmarkDef[];
-    sampleHeight: (x: number, z: number) => number;
+    sampleHeight: (x: number, z: number) => number | null;
     /** Skip if path missing — still returns empty group */
     enabled?: boolean;
   },
@@ -154,6 +154,8 @@ export async function loadWarlordsMapLandmarks(
 
   const defs = opts.landmarks ?? DEFAULT_HOME_LANDMARKS;
   for (const def of defs) {
+    const y = opts.sampleHeight(def.x, def.z);
+    if (y === null || !Number.isFinite(y)) continue;
     const obj = await loadPropRoot(def);
     if (!obj) continue;
 
@@ -162,7 +164,6 @@ export async function loadWarlordsMapLandmarks(
     wrapper.add(obj);
 
     const scale = fitWorldPropToHeightM(wrapper, def.kind, def.targetHeightM);
-    const y = opts.sampleHeight(def.x, def.z);
     wrapper.position.set(def.x, y, def.z);
     if (def.yaw != null) wrapper.rotation.y = def.yaw;
 

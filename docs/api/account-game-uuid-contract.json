@@ -1,0 +1,86 @@
+{
+  "id": "account-game-uuid-contract",
+  "version": "2026-08-18",
+  "title": "Grudge account DB · game character DB · UUID law",
+  "authority": "Railway Postgres grudge-api-production (player SSOT)",
+  "notAuthority": ["D1", "localStorage", "Puter KV", "client-minted ent_* bag ids"],
+  "identity": {
+    "accountSso": { "field": "grudge_id", "format": "GRUDGE_*", "use": "JWT, bag ownership, wallet" },
+    "userPk": { "field": "users.id", "format": "uuid" },
+    "accountPk": { "field": "accounts.id", "format": "uuid" },
+    "accountName": { "field": "accounts.display_name", "use": "human account label" },
+    "loginKey": { "field": "users.username", "use": "internal unique key; may be puter:/discord:/wallet:" },
+    "characterPk": { "field": "characters.id", "format": "uuid", "use": "only play handoff characterId" },
+    "characterName": { "field": "characters.name", "use": "in-world game name" },
+    "characterStamp": { "field": "characters.grudge_code", "format": "GRDG-*", "use": "display/support not PK" },
+    "itemInstance": { "field": "grudge_uuid", "mint": "server ledger/uuid only" },
+    "itemDefinition": { "field": "catalog slug", "use": "recipes/templates only" }
+  },
+  "eras": ["warlords", "voxel", "nexus", "armada"],
+  "scope": {
+    "account": [
+      "bag",
+      "resources",
+      "inventory",
+      "learned_recipes",
+      "wallet",
+      "gbux",
+      "home_island",
+      "camps.ownerAccountId",
+      "uuid_ledger ownership"
+    ],
+    "character": [
+      "attributes",
+      "profession_levels",
+      "equipment_on_body",
+      "weapon_mastery",
+      "skill_loadouts",
+      "progress_revision",
+      "game_era"
+    ]
+  },
+  "api": {
+    "auth": "/api/auth/*",
+    "account": "/api/account/*",
+    "accountRecipes": "/api/account/recipes",
+    "inventory": "/api/inventory/*",
+    "wallet": "/api/wallet/*",
+    "characters": "/api/characters?era=",
+    "progress": "/api/characters/:id/progress",
+    "island": "/api/island/*",
+    "uuid": "/api/uuid/*",
+    "ledger": "/api/ledger/*"
+  },
+  "craft": {
+    "materials": "account bag",
+    "learnedRecipes": "GET/POST /api/account/recipes (account_learned_recipes)",
+    "craftCheck": "POST Mine-Loader /api/play/craft-check",
+    "serverBan": "world scene.rules.bannedRecipeIds — overlay only",
+    "professionXp": "character progress",
+    "uniqueOutput": "server grudge_uuid + ledger"
+  },
+  "handoff": {
+    "required": ["characterId=uuid", "era"],
+    "forbiddenAsPk": ["grudge_code", "GRUDGE_*", "display name"]
+  },
+  "guest": {
+    "product": false,
+    "wallet": "401",
+    "autoRelogin": false
+  },
+  "authGates": {
+    "uuidGenerate": "requireAuth",
+    "uuidApplyCommit": "requireAuth + admin",
+    "ledgerSearch": "requireAuth",
+    "ledgerValidate": "public read (exists check only)"
+  },
+  "docs": [
+    "docs/FLEET_ACCOUNT_ERA_WIRING_SSOT.md",
+    "docs/CANONICAL_IDENTITY.md",
+    "docs/GRUDGE_IDENTITY_CONSOLIDATION.md",
+    "docs/WARLORDS_ACCOUNT_CHARACTER_SSOT.md",
+    "docs/UUID_SYSTEM.md"
+  ],
+  "agentSkill": "grudge-production-wiring",
+  "agentReference": "references/account-game-uuid-law.md"
+}

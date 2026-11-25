@@ -82,30 +82,86 @@
     });
     mo.observe(document.documentElement || document.body, { childList: true, subtree: true });
   } catch (e) {}
+  
+  /* CDN-only image URLs. No info.grudge-studio.com or GitHub Pages fallback.
+     HTML / 403 / non-image → existing "icon missing" marker, no substitute art. */
+  function encodeCdnKey(pathname) {
+    var raw = String(pathname || '');
+    var leading = raw.charAt(0) === '/' ? '/' : '';
+    var trimmed = raw.replace(/^\/+/, '');
+    if (!trimmed) return leading;
+    return leading + trimmed.split('/').map(function (seg) {
+      try { seg = decodeURIComponent(seg); } catch (e) {}
+      return encodeURIComponent(seg);
+    }).join('/');
+  }
+  function cdnImageUrl(pathOrUrl) {
+    var raw = String(pathOrUrl || '').trim();
+    if (!raw) return '';
+    if (/^(data:|blob:)/i.test(raw)) return raw;
+    if (/(^|\/)sprites\/gbux-token\.png$/i.test(raw.split('?')[0])) return '/sprites/gbux-token.png';
+    raw = raw.split('#')[0];
+    var q = raw.indexOf('?');
+    if (q >= 0) raw = raw.slice(0, q);
+    raw = raw.replace(/\\/g, '/');
+    if (raw.indexOf('//') === 0) raw = 'https:' + raw;
+    raw = raw.replace(/^https?:\/\/(?:www\.)?(?:molochdagod\.github\.io\/ObjectStore|raw\.githubusercontent\.com\/MolochDaGod\/ObjectStore\/(?:main|master)|(?:info|objectstore)\.grudge-studio\.com|grudge-objectstore\.pages\.dev|assets\.grudge-studio\.com)/i, '');
+    raw = raw.replace(/^\/api\/assets\/?/i, '/');
+    if (/^https?:\/\//i.test(raw)) {
+      try { raw = new URL(raw).pathname; } catch (e) { return ''; }
+    }
+    if (raw && raw.charAt(0) !== '/') raw = '/' + raw;
+    if (!raw || raw === '/') return '';
+    return 'https://assets.grudge-studio.com' + encodeCdnKey(raw);
+  }
+  function escapeHtml(s) {
+    return String(s == null ? '' : s)
+      .replace(/&/g, '&amp;')
+      .replace(/</g, '&lt;')
+      .replace(/>/g, '&gt;')
+      .replace(/"/g, '&quot;')
+      .replace(/'/g, '&#39;');
+  }
+  function showIconMissing(img) {
+    if (!img) return;
+    img.style.display = 'none';
+    img.removeAttribute('src');
+    var host = img.parentElement;
+    if (host && !host.querySelector('.icon-missing')) {
+      var m = document.createElement('span');
+      m.className = 'icon-missing';
+      m.textContent = 'icon missing';
+      var label = img.getAttribute('alt') || '';
+      if (label) m.setAttribute('title', label);
+      host.appendChild(m);
+      host.classList.add('has-icon-missing');
+    }
+  }
+  if (typeof window !== 'undefined') {
+    window.cdnImageUrl = cdnImageUrl;
+    window.showIconMissing = showIconMissing;
+    window.escapeHtml = escapeHtml;
+    window.encodeCdnKey = encodeCdnKey;
+  }
+
   document.addEventListener('error', function (e) {
     var t = e.target;
     if (!t || t.tagName !== 'IMG') return;
-    fix(t);
+    if (typeof fix === 'function') fix(t);
     var src = t.getAttribute('src') || '';
-    if (t.dataset.gfb === '2') { t.style.opacity = '0.4'; return; }
-    if (t.dataset.gfb === '1') {
-      t.dataset.gfb = '2';
-      // Never fall back to management.png for bag/item imgs
-      if (t.closest && t.closest('.recipe-icon-shell')) return;
-      t.src = 'https://molochdagod.github.io/ObjectStore/icons/496_rpg_icons/I_Rock01.png';
+    // Already retried (or already on the CDN and failed: HTML/403/decode). Show the marker — never Pages or info.
+    if (t.dataset.gfb === '1' || t.dataset.gfb === '2') {
+      if (typeof showIconMissing === 'function') showIconMissing(t);
       return;
     }
     t.dataset.gfb = '1';
-    // info.* category paths are often HTML shells — retry same path on assets CDN
-    if (/info\.grudge-studio\.com\/icons\//i.test(src) && !/\/icons\/skills\//i.test(src)) {
-      t.src = src.replace(/https?:\/\/info\.grudge-studio\.com/i, 'https://assets.grudge-studio.com').split('?')[0] + '?nr=1';
-    } else if (/assets\.grudge-studio\.com\/icons\/skills\//i.test(src)) {
-      t.src = src.replace(/https?:\/\/assets\.grudge-studio\.com/i, 'https://info.grudge-studio.com').split('?')[0] + '?nr=1';
-    } else if (/crafting-icons\/management\.png/i.test(src) && !(t.closest && t.closest('.recipe-icon-shell'))) {
-      t.src = 'https://molochdagod.github.io/ObjectStore/icons/496_rpg_icons/I_Rock01.png';
-    } else {
-      t.src = src.split('?')[0] + '?nr=1';
+    var cdn = (typeof cdnImageUrl === 'function') ? cdnImageUrl(src) : '';
+    // Rewrite a deprecated host onto the CDN once. If already on the CDN, this is a miss.
+    if (cdn && src && cdn.split('?')[0] !== src.split('?')[0] && !/assets\.grudge-studio\.com/i.test(src)) {
+      t.src = cdn;
+      return;
     }
+    if (typeof showIconMissing === 'function') showIconMissing(t);
   }, true);
 })();
 </script>
@@ -1526,6 +1582,16 @@ body .app {
   .station-tab { padding: 6px 8px; font-size: 10px; }
   .recipe-grid { max-height: none; }
 }
+
+    .icon-missing{
+      display:flex;align-items:center;justify-content:center;
+      width:100%;height:100%;min-height:28px;padding:3px 4px;box-sizing:border-box;
+      font:700 8px/1.15 Inter,system-ui,sans-serif;letter-spacing:.04em;
+      text-transform:uppercase;text-align:center;color:#f3c14a;
+      background:rgba(80,16,16,.72);border:1px solid rgba(243,193,74,.7);
+    }
+    .has-icon-missing{outline:1px dashed rgba(243,193,74,.85);}
+
 </style>
 </head>
 <body class="access-ready">
@@ -1723,9 +1789,8 @@ body .app {
         <button class="filter-btn" onclick="refreshCampsAndBenches()">🔄 Refresh</button>
       </div>
       <div class="station-hint">
-        Station tabs unlock when you <strong>own</strong> a camp (or boat cabin) with that crafting bench, or are <strong>friendly</strong> with a camp that has one.
-        Home island <strong>Starter Camp</strong> always unlocks <strong>Camp Bench</strong> + <strong>Cooking</strong> (campfire).
-        Place survival-kit props anywhere: tent stages, campfire, workbench (craft), grind wheel (miner), anvil (engineer).
+        <strong>All benches unlock</strong> when you <strong>own</strong> a camp (home island starter, claimed camp, or boat cabin), or are <strong>friendly</strong> with a camp.
+        Survival-kit props (tent, campfire, workbench, grind wheel, anvil) still map to stations for placement — ownership alone opens every craft tab.
       </div>
       <div id="camps-list"></div>
       <div class="card" style="margin-top:12px">
@@ -1902,8 +1967,8 @@ body .app {
 // ============================================================
 // STATE
 // ============================================================
-const GRUDGE_API = window.GRUDGE_CONFIG.GAME_DATA;
-const GRUDGE_AUTH = window.GRUDGE_CONFIG.AUTH_GATEWAY;
+const GRUDGE_API = (window.GRUDGE_CONFIG && window.GRUDGE_CONFIG.GAME_DATA) || '';
+const GRUDGE_AUTH = (window.GRUDGE_CONFIG && window.GRUDGE_CONFIG.AUTH_GATEWAY) || 'https://id.grudge-studio.com';
 
 /** Grudge Islands single-frame icons (NOT pack/skill spritesheets).
  *  Source: grudge-islands dist assets — profession + management + eagle-shield + factions.
@@ -2085,27 +2150,27 @@ const WCS_STATIONS = [
     iconUrl: CRAFTING_UI_ICONS.Miner,
     bgUrl: CRAFTING_UI_ICONS.Miner,
     unlockKeys: ['smithing', 'forge', 'anvil', 'workbenchanvil', 'grind_wheel', 'workbenchgrind', 'smithy', 'smelter', 'sharpen'],
-    desc: 'Miner station — anvil / forge / grind wheel.' },
+    desc: 'Miner station — unlocked at any owned or friendly camp.' },
   { id: 'lumber',   name: 'Lumber Table',   icon: '🌲', prof: 'Forester',  color: '#22c55e', always: false,
     iconUrl: CRAFTING_UI_ICONS.Forester,
     bgUrl: CRAFTING_UI_ICONS.Forester,
     unlockKeys: ['lumber', 'sawmill', 'lumbermill', 'woodwork', 'carpentry', 'tanner', 'toolaxe'],
-    desc: 'Forester station — bows, leather, planks.' },
+    desc: 'Forester station — unlocked at any owned or friendly camp.' },
   { id: 'loom',     name: 'Loom Table',     icon: '🧵', prof: 'Mystic',    color: '#a78bfa', always: false,
     iconUrl: CRAFTING_UI_ICONS.Mystic,
     bgUrl: CRAFTING_UI_ICONS.Mystic,
     unlockKeys: ['loom', 'spell_table', 'spelltable', 'enchanter', 'arcane table', 'tailor', 'structurecloth'],
-    desc: 'Mystic station — cloth, staves, essence.' },
+    desc: 'Mystic station — unlocked at any owned or friendly camp.' },
   { id: 'cooking',  name: 'Cooking Table',  icon: '🍳', prof: 'Chef',      color: '#f59e0b', always: false,
     iconUrl: CRAFTING_UI_ICONS.Chef,
     bgUrl: CRAFTING_UI_ICONS.Chef,
     unlockKeys: ['cooking', 'kitchen', 'campfire', 'cookfire', 'cooking_bench', 'cooking table', 'stove', 'hearth', 'fishingstand'],
-    desc: 'Chef station — campfire or cooking bench.' },
+    desc: 'Chef station — unlocked at any owned or friendly camp.' },
   { id: 'tinker',   name: 'Tinker Table',   icon: '🔧', prof: 'Engineer',  color: '#60a5fa', always: false,
     iconUrl: CRAFTING_UI_ICONS.Engineer,
     bgUrl: CRAFTING_UI_ICONS.Engineer,
     unlockKeys: ['tinker', 'tinker table', 'workshop', 'engineer', 'workbench', 'gunsmith', 'anvil', 'workbenchanvil'],
-    desc: 'Engineer station — workbench or anvil.' },
+    desc: 'Engineer station — unlocked at any owned or friendly camp.' },
 ];
 
 const WCS_TIER_NAMES = { 0:'Broken',1:'Copper',2:'Iron',3:'Steel',4:'Mithril',5:'Adamantine',6:'Orichalcum',7:'Starmetal',8:'Divine' };
@@ -3655,7 +3720,7 @@ function isStationUnlocked(stationId) {
 function openStation(stationId) {
   // Browse benches without login; craft still soft-gated
   if (!isStationUnlocked(stationId)) {
-    showToast('Station locked — need a friendly/owned camp with this bench', 'error');
+    showToast('Station locked — own or befriend a camp to unlock all benches', 'error');
     navigate('camps');
     return;
   }
@@ -3667,11 +3732,11 @@ function openStation(stationId) {
 function stationIconHtml(st, size) {
   if (st && st.iconUrl) {
     const s = size || 18;
-    const fb = (typeof CRAFTING_UI_ICONS !== 'undefined' ? CRAFTING_UI_ICONS.camp : './crafting-icons/eagle-shield.png');
-    const src = (typeof isForbiddenSpriteIconUrl === 'function' && isForbiddenSpriteIconUrl(st.iconUrl))
-      ? fb
-      : st.iconUrl;
-    return `<img referrerpolicy="no-referrer" data-icon-kind="single" src="${src}" alt="" width="${s}" height="${s}" style="object-fit:contain" loading="lazy" decoding="async" onerror="if(!this.dataset.fb){this.dataset.fb=1;this.src='${fb}';this.dataset.iconKind='single'}">`;
+    const raw = (typeof cdnImageUrl === 'function') ? cdnImageUrl(st.iconUrl) : '';
+    if (!raw) return '<span class="icon-missing">icon missing</span>';
+    const src = escapeHtml(raw);
+    const dim = escapeHtml(String(s));
+    return `<img referrerpolicy="no-referrer" data-icon-kind="single" src="${src}" alt="" width="${dim}" height="${dim}" style="object-fit:contain" loading="lazy" decoding="async" onerror="if(typeof showIconMissing==='function')showIconMissing(this);">`;
   }
   return st?.icon || "⛺";
 }
@@ -3691,9 +3756,17 @@ function applyStationScene(st) {
     else scene.style.removeProperty('--station-bg');
   }
   if (iconEl) {
-    iconEl.innerHTML = st.iconUrl
-      ? `<img referrerpolicy="no-referrer" data-icon-kind="${/\/skills\//i.test(st.iconUrl) ? "skill" : "pack"}" src="${st.iconUrl}" alt="${st.name}" loading="lazy" decoding="async" onerror="this.onerror=null;this.src='./crafting-icons/eagle-shield.png';this.dataset.iconKind='pack'">`
-      : (st.icon || "⚒");
+    if (st.iconUrl) {
+      const raw = (typeof cdnImageUrl === 'function') ? cdnImageUrl(st.iconUrl) : '';
+      if (!raw) {
+        iconEl.innerHTML = '<span class="icon-missing">icon missing</span>';
+      } else {
+        const kind = /\/skills\//i.test(st.iconUrl) ? "skill" : "pack";
+        iconEl.innerHTML = `<img referrerpolicy="no-referrer" data-icon-kind="${kind}" src="${escapeHtml(raw)}" alt="${escapeHtml(st.name)}" loading="lazy" decoding="async" onerror="if(typeof showIconMissing==='function')showIconMissing(this);">`;
+      }
+    } else {
+      iconEl.textContent = st.icon || "⚒";
+    }
   }
   if (titleEl) titleEl.textContent = st.name;
   if (descEl) descEl.textContent = st.desc || '';
@@ -3734,7 +3807,7 @@ function renderStationTabs() {
       ? `<strong style="display:inline-flex;align-items:center;gap:6px">${stationIconHtml(st,16)} ${st.name}</strong> · ${st.desc}
          ${st.prof !== 'All' ? ` · XP goes to <strong>${st.prof}</strong>${char ? ` (${char.name})` : ''}` : ''}
          · <span class="scope-pill account">shared bag</span>`
-      : `<strong>🔒 ${st.name} locked</strong> — unlock by owning or befriending a camp with this bench. <a href="#" onclick="navigate('camps');return false" style="color:var(--gold)">View camps</a>`;
+      : `<strong>🔒 ${st.name} locked</strong> — unlock by owning or befriending any camp (all benches open at camp). <a href="#" onclick="navigate('camps');return false" style="color:var(--gold)">View camps</a>`;
   }
   updateStationLockBadges();
 }
@@ -3841,7 +3914,7 @@ async function craftItem(id) {
   if (!recipe || !checkCanCraft(recipe) || STATE.isCrafting) return;
   const stId = recipe.station || PROF_TO_STATION[recipe.prof] || 'camp';
   if (!isStationUnlocked(stId)) {
-    showToast('Station locked — visit a friendly/owned camp bench', 'error');
+    showToast('Station locked — own or befriend a camp to unlock all benches', 'error');
     return;
   }
   // XP always applies to the active owned character sheet
@@ -4021,8 +4094,12 @@ function showLevelUpBanner(profName, level, color, icon) {
   const iconVal = icon || STATE.professions[profName]?.iconUrl || PROF_ICON_URLS[profName] || '⚒️';
   if (badge) {
     if (typeof iconVal === 'string' && (iconVal.startsWith('http') || iconVal.startsWith('/'))) {
-      const src = iconVal.startsWith('http') ? iconVal : (INFO_CDN + iconVal);
-      badge.innerHTML = `<img referrerpolicy="no-referrer" src="${src}" alt="${profName}" style="width:64px;height:64px;object-fit:contain">`;
+      const src = (typeof cdnImageUrl === 'function') ? cdnImageUrl(iconVal) : '';
+      if (!src) {
+        badge.innerHTML = '<span class="icon-missing">icon missing</span>';
+      } else {
+        badge.innerHTML = `<img referrerpolicy="no-referrer" src="${escapeHtml(src)}" alt="${escapeHtml(profName)}" style="width:64px;height:64px;object-fit:contain" onerror="if(typeof showIconMissing==='function')showIconMissing(this);">`;
+      }
     } else {
       badge.textContent = iconVal;
     }
@@ -4413,18 +4490,22 @@ function buildingAliases(name) {
   return [...out];
 }
 
+function unlockAllStations() {
+  for (const st of WCS_STATIONS) {
+    STATE.unlockedStations[st.id] = true;
+  }
+}
+
 function unlockStationsFromBuildings(buildings, campMeta) {
   const names = [];
   (buildings || []).forEach((b) => buildingAliases(b).forEach((a) => names.push(a)));
-  // Owned / starter camp always: Camp Bench + Cooking (campfire contract)
-  if (campMeta && (campMeta.relation === 'owned' || campMeta.starter)) {
-    STATE.unlockedStations.camp = true;
-    STATE.unlockedStations.cooking = true;
+  // Product law: any owned / starter / friendly camp unlocks ALL benches.
+  // Per-building keys remain for placement UI + future prop-gated recipes.
+  if (campMeta && (campMeta.relation === 'owned' || campMeta.relation === 'friendly' || campMeta.starter)) {
+    unlockAllStations();
+    return;
   }
-  if (campMeta && campMeta.relation === 'friendly') {
-    STATE.unlockedStations.camp = true;
-  }
-  // Explicit campfire / cooking bench
+  // Explicit campfire / cooking bench (no camp meta — prop-only path)
   if (names.some((n) => /campfire|hearth|stove|cook|fishingstand/.test(n))) {
     STATE.unlockedStations.cooking = true;
   }
@@ -4535,8 +4616,11 @@ async function refreshCampsAndBenches() {
   STATE.camps = camps;
   // Reset then re-apply from all owned/friendly sites
   STATE.unlockedStations = { camp: true, cooking: true };
-  for (const c of camps) {
-    if (c.relation === 'owned' || c.relation === 'friendly') {
+  const hasCampAccess = camps.some((c) => c.relation === 'owned' || c.relation === 'friendly' || c.starter);
+  if (hasCampAccess) {
+    unlockAllStations();
+  } else {
+    for (const c of camps) {
       unlockStationsFromBuildings(c.buildings, c);
     }
   }
@@ -5065,6 +5149,7 @@ function resetData() {
   addLog('🗑️ Data reset', 'fail');
   renderAll();
   saveData();
+  try { refreshCampsAndBenches(); } catch { /* optional */ }
   showToast('Data reset!', 'error');
 }
 
@@ -5170,7 +5255,7 @@ let dbFilterCat = 'all';
 let MASTER_RECIPES_LOADED = false;
 
 const ASSET_CDN = (window.GRUDGE_CONFIG && window.GRUDGE_CONFIG.ASSETS) || 'https://assets.grudge-studio.com';
-/** Icon host SSOT — skill class icons live on info.*; pack weapons on both (prefer info). */
+/** Icon host SSOT — every image is on assets.grudge-studio.com. INFO_CDN is JSON only. */
 const INFO_CDN = (window.GRUDGE_CONFIG && window.GRUDGE_CONFIG.INFO_ORIGIN) || 'https://info.grudge-studio.com';
 
 /** Definition base URLs — info first (objectstore recipe/item paths currently 404). */
@@ -5189,16 +5274,11 @@ function definitionBases() {
 
 /**
  * Absolute icon host for a path under /icons/…
- * - skills/* only on info (assets 404)
- * - pack/* prefer assets (more complete; info has HTML shells for some Staff/Shield/etc.)
- * - onerror still falls back via iconImgTag
+ * - all /icons/* paths: assets.grudge-studio.com (encodeURI / %2B)
+ * - HTML, 403, or a failed decode → icon-missing marker; no info or Pages fallback
  */
 function iconCdnForPath(path) {
-  const p = String(path || '');
-  // skills/* only on info (assets 404). pack/* on assets CDN (reliable PNGs).
-  if (/\/icons\/skills\//i.test(p)) return INFO_CDN;
-  if (/\/icons\/pack\//i.test(p)) return ASSET_CDN;
-  if (/\/icons\//i.test(p)) return ASSET_CDN;
+  // All 2D icons load from the assets CDN. Never info (HTML impostors) or Pages.
   return ASSET_CDN;
 }
 
@@ -5318,8 +5398,8 @@ const ICON_CAT_TO_PACK = {
 };
 
 /** ObjectStore singles for materials only (not bag weapon art). */
-const OBJECTSTORE_ICON_GH = 'https://molochdagod.github.io/ObjectStore/icons';
-const OBJECTSTORE_ICON_RAW = 'https://raw.githubusercontent.com/MolochDaGod/ObjectStore/main/icons';
+const OBJECTSTORE_ICON_GH = 'https://assets.grudge-studio.com/icons';
+const OBJECTSTORE_ICON_RAW = 'https://assets.grudge-studio.com/icons';
 
 /**
  * Category → assets CDN pack stem (PascalCase file on /icons/pack/weapons|armor).
@@ -5393,7 +5473,7 @@ function resolveCanonicalIcon(urlOrPath, category, name) {
   let raw = (urlOrPath || '').trim();
   // Already assets absolute — use as-is (unless forbidden chrome atlas)
   if (/^https?:\/\/assets\.grudge-studio\.com\/icons\//i.test(raw) && !isForbiddenSpriteIconUrl(raw)) {
-    return raw.split('?')[0];
+    return (typeof cdnImageUrl === 'function' ? cdnImageUrl(raw) : raw.split('?')[0]);
   }
 
   let path = rewriteIconHost(raw);
@@ -5406,17 +5486,17 @@ function resolveCanonicalIcon(urlOrPath, category, name) {
   if (path && !path.startsWith('/') && !path.startsWith('http')) path = '/' + path;
   path = (path || '').replace(/^\/api\/v1/, '');
 
-  // Skill trees stay on info
-  if (/\/icons\/skills\//i.test(path)) return INFO_CDN + path;
+  // Skill icons: assets CDN (never info — those 200 as Hub HTML)
+  if (/\/icons\/skills\//i.test(path)) return (typeof cdnImageUrl === 'function' ? cdnImageUrl(path) : (ASSET_CDN + path));
 
   // info.* HTML shells for category icons → serve PNG from assets (same path)
   // e.g. /icons/swords/sword_01.png, /icons/armor_full/Helm_23.png
   if (path && path.startsWith('/icons/') && !isForbiddenSpriteIconUrl(path)) {
-    return ASSET_CDN + path;
+    return (typeof cdnImageUrl === 'function' ? cdnImageUrl(path) : (ASSET_CDN + path));
   }
 
   if (/molochdagod\.github\.io\/ObjectStore/i.test(raw) || /raw\.githubusercontent\.com\/MolochDaGod\/ObjectStore/i.test(raw)) {
-    return raw;
+    return (typeof cdnImageUrl === 'function' ? cdnImageUrl(raw) : (ASSET_CDN + path));
   }
 
   // Category-only → pack stem on assets (distinct per category, not management)
@@ -5440,31 +5520,27 @@ function resolveCanonicalIcon(urlOrPath, category, name) {
   if (/herb|plant|fiber/i.test(nm)) return OBJECTSTORE_ICON_RAW + '/items/herbs/herbs_01.png';
   if (/meat|food|stew|soup|potion/i.test(nm)) return OBJECTSTORE_ICON_GH + '/496_rpg_icons/I_C_Meat.png';
 
-  // Last resort: ObjectStore generic rock — NEVER management.png for items
-  return OBJECTSTORE_ICON_GH + '/496_rpg_icons/I_Rock01.png';
+  // Last resort: no substitute art — caller shows the missing marker
+  return '';
 }
 
 /** Placeholder when image 404s — not management (avoids recipe-icon spam). */
-const ITEM_ICON_BROKEN_FALLBACK = OBJECTSTORE_ICON_GH + '/496_rpg_icons/I_Rock01.png';
+const ITEM_ICON_BROKEN_FALLBACK = '';
 
 function iconImgTag(url, name, cssClass, size) {
   const cls = cssClass || 'item-img';
-  let safe = String(url || ITEM_ICON_BROKEN_FALLBACK).replace(/"/g, '');
+  let safe = String(url || '').replace(/"/g, '');
   // Never render management as an item/bag icon
   if (/crafting-icons\/management\.png/i.test(safe)) {
-    safe = ITEM_ICON_BROKEN_FALLBACK;
+    safe = '';
   }
-  // info category paths often return HTML — prefer assets binary host
-  if (/info\.grudge-studio\.com\/icons\//i.test(safe) && !/\/icons\/skills\//i.test(safe)) {
-    safe = safe.replace(/https?:\/\/info\.grudge-studio\.com/i, ASSET_CDN);
-  }
-  if (/assets\.grudge-studio\.com\/icons\/skills\//i.test(safe)) {
-    safe = safe.replace(/https?:\/\/assets\.grudge-studio\.com/i, INFO_CDN);
-  }
+  if (safe) safe = (typeof cdnImageUrl === 'function' ? cdnImageUrl(safe) : safe);
   const alt = (name || 'item').replace(/"/g, '');
   const dim = size ? ` style="width:${size}px;height:${size}px;object-fit:contain"` : ' style="object-fit:contain"';
-  const fb = ITEM_ICON_BROKEN_FALLBACK.replace(/'/g, "\\'");
-  return `<img referrerpolicy="no-referrer" class="${cls}" data-icon-kind="item" src="${safe}" alt="${alt}" loading="lazy" decoding="async"${dim} onerror="if(this.dataset.fb==='1'){return}this.dataset.fb='1';this.src='${fb}'">`;
+  if (!safe) {
+    return `<span class="icon-missing ${cls}" title="${alt}">icon missing</span>`;
+  }
+  return `<img referrerpolicy="no-referrer" class="${cls}" data-icon-kind="item" src="${safe}" alt="${alt}" loading="lazy" decoding="async"${dim} onerror="if(typeof showIconMissing==='function')showIconMissing(this);else{this.style.display='none'}">`;
 }
 
 // ── Recipe icons: management.png ONLY, tinted by kind + Roman tier ──────────
@@ -5610,9 +5686,8 @@ function itemIcon(name, emoji, cssClass, size) {
     url = resolveCanonicalIcon(null, cat, name);
   }
   if (/management\.png/i.test(String(url || ''))) {
-    url = typeof ITEM_ICON_BROKEN_FALLBACK !== 'undefined'
-      ? ITEM_ICON_BROKEN_FALLBACK
-      : 'https://molochdagod.github.io/ObjectStore/icons/496_rpg_icons/I_Rock01.png';
+    // No substitute art (no I_Rock01) — show the missing marker
+    return iconImgTag('', name, cls, size);
   }
   if (url) return iconImgTag(url, name, cls, size);
   return emoji || '📦';
@@ -5651,16 +5726,19 @@ function renderItemDatabase() {
   }).join('') || '<div style="padding:20px;text-align:center;color:var(--text-dim)">No items found</div>';
 }
 
-GrudgeFleet.onCharacterChange((char) => {
-  STATE.activeCharacterId = char?.id || null;
-  STATE.grudgeCharacters = GrudgeFleet.getCharacters();
-  applyCharacterToState(char);
-  updateCharacterUI();
-  renderAll();
-});
+if (typeof GrudgeFleet !== 'undefined' && typeof GrudgeFleet.onCharacterChange === 'function') {
+  GrudgeFleet.onCharacterChange((char) => {
+    STATE.activeCharacterId = char?.id || null;
+    STATE.grudgeCharacters = GrudgeFleet.getCharacters();
+    applyCharacterToState(char);
+    updateCharacterUI();
+    renderAll();
+    try { refreshCampsAndBenches(); } catch { /* optional */ }
+  });
+}
 
-window.addEventListener('grudge:auth:ready', () => { void refreshFleetState(); });
-window.addEventListener('grudge:sync:complete', () => { renderCharactersList(); updateCharacterUI(); });
+window.addEventListener('grudge:auth:ready', () => { void refreshFleetState(); try { refreshCampsAndBenches(); } catch { /* optional */ } });
+window.addEventListener('grudge:sync:complete', () => { renderCharactersList(); updateCharacterUI(); try { refreshCampsAndBenches(); } catch { /* optional */ } });
 
 // ============================================================
 // INIT
@@ -5711,18 +5789,28 @@ try {
   }
 } catch (e) { console.warn('[init] first paint', e); }
 
+// Camp ownership unlocks all benches — run even before fleet auth resolves.
+try { void refreshCampsAndBenches(); } catch (e) { console.warn('[init] camps', e); }
+
+async function bootCraftAuth() {
+  try { await checkAuth(); } catch (e) { console.warn('[init] checkAuth', e); }
+  try { await refreshCampsAndBenches(); } catch (e) { console.warn('[init] camps after auth', e); }
+  try { updateStationLockBadges(); renderStationTabs(); } catch (e) { /* optional */ }
+}
+
 if (typeof GrudgeFleet !== 'undefined') {
-  checkAuth();
+  void bootCraftAuth();
 } else {
   let tries = 0;
   const waitFleet = setInterval(() => {
     tries++;
     if (typeof GrudgeFleet !== 'undefined') {
       clearInterval(waitFleet);
-      checkAuth();
+      void bootCraftAuth();
     } else if (tries > 40) {
       clearInterval(waitFleet);
       updateAccessGate();
+      try { void refreshCampsAndBenches(); } catch (e) { /* optional */ }
     }
   }, 100);
 }

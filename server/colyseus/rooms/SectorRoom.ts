@@ -1,3 +1,4 @@
+import { authenticateGameJoin } from '../gameAuth';
 /**
  * SectorRoom.ts
  * ─────────────────────────────────────────────────────────────
@@ -123,7 +124,13 @@ interface DungeonPortal {
   respawnAt: number; // epoch ms, 0 = active now
 }
 
-export class SectorRoom extends Room<SectorState> {
+export class SectorRoom extends Room<{ state: SectorState }> {
+  async onAuth(client: Client, options: any, context: any) {
+    const identity = await authenticateGameJoin(context?.token, options, true);
+    Object.assign(options, identity.join);
+    return identity;
+  }
+
   maxClients = 50;
   private spawnerInterval: ReturnType<typeof setInterval> | null = null;
   private sectorId: string = "convergence_nexus";
@@ -493,7 +500,7 @@ export class SectorRoom extends Room<SectorState> {
 
   // ── Player Leave ────────────────────────────────────────────
 
-  async onLeave(client: Client, consented: boolean) {
+  async onLeave(client: Client, consented: number) {
     const player = this.state.players.get(client.sessionId);
     const name = player?.characterName || client.sessionId;
     const { leaveWithReconnect, RECONNECT_SECONDS } = await import("../reconnect");

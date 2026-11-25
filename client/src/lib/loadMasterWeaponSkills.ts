@@ -21,9 +21,17 @@ import type {
   SkillSlot,
   SlotType,
 } from "@shared/definitions/weaponSkillsNew";
+import {
+  WEAPON_TYPE_DEFINITIONS,
+  getWeaponTypeDefinition,
+  normalizeWeaponTypeId,
+} from "@shared/definitions/weaponSkillsNew";
+import { WEAPON_TYPES } from "@shared/definitions/weaponDatabase";
+import { PRODUCTION_WEAPON_TYPES } from "@shared/definitions/weaponPrefabCatalog";
 import { assetUrl } from "@/lib/assetConfig";
 import { getPackIconForCategory } from "@/lib/iconResolver";
 import { getWeaponSkillDisplay } from "@shared/definitions/weaponSkillDisplay.generated";
+import { cdnImageUrl } from "@shared/cdnImageUrl";
 
 const API_BASES = [
   "https://objectstore.grudge-studio.com/api/v1",
@@ -78,7 +86,8 @@ let cache: {
   playableIds: string[];
 } | null = null;
 
-let inflight: Promise<typeof cache> | null = null;
+type WeaponSkillsCache = NonNullable<typeof cache>;
+let inflight: Promise<WeaponSkillsCache> | null = null;
 
 /** UUID-named files under Models are VFX frames, not UI icons. */
 const UUID_FILE_RE =
@@ -146,7 +155,15 @@ export function resolveSkillIcon(
 ): string {
   const catalog = ctx.skillId ? getWeaponSkillDisplay(ctx.skillId) : null;
   if (catalog?.icon) {
-    return catalog.icon.startsWith("http") ? catalog.icon : catalog.icon;
+    const icon = catalog.icon;
+    // Short emoji / glyph — keep as display text
+    if (icon.length <= 4 && !icon.includes("/") && !icon.includes(".")) {
+      return icon;
+    }
+    // Catalog keys are root-relative /icons/skills/catalog/*.png — prefix the CDN.
+    // Never return the raw path (that skipped the ASSET_CDN + rel branch below).
+    const resolved = cdnImageUrl(icon);
+    if (resolved) return resolved;
   }
 
   const fallback = getPackIconForCategory({
@@ -166,15 +183,15 @@ export function resolveSkillIcon(
     return fallback;
   }
 
-  // Already absolute allowed host
+  // Already absolute — rewrite deprecated hosts onto the CDN and encode.
   if (/^https?:\/\//i.test(path)) {
-    return path;
+    return cdnImageUrl(path);
   }
 
-  // Normalize relative → CDN icons URL
+  // Normalize relative → CDN icons URL (encoded; + → %2B)
   const rel = path.startsWith("/") ? path : `/${path}`;
   if (rel.toLowerCase().startsWith("/icons/")) {
-    return `${ASSET_CDN}${rel}`;
+    return cdnImageUrl(rel);
   }
 
   try {
@@ -229,12 +246,15 @@ function mapSlot(raw: MasterSkillSlot, weaponType?: string): SkillSlot {
 
 /** Convert one master type → WeaponTypeDefinition for WeaponSkillTreeNew */
 export function masterTypeToDefinition(t: MasterWeaponType): WeaponTypeDefinition {
+  const starter = (t.starterSlots || []).map((slot) => mapSlot(slot, t.id));
+  const slots = (t.slots || []).map((slot) => mapSlot(slot, t.id));
+  const all = [...starter, ...slots];
   return {
     id: t.id,
     name: t.name,
     icon: resolveIcon(t.icon, t.id),
-    slots: (t.slots || []).map((slot) => mapSlot(slot, t.id)),
-    hotbarSlots: Math.min(5, (t.slots || []).length || 4),
+    slots: all,
+    hotbarSlots: Math.min(5, (t.slots || []).length || all.length || 4),
   };
 }
 
@@ -242,9 +262,9 @@ export async function loadMasterWeaponSkillsCatalog(
   force = false,
 ): Promise<NonNullable<typeof cache>> {
   if (cache && !force) return cache;
-  if (inflight && !force) return inflight as Promise<NonNullable<typeof cache>>;
+  if (inflight && !force) return inflight;
 
-  inflight = (async () => {
+  inflight = (async (): Promise<WeaponSkillsCache> => {
     let lastErr: unknown;
     for (const base of API_BASES) {
       try {
@@ -299,5 +319,120 @@ export function getMasterCatalogVersion(): string | null {
 
 /** Prefer master catalog; null if not loaded yet */
 export function resolveWeaponTypeDef(typeId: string): WeaponTypeDefinition | null {
-  return getCachedWeaponTypeDef(typeId);
+  if (!typeId) return null;
+  const direct = getCachedWeaponTypeDef(typeId);
+  if (direct) return direct;
+  const aliased = normalizeWeaponTypeId(typeId);
+  if (aliased !== typeId.toUpperCase()) {
+    return getCachedWeaponTypeDef(aliased);
+  }
+  return null;
+}
+
+function coerceWeaponDef(def: WeaponTypeDefinition | null | undefined): WeaponTypeDefinition | null {
+  if (!def) return null;
+  if (Array.isArray(def.slots)) return def;
+  const classShaped = def as WeaponTypeDefinition & {
+    classId?: string;
+    className?: string;
+    classIcon?: string;
+    skills?: WeaponSkillOption[];
+  };
+  if (Array.isArray(classShaped.skills) && classShaped.skills.length > 0) {
+    return {
+      id: classShaped.id || classShaped.classId || "CLASS",
+      name: classShaped.name || classShaped.className || "Class skills",
+      icon: classShaped.icon || classShaped.classIcon || "⚔️",
+      slots: [
+        {
+          type: "ability",
+          unlockTier: 1,
+          label: "CLASS",
+          skills: classShaped.skills,
+        },
+      ],
+      hotbarSlots: 5,
+    };
+  }
+  return null;
+}
+
+export function resolveSkillTreeWeaponDef(typeId: string): WeaponTypeDefinition | null {
+  return coerceWeaponDef(resolveWeaponTypeDef(typeId) ?? getWeaponTypeDefinition(typeId));
+}
+
+function countSkills(def: WeaponTypeDefinition | null | undefined): number {
+  if (!def) return 0;
+  return def.slots.reduce((n, slot) => n + (slot.skills?.length ?? 0), 0);
+}
+
+/**
+ * All weapon / skill-sheet types for /skill-tree.
+ * Union of master-weaponSkills + weaponSkillsNew + weaponDatabase + production prefabs.
+ * Dedupes aliases (LANCE→SPEAR) so one tab owns the tree. Master ids always win.
+ */
+export function listAllSkillTreeWeaponTypeIds(): string[] {
+  const display: string[] = [];
+  const covered = new Set<string>();
+
+  const add = (raw: string, force = false) => {
+    const id = String(raw || "").toUpperCase();
+    if (!id || display.includes(id) || covered.has(id)) return;
+    const canonical = normalizeWeaponTypeId(id);
+    if (!force && id !== canonical && (display.includes(canonical) || covered.has(canonical))) {
+      return;
+    }
+    display.push(id);
+    covered.add(canonical);
+    covered.add(id);
+  };
+
+  if (cache) {
+    for (const t of cache.catalog.weaponTypes) add(t.id, true);
+  }
+  for (const id of PRODUCTION_WEAPON_TYPES) add(id);
+  for (const id of Object.keys(WEAPON_TYPE_DEFINITIONS)) {
+    const def = WEAPON_TYPE_DEFINITIONS[id] as WeaponTypeDefinition & { slots?: SkillSlot[] };
+    if (!Array.isArray(def?.slots) || def.slots.length === 0) continue;
+    add(id);
+  }
+  for (const id of Object.keys(WEAPON_TYPES)) add(id);
+  return display;
+}
+
+export function getSkillTreeTypeMeta(typeId: string): {
+  id: string;
+  name: string;
+  icon: string;
+  skillCount: number;
+  weaponCount: number;
+} {
+  const id = String(typeId || "").toUpperCase();
+  const def = resolveSkillTreeWeaponDef(id);
+  const bag = WEAPON_TYPES[id];
+  return {
+    id,
+    name: def?.name || bag?.name || id.replace(/_/g, " "),
+    icon: def?.icon || bag?.icon || "⚔️",
+    skillCount: countSkills(def),
+    weaponCount: listNamedWeaponsForType(id).length,
+  };
+}
+
+export function listNamedWeaponsForType(typeId: string) {
+  const id = String(typeId || "").toUpperCase();
+  const canon = normalizeWeaponTypeId(id);
+  const seen = new Set<string>();
+  const out: (typeof WEAPON_TYPES)[string]["weapons"] = [];
+  for (const wt of Object.values(WEAPON_TYPES)) {
+    const wtCanon = normalizeWeaponTypeId(wt.id);
+    const match = wt.id === id || wt.id === canon || wtCanon === id || wtCanon === canon;
+    if (!match) continue;
+    for (const w of wt.weapons) {
+      if (seen.has(w.id)) continue;
+      seen.add(w.id);
+      out.push(w);
+    }
+  }
+  return out;
 }

@@ -663,8 +663,6 @@ function pieceCategory(p: BuildPieceDef): BuildCategory {
       return 'structure';
     case 'tent':
       return 'camp';
-    case 'sleep':
-      return 'furniture';
     case 'fire':
     case 'bench':
     case 'tool':

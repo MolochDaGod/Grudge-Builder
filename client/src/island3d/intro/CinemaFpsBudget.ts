@@ -1,8 +1,10 @@
 /**
- * CinemaFpsBudget — target ~100 FPS WebGL budget for LeviathanOceanCinema.
+ * CinemaFpsBudget — film budget for LeviathanOceanCinema.
  *
- * Rolling frame-time EMA → quality steps (DPR, post SMAA/bloom, rain, tornado segs).
- * Does not invent a second cinema stack; only knobs already owned by the intro.
+ * Cinema reads at 48–60 FPS. Targeting 100 FPS used to treat a healthy 60 FPS
+ * cut as failure, then yank DPR/post/rain mid-shot (hitch + missing visuals).
+ * Pressure only on sustained <~32 FPS. DPR is never part of this state —
+ * resizing the framebuffer mid-cut is a visible jump.
  */
 import type { QualityPreset } from '@/island3d/render/PostProcessing';
 
@@ -24,8 +26,9 @@ export type FpsBudgetState = {
   dustScale: number;
 };
 
-const TARGET_MS = 1000 / 100; // 10 ms → 100 fps
-const COMFORT_MS = 1000 / 90; // allow mild 90–100 band before drop
+const TARGET_MS = 1000 / 48; // 20.8 ms — film/cinematic, not esports 100 fps
+const DROP_MS = 1000 / 32; // only drop when sustained under ~32 fps
+const RECOVER_MS = 1000 / 45;
 
 export class CinemaFpsBudget {
   private emaMs = TARGET_MS;
@@ -36,43 +39,42 @@ export class CinemaFpsBudget {
 
   constructor(baseQuality: CinemaBudgetQuality) {
     this.baseQuality = baseQuality;
-    this.baseDpr = baseQuality === 'high' ? 1.5 : baseQuality === 'medium' ? 1.25 : 1.0;
+    this.baseDpr = baseQuality === 'high' ? 1.25 : baseQuality === 'medium' ? 1.1 : 1.0;
   }
 
   /** Call once per frame with raw dt (seconds). */
   sample(dt: number): FpsBudgetState {
     const ms = Math.min(50, Math.max(1, dt * 1000));
-    this.emaMs = this.emaMs * 0.9 + ms * 0.1;
+    this.emaMs = this.emaMs * 0.92 + ms * 0.08;
     this.coolDown = Math.max(0, this.coolDown - dt);
 
     if (this.coolDown <= 0) {
-      if (this.emaMs > COMFORT_MS * 1.35) {
-        this.pressure = Math.min(3, this.pressure + 1);
-        this.coolDown = 0.85;
-      } else if (this.emaMs < TARGET_MS * 0.92 && this.pressure > 0) {
+      if (this.emaMs > DROP_MS) {
+        this.pressure = Math.min(2, this.pressure + 1);
+        this.coolDown = 1.6;
+      } else if (this.emaMs < RECOVER_MS && this.pressure > 0) {
         this.pressure = Math.max(0, this.pressure - 1);
-        this.coolDown = 1.4;
+        this.coolDown = 2.4;
       }
     }
 
-    // Never go above base quality knobs
     const p = this.pressure;
-    const dprCap = Math.max(0.85, this.baseDpr - p * 0.2);
+    // Keep bloom/SMAA on unless the machine is actually dying
     let postQuality: QualityPreset =
       this.baseQuality === 'low' ? 'low' : this.baseQuality === 'medium' ? 'medium' : 'high';
-    if (p >= 2) postQuality = 'low';
-    else if (p === 1 && postQuality === 'high') postQuality = 'medium';
+    if (p >= 2 && postQuality === 'high') postQuality = 'medium';
+    else if (p >= 2 && postQuality === 'medium') postQuality = 'medium';
 
     return {
       frameMs: this.emaMs,
       fps: 1000 / Math.max(1, this.emaMs),
       pressure: p,
-      dprCap,
+      dprCap: this.baseDpr,
       postQuality,
-      rainScale: p >= 3 ? 0.35 : p === 2 ? 0.55 : p === 1 ? 0.75 : 1,
+      rainScale: p >= 2 ? 0.7 : p === 1 ? 0.85 : 1,
       tornadoShells: p >= 2 ? 2 : 3,
-      allowLightningBolt: p < 3,
-      dustScale: p >= 2 ? 0.5 : 1,
+      allowLightningBolt: p < 2,
+      dustScale: p >= 2 ? 0.7 : 1,
     };
   }
 

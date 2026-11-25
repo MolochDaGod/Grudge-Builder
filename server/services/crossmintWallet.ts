@@ -789,8 +789,6 @@ export class CrossmintWalletService {
 
   /**
    * Submit a serialized Solana VersionedTransaction from BUDBai (Jupiter swap).
-   * Uses Wallets API 2025-06-09; falls back to v1-alpha2 locator.
-   * Server-signer approval may still be pending — caller records that status.
    */
   async submitSerializedSolanaTx(
     walletAddress: string,
@@ -844,6 +842,181 @@ export class CrossmintWalletService {
         } catch (e) {
           last = e instanceof Error ? e.message : String(e);
         }
+      }
+    }
+    return { success: false, error: last };
+  }
+
+  /**
+   * Send SPL / native from a live Crossmint Solana wallet.
+   * Official: POST /2025-06-09/wallets/{locator}/tokens/{chain:mint}/transfers
+   * Send SPL from a live Crossmint Solana wallet.
+   * Official REST: POST /2025-06-09/wallets/{locator}/tokens/solana:{mint}/transfers
+   * Project API key is the admin signer on v1-alpha2 solana-custodial wallets
+   * (one-tap, no Phantom). Poll until onChain.txId is a Solana signature.
+   * @see https://docs.crossmint.com/wallets/guides/transfer-tokens
+   * @see https://docs.crossmint.com/api-reference/wallets/transfer-token
+   */
+  async sendSplToken(opts: {
+    fromWallet: string;
+    toWallet: string;
+    amount: string;
+    mint: string;
+    emailLocator?: string;
+    extraLocators?: string[];
+    idempotencyKey?: string;
+  }): Promise<{
+    success: boolean;
+    signature?: string;
+    explorerLink?: string;
+    pending?: boolean;
+    error?: string;
+    status?: string;
+  }> {
+    if (!this.apiKey) {
+      return { success: false, error: "Crossmint API key not configured" };
+    }
+    const mint = opts.mint.trim();
+    const tokenLocator = `solana:${mint}`;
+    const locators = [
+      opts.fromWallet,
+      opts.emailLocator,
+      ...(opts.extraLocators || []),
+    ].filter((x, i, a): x is string => Boolean(x) && a.indexOf(x) === i);
+
+    const isSolanaSig = (s?: string) =>
+      Boolean(s && /^[1-9A-HJ-NP-Za-km-z]{64,88}$/.test(s) && !s.includes("-"));
+
+    const sleep = (ms: number) => new Promise((r) => setTimeout(r, ms));
+
+    const pollTx = async (
+      loc: string,
+      txId: string,
+    ): Promise<{
+      signature?: string;
+      explorerLink?: string;
+      status?: string;
+      error?: string;
+    }> => {
+      let lastStatus = "pending";
+      for (let i = 0; i < 20; i++) {
+        if (i > 0) await sleep(1500);
+        try {
+          const r = await fetch(
+            `${this.baseUrl}/api/2025-06-09/wallets/${encodeURIComponent(loc)}/transactions/${encodeURIComponent(txId)}`,
+            { headers: { "X-API-KEY": this.apiKey } },
+          );
+          const j = (await r.json()) as {
+            status?: string;
+            onChain?: { txId?: string; explorerLink?: string };
+            error?: string;
+            message?: string;
+          };
+          lastStatus = String(j.status || lastStatus);
+          const sig = j.onChain?.txId;
+          if (j.status === "failed") {
+            return { error: j.error || j.message || "Crossmint transfer failed", status: j.status };
+          }
+          if (isSolanaSig(sig)) {
+            return {
+              signature: sig,
+              explorerLink:
+                j.onChain?.explorerLink || `https://solscan.io/tx/${sig}`,
+              status: j.status,
+            };
+          }
+          if (/awaiting/i.test(lastStatus)) {
+            return {
+              error:
+                "Crossmint wallet is awaiting a signer. Play wallet is server-custodial — check CROSSMINT_SERVER_API_KEY scopes (wallets:transactions.create).",
+              status: lastStatus,
+            };
+          }
+        } catch (e) {
+          lastStatus = e instanceof Error ? e.message : String(e);
+        }
+      }
+      return {
+        error: `Crossmint send still pending (${lastStatus}) — no Solana signature yet`,
+        status: lastStatus,
+      };
+    };
+
+    let last = "no locator accepted";
+    const idem =
+      opts.idempotencyKey ||
+      `gbux:${opts.fromWallet.slice(0, 12)}:${opts.toWallet.slice(0, 12)}:${opts.amount}:${Date.now()}`;
+    for (const loc of locators) {
+      const url = `${this.baseUrl}/api/2025-06-09/wallets/${encodeURIComponent(loc)}/tokens/${encodeURIComponent(tokenLocator)}/transfers`;
+      try {
+        const response = await fetch(url, {
+          method: "POST",
+          headers: {
+            "X-API-KEY": this.apiKey,
+            "Content-Type": "application/json",
+            "x-idempotency-key": idem,
+          },
+          body: JSON.stringify({
+            recipient: opts.toWallet,
+            amount: opts.amount,
+            transactionType: "direct",
+            fees: { mode: "project" },
+          }),
+        });
+        const text = await response.text();
+        let j: {
+          id?: string;
+          status?: string;
+          onChain?: { txId?: string; explorerLink?: string };
+          error?: string;
+          message?: string;
+        } = {};
+        try {
+          j = JSON.parse(text) as typeof j;
+        } catch {
+          last = `${response.status} ${text.slice(0, 160)}`;
+          continue;
+        }
+        if (response.ok || response.status === 201) {
+          const sig = j.onChain?.txId || j.id;
+          const pending = /pending|awaiting/i.test(String(j.status || ""));
+          const immediate = j.onChain?.txId;
+          if (isSolanaSig(immediate)) {
+            return {
+              success: true,
+              signature: immediate,
+              explorerLink:
+                j.onChain?.explorerLink || `https://solscan.io/tx/${immediate}`,
+              pending: false,
+              status: j.status || "success",
+            };
+          }
+          if (/awaiting/i.test(String(j.status || ""))) {
+            last =
+              "Crossmint returned awaiting-approval — custodial API key must be the admin signer";
+            continue;
+          }
+          if (j.id) {
+            const polled = await pollTx(loc, j.id);
+            if (polled.signature) {
+              return {
+                success: true,
+                signature: polled.signature,
+                explorerLink: polled.explorerLink,
+                pending: false,
+                status: polled.status,
+              };
+            }
+            last = polled.error || last;
+            if (polled.status === "failed") break;
+            continue;
+          }
+          last = "Crossmint accepted transfer but returned no on-chain signature";
+          continue;
+        }
+        last = j.error || j.message || `${response.status} ${text.slice(0, 160)}`;
+      } catch (e) {
+        last = e instanceof Error ? e.message : String(e);
       }
     }
     return { success: false, error: last };

@@ -323,10 +323,35 @@ export function buildTruthProbes(mode: TruthProbeMode = "browser"): TruthProbe[]
   );
 }
 
+function hasBrowserJwt(): boolean {
+  if (typeof localStorage === "undefined") return false;
+  const keys = [
+    "grudge_auth_token",
+    "grudge_session_token",
+    "grudge.token",
+    "sso_token",
+    "grudge_token",
+  ];
+  for (const k of keys) {
+    try {
+      const v = localStorage.getItem(k);
+      if (v && v.length > 20) return true;
+    } catch {
+      /* ignore */
+    }
+  }
+  return false;
+}
+
 export async function probeTruthEndpoint(
   probe: TruthProbe,
   fetchFn: typeof fetch = fetch,
 ): Promise<TruthProbe> {
+  // Guest pages must not GET roster/account (Chrome logs 401 even when we treat it as ok).
+  if (probe.authGated && typeof window !== "undefined" && !hasBrowserJwt()) {
+    return { ...probe, ok: true, detail: "skipped (no JWT — guest)" };
+  }
+
   const method = probe.method ?? (probe.role === "game-data" || probe.role === "objectstore" || probe.role === "identity" ? "GET" : "HEAD");
   const rejectHtml = probe.rejectHtml ?? probe.role !== "assets";
 

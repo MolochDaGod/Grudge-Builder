@@ -167,6 +167,9 @@ export default defineConfig({
     // Pre-cleaned in script/build.ts; public copied via script/copy-public-to-dist.mjs.
     emptyOutDir: false,
     copyPublicDir: false,
+    // Vite 7 preloads every dynamic import from the entry onto index.html.
+    // That pulled Rapier/island3d before React could mount (empty #root).
+    modulePreload: false,
     commonjsOptions: {
       // Allow packages that use THREE as a global to resolve it
       transformMixedEsModules: true,

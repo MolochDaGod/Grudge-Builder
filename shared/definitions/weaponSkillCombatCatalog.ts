@@ -23,6 +23,12 @@ import {
   GREATSWORD_SAMURAI_SKILLS,
   TWO_HAND_TO_SAMURAI_ANIM,
 } from './greatswordSamuraiCombat';
+import {
+  SHIELD_SKILL_IDS,
+  STUN_TOTEM_SKILL_IDS,
+  TOTEM_COOLDOWN_SEC,
+  TOTEM_DURATION_SEC,
+} from './skillIntent';
 
 export interface ProductionSkillCombatDef {
   id: string;
@@ -405,9 +411,97 @@ export function ensureWeaponSkillCombatCatalog(): Map<string, ProductionSkillCom
       catalog.set(k, v);
     }
     applyGreatswordSamuraiOverrides(catalog);
+    applyClassTotemCombat(catalog);
     built = true;
   }
   return catalog;
+}
+
+function applyClassTotemCombat(map: Map<string, ProductionSkillCombatDef>): void {
+  const shield: ProductionSkillCombatDef = {
+    id: 'mage_mana_shield',
+    name: 'Mage Shield',
+    description:
+      `Drops a red (mage) or green (priest) echo totem for ${TOTEM_DURATION_SEC}s. Echoes every matching spell 1s later. One totem at a time.`,
+    icon: '/icons/misc/AquaCircle.png',
+    weaponType: 'wand',
+    slotType: 'ability',
+    tier: 0,
+    damage: 0,
+    cooldown: TOTEM_COOLDOWN_SEC,
+    effects: [
+      'Cleansable-debuff cleanse',
+      `Echo totem ${TOTEM_DURATION_SEC}s`,
+      `${TOTEM_COOLDOWN_SEC}s recast CD`,
+      'One echo totem at a time',
+    ],
+    style: 'defense',
+    range: 0,
+    aoeRadius: 0,
+    arcDeg: 0,
+    windup: 0.1,
+    active: 0.2,
+    recovery: 0.2,
+    hitCollider: 'none',
+    projectile: 'none',
+    projectileSpeed: 0,
+    damageType: 'arcane',
+    school: 'arcane',
+    animKey: 'cast',
+    hitCount: 0,
+    lifesteal: 0,
+    stunSec: 0,
+    dashMeters: 0,
+    executeMult: 1,
+    executeThreshold: 0.3,
+    manaCost: 20,
+    vfxKey: 'arcane_swirl',
+    requiresTarget: false,
+    ignoreRangeGate: true,
+  };
+  for (const id of SHIELD_SKILL_IDS) {
+    map.set(id, { ...shield, id });
+  }
+
+  const stun: ProductionSkillCombatDef = {
+    id: 'staff_stun_totem',
+    name: 'Stun Totem',
+    description:
+      'Select a ground AOE. A Freya totem rises from under the zone and a purple burst stuns every enemy inside.',
+    icon: '/icons/misc/ChaosCircle.png',
+    weaponType: 'staff',
+    slotType: 'ability',
+    tier: 0,
+    damage: 12,
+    cooldown: 18,
+    effects: ['Ground AOE', 'Stun 2.5s', 'Purple burst'],
+    style: 'summon',
+    range: 14,
+    aoeRadius: 4.5,
+    arcDeg: 360,
+    windup: 0.15,
+    active: 0.2,
+    recovery: 0.2,
+    hitCollider: 'none',
+    projectile: 'none',
+    projectileSpeed: 0,
+    damageType: 'arcane',
+    school: 'arcane',
+    animKey: 'cast',
+    hitCount: 1,
+    lifesteal: 0,
+    stunSec: 2.5,
+    dashMeters: 0,
+    executeMult: 1,
+    executeThreshold: 0.3,
+    manaCost: 22,
+    vfxKey: 'arcane_swirl',
+    requiresTarget: false,
+    ignoreRangeGate: true,
+  };
+  for (const id of STUN_TOTEM_SKILL_IDS) {
+    map.set(id, { ...stun, id });
+  }
 }
 
 export function getProductionSkillCombat(skillId: string): ProductionSkillCombatDef | null {

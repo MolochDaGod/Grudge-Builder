@@ -1,6 +1,8 @@
 /**
- * Canonical ObjectStore base — ONE TRUTH for JSON catalogs.
- * Rejects deprecated GitHub Pages / pages.dev hosts at runtime.
+ * Canonical definition JSON — ONE TRUTH.
+ * Browser: same-origin /api/objectstore/v1 (Vercel rewrite → objectstore.grudge-studio.com).
+ * SSR/scripts: https://objectstore.grudge-studio.com/api/v1
+ * The ObjectStore Worker serves the unified game catalog (races, classes, items, recipes, etc.).
  */
 
 const CANONICAL_OBJECT_STORE_API = 'https://objectstore.grudge-studio.com/api/v1';
@@ -20,12 +22,20 @@ export function resolveObjectStoreApiBase(envOverride?: string): string {
   if (!raw || isDeprecatedObjectStoreUrl(raw)) {
     return CANONICAL_OBJECT_STORE_API;
   }
+  // Normalize objectstore.grudge-studio.com variations
+  if (/objectstore\.grudge-studio\.com/i.test(raw)) {
+    return CANONICAL_OBJECT_STORE_API;
+  }
+  // Legacy info.grudge-studio.com → objectstore
+  if (/info\.grudge-studio\.com/i.test(raw)) {
+    return CANONICAL_OBJECT_STORE_API;
+  }
   if (raw.endsWith('/api/v1')) return raw;
   if (raw.endsWith('/api/v1/')) return raw.replace(/\/$/, '');
   return `${raw.replace(/\/$/, '')}/api/v1`;
 }
 
-/** Browser apps use same-origin proxy; SSR/scripts use canonical host. */
+/** Browser: existing /api/objectstore/v1 rewrite (aimed at info). */
 export function objectStoreApiBase(envOverride?: string): string {
   if (typeof window !== 'undefined') {
     return '/api/objectstore/v1';

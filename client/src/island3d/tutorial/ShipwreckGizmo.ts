@@ -20,6 +20,7 @@ export interface ShipwreckGizmoHandle {
   onChange: (cb: (xyz: Xyz, object: THREE.Object3D) => void) => void;
   dispose: () => void;
   getAttached: () => THREE.Object3D | null;
+  isDragging: () => boolean;
 }
 
 export function createShipwreckGizmo(
@@ -30,20 +31,19 @@ export function createShipwreckGizmo(
   const controls = new TransformControls(camera, domElement);
   controls.setSize(0.85);
   controls.setMode('translate');
-  controls.visible = false;
-
-  // TransformControls is an Object3D in recent three
-  scene.add(controls as unknown as THREE.Object3D);
+  const helper = controls.getHelper();
+  helper.visible = false;
+  scene.add(helper);
 
   let attached: THREE.Object3D | null = null;
   let changeCb: ((xyz: Xyz, object: THREE.Object3D) => void) | null = null;
   let dragging = false;
 
-  controls.addEventListener('dragging-changed', (e: { value: boolean }) => {
-    dragging = e.value;
+  controls.addEventListener('dragging-changed', (e) => {
+    dragging = e.value === true;
     // Notify host to pause orbit/character cam
     domElement.dispatchEvent(
-      new CustomEvent('shipwreck-gizmo-drag', { detail: { dragging: e.value } }),
+      new CustomEvent('shipwreck-gizmo-drag', { detail: { dragging } }),
     );
   });
 
@@ -55,14 +55,15 @@ export function createShipwreckGizmo(
 
   const handle: ShipwreckGizmoHandle = {
     controls,
+    isDragging: () => dragging,
     attach(object) {
       if (object) {
         controls.attach(object);
-        controls.visible = true;
+        helper.visible = true;
         attached = object;
       } else {
         controls.detach();
-        controls.visible = false;
+        helper.visible = false;
         attached = null;
       }
     },
@@ -97,7 +98,7 @@ export function createShipwreckGizmo(
     },
     setEnabled(on) {
       controls.enabled = on;
-      controls.visible = on && !!attached;
+      helper.visible = on && !!attached;
     },
     onChange(cb) {
       changeCb = cb;
@@ -107,14 +108,12 @@ export function createShipwreckGizmo(
     },
     dispose() {
       controls.detach();
-      scene.remove(controls as unknown as THREE.Object3D);
+      scene.remove(helper);
       controls.dispose();
       attached = null;
     },
   };
 
-  // Expose dragging for external checks
-  (handle as any).isDragging = () => dragging;
 
   return handle;
 }

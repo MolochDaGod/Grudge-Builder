@@ -1,0 +1,36 @@
+name: Prepare isolated validation workspace
+on:
+  push:
+    branches: [codex/warlords-production-cleanup]
+    paths: [.github/workflows/validation-workspace.yml]
+  workflow_dispatch:
+permissions:
+  contents: read
+jobs:
+  validation-workspace:
+    runs-on: ubuntu-latest
+    timeout-minutes: 20
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          persist-credentials: false
+      - uses: actions/setup-node@v4
+        with:
+          node-version: '22'
+      - run: npm ci --ignore-scripts
+      - name: Package source and dependencies for offline validation
+        run: |
+          python - <<'PY'
+          import subprocess
+          from pathlib import Path
+          paths = subprocess.check_output(['git', 'ls-files', '-z']).decode().split('\0')
+          allowed = ('.ts', '.tsx', '.js', '.mjs', '.cjs', '.json', '.css')
+          selected = [p for p in paths if p and p.endswith(allowed) and (p.startswith(('client/src/', 'server/', 'shared/', 'scripts/', 'script/')) or '/' not in p or p in ('client/tsconfig.json', 'client/vite.config.ts', 'client/package.json'))]
+          Path('validation-files.txt').write_text('\n'.join(selected) + '\n')
+          PY
+          tar -czf validation-workspace.tgz -T validation-files.txt node_modules
+      - uses: actions/upload-artifact@v4
+        with:
+          name: validation-workspace
+          path: validation-workspace.tgz
+          retention-days: 1

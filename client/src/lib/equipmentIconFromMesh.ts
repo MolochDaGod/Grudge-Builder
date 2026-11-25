@@ -1,4 +1,4 @@
-﻿/**
+/**
  * Generate inventory icons from the **actual** weapon/equipment mesh.
  *
  * Cool assets are fine ΓÇö the icon must be a render of that GLB, not a
@@ -11,7 +11,7 @@
  * Pre-bake offline: scripts/generate-equipment-icons.html + generate-equipment-icons.mjs
  */
 import * as THREE from 'three';
-import { GLTFLoader } from 'three/examples/jsm/loaders/GLTFLoader.js';
+import { loadAssetGltf } from '@/lib/three/SharedGltfPipeline';
 import { assetUrl } from '@/lib/assetConfig';
 
 export interface EquipmentIconRenderOpts {
@@ -26,11 +26,10 @@ export interface EquipmentIconRenderOpts {
   yaw?: number;
   pitch?: number;
   /** Apply tier-ish tint (optional) */
-  tint?: number;
+  tint?: THREE.ColorRepresentation;
 }
 
 const cache = new Map<string, string>();
-const loader = new GLTFLoader();
 
 /** In-memory + sessionStorage cache of generated icons. */
 export function getCachedEquipmentIcon(prefabId: string): string | null {
@@ -61,7 +60,7 @@ export function setCachedEquipmentIcon(prefabId: string, dataUrl: string) {
  */
 export function renderObjectToIconDataUrl(
   source: THREE.Object3D,
-  opts: { size?: number; transparent?: boolean; yaw?: number; pitch?: number; tint?: number } = {},
+  opts: { size?: number; transparent?: boolean; yaw?: number; pitch?: number; tint?: THREE.ColorRepresentation } = {},
 ): string {
   const size = opts.size ?? 256;
   const transparent = opts.transparent !== false;
@@ -70,21 +69,23 @@ export function renderObjectToIconDataUrl(
   if (!transparent) scene.background = new THREE.Color(0x1a1a24);
 
   const root = source.clone(true);
-  root.traverse((o) => {
-    if (o instanceof THREE.Mesh) {
-      o.castShadow = false;
-      o.receiveShadow = false;
-      if (opts.tint != null && o.material) {
-        const mats = Array.isArray(o.material) ? o.material : [o.material];
-        for (const m of mats) {
-          if (m && 'color' in m && (m as THREE.MeshStandardMaterial).color) {
-            const c = (m as THREE.MeshStandardMaterial).clone();
-            c.color.multiply(new THREE.Color(opts.tint));
-            o.material = Array.isArray(o.material) ? mats.map((x) => (x === m ? c : x)) : c;
-          }
-        }
+  const ownedMaterials: THREE.Material[] = [];
+  // Object3D.clone shares geometry and textures with the live weapon. Only
+  // clone and dispose materials that this thumbnail renderer actually owns.
+  root.traverse((object) => {
+    if (!(object instanceof THREE.Mesh)) return;
+    object.castShadow = false;
+    object.receiveShadow = false;
+    const cloneMaterial = (original: THREE.Material): THREE.Material => {
+      const material = original.clone();
+      ownedMaterials.push(material);
+      if (opts.tint != null && 'color' in material && material.color instanceof THREE.Color) {
+        material.color.multiply(new THREE.Color(opts.tint));
       }
-    }
+      return material;
+    };
+    object.material = Array.isArray(object.material)
+      ? object.material.map(cloneMaterial) : cloneMaterial(object.material);
   });
   scene.add(root);
 
@@ -118,31 +119,38 @@ export function renderObjectToIconDataUrl(
   const canvas = document.createElement('canvas');
   canvas.width = size;
   canvas.height = size;
-  const renderer = new THREE.WebGLRenderer({
-    canvas,
-    antialias: true,
-    alpha: transparent,
-    preserveDrawingBuffer: true,
-  });
-  renderer.setSize(size, size, false);
-  renderer.setPixelRatio(1);
-  renderer.outputColorSpace = THREE.SRGBColorSpace;
-  renderer.toneMapping = THREE.ACESFilmicToneMapping;
-  renderer.toneMappingExposure = 1.05;
-  renderer.setClearColor(0x000000, transparent ? 0 : 1);
-  renderer.render(scene, camera);
+  let renderer: THREE.WebGLRenderer | undefined;
+  try {
+    renderer = new THREE.WebGLRenderer({
+      canvas, antialias: true, alpha: transparent, preserveDrawingBuffer: true,
+    });
+    renderer.setSize(size, size, false);
+    renderer.setPixelRatio(1);
+    renderer.outputColorSpace = THREE.SRGBColorSpace;
+    renderer.toneMapping = THREE.ACESFilmicToneMapping;
+    renderer.toneMappingExposure = 1.05;
+    renderer.setClearColor(0x000000, transparent ? 0 : 1);
+    renderer.render(scene, camera);
+    return canvas.toDataURL('image/png');
+  } finally {
+    for (const material of ownedMaterials) material.dispose();
+    // Release this short-lived context even when rendering or canvas export fails.
+    renderer?.dispose();
+    renderer?.forceContextLoss();
+    scene.clear();
+  }
+}
 
-  const dataUrl = canvas.toDataURL('image/png');
-  renderer.dispose();
-  // Dispose cloned geometries/materials lightly
-  root.traverse((o) => {
-    if (o instanceof THREE.Mesh) {
-      o.geometry?.dispose();
-      const m = o.material;
-      if (Array.isArray(m)) m.forEach((x) => x.dispose());
-      else (m as THREE.Material)?.dispose?.();
-    }
-  });
+/** Cache an icon from the equipped mesh without taking ownership of its resources. */
+export function cacheIconFromEquippedWeapon(
+  source: THREE.Object3D,
+  prefabId: string,
+  opts: Omit<EquipmentIconRenderOpts, 'prefabId'> = {},
+): string {
+  const cached = getCachedEquipmentIcon(prefabId);
+  if (cached) return cached;
+  const dataUrl = renderObjectToIconDataUrl(source, opts);
+  setCachedEquipmentIcon(prefabId, dataUrl);
   return dataUrl;
 }
 
@@ -161,16 +169,9 @@ export async function generateEquipmentIconFromUrl(
       ? meshUrl
       : assetUrl(meshUrl);
 
-  const gltf = await loader.loadAsync(url);
-  const dataUrl = renderObjectToIconDataUrl(gltf.scene, {
-    size: opts.size ?? 256,
-    transparent: opts.transparent,
-    yaw: opts.yaw,
-    pitch: opts.pitch,
-    tint: opts.tint,
-  });
-  setCachedEquipmentIcon(opts.prefabId, dataUrl);
-  return dataUrl;
+  const gltf = await loadAssetGltf(url);
+  if (!gltf) throw new Error(`Equipment mesh unavailable: ${opts.prefabId}`);
+  return cacheIconFromEquippedWeapon(gltf.scene, opts.prefabId, opts);
 }
 
 /**

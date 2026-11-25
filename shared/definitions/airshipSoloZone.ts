@@ -18,10 +18,13 @@ export const AIRSHIP_ZONE_VERSION = '2.1.0';
  * JSON camera pins may remain in repo (tiny); all meshes are CDN-only.
  */
 export const AIRSHIP_ZONE_PATHS = {
-  /** Scene (7) playable — no skins/quant/webp/transmission. New key busts CDN. */
-  airship: '/models/airship-zone/opener-scene-10.glb',
-  /** Legacy hull only */
-  airshipLegacy: '/models/airship-zone/airship.glb',
+  /**
+   * Warlords playground env — `D:\Games\Models\scene (2).glb` baked → R2.
+   * Islands + water + deck + palms. Never invent a second env path.
+   */
+  airship: '/assets/world/airship/warlords_era_scene.glb',
+  /** Prior opener bake (fallback only) */
+  airshipLegacy: '/models/airship-zone/opener-scene-10.glb',
   /**
    * Cabin create — prefer cabin.prod.glb (non-voxel) on R2.
    * boatvoxelinside is temporary until converted cabin ships.
@@ -32,16 +35,16 @@ export const AIRSHIP_ZONE_PATHS = {
   camera: '/models/airship-zone/scene-camera.json',
   perspectiveCamera: '/models/airship-zone/PerspectiveCamera.json',
   /**
-   * Crew — converted GLB only (never .fbx at runtime).
-   * Upload: models/airship-zone/npcs/*.prod.glb after FBX→GLB convert + SI fit.
+   * Crew — D:\Games\Models\3pirates → R2 (character + walk/idle/talk).
+   * NPCs = Meshy biped bodies OK. Play heroes = loadRaceKit only.
    */
   npcs: {
-    johnWayne: '/models/airship-zone/npcs/cptjohnwayne.prod.glb',
-    scourge: '/models/airship-zone/npcs/scourgefaith.prod.glb',
-    racalvin: '/models/airship-zone/npcs/racalvinking.prod.glb',
+    johnWayne: '/models/airship-zone/npcs/3pirates/johnwayne/character.glb',
+    scourge: '/models/airship-zone/npcs/3pirates/scourge/character.glb',
+    racalvin: '/models/airship-zone/npcs/3pirates/racalvin/character.glb',
   },
-  /** Fleet grudge6 kit when custom NPC GLB missing on R2 */
-  grudge6HumanFallback: '/models/grudge6/races/WK_Characters.glb',
+  /** Never use for play heroes — Toon RTS via loadRaceKit */
+  grudge6HumanFallback: '/asset-packs/toon-rts-characters/glb/characters/human.glb',
 } as const;
 
 /** All heroes in this zone target 2.0 m (user SSOT for this scene). */

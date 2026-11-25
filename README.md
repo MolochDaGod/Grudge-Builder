@@ -6,10 +6,12 @@
 
 | | |
 |--|--|
-| **Live game** | [grudge.studio](https://grudge.studio) · [grudgewarlords.com](https://grudgewarlords.com) · [client.grudge-studio.com](https://client.grudge-studio.com) |
-| **Forge map editor** | [forge.grudge-studio.com](https://forge.grudge-studio.com) (RTS-Grudge `studio/`) |
+| **Warlords play** | [grudgewarlords.com](https://grudgewarlords.com) (target: `warlords.grudge.studio`) · **4 characters on airship** `/combat` |
+| **Client hosts** | `*.grudge.studio` — [play](https://play.grudge.studio) hub · [open](https://open.grudge.studio) · [grudox](https://grudox.grudge.studio) |
+| **Nexus 4 characters** | [client.grudge-studio.com/heroes](https://client.grudge-studio.com/heroes) (target: `nexus.grudge.studio/heroes`) |
+| **Platform** | `*.grudge-studio.com` — [id](https://id.grudge-studio.com) · [assets](https://assets.grudge-studio.com) · [character Foundry](https://character.grudge-studio.com) · [forge](https://forge.grudge-studio.com) |
 | **Production stack** | **Vercel** (SPA) · **Railway** grudge-api (Postgres + Colyseus) · **Cloudflare** (R2 CDN + Workers) |
-| **Not SSOT** | Supabase, MySQL VPS, D1 for heroes, Puter guest as account |
+| **Not SSOT** | Supabase, MySQL VPS, D1 for heroes, Puter guest as account · calling hero slots “crew” |
 | **Owner** | Grudge Studio · *Racalvin The Pirate King* |
 | **License** | MIT |
 
@@ -45,29 +47,38 @@ Player data is **Railway Postgres only**.
 
 ---
 
-## Production player path (Warlords · 2026-07-19)
+## Production player path (Warlords browser MMO)
 
-**Product hosts:** [grudge.studio](https://grudge.studio) · [grudgewarlords.com](https://grudgewarlords.com) · [client.grudge-studio.com](https://client.grudge-studio.com)
+**Play host:** [grudgewarlords.com](https://grudgewarlords.com) · **`/heroes` redirects to airship** (`/combat`).  
+**Nexus heroes:** [client.grudge-studio.com/heroes](https://client.grudge-studio.com/heroes) only.  
+**Crew** = RTS units on ships/camps — not the 4 character slots.
 
 | Step | Route | Notes |
 |------|-------|--------|
 | Landing | `/` | Art-forward Warlords landing |
-| Opening scene | `/intro` | Fleet video → pipeline |
-| Pipeline hub | `/warlords/start` | Gates + next-step resolver |
-| Character create | `/create-character` | GCS Warlords era → returns to tutorial |
-| Tutorial | `/tutorial` | Shipwreck solo · then open world |
-| Open world | `/play?sector=haven_shore&mode=zone&…` | Haven + lobby grind |
-| **End Game (Lv 20)** | Talk to **faction captain** (`E`) on race island | Mission **End Game** |
-| Abandon ship cinematic | `/homeisland?cinematic=abandon-ship` | Cannon · sink · **all jump** (no throw) |
-| Home island | `/home-island` (after cinematic / create) | Level **≥ 20** gate |
-| Pirate lobby map | `/island-3d?mode=lobby&map=pirate-islands` | Faction islands · production `.gmap` |
-| Black Tome | `/lore/tome-of-seasons-and-gods.html` | 6h day · 8 gods’ days · 96-day seasons |
+| Opening scene | `/intro` | Optional lore → pipeline |
+| Pipeline hub | `/warlords/start` | Next-step resolver |
+| Sign in | `id.grudge-studio.com` | JWT only |
+| Character create | `/create-character` → Foundry | `era=warlords` · UUID handoff |
+| **4 characters (airship)** | `/combat` · `/airship-zone` | `loadRaceKit` heroes + `3pirates` NPCs |
+| First voyage | `/leviathan-cinema` | Leviathan attack → ship destroy |
+| Tutorial | `/tutorial?map=pirate-islands` | Solo Colyseus · **once per account** |
+| Faction lobby | `/island-3d?mode=lobby&map=pirate-islands` | After raft / commander |
+| Home island | `/home-island` | After tutorial · **no L20 gate** |
+| Island claim | `/island-reveal` | Claim pipeline (not a second 3D airship) |
+| World map | `/world-map` | 9 sectors |
+| Open world | `/play?sector=haven_shore&mode=zone&…` | Shared MMO sector rooms |
+| Craft | `/craft/` | Account bag · character XP |
+| End Game (mission) | Faction captain (`E`) | Optional late content — **not** home-island unlock |
 
 **SSOT**
 
 | Topic | File |
 |-------|------|
-| Onboarding + Lv20 gate | `shared/definitions/warlordsProductionFlow.ts` |
+| Domains (`*.grudge.studio` = clients) | [docs/GRUDGE_STUDIO_ERA_DOMAINS_SSOT.md](docs/GRUDGE_STUDIO_ERA_DOMAINS_SSOT.md) · [docs/WARLORDS_DOMAIN_SSOT.md](docs/WARLORDS_DOMAIN_SSOT.md) |
+| Eras / 4 characters | [docs/CHARACTER_ERAS.md](docs/CHARACTER_ERAS.md) |
+| Survival anims (`_anim_packs` → CDN) | [docs/WARLORDS_SURVIVAL_ANIM_SSOT.md](docs/WARLORDS_SURVIVAL_ANIM_SSOT.md) · `bip001DrcAnims.ts` |
+| Onboarding (tutorial once, no L20 gate) | `shared/definitions/warlordsProductionFlow.ts` |
 | End Game mission | `shared/definitions/endGameMission.ts` |
 | Game clock / tides | `shared/definitions/gameClock.ts` |
 | Production map package | `shared/definitions/productionMapPackage.ts` · `production/` |
@@ -298,7 +309,8 @@ Manual smoke baseline (re-probe on ship):
 4. **Open world (Warlords 9 sectors)** — `/play?sector=haven_shore&mode=zone` (PVE trade village foundation, map ocean only).
 5. **Build + camps** — Build Hammer + Dune-style piece tabs; Claim Flag spawns unarmed race garrison; F1–F5 unit orders on owned camps.
 6. **Crafting** — same JWT + same UUID on `grudge-crafting.puter.site` (or in-app `/crafting`); camp benches raise profession level.
-7. **Side systems** — dungeons, skill trees, arsenal, treaty, tools (many are prototypes).
+7. **Combat play (Island3D)** — weapon hotbar 1–5; heal/buff first click remaps 1–4 to Self/allies; Mage Shield (Shift+1) drops a **2 min** red/green echo totem (20 s recast, one at a time); **Stun Totem** is the arcane **staff** ability (default slot 3) — ground AOE, Freya pole, purple stun. Meshes: CDN `models/vfx/totems/{tyr_tier_2,loki_tier_4,freya_tier_3}.glb` (1.2 m SI, WebP 256).
+8. **Side systems** — dungeons, skill trees, arsenal, treaty, tools (many are prototypes).
 
 It shares **one Railway roster** with other fleet games when those apps use fleet SSO + `era=warlords` (or their era), never a parallel hero store.
 

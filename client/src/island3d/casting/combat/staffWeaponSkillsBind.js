@@ -5,8 +5,8 @@
  * Only fills empty prefab/anim/VFX so existing catalog ids play with
  * lab transit (Fire|Water|Earth|Wind Ability + staff-type textures).
  *
- * Source: https://info.grudge-studio.com/api/v1/master-weaponSkills.json
- * Browse: https://info.grudge-studio.com/WEAPON_SKILLS.html
+ * Source: https://objectstore.grudge-studio.com/api/v1/master-weaponSkills.json
+ * Browse: https://objectstore.grudge-studio.com/WEAPON_SKILLS.html
  */
 
 import { CASTING_ELEMENT_PHASE_VFX, normalizeElement } from './elementWeaponSkills.js';

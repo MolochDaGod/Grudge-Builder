@@ -18,12 +18,41 @@ export const FLEET_AUTH_IMPLEMENTATION = FLEET_URLS.gameData;
 export const FLEET_AUTH_DEPRECATED_API = "https://api.grudge-studio.com";
 
 export const FLEET_AUTH_TOKEN_KEYS = [
+  "grudge.open.token",
   "grudge_auth_token",
   "grudge_session_token",
   "grudge.token",
   "sso_token",
   "grudge_token",
 ] as const;
+
+/** Drop stale JWTs + portal cache so 401s do not replay every navigation. */
+export function clearFleetAuthTokens(): void {
+  if (typeof localStorage === "undefined") return;
+  try {
+    for (const k of FLEET_AUTH_TOKEN_KEYS) {
+      localStorage.removeItem(k);
+      sessionStorage.removeItem(k);
+    }
+    localStorage.removeItem("grudge.token.exp");
+    localStorage.removeItem("grudge_portal_universe");
+  } catch {
+    /* ignore */
+  }
+}
+
+export function readFleetAuthToken(): string | null {
+  if (typeof localStorage === "undefined") return null;
+  try {
+    for (const k of FLEET_AUTH_TOKEN_KEYS) {
+      const v = localStorage.getItem(k) || sessionStorage.getItem(k);
+      if (v && v.split(".").length === 3 && v.length > 20) return v;
+    }
+  } catch {
+    /* ignore */
+  }
+  return null;
+}
 
 export const FLEET_AUTH_PROFILE_KEYS = [
   "grudge_id",

@@ -1,3 +1,4 @@
+import { authenticateGameJoin } from '../gameAuth';
 /**
  * TownRoom.ts
  * ─────────────────────────────────────────────────────────────
@@ -68,7 +69,13 @@ interface TownJoinOptions {
 
 const TICK_RATE = 5; // 5 Hz — towns are low-activity
 
-export class TownRoom extends Room<TownState> {
+export class TownRoom extends Room<{ state: TownState }> {
+  async onAuth(client: Client, options: any, context: any) {
+    const identity = await authenticateGameJoin(context?.token, options, true);
+    Object.assign(options, identity.join);
+    return identity;
+  }
+
   maxClients = 100;
   private townDef: FactionTown | null = null;
 
@@ -273,7 +280,7 @@ export class TownRoom extends Room<TownState> {
     );
   }
 
-  async onLeave(client: Client, consented?: boolean) {
+  async onLeave(client: Client, consented?: number) {
     const player = this.state.players.get(client.sessionId);
     const { leaveWithReconnect } = await import("../reconnect");
 

@@ -11,7 +11,7 @@
  */
 
 import { useQuery } from "@tanstack/react-query";
-import { isPuterAvailable, isPuterReady, puterAI } from "./puterIntegration";
+import { isPuterReady } from "./puterIntegration";
 
 // ── Types ───────────────────────────────────────────────────────────
 
@@ -151,14 +151,13 @@ class GrudgeAIClient {
     temperature?: number;
     agent?: string;
   }): Promise<AIChatResult> {
-    // If explicitly forcing puter, or cloud is down and puter is ready → use Puter AI
-    const forcePuter = opts.provider === "puter";
+    // Puter SDK is not a client path — Railway /api/ai/chat is SSOT (Legion then Puter backup).
+    const forceRouter = opts.provider === "puter";
     const status = this.statusCache;
     const cloudDown = status && !status.cloud.online && !status.ollama.online;
-    const puterReady = isPuterReady();
 
-    if ((forcePuter || cloudDown) && puterReady) {
-      return this.chatViaPuter(opts);
+    if (forceRouter || cloudDown) {
+      return this.chatViaRouter(opts);
     }
 
     // Try cloud/ollama gateway
@@ -179,42 +178,43 @@ class GrudgeAIClient {
         body: JSON.stringify(body),
       });
       if (!res.ok) {
-        // Gateway returned error — fall back to Puter if available
-        if (puterReady) return this.chatViaPuter(opts);
-        const err = await res.json().catch(() => ({ error: res.statusText }));
-        throw new Error((err as any).error || `HTTP ${res.status}`);
+        return this.chatViaRouter(opts);
       }
       return res.json();
     } catch (gatewayErr) {
-      // Network error or gateway down — fall back to Puter
-      if (puterReady) return this.chatViaPuter(opts);
-      throw gatewayErr;
+      try {
+        return await this.chatViaRouter(opts);
+      } catch {
+        throw gatewayErr;
+      }
     }
   }
 
-  /** Chat via Puter SDK (free, user-pays model). */
-  private async chatViaPuter(opts: {
+  /** Chat via Railway gruda-ai-router (Legion first, Puter backup server-side). */
+  private async chatViaRouter(opts: {
     messages: Array<{ role: string; content: string }>;
-    temperature?: number;
+    model?: string;
   }): Promise<AIChatResult> {
-    // Build a single prompt from messages (Puter chat takes a string or message array)
-    const prompt = opts.messages.map(m => {
-      if (m.role === "system") return `[System] ${m.content}`;
-      if (m.role === "user") return m.content;
-      return `[Assistant] ${m.content}`;
-    }).join("\n\n");
-
-    const result = await puterAI.chat(prompt, {
-      temperature: opts.temperature,
-      maxTokens: 1000,
+    const res = await fetch("/api/ai/chat", {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({
+        messages: opts.messages,
+        model: opts.model || "cheap",
+        page: "warlords_aiClient",
+        maxTokens: 1000,
+        tier: "cheap",
+      }),
     });
-
-    if (!result) throw new Error("Puter AI returned no response");
-
+    const data = await res.json().catch(() => ({}));
+    if (!res.ok || data.ok === false) {
+      throw new Error(data.error || "ai_router_failed");
+    }
     return {
-      provider: "puter",
-      model: "gpt-4o-mini",
-      content: result,
+      provider: data.modelUsed || "gruda-ai-router",
+      model: data.modelUsed || "auto",
+      content: data.text || "",
+      usage: data.usage,
     };
   }
 
@@ -227,14 +227,11 @@ class GrudgeAIClient {
       { role: "user", content: userMessage },
     ];
 
-    // Check if we should use Puter AI directly (no streaming, but works)
     const status = this.statusCache;
     const cloudDown = status && !status.cloud.online && !status.ollama.online;
-    const puterReady = isPuterReady();
 
-    if ((override === "puter" || cloudDown) && puterReady) {
-      // Puter doesn't support SSE streaming — do a full request and yield the result
-      const result = await this.chatViaPuter({ messages, temperature: undefined });
+    if (override === "puter" || cloudDown) {
+      const result = await this.chatViaRouter({ messages });
       yield result.content;
       return;
     }
@@ -255,13 +252,9 @@ class GrudgeAIClient {
       });
 
       if (!res.ok || !res.body) {
-        // Stream failed — fall back to Puter non-streaming
-        if (puterReady) {
-          const result = await this.chatViaPuter({ messages, temperature: undefined });
-          yield result.content;
-          return;
-        }
-        throw new Error(`Stream failed: ${res.status}`);
+        const result = await this.chatViaRouter({ messages });
+        yield result.content;
+        return;
       }
 
       const reader = res.body.getReader();
@@ -283,13 +276,13 @@ class GrudgeAIClient {
         }
       }
     } catch (err) {
-      // Gateway network error — fall back to Puter
-      if (puterReady) {
-        const result = await this.chatViaPuter({ messages, temperature: undefined });
+      try {
+        const result = await this.chatViaRouter({ messages });
         yield result.content;
         return;
+      } catch {
+        throw err;
       }
-      throw err;
     }
   }
 }

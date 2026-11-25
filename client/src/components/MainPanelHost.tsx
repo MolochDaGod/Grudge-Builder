@@ -1,17 +1,26 @@
 /**
- * MainPanelHost — embeds Warlords-era main panel from ui.grudge-studio.com.
+ * MainPanelHost — embeds the production Warlords main panel.
  *
- * SSOT: https://ui.grudge-studio.com/main-panel.html?era=warlords
- * Equipment tab uses tactical-infinity paperdoll (portrait + gear slots).
- *
- * Usage:
- *   <MainPanelHost open={open} onClose={() => setOpen(false)} characterId={id} />
- *   Hotkey I or C-character menu can open this instead of InventoryModal.
+ * SSOT: same-origin /main-panel/ on Grudge-Builder (grudgewarlords.com).
+ * Full React panel: paperdoll, equipment, camps, boats, crew, pit, skills.
  */
 import { useEffect, useRef } from "react";
 import { X } from "lucide-react";
 
-const UI_HOST = "https://ui.grudge-studio.com";
+function panelOrigin() {
+  if (typeof window === "undefined") return "https://grudgewarlords.com";
+  const h = window.location.hostname;
+  if (
+    h === "grudgewarlords.com" ||
+    h.endsWith(".grudgewarlords.com") ||
+    h === "grudge-studio.com" ||
+    h.endsWith(".grudge-studio.com") ||
+    h.endsWith(".vercel.app")
+  ) {
+    return window.location.origin;
+  }
+  return "https://grudgewarlords.com";
+}
 
 export type MainPanelTab =
   | "equipment"
@@ -47,7 +56,7 @@ export function buildMainPanelUrl(opts: {
   embed?: boolean;
   characterId?: string | null;
 }): string {
-  const u = new URL(`${UI_HOST}/main-panel.html`);
+  const u = new URL("/main-panel/", panelOrigin());
   u.searchParams.set("era", opts.era || "warlords");
   if (opts.tab) u.searchParams.set("tab", opts.tab);
   if (opts.embed !== false) u.searchParams.set("embed", "1");
@@ -66,6 +75,7 @@ export default function MainPanelHost({
   className = "",
 }: MainPanelHostProps) {
   const iframeRef = useRef<HTMLIFrameElement>(null);
+  const targetOrigin = panelOrigin();
 
   const src = buildMainPanelUrl({
     era,
@@ -74,12 +84,10 @@ export default function MainPanelHost({
     characterId: inspect ? null : characterId,
   });
 
-  // Handshake: auth + optional inspect entity; listen for equip changes from panel
   useEffect(() => {
     if (!open) return;
     const onMsg = (e: MessageEvent) => {
       if (e.data?.type === "GRUDGE_EQUIP_CHANGE") {
-        // Parent game should re-apply character.equipment + mesh
         window.dispatchEvent(
           new CustomEvent("grudge:equip:change", {
             detail: {
@@ -100,7 +108,7 @@ export default function MainPanelHost({
             token,
             characterId: characterId || undefined,
           },
-          UI_HOST,
+          targetOrigin,
         );
       }
       if (inspect) {
@@ -118,13 +126,13 @@ export default function MainPanelHost({
             },
             equipment: inspect.equipment || {},
           },
-          UI_HOST,
+          targetOrigin,
         );
       }
     };
     window.addEventListener("message", onMsg);
     return () => window.removeEventListener("message", onMsg);
-  }, [open, token, characterId, inspect]);
+  }, [open, token, characterId, inspect, targetOrigin]);
 
   useEffect(() => {
     if (!open) return;
@@ -161,6 +169,7 @@ export default function MainPanelHost({
           src={src}
           className="w-full h-full border-0"
           allow="clipboard-write"
+          referrerPolicy="no-referrer"
         />
       </div>
     </div>

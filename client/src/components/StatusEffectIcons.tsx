@@ -4,6 +4,7 @@
  */
 import { useEffect, useState, useSyncExternalStore } from 'react';
 import { cn } from '@/lib/utils';
+import { cdnImageUrl, ICON_MISSING_STYLE } from '@shared/cdnImageUrl';
 import {
   getStatusDef,
   type ActiveStatusInstance,
@@ -162,9 +163,14 @@ function StatusIcon({
       ? Math.ceil(effect.remainingSec)
       : null;
 
-  // Prefer magic thumb → status icon path → emoji
-  const imgSrc = !imgFailed ? magicThumb || def?.icon || null : null;
+  // Prefer magic thumb → status icon path (CDN) → marker / emoji.
+  // Empty cdnImageUrl result is a miss (marker), never the original URL.
+  // data:/blob: thumbs pass through the helper; do not skip it.
+  const rawIcon = magicThumb || def?.icon || null;
+  const cdnIcon = rawIcon ? cdnImageUrl(rawIcon) : '';
+  const imgSrc = !imgFailed && cdnIcon ? cdnIcon : null;
   const emoji = magic?.emoji ?? def?.emoji ?? '•';
+  const showMissing = !imgSrc && !!rawIcon && !magicThumb;
 
   return (
     <div className="relative group" role="listitem" title={tip}>
@@ -183,11 +189,15 @@ function StatusIcon({
         {imgSrc ? (
           <img
             src={imgSrc}
-            alt={def?.name ?? magic?.name ?? effect.statusId}
+            alt={def?.label ?? magic?.label ?? effect.statusId}
             className="w-full h-full object-cover"
             onError={() => setImgFailed(true)}
             draggable={false}
           />
+        ) : showMissing ? (
+          <span className="icon-missing" style={ICON_MISSING_STYLE} title={def?.label}>
+            icon missing
+          </span>
         ) : (
           <span className="leading-none select-none" aria-hidden>
             {emoji}
@@ -219,12 +229,12 @@ function StatusIcon({
             polarity === 'debuff' ? 'text-red-400' : 'text-emerald-400',
           )}
         >
-          {def?.name ?? effect.statusId}
+          {def?.label ?? effect.statusId}
           {effect.stacks > 1 ? ` ×${effect.stacks}` : ''}
         </div>
         {magic && (
           <div className="text-[9px] mb-0.5" style={{ color: magic.color }}>
-            {magic.name} {polarity === 'debuff' ? 'debuff' : 'buff'} orb
+            {magic.label} {polarity === 'debuff' ? 'debuff' : 'buff'} orb
           </div>
         )}
         <div className="text-slate-400 leading-snug">{def?.description}</div>

@@ -7,7 +7,7 @@ import { shouldShowGrudgeToken } from "@/lib/grudgeTokenVisibility";
 import { GrudgeWalletModal } from "./GrudgeWalletModal";
 import { isAuthenticated, fetchWalletOverview } from "@/lib/grudgeBackend";
 import { fetchTreatyUnread } from "@/lib/treatyChat";
-import { assetUrl } from "@/lib/assetConfig";
+
 
 const GrudgeTokenHelmet = lazy(() =>
   import("./GrudgeTokenHelmet").then((m) => ({ default: m.GrudgeTokenHelmet })),
@@ -79,7 +79,7 @@ export function GrudgeTokenWidget() {
             fallback={
               <div className="w-full h-full flex items-center justify-center">
                 <img
-                  src={assetUrl("/sprites/gbux-token.png")}
+                  src="/sprites/gbux-token.png"
                   alt=""
                   className="w-10 h-10 rounded-full animate-pulse"
                 />

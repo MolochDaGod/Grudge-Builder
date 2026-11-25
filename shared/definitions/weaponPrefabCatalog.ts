@@ -25,7 +25,7 @@ export const WEAPON_STYLE_DEFS = [
   {
     index: 1,
     id: 'copper',
-    label: 'Copper / Crude',
+    label: 'Style 1 (Basic)',
     pack: 'glitch-weapons',
     material: 'copper',
     mapsToTierHint: 1,
@@ -33,7 +33,7 @@ export const WEAPON_STYLE_DEFS = [
   {
     index: 2,
     id: 'silver',
-    label: 'Silver / Iron',
+    label: 'Style 2 (Standard)',
     pack: 'glitch-weapons',
     material: 'silver',
     mapsToTierHint: 2,
@@ -41,7 +41,7 @@ export const WEAPON_STYLE_DEFS = [
   {
     index: 3,
     id: 'gold',
-    label: 'Gold / Steel',
+    label: 'Style 3 (Quality)',
     pack: 'glitch-weapons',
     material: 'gold',
     mapsToTierHint: 3,
@@ -49,7 +49,7 @@ export const WEAPON_STYLE_DEFS = [
   {
     index: 4,
     id: 'diamond',
-    label: 'Diamond / Hardened',
+    label: 'Style 4 (Premium)',
     pack: 'glitch-weapons',
     material: 'diamond',
     mapsToTierHint: 4,
@@ -186,7 +186,7 @@ export const STYLE_ICON_MATCH: Record<WeaponStyleId, WeaponStyleIconMatch> = {
     primaryHex: '#b87333',
     secondaryHex: '#5c4033',
     glowHex: '#000000',
-    textureNotes: 'Dull brass/copper metal, brown leather wrap, no glow',
+    textureNotes: 'Dull bronze-toned metal, brown leather wrap, no glow',
     packIconHint: 'Crossbow_01.png',
     spriteId: 'blackpowder_blaster',
   },
@@ -195,7 +195,7 @@ export const STYLE_ICON_MATCH: Record<WeaponStyleId, WeaponStyleIconMatch> = {
     primaryHex: '#c0c0c0',
     secondaryHex: '#4a5568',
     glowHex: '#a0aec0',
-    textureNotes: 'Polished steel/silver, cool grey stock, faint edge shine',
+    textureNotes: 'Polished grey metal, cool grey stock, faint edge shine',
     packIconHint: 'Crossbow_05.png',
     spriteId: 'ironstorm_gun',
   },
@@ -204,7 +204,7 @@ export const STYLE_ICON_MATCH: Record<WeaponStyleId, WeaponStyleIconMatch> = {
     primaryHex: '#d4af37',
     secondaryHex: '#8b4513',
     glowHex: '#f6e05e',
-    textureNotes: 'Ornate gold inlay, warm wood, pyro/rifle brass fittings',
+    textureNotes: 'Ornate inlay, warm wood, pyro/rifle fittings',
     packIconHint: 'Crossbow_08.png',
     spriteId: 'emberrifle',
   },
@@ -213,7 +213,7 @@ export const STYLE_ICON_MATCH: Record<WeaponStyleId, WeaponStyleIconMatch> = {
     primaryHex: '#a5f3fc',
     secondaryHex: '#1e3a5f',
     glowHex: '#67e8f9',
-    textureNotes: 'Crystal/ice-blue metal, harpoon-like spear tip, cyan edge',
+    textureNotes: 'Crystal/ice-blue finish, harpoon-like spear tip, cyan edge',
     packIconHint: 'Crossbow_10.png',
     spriteId: 'wraithbarrel',
   },
@@ -582,7 +582,7 @@ export const WEAPON_PREFAB_MATRIX: Record<
         styleId: 'copper',
         mesh: viking('shield'),
         icon: '/icons/weapons/shields/style_copper.png',
-        label: 'Viking Round (copper/iron look)',
+        label: 'Viking Round Shield',
         pack: 'cold-biome',
       },
       {
@@ -716,7 +716,7 @@ export const WEAPON_PREFAB_MATRIX: Record<
           s.id,
           bone,
           't0-bone-dagger',
-          'T0 bone dagger (2bone_knife.glb) — copper/crude style',
+          'T0 bone dagger (2bone_knife.glb) — basic style',
         );
       }
       return fallbackFrom(
@@ -901,17 +901,17 @@ export const WEAPON_PREFAB_MATRIX: Record<
       {
         styleId: 'copper',
         file: 'gun_style_copper.glb',
-        note: 'Brass/copper stock pistol — blackpowder_blaster icon',
+        note: 'Basic stock pistol — blackpowder_blaster icon',
       },
       {
         styleId: 'silver',
         file: 'gun_style_silver.glb',
-        note: 'Steampunk revolver — ironstorm_gun icon, silver steel',
+        note: 'Steampunk revolver — ironstorm_gun icon',
       },
       {
         styleId: 'gold',
         file: 'gun_style_gold.glb',
-        note: 'Pyroslinger rifle — emberrifle icon, gold/brass inlay',
+        note: 'Pyroslinger rifle — emberrifle icon',
       },
       {
         styleId: 'diamond',

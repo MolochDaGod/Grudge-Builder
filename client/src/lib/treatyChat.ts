@@ -102,6 +102,21 @@ export async function fetchTreatySocial(): Promise<TreatySocial> {
   return treatyFetch<TreatySocial>("/social");
 }
 
+/** Ask Grudge Agent (@grudagamebot) via Treaty proxy — continued multi-turn on agent side. */
+export async function sendTreatyAgentChat(text: string): Promise<{
+  ok: boolean;
+  reply?: string;
+  model?: string;
+  messagesInContext?: number;
+  error?: string;
+}> {
+  return treatyFetch("/agent/chat", {
+    method: "POST",
+    headers: { "Content-Type": "application/json" },
+    body: JSON.stringify({ text }),
+  });
+}
+
 export async function sendTreatyFriendRequest(query: string) {
   return treatyFetch<{ request: unknown; target: unknown }>("/friends/request", {
     method: "POST",

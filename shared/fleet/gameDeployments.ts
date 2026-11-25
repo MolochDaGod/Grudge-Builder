@@ -3,9 +3,9 @@
  * Import from @shared/fleet; do not hardcode game URLs in pages.
  *
  * Canonical **Three.js deploy path** (primary play surface):
- *   tutorial → 1024m home island → world map (6 race cities + 9 sectors) →
- *   open world zone (harvest + dungeons + capitals) → optional sail / PvP
- * See docs/THREE_DEPLOY.md
+ *   leviathan cinema → shipwreck tutorial (once) → home island →
+ *   world map → open world zone → optional sail / PvP
+ * See docs/GAME_FLOW_SSOT.md · docs/THREE_DEPLOY.md
  */
 import { FLEET_URLS } from "./manifest";
 import { warlordsPlayUrl } from "./warlordsDomains";
@@ -35,6 +35,8 @@ export const FLEET_GAME_ORIGINS = {
    * Same Railway account/characters as all fleet games (app=gst on id.grudge-studio.com).
    */
   gst: "https://grudge-studio.com/gst",
+  /** Warlords procedural crawl — same Railway characters, no new bag. */
+  dungeon: "https://grudge-dungeons.vercel.app",
 } as const;
 
 // ── Three.js deploy path (ONE TRUTH entry URLs) ─────────────────────────────
@@ -58,6 +60,7 @@ export const THREE_PORT_PLAY_URL = `${FLEET_URLS.threePort}?mode=play&sector=hav
 
 /** Ordered primary path for Play / onboarding (Three.js first) */
 export const THREE_DEPLOY_PATH_IDS = [
+  "leviathan",
   "tutorial",
   "homeisland",
   "worldmap",
@@ -128,8 +131,8 @@ export interface GameDeployment {
 
 /**
  * Recommended Three.js path (shown on /home):
- * intro → create → airship/combat → tutorial → raft → home island → world map → sail
- * SSOT detail: shared/definitions/warlordsProductionFlow.ts
+ * intro → create → leviathan → tutorial → home island → world map → open world
+ * SSOT: shared/definitions/warlordsProductionFlow.ts
  */
 export const PRODUCTION_DEPLOYMENT_PATH: GameDeployment[] = [
   {
@@ -137,7 +140,7 @@ export const PRODUCTION_DEPLOYMENT_PATH: GameDeployment[] = [
     title: "Warlords Start",
     subtitle: "Full production pipeline · tutorial then home island",
     description:
-      "Intro → create → airship (combat) → tutorial island → craft raft → home island (not level 20) → open world.",
+      "Intro → create → leviathan cinema → shipwreck tutorial (once) → home island (no L20 gate) → open world.",
     url: "/warlords/start",
     icon: "flame",
     tier: "core",
@@ -148,13 +151,27 @@ export const PRODUCTION_DEPLOYMENT_PATH: GameDeployment[] = [
     order: 5,
   },
   {
+    id: "leviathan",
+    title: "First Voyage",
+    subtitle: "Leviathan · ship destroy · wash-up",
+    description:
+      "Required once per account. Leviathan ocean cinema, then pirate-islands shipwreck tutorial.",
+    url: "/leviathan-cinema",
+    icon: "flame",
+    tier: "core",
+    badge: "Once",
+    badgeColor: "amber",
+    stage: "onboard",
+    featured: true,
+    order: 8,
+  },
+  {
     id: "tutorial",
     title: "Shipwreck Adventure",
     subtitle: "Solo · Pirate Island · Not Multiplayer Lobby",
     description:
-      "Solo start: wash up on shipwreck → sticks/stones → tools → craft raft. " +
-      "Completing the raft unlocks home-island intro and creation (never level 20).",
-    url: "/tutorial",
+      "Solo Colyseus tutorial: wash-up → harvest → T0 tools → raft → faction commander. Unlocks home island.",
+    url: "/tutorial?map=pirate-islands",
     icon: "flame",
     tier: "core",
     badge: "Start",
@@ -166,13 +183,13 @@ export const PRODUCTION_DEPLOYMENT_PATH: GameDeployment[] = [
   {
     id: "homeisland",
     title: "Home Island 3D",
-    subtitle: "Level 20+ · Personal Seed · Home Block Center",
+    subtitle: "After tutorial · account island · visitors",
     description:
-      "Level 20: talk to your faction captain → mission End Game → abandon-ship cinematic (sink + jump all) → home island. URL: /homeisland",
-    url: "/homeisland?cinematic=abandon-ship&from=end-game",
+      "Personal 1024m island after the first voyage. No level-20 gate. Colyseus home_island keyed by account.",
+    url: "/home-island",
     icon: "leaf",
     tier: "core",
-    badge: "Lv 20",
+    badge: "Base",
     badgeColor: "emerald",
     stage: "home",
     featured: true,
@@ -553,6 +570,167 @@ export function threePlayNowPath(): string {
 export const WARLORDS_LOBBY_PATH =
   "/island-3d?mode=lobby&map=pirate-islands" as const;
 
+/** Live Warlords crawl SPA — threejs-procedural-dungeon. No new host. */
+export const WARLORDS_DUNGEON_ORIGIN = "https://grudge-dungeons.vercel.app";
+
+/** Same 8-class roster the crawl SPA binds (`src/content/era/warlords.js`). */
+export const DUNGEON_CLASS_IDS = [
+  "mage",
+  "priest",
+  "warrior",
+  "raider",
+  "ranger",
+  "thief",
+  "worge",
+  "verduror",
+] as const;
+
+export type DungeonClassId = (typeof DUNGEON_CLASS_IDS)[number];
+
+export const DUNGEON_CLASS_LABEL: Record<DungeonClassId, string> = {
+  mage: "Mage",
+  priest: "Priest",
+  warrior: "Warrior",
+  raider: "Raider",
+  ranger: "Ranger",
+  thief: "Thief",
+  worge: "Worge",
+  verduror: "Verduror",
+};
+
+/** Faction table the crawl uses for AI kit fill (dwarf = Fabled). */
+const DUNGEON_RACE_FACTION: Record<string, string> = {
+  human: "crusade",
+  barbarian: "crusade",
+  elf: "fabled",
+  dwarf: "fabled",
+  orc: "legion",
+  undead: "legion",
+};
+
+const DUNGEON_RACE_IDS = Object.keys(DUNGEON_RACE_FACTION);
+
+/** 3 AI classes so a 4-man stays tank / healer / dps / peel. Same as crawl `DUNGEON_FILL`. */
+export const DUNGEON_FILL: Record<string, [DungeonClassId, DungeonClassId, DungeonClassId]> = {
+  warrior: ["priest", "ranger", "thief"],
+  raider: ["verduror", "mage", "thief"],
+  priest: ["warrior", "ranger", "thief"],
+  verduror: ["raider", "mage", "ranger"],
+  mage: ["warrior", "priest", "ranger"],
+  ranger: ["warrior", "priest", "thief"],
+  thief: ["warrior", "priest", "mage"],
+  worge: ["priest", "ranger", "warrior"],
+};
+
+export function normalizeDungeonClassId(raw?: string | null): DungeonClassId {
+  const s = String(raw || "").trim().toLowerCase().replace(/[\s-]+/g, "_");
+  if ((DUNGEON_CLASS_IDS as readonly string[]).includes(s)) return s as DungeonClassId;
+  if (s === "worg" || s === "worges" || s === "werewolf" || s.includes("shape")) return "worge";
+  if (s === "mage_priest" || s === "magepriest" || s === "wizard" || s === "sorcerer") return "mage";
+  if (s === "cleric" || s === "healer") return "priest";
+  if (s === "rogue" || s === "assassin") return "thief";
+  if (s === "hunter" || s === "archer" || s === "scout") return "ranger";
+  if (s === "berserker" || s === "knight" || s === "tank") return s === "berserker" ? "raider" : "warrior";
+  if (s === "druid" || s === "nature") return "verduror";
+  return "warrior";
+}
+
+export function dungeonFillClasses(playerClass?: string | null): [DungeonClassId, DungeonClassId, DungeonClassId] {
+  const id = normalizeDungeonClassId(playerClass);
+  return (DUNGEON_FILL[id] || DUNGEON_FILL.warrior).slice() as [DungeonClassId, DungeonClassId, DungeonClassId];
+}
+
+/** Same-faction Toon kits as the player (Crusade / Fabled / Legion). */
+export function dungeonAllyRaces(playerRace?: string | null): [string, string, string] {
+  const race = String(playerRace || "human").trim().toLowerCase();
+  const fac = DUNGEON_RACE_FACTION[race] || DUNGEON_RACE_FACTION.human;
+  const same = DUNGEON_RACE_IDS.filter((id) => DUNGEON_RACE_FACTION[id] === fac);
+  const pool = same.length ? same : DUNGEON_RACE_IDS;
+  const others = pool.filter((id) => id !== race);
+  const src = others.length ? others : pool;
+  return [0, 1, 2].map((i) => src[i % src.length]) as [string, string, string];
+}
+
+export type DungeonAllySlot = {
+  characterId?: string | null;
+  raceId?: string | null;
+  classId?: string | null;
+  weaponId?: string | null;
+};
+
+/** Pinned lore crawls — same ids as dungeon `src/content/prefabs.js`. */
+export const DUNGEON_PREFABS = [
+  { id: "crusade-bastion", label: "Sunken Bastion", faction: "Crusade", kind: "faction", theme: "ancient", seed: 1701, blurb: "Crusade fortress — Valorheart kits." },
+  { id: "fabled-echoes", label: "Vault of Echoes", faction: "Fabled", kind: "faction", theme: "frost", seed: 1702, blurb: "Fabled temple — elf and dwarf wardens." },
+  { id: "legion-ash", label: "Ash Forge", faction: "Legion", kind: "faction", theme: "molten", seed: 1703, blurb: "Volcanic Legion forge — orc and undead packs." },
+  { id: "monster-hollow", label: "Crab Hollow", faction: null, kind: "biome", theme: "verdant", seed: 1704, blurb: "Creature crawl — no faction heroes." },
+  { id: "warlord-maw", label: "The Abyssal Maw", faction: null, kind: "boss", theme: "grim", seed: 1705, blurb: "Boss only — empty halls, one warlord." },
+  { id: "pirate-freeport", label: "Free Port · Pirate Lords", faction: "Pirate", kind: "pirate", theme: "grim", seed: 1706, blurb: "Scourge → John Wayne + airship → Racalvin." },
+] as const;
+
+export type WarlordsDungeonPlayOpts = {
+  characterId?: string | null;
+  raceId?: string | null;
+  classId?: string | null;
+  weaponId?: string | null;
+  /** Up to 3 slots. Null/empty = class-fill AI kit. Roster UUID = that hero as AI. */
+  allies?: Array<DungeonAllySlot | null | undefined>;
+  /** Production auto-forge + enter. Default true. */
+  play?: boolean;
+  seed?: string | number | null;
+  kind?: string | null;
+  /** Pinned lore crawl — crusade-bastion | fabled-echoes | legion-ash | monster-hollow | warlord-maw | pirate-freeport */
+  prefab?: string | null;
+};
+
+function csv3(parts: Array<string | null | undefined>): string {
+  const row = [parts[0] || "", parts[1] || "", parts[2] || ""];
+  return row.join(",");
+}
+
+export function warlordsDungeonPlayUrl(opts?: WarlordsDungeonPlayOpts): string {
+  const u = new URL(WARLORDS_DUNGEON_ORIGIN);
+  u.searchParams.set("era", "warlords");
+  u.searchParams.set("from", "home");
+  u.searchParams.set("linear", "1");
+  u.searchParams.set("play", opts?.play === false ? "0" : "1");
+  if (opts?.characterId) u.searchParams.set("characterId", opts.characterId);
+  if (opts?.raceId) u.searchParams.set("race", String(opts.raceId).trim().toLowerCase());
+  if (opts?.classId) u.searchParams.set("class", normalizeDungeonClassId(opts.classId));
+  if (opts?.weaponId) u.searchParams.set("weapon", opts.weaponId);
+  if (opts?.prefab) {
+    const pin = DUNGEON_PREFABS.find((p) => p.id === opts.prefab);
+    u.searchParams.set("prefab", opts.prefab);
+    if (pin) {
+      u.searchParams.set("kind", pin.kind);
+      u.searchParams.set("theme", pin.theme);
+      u.searchParams.set("seed", String(pin.seed));
+    }
+  }
+  if (opts?.seed != null && String(opts.seed).trim() && !opts?.prefab) {
+    u.searchParams.set("seed", String(opts.seed).trim());
+  }
+  if (opts?.kind && !opts?.prefab) u.searchParams.set("kind", opts.kind);
+  if (opts?.allies && opts.allies.length) {
+    const ids: string[] = ["", "", ""];
+    const races: string[] = ["", "", ""];
+    const classes: string[] = ["", "", ""];
+    const weapons: string[] = ["", "", ""];
+    opts.allies.slice(0, 3).forEach((slot, i) => {
+      if (!slot) return;
+      if (slot.characterId) ids[i] = String(slot.characterId).trim();
+      if (slot.raceId) races[i] = String(slot.raceId).trim().toLowerCase();
+      if (slot.classId) classes[i] = normalizeDungeonClassId(slot.classId);
+      if (slot.weaponId) weapons[i] = String(slot.weaponId).trim();
+    });
+    if (ids.some(Boolean)) u.searchParams.set("allyIds", csv3(ids));
+    if (races.some(Boolean)) u.searchParams.set("allyRace", csv3(races));
+    if (classes.some(Boolean)) u.searchParams.set("allyClass", csv3(classes));
+    if (weapons.some(Boolean)) u.searchParams.set("allyWeapon", csv3(weapons));
+  }
+  return u.toString();
+}
+
 /** Classic 2D Warlords island play (same client, 2D engine). */
 export const WARLORDS_2D_PLAY_PATH = "/island" as const;
 
@@ -560,16 +738,40 @@ export const WARLORDS_2D_PLAY_PATH = "/island" as const;
 export const WARLORDS_OCEAN_PATH = "/ocean?worldSeed=grudge-world-1" as const;
 
 /**
- * Production home destinations — nothing else on /home for Warlords era.
- * Order matches player funnel: roster → tutorial → 2D → home → ocean → map → lobby.
+ * Production home destinations on /home (WCS hub + play).
+ * Craft / arsenal first; play tiles after.
  */
 export const WARLORDS_HOME_ACTIONS = [
+  {
+    id: "craft",
+    title: "Crafting",
+    subtitle: "Stations · T0–T8 · account bag",
+    description: "WCS crafting — ObjectStore recipes, shared bag, XP on the active hero.",
+    url: "/crafting",
+    icon: "hammer" as const,
+  },
+  {
+    id: "arsenal",
+    title: "Arsenal",
+    subtitle: "Weapons · armor · skills",
+    description: "Production arsenal catalog with pack icons and T0–T8 types.",
+    url: "/arsenal",
+    icon: "swords" as const,
+  },
+  {
+    id: "craft-suite",
+    title: "WCS suite",
+    subtitle: "grudgewarlords.com/craft/",
+    description: "Full production craft HTML — camps, benches, item DB, inventory.",
+    url: "/craft/",
+    icon: "box" as const,
+  },
   {
     id: "characters",
     title: "Characters",
     subtitle: "Roster · create · equip",
     description: "View and select your Warlords heroes. Create at Foundry when empty.",
-    url: "/character",
+    url: "/heroes",
     icon: "user" as const,
   },
   {
@@ -588,6 +790,14 @@ export const WARLORDS_HOME_ACTIONS = [
       "Your Three.js home island — granted after tutorial + raft (not level 20). Skips tutorial forever once claimed.",
     url: THREE_HOME_ISLAND_PATH,
     icon: "globe" as const,
+  },
+  {
+    id: "dungeon",
+    title: "Warlords Dungeon",
+    subtitle: "Linear crawl · AI party · boss slain",
+    description: "Production generative crawl — your hero plus AI allies or other account heroes as AI.",
+    url: "/dungeon",
+    icon: "map" as const,
   },
   {
     id: "combat-airship",

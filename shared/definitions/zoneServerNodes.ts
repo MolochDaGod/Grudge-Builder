@@ -99,7 +99,7 @@ export interface HarvestNode extends ZoneNode {
 
 // ── NPC Nodes ────────────────────────────────────────────────────────────────
 
-export type NPCFaction = 'crusade' | 'fabled' | 'legion' | 'worge' | 'neutral' | 'hostile';
+export type NPCFaction = 'crusade' | 'fabled' | 'legion' | 'worge' | 'neutral' | 'hostile' | 'pirate';
 export type NPCRole = 'vendor' | 'quest_giver' | 'guard' | 'trainer' | 'innkeeper' | 'blacksmith' | 'faction_rep';
 
 export interface NPCCampNode extends ZoneNode {

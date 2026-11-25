@@ -1,5 +1,5 @@
 /**
- * LeviathanOceanCinema — production /island-3d movie intro (v22 · film post + Box3).
+ * LeviathanOceanCinema — production /island-3d movie intro (v26 · rogue wave + film post).
  *
  * HARD RULES:
  *  - 1 unit = 1 m · orc mages ~2.2 m · human 1.8 m · Box3 SI audit on every actor
@@ -80,6 +80,9 @@ import {
   applyWaterCycloneLook,
   tickWaterCyclone,
   surfaceBiasFromLeviAt,
+  CinemaRogueWave,
+  CinemaHorizonMist,
+  CinemaMoonShafts,
 } from './LeviathanLookAndWater';
 import { CinemaBoxSystems } from './CinemaBoxSystems';
 import { CinemaSceneAudio } from './CinemaSceneAudio';
@@ -104,6 +107,7 @@ import {
   createShatterBurst,
   integrateDebrisPiece,
   integrateLimpRagdoll,
+  pinataHullIntoFour,
   tickShatterBurst,
   type CinemaDebrisPiece,
   type CinemaRagdollState,
@@ -116,7 +120,9 @@ export {
 };
 export const SHIPWRECK_CINEMA_DURATION_SEC = LEVIATHAN_BATTLE_DURATION_SEC;
 export const SHIPWRECK_CINEMA_SKIPPABLE_AFTER_SEC = LEVIATHAN_BATTLE_SKIPPABLE_AFTER_SEC;
-export const CINEMA_LOGO_URL = '/cinema/grudge-logo.png';
+export const CINEMA_LOGO_URL = '/cinema/grudge-island-rts-load.png';
+/** @deprecated alias — same full-screen load cover */
+export const CINEMA_LOAD_COVER_URL = CINEMA_LOGO_URL;
 export const HUMAN_HEIGHT_M = CIN_HUMAN_M;
 export const HERO_THROW_M = CIN_HERO_THROW_M;
 
@@ -145,13 +151,14 @@ function resolveCinemaQuality(): CinemaQuality {
   } catch {
     /* ignore */
   }
-  const cores = navigator.hardwareConcurrency || 4;
-  const mem = (navigator as Navigator & { deviceMemory?: number }).deviceMemory ?? 4;
-  const dpr = window.devicePixelRatio || 1;
+  const cores = navigator.hardwareConcurrency || 8;
+  const mem = (navigator as Navigator & { deviceMemory?: number }).deviceMemory ?? 8;
   const mobile = /Mobi|Android|iPhone|iPad/i.test(navigator.userAgent);
-  if (mobile || cores <= 4 || mem <= 4 || dpr >= 2.5) return 'low';
-  if (cores <= 6 || mem <= 6) return 'medium';
-  return 'high';
+  // 4-core laptops used to force `low` and strip bloom/rain/shafts — film default is medium
+  if (mobile && (cores <= 4 || mem <= 4)) return 'low';
+  if (mobile || cores <= 4 || mem <= 4) return 'medium';
+  if (cores >= 8 && mem >= 8) return 'high';
+  return 'medium';
 }
 
 // â”€â”€ helpers â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
@@ -387,6 +394,8 @@ export class LeviathanOceanCinema {
   } = { intact: null, damaged: null, sinking: null };
   /** Soft sink offset after explosion state (m) */
   private shipSinkY = 0;
+  /** After pinata, hull + group keep going under regardless of multi-state GLBs */
+  private forceShipSink = false;
   private shipBlend: {
     from: THREE.Object3D[];
     to: THREE.Object3D[];
@@ -443,11 +452,19 @@ export class LeviathanOceanCinema {
   private throwDur = 2.8;
   private throwFrom = new THREE.Vector3();
   private throwTo = new THREE.Vector3();
+  private throwStartQ = new THREE.Quaternion();
+  private throwFaceUpQ = new THREE.Quaternion();
   private tornadoRoot: THREE.Object3D | null = null;
   private cycloneClones: THREE.Object3D[] = [];
   private fluidSplash: THREE.Object3D | null = null;
   private fluidMixer: THREE.AnimationMixer | null = null;
   private waterSplash: LeviathanWaterSplash | null = null;
+  private horizonMist: CinemaHorizonMist | null = null;
+  private moonShafts: CinemaMoonShafts | null = null;
+  private rimLight: THREE.DirectionalLight | null = null;
+  private dutchCur = 0;
+  /** Rogue-wave wall — crash + hero ride + debris shove */
+  private rogueWave: CinemaRogueWave | null = null;
   private lastLeviSurfaceBias = -99;
   private lastLeviPos = new THREE.Vector3();
   private leviSpeedMps = 0;
@@ -663,7 +680,7 @@ export class LeviathanOceanCinema {
     this.stage = new CinemaStageGraph(false);
     this.cinemaQuality = resolveCinemaQuality();
     this.fpsBudget = new CinemaFpsBudget(this.cinemaQuality);
-    // Budget table — aim ~100 FPS; runtime EMA may step down post/DPR/rain
+    // Film budget — 48 FPS comfort; do not strip bloom/rain for a healthy 60 FPS machine
     const q = this.cinemaQuality;
     const dprCap = q === 'high' ? 1.35 : q === 'medium' ? 1.15 : 1.0;
     const shadowMap = q === 'high' ? 1024 : q === 'medium' ? 768 : 512;
@@ -723,7 +740,16 @@ export class LeviathanOceanCinema {
     // Lightning fill burst (storm only)
     this.flashLight = new THREE.PointLight(0xc8d8ff, 0, 120, 2);
     this.flashLight.position.set(0, 40, 0);
-    this.scene.add(this.hemi, this.dirLight, this.dirLight.target, this.flashLight);
+    this.rimLight = new THREE.DirectionalLight(0xc8dcff, 0.55);
+    this.rimLight.position.copy(this.moonOffset);
+    this.scene.add(
+      this.hemi,
+      this.dirLight,
+      this.dirLight.target,
+      this.flashLight,
+      this.rimLight,
+      this.rimLight.target,
+    );
 
     this.reportLoad(0.06, 'Building ocean · night sky…');
     try {
@@ -732,6 +758,10 @@ export class LeviathanOceanCinema {
       // Storm rain (liquid atmosphere) — scaled by quality
       this.rain = createCinemaRain(this.rainCount);
       this.scene.add(this.rain);
+      if (q !== 'low') {
+        this.horizonMist = new CinemaHorizonMist(this.scene, q === 'high' ? 4 : 3);
+        this.moonShafts = new CinemaMoonShafts(this.scene);
+      }
     } catch (e) {
       console.error('[cinema] env build soft-fail', e);
     }
@@ -1157,6 +1187,7 @@ export class LeviathanOceanCinema {
     applyLeviathanWaterlineSplit(this.leviathan);
     this.leviathanRoot.add(this.leviathan);
     this.waterSplash = new LeviathanWaterSplash(this.scene, this.splashBudget);
+    this.rogueWave = new CinemaRogueWave(this.scene);
     this.lastLeviPos.copy(this.leviathanRoot.position);
     this.stage.place(this.leviathanRoot, 'levi_hidden');
     // Deep + flat; Sladania swim clip at 0.5× while rising
@@ -1216,16 +1247,15 @@ export class LeviathanOceanCinema {
     // Dragon beam pack: flame aura, hot hands, fireballs, moonâ†’dragon blast, shield bounce
     this.dragonVfx = new LeviathanDragonBeamVfx(this.scene);
 
-    // Logo overlay
+    // Full-screen load cover (Grudge Island RTS title art) after rogue wave
     this.logoEl = document.createElement('img');
     this.logoEl.src = CINEMA_LOGO_URL;
-    this.logoEl.alt = 'Grudge';
+    this.logoEl.alt = 'Grudge Island RTS';
     this.logoEl.onerror = () => {
-      // Fallback: root brand mark (not the large cinema stinger)
-      if (this.logoEl) this.logoEl.src = '/grudge-logo.png';
+      if (this.logoEl) this.logoEl.src = '/cinema/grudge-logo.png';
     };
     this.logoEl.style.cssText =
-      'position:absolute;inset:0;margin:auto;max-width:42vw;max-height:28vh;opacity:0;pointer-events:none;transition:opacity .8s;z-index:5;filter:drop-shadow(0 0 24px rgba(0,0,0,.8))';
+      'position:absolute;inset:0;width:100%;height:100%;object-fit:cover;opacity:0;pointer-events:none;transition:opacity 1.15s ease;z-index:8;background:#04080f';
     this.host.style.position = this.host.style.position || 'relative';
     this.host.appendChild(this.logoEl);
 
@@ -1241,7 +1271,11 @@ export class LeviathanOceanCinema {
     );
 
     // GPU warm: compile materials + 2 dummy frames so first play frame isn't a hitch
-    this.reportLoad(0.88, 'Compiling materials…');
+    this.reportLoad(0.82, 'VFX · tornado · floor · plumes…');
+    await this.loadVfxBackground();
+    if (this.disposed) return;
+
+    this.reportLoad(0.9, 'Compiling materials…');
     await this.warmGpu();
     if (this.disposed) return;
 
@@ -1270,8 +1304,6 @@ export class LeviathanOceanCinema {
     // Reset clock so timeline starts clean after load (no hitch in first second)
     this.clock.getDelta();
     this.tick();
-
-    void this.loadVfxBackground();
   }
 
   /**
@@ -1682,7 +1714,7 @@ export class LeviathanOceanCinema {
     this.sceneAudio.onBeat(beat, prev !== idx || force);
 
     // Camera — ship-linked offsets + film blend
-    this.bindBeatCamera(beat);
+    this.bindBeatCamera(beat, prev < 0 || force);
 
     // Movie film look targets (smoothed in tick)
     this.bloomCur = beat.bloom ?? 0.35;
@@ -1692,7 +1724,9 @@ export class LeviathanOceanCinema {
 
     // Sparse film impacts — only pinata / true shield shatter (not every beam frame)
     if (prev !== idx) {
-      if (beat.shipPinata) this.multiCam.impact(2.0, 0.14);
+      if (beat.shipPinata) this.multiCam.impact(2.2, 0.16);
+      else if ((beat.rogueWave ?? 0) > 0.7) this.multiCam.impact(1.8, 0.12);
+      else if (beat.dragonPhase === 'blast') this.multiCam.impact(1.5, 0.1);
       else if (beat.shieldShatter) this.multiCam.impact(1.4, 0.1);
       this.lastBeatId = beat.id;
     }
@@ -1944,9 +1978,10 @@ export class LeviathanOceanCinema {
       }
     }
 
-    // Logo / blackout
+    // Full-screen RTS load cover on logo beats (and deep blackout)
     if (this.logoEl) {
-      this.logoEl.style.opacity = beat.logo ? '1' : '0';
+      const cover = !!beat.logo || (beat.blackout ?? 0) >= 0.95;
+      this.logoEl.style.opacity = cover ? '1' : '0';
     }
   }
 
@@ -2187,7 +2222,7 @@ export class LeviathanOceanCinema {
     return /cam_(sail|deck|cast|breach|roar|rise|surface|dive|finisher)/i.test(key);
   }
 
-  private bindBeatCamera(beat: CinBattleBeat): void {
+  private bindBeatCamera(beat: CinBattleBeat, snap = false): void {
     const eyeKey = beat.camEye;
     const lookKey = beat.camLook;
     const [ex, ey, ez] = cinPos(eyeKey as Parameters<typeof cinPos>[0]);
@@ -2242,8 +2277,15 @@ export class LeviathanOceanCinema {
     const toLevi = new THREE.Vector3(leviAt.x - shipDeck.x, 0, leviAt.z - shipDeck.z);
     if (toLevi.lengthSq() < 1e-4) toLevi.set(0.25, 0, -1);
     else toLevi.normalize();
-    this.camMasterBack.copy(toLevi);
-    this.camMasterSide.set(-toLevi.z, 0, toLevi.x);
+    if (snap) {
+      this.camMasterBack.copy(toLevi);
+      this.camMasterSide.set(-toLevi.z, 0, toLevi.x);
+    } else {
+      this.camMasterBack.lerp(toLevi, 0.18);
+      this.camMasterBack.y = 0;
+      if (this.camMasterBack.lengthSq() > 1e-6) this.camMasterBack.normalize();
+      this.camMasterSide.set(-this.camMasterBack.z, 0, this.camMasterBack.x);
+    }
 
     // Side-quarter: pull back further for 36 m LOA so hull + beast fit
     const sep = Math.hypot(leviAt.x - shipDeck.x, leviAt.z - shipDeck.z);
@@ -2253,15 +2295,20 @@ export class LeviathanOceanCinema {
 
     const hardCut = beat.camMode === 'cut' && /sail_alone|establish/i.test(beat.id);
     this.multiCam.setBlendSpeed(
-      hardCut ? 2.0 : beat.shipPinata || beat.id === 'breach' ? 0.55 : 0.38,
+      hardCut ? 1.4 : beat.shipPinata || beat.id === 'breach' ? 0.42 : 0.28,
     );
     const { eye, look } = this.computeCamEyeLook();
-    this.multiCam.setTarget(
-      [eye.x, eye.y, eye.z],
-      [look.x, look.y, look.z],
-      this.camFovCur,
-      hardCut ? 'cut' : 'blend',
-    );
+    // Restarting setTarget every beat made the lens jump. Follow after beat 0.
+    if (hardCut || snap) {
+      this.multiCam.setTarget(
+        [eye.x, eye.y, eye.z],
+        [look.x, look.y, look.z],
+        this.camFovCur,
+        hardCut ? 'cut' : 'blend',
+      );
+    } else {
+      this.multiCam.followTo([eye.x, eye.y, eye.z], [look.x, look.y, look.z], this.camFovCur);
+    }
   }
 
   /**
@@ -2582,7 +2629,7 @@ export class LeviathanOceanCinema {
    * Pathfinding: clamp to CIN_DECK_WALK + raycast Y at each step so feet stay on deck.
    */
   private tickMageCycles(dt: number, beat: CinBattleBeat): void {
-    if (this.pinataFired || this.ragdollActive) return;
+    if (this.pinataFired || this.ragdollActive || this.throwActive) return;
     const keys = ['mage_0', 'mage_1', 'mage_2', 'mage_3'] as const;
     const fleeing = new Set(this.fleeingMages.map((f) => f.root));
     // Intro chaos: mages pace even before wards (storm tension walk)
@@ -3575,11 +3622,9 @@ export class LeviathanOceanCinema {
     // Stop cast/walk — skeleton goes limp next
     const hi = this.deckMages.indexOf(hero);
     if (hi >= 0) {
-      try {
-        (this.mageDirectors[hi] as { mixer?: THREE.AnimationMixer }).mixer?.stopAllAction();
-      } catch {
-        /* ignore */
-      }
+      this.mageDirectors[hi]?.freezeLimp();
+      this.spineIk.get(`mage_${hi}`)?.setEnabled(false);
+      this.spineIk.aim(`mage_${hi}`, null, 0);
     }
 
     // Nothing in hand — hide weapons/staff on this body
@@ -3611,6 +3656,7 @@ export class LeviathanOceanCinema {
       }
     }
 
+    this.throwStartQ.copy(worldQuat);
     this.throwFrom.copy(worldPos);
     const [tx, ty, tz] = cinPos('throw_end');
     this.throwTo.set(
@@ -3632,25 +3678,55 @@ export class LeviathanOceanCinema {
     console.info('[cinema] HERO THROW → limp face-up water ragdoll (no bone spin)');
   }
 
+  private updateRogueWave(dt: number, beat: CinBattleBeat): void {
+    const wave = this.rogueWave;
+    if (!wave) return;
+    const want = beat.rogueWave ?? 0;
+    wave.setIntensity(want);
+    if (want <= 0.02 && wave.intensity <= 0.02) return;
+    const from = this.leviathanRoot.visible
+      ? this.leviathanRoot.position
+      : this.shipGroup.position.clone().add(new THREE.Vector3(-28, 0, -18));
+    wave.setTarget(this.shipGroup.position, from);
+    const wy = sampleCinemaWaterY(
+      this.shipGroup.position.x,
+      this.shipGroup.position.z,
+      this.elapsed,
+      this.stormCur ?? 0.8,
+    );
+    const wasCrashed = wave.crashed;
+    wave.tick(dt, this.shipGroup.position, wy);
+    if (wave.crashed && !wasCrashed) {
+      this.multiCam.impact(1.4, 0.1);
+      const at = wave.sampleCrest().clone();
+      this.waterSplash?.burstRise(at, 2.1);
+      this.blowbackT = Math.max(this.blowbackT, 1.6);
+    }
+  }
+
   private updateHeroThrow(dt: number): void {
     if (!this.throwActive || !this.throwHero) return;
     this.throwT += dt;
     const u = Math.min(1, this.throwT / this.throwDur);
     const e = u * u * (3 - 2 * u);
-    const x = THREE.MathUtils.lerp(this.throwFrom.x, this.throwTo.x, e);
-    const z = THREE.MathUtils.lerp(this.throwFrom.z, this.throwTo.z, e);
+    let x = THREE.MathUtils.lerp(this.throwFrom.x, this.throwTo.x, e);
+    let z = THREE.MathUtils.lerp(this.throwFrom.z, this.throwTo.z, e);
     const baseY = THREE.MathUtils.lerp(this.throwFrom.y, this.throwTo.y, e);
     const peak = 7 + CIN_HERO_THROW_M * 0.12;
-    const y = baseY + Math.sin(u * Math.PI) * peak;
+    let y = baseY + Math.sin(u * Math.PI) * peak;
+    // Ride the rogue-wave face through the water instead of a dry ballistic arc
+    const wave = this.rogueWave;
+    if (wave && wave.intensity > 0.25) {
+      const crest = wave.sampleCrest();
+      const ride = THREE.MathUtils.smoothstep(u, 0.05, 0.85);
+      x = THREE.MathUtils.lerp(x, crest.x, ride * 0.85);
+      z = THREE.MathUtils.lerp(z, crest.z, ride * 0.85);
+      y = THREE.MathUtils.lerp(y, crest.y + 0.4, ride);
+    }
     this.throwHero.position.set(x, y, z);
-    // Smooth arc into face-up — damped tumble, not continuous spin
-    this.throwHero.rotation.x = THREE.MathUtils.lerp(0.15, -Math.PI / 2, e);
-    this.throwHero.rotation.z = THREE.MathUtils.lerp(0, Math.sin(u * Math.PI) * 0.2, e);
-    this.throwHero.rotation.y = THREE.MathUtils.lerp(
-      this.throwHero.rotation.y,
-      Math.atan2(this.throwTo.x - this.throwFrom.x, this.throwTo.z - this.throwFrom.z),
-      dt * 1.2,
-    );
+    const yaw = Math.atan2(this.throwTo.x - this.throwFrom.x, this.throwTo.z - this.throwFrom.z);
+    this.throwFaceUpQ.setFromEuler(new THREE.Euler(-Math.PI / 2, yaw, 0, 'YXZ'));
+    this.throwHero.quaternion.copy(this.throwStartQ).slerp(this.throwFaceUpQ, e);
     this.throwHero.visible = true;
 
     if (u >= 1) {
@@ -3665,6 +3741,7 @@ export class LeviathanOceanCinema {
     this.ragdollActive = true;
     this.ragdollT = 0;
     this.limpRagdoll = beginLimpRagdoll(this.throwHero);
+    this.limpRagdoll.faceUpQ.copy(this.throwFaceUpQ);
     this.ragdollBones = this.limpRagdoll.bones;
     this.ragdollVel.copy(this.limpRagdoll.vel);
     const wy = sampleCinemaWaterY(
@@ -3737,11 +3814,13 @@ export class LeviathanOceanCinema {
 
       // Staggered exit speeds so they don't stack
       const speed = 14 + fleeIdx * 3.5 + Math.random() * 4;
+      const wavePush = this.rogueWave?.impulse() ?? new THREE.Vector3();
       const vel = camRight
         .clone()
-        .multiplyScalar(speed)
-        .addScaledVector(camFwd, 2 + fleeIdx)
-        .add(new THREE.Vector3(0, 1.2 + Math.random() * 1.5, 0));
+        .multiplyScalar(speed * 0.45)
+        .addScaledVector(camFwd, 1 + fleeIdx)
+        .add(wavePush.multiplyScalar(0.55))
+        .add(new THREE.Vector3(0, 2.4 + Math.random() * 2.2, 0));
 
       this.fleeingMages.push({
         root: m,
@@ -3769,10 +3848,20 @@ export class LeviathanOceanCinema {
       if (vx * vx + vz * vz > 0.04) {
         f.root.rotation.y = Math.atan2(vx, vz);
       }
-      // Bob slightly while "running"
+      // Swept into the swell — allow under-surface then bob on Gerstner
+      const wy = sampleCinemaWaterY(
+        f.root.position.x,
+        f.root.position.z,
+        this.elapsed,
+        this.stormCur ?? 0.7,
+      );
+      if (f.root.position.y < wy + 0.2) {
+        f.vel.y += (wy + 0.35 - f.root.position.y) * dt * 6;
+        f.vel.multiplyScalar(0.97);
+      }
       f.root.position.y = Math.max(
-        0.15,
-        f.root.position.y + Math.sin(this.elapsed * 14 + i) * dt * 0.4,
+        wy - 1.4,
+        f.root.position.y + Math.sin(this.elapsed * 10 + i) * dt * 0.35,
       );
       this.mageDirectors[f.dirIdx]?.mixer.update(dt);
 
@@ -3813,130 +3902,73 @@ export class LeviathanOceanCinema {
     this.playMeguminExplosion(origin, CIN_MEGUMIN_SPAN_M, 3.4);
     this.spawnExplosionBurst(origin);
 
-    // Chunk the live tz_pirate hull: blast → sink OR float as flaming wreckage.
-    // Boat never "vanishes" — debris IS the boat for the ending plate.
+    // Wave pinata: exactly 4 hull quarters that blast then SINK (no floating wreck ring).
     const source = this.intactShip;
     if (source) {
       source.updateMatrixWorld(true);
-      const pieces: THREE.Mesh[] = [];
-      source.traverse((o) => {
-        const m = o as THREE.Mesh;
-        if (!m.isMesh || !m.geometry) return;
-        if (/^camera$/i.test(m.name) || /cameranode|cam_target/i.test(m.name)) return;
-        const mats = Array.isArray(m.material) ? m.material : m.material ? [m.material] : [];
-        const names = mats.map((mat) => (mat.name || '').toLowerCase()).join(' ');
-        if (/water[123]/.test(names)) return;
-        m.geometry.computeBoundingSphere();
-        const r =
-          (m.geometry.boundingSphere?.radius ?? 0) *
-          Math.max(Math.abs(m.scale.x), Math.abs(m.scale.y), Math.abs(m.scale.z), 1e-6);
-        if (r < 0.008) return;
-        pieces.push(m);
-      });
+      const quarters = pinataHullIntoFour(source, origin);
+      console.info(`[cinema] ship pinata → ${quarters.length} sinking quarters`);
 
-      // Score by world-ish radius; prefer massy timber for the 20 float keepers
-      const scored = pieces.map((m) => {
-        const r =
-          (m.geometry.boundingSphere?.radius ?? 0.1) *
-          Math.max(Math.abs(m.scale.x), Math.abs(m.scale.y), Math.abs(m.scale.z), 0.01);
-        return { m, r };
-      });
-      scored.sort((a, b) => b.r - a.r);
-
-      const MAX_CHUNKS = 900;
-      const deploy = scored.slice(0, MAX_CHUNKS);
-      // Top 20 substantial pieces become floating flame debris around the hero
-      const FLOAT_N = 20;
-      const floatSet = new Set<THREE.Mesh>();
-      for (let i = 0; i < deploy.length && floatSet.size < FLOAT_N; i++) {
-        const s = deploy[i]!;
-        // Skip dust/sails-only tiny after scale
-        if (s.r < 0.06) continue;
-        floatSet.add(s.m);
-      }
-      // If still short, fill with next largest
-      for (let i = 0; i < deploy.length && floatSet.size < FLOAT_N; i++) {
-        floatSet.add(deploy[i]!.m);
-      }
-
-      console.info(
-        `[cinema] ship pinata DETACH — ${deploy.length}/${pieces.length} chunks · ` +
-          `${floatSet.size} float flame debris (boat stays as wreckage)`,
-      );
-
-      for (let i = 0; i < deploy.length; i++) {
-        const { m: src, r: rAuthor } = deploy[i]!;
-        src.updateMatrixWorld(true);
-        this.scene.attach(src);
-        src.visible = true;
-        src.castShadow = false;
-        src.receiveShadow = false;
-        src.frustumCulled = false;
-        src.name = `pinata_${src.name || i}`;
-
-        if (Array.isArray(src.material)) {
-          src.material = src.material.map((mat) => this.applyBurnMaterial(mat));
-        } else if (src.material) {
-          src.material = this.applyBurnMaterial(src.material as THREE.Material);
-        }
-
-        const rWorld = Math.max(
-          rAuthor,
-          (src.geometry.boundingSphere?.radius ?? 0.2) *
-            Math.max(Math.abs(src.scale.x), Math.abs(src.scale.y), Math.abs(src.scale.z), 0.01),
-        );
-        const keepFloat = floatSet.has(src);
-        // Gold/amber embers on float keepers + larger timber (not red shells)
-        let embers: THREE.Points | undefined;
-        if (keepFloat || rWorld > 0.2) {
-          embers = this.attachFireAura(src, 0.18 + Math.min(1.2, rWorld * 0.1));
-        }
-
-        const fromCenter = src.position.clone().sub(origin);
-        fromCenter.y *= 0.65;
+      for (let i = 0; i < quarters.length; i++) {
+        const g = quarters[i]!;
+        this.scene.add(g);
+        const pending = (g.userData.pendingPieces as THREE.Object3D[]) || [];
+        for (const o of pending) g.attach(o);
+        delete g.userData.pendingPieces;
+        g.updateMatrixWorld(true);
+        g.traverse((o) => {
+          const m = o as THREE.Mesh;
+          if (!m.isMesh || !m.material) return;
+          if (Array.isArray(m.material)) {
+            m.material = m.material.map((mat) => this.applyBurnMaterial(mat));
+          } else {
+            m.material = this.applyBurnMaterial(m.material);
+          }
+        });
+        const box = new THREE.Box3().setFromObject(g);
+        const size = box.getSize(new THREE.Vector3());
+        const rWorld = Math.max(size.x, size.y, size.z, 2) * 0.5;
+        const fromCenter = new THREE.Vector3();
+        box.getCenter(fromCenter);
+        fromCenter.sub(origin);
+        fromCenter.y *= 0.4;
         if (fromCenter.lengthSq() < 0.04) {
-          const a = (i / Math.max(1, deploy.length)) * Math.PI * 2 + Math.random() * 0.4;
-          fromCenter.set(Math.cos(a), 0.35 + Math.random() * 0.4, Math.sin(a));
+          const a = (i / 4) * Math.PI * 2 + 0.2;
+          fromCenter.set(Math.cos(a), 0.5, Math.sin(a));
         }
         fromCenter.normalize();
-
-        // Mass-ish scale: big pieces slower, small splinters faster
-        const mass = Math.max(0.15, Math.min(8, rWorld * rWorld * 0.8));
-        const inv = 1 / mass;
-        const radial = (keepFloat ? 3.5 + Math.random() * 6 : 9 + Math.random() * 14) * inv;
-        const beamSpeed = (keepFloat ? 2.5 + Math.random() * 4.5 : 8 + Math.random() * 12) * inv;
-        const lift = (keepFloat ? 2.5 + Math.random() * 3.5 : 4.5 + Math.random() * 8) * Math.sqrt(inv);
         const vel = fromCenter
-          .multiplyScalar(radial)
-          .addScaledVector(push, beamSpeed)
-          .add(new THREE.Vector3(0, lift, 0));
-
-        // Angular impulse scales with size (big planks tumble slower)
-        const angScale = keepFloat ? 2.2 : 6 / Math.max(0.4, Math.sqrt(rWorld));
+          .multiplyScalar(7 + i * 1.4)
+          .addScaledVector(push, 5)
+          .add(new THREE.Vector3(0, 3.2, 0));
+        if (this.rogueWave && this.rogueWave.intensity > 0.2) {
+          vel.add(this.rogueWave.impulse().multiplyScalar(0.65));
+        }
         this.pinataPieces.push({
-          mesh: src,
+          mesh: g,
           vel,
           ang: new THREE.Vector3(
-            (Math.random() - 0.5) * angScale,
-            (Math.random() - 0.5) * angScale * 0.9,
-            (Math.random() - 0.5) * angScale,
+            (Math.random() - 0.5) * 1.8,
+            (Math.random() - 0.5) * 1.2,
+            (Math.random() - 0.5) * 1.8,
           ),
-          life: keepFloat ? 999 : 8 + Math.random() * 5,
-          embers,
-          kind: keepFloat ? 'float_debris' : 'ship',
+          life: 18,
+          kind: 'ship',
           phase: 'blast',
           bob: Math.random() * Math.PI * 2,
           rWorld,
-          halfH: Math.max(0.08, rWorld * 0.35),
-          mass,
+          halfH: Math.max(0.4, size.y * 0.35),
+          mass: Math.max(2, rWorld),
         });
       }
 
-      // Hull empties — debris is the boat now (do not leave a full invisible hull)
       source.visible = false;
-      // Keep shipGroup in scene for any residual lights/parent math, but empty of hull
       this.shipGroup.visible = true;
     }
+
+    this.forceShipSink = true;
+    this.shipSinkY = Math.max(this.shipSinkY, 1.2);
+    this.snapShipHullState('sinking');
 
     if (this.wreckShip) this.wreckShip.visible = false;
     if (this.shipShield) this.shipShield.visible = false;
@@ -3997,9 +4029,9 @@ export class LeviathanOceanCinema {
    * Mage cast hand world position (Bip001 R Hand if present, else chest-forward).
    */
   private getMageHandWorld(mageRoot: THREE.Object3D, out = new THREE.Vector3()): THREE.Vector3 {
-    let hand: THREE.Object3D | null = null;
+    const hands: THREE.Object3D[] = [];
     mageRoot.traverse((o) => {
-      if (hand) return;
+      if (hands.length) return;
       const n = (o.name || '').toLowerCase().replace(/[:\s.]+/g, '');
       if (
         n.includes('rhand') ||
@@ -4008,9 +4040,10 @@ export class LeviathanOceanCinema {
         n.endsWith('r_hand') ||
         n.includes('r_hand_container')
       ) {
-        hand = o;
+        hands.push(o);
       }
     });
+    const hand = hands[0];
     if (hand) {
       hand.getWorldPosition(out);
       return out;
@@ -4983,9 +5016,8 @@ export class LeviathanOceanCinema {
   };
 
   private tickInner(): void {
-    const dt = Math.min(0.05, this.clock.getDelta());
-    // ~100 FPS adaptive budget (DPR / post / rain / lightning)
-    if (this.fpsBudget && this.ready) {
+    const dt = Math.min(1 / 30, this.clock.getDelta());
+    if (this.fpsBudget && this.ready && this.elapsed > 1.25) {
       this.fpsState = this.fpsBudget.sample(dt);
       this.applyFpsBudget(this.fpsState);
     }
@@ -5102,6 +5134,8 @@ export class LeviathanOceanCinema {
     }
     tickCinemaLightningBolts(this.lightningBolts, dt);
     this.dirLight.intensity = 0.72 + this.flash * 2.4 + this.stormCur * 0.08;
+    this.dirLight.target.position.lerp(this.shipGroup.position, Math.min(1, dt * 2.2));
+    this.dirLight.target.updateMatrixWorld();
     if (this.flashLight) {
       this.flashLight.intensity = this.flash * 48;
       this.flashLight.position.set(
@@ -5109,6 +5143,16 @@ export class LeviathanOceanCinema {
         36,
         this.shipGroup.position.z - 6,
       );
+    }
+    if (this.rimLight) {
+      const moonW = this.camera.position.clone().add(this.moonOffset);
+      this.rimLight.position.copy(moonW);
+      const rimT = this.leviathanRoot.visible
+        ? this.leviathanRoot.position
+        : this.shipGroup.position;
+      this.rimLight.target.position.lerp(rimT, Math.min(1, dt * 2.5));
+      this.rimLight.target.updateMatrixWorld();
+      this.rimLight.intensity = 0.42 + this.stormCur * 0.22 + this.flash * 0.85;
     }
     // Storm key: slightly cyan-cool moonlight vs warm noon
     this.dirLight.color.setRGB(
@@ -5125,8 +5169,15 @@ export class LeviathanOceanCinema {
       Math.sin(this.elapsed * 0.9) * (beat.shipRoll ?? 0.1) + blow * 1.4;
     const pitch =
       Math.sin(this.elapsed * 1.1) * (beat.shipPitch ?? 0.05) + blow * 0.6;
-    // Soft sink when multi-state hull is damaged/sinking
-    if (this.shipMultiState) {
+    // Soft sink when multi-state hull is damaged/sinking — always after pinata
+    if (this.forceShipSink || this.pinataFired) {
+      this.shipSinkY = THREE.MathUtils.lerp(this.shipSinkY, 16, Math.min(1, dt * 0.32));
+      this.shipGroup.rotation.x = THREE.MathUtils.lerp(
+        this.shipGroup.rotation.x,
+        0.95,
+        Math.min(1, dt * 0.38),
+      );
+    } else if (this.shipMultiState) {
       const sinkTarget =
         this.shipHullState === 'sinking' ? 2.4 : this.shipHullState === 'damaged' ? 0.45 : 0;
       this.shipSinkY = THREE.MathUtils.lerp(this.shipSinkY, sinkTarget, Math.min(1, dt * 0.55));
@@ -5243,6 +5294,7 @@ export class LeviathanOceanCinema {
     this.updateSpellSplines(dt);
     this.updateIceSnakes(dt, beat);
     this.ensureBoatVisible();
+    this.updateRogueWave(dt, beat);
     this.updateHeroThrow(dt);
     this.updateRagdollInWater(dt);
     // blizzard VFX off (perf)
@@ -5267,7 +5319,10 @@ export class LeviathanOceanCinema {
     this.leviDirector?.update(dt);
     // Charge scrub + eel S-wave + maw shake AFTER mixer writes bones
     this.leviAnim?.update(dt);
-    for (const d of this.mageDirectors) d?.update(dt);
+    for (let i = 0; i < this.mageDirectors.length; i++) {
+      if (this.deckMages[i] === this.throwHero) continue;
+      this.mageDirectors[i]?.update(dt);
+    }
     this.fluidMixer?.update(dt);
 
     // 2) IK empties + soft upper-body aim toward levi (after mixer)
@@ -5284,25 +5339,28 @@ export class LeviathanOceanCinema {
     this.updateDragonVfx(dt, beat);
     this.updateBeam();
 
-    // Movie camera (sole owner) — locked masters, soft ship ride, almost no handheld
+    // Movie camera (sole owner) — locked masters, ship ride, storm handheld + Dutch
     this.refreshShipLinkedCamera();
     this.multiCam.update(dt);
-    // Handheld: wreck peaks + light intro chaos (never constant spin)
-    const handheld =
-      beat.shipPinata || beat.id === 'breach'
-        ? 0.038
-        : beat.shieldShatter
-          ? 0.022
-          : beat.skyLightning || beat.id === 'approach' || beat.id === 'shadow'
-            ? 0.012
-            : beat.id === 'establish'
-              ? 0.008
-              : 0;
+    const actionCam =
+      !!beat.shipPinata ||
+      beat.dragonPhase === 'blast' ||
+      (beat.rogueWave ?? 0) > 0.45 ||
+      beat.id === 'breach';
+    const handheld = THREE.MathUtils.clamp(
+      actionCam ? 0.016 + this.flash * 0.012 : 0.006 + this.stormCur * 0.006,
+      0,
+      0.028,
+    );
     const cam = this.multiCam.evaluate(handheld, this.elapsed);
     this.camera.position.copy(cam.pos);
     this.camera.lookAt(cam.look);
     this.camera.fov = cam.fov;
     this.camera.updateProjectionMatrix();
+    const dutchT =
+      ((beat.rogueWave ?? 0) > 0.55 ? 0.018 : 0.006) * Math.sin(this.elapsed * 0.45);
+    this.dutchCur = THREE.MathUtils.lerp(this.dutchCur, dutchT, Math.min(1, dt * 1.6));
+    this.camera.rotateZ(this.dutchCur);
     this.updateStormSky(dt, beat);
     this.updateUnderwaterSet(dt, beat);
 
@@ -5310,7 +5368,9 @@ export class LeviathanOceanCinema {
     const blackT = beat.blackout ?? 0;
     this.blackoutCur += (blackT - this.blackoutCur) * 0.08;
     this.renderer.toneMappingExposure =
-      (beat.exposure ?? 0.95) * (1 - this.blackoutCur * 0.85);
+      (beat.exposure ?? 0.95) *
+      (1 - this.blackoutCur * 0.85) *
+      (1 + this.flash * 0.55);
     if (this.scene.fog instanceof THREE.FogExp2) {
       // Horizon-matched fog (cosmic night uHorizon-ish) so water→sky seam softens
       this.scene.fog.density =
@@ -5372,7 +5432,27 @@ export class LeviathanOceanCinema {
         saturation: satT,
         grain: grainT,
         chroma: chromaT,
+        flash: this.flash,
+        underwater: beat.underwater ?? 0,
+        anamorphic:
+          (this.fpsState?.pressure ?? 0) >= 2
+            ? 0
+            : actionHot
+              ? 0.55
+              : 0.12 + this.flash * 0.35,
       });
+    }
+
+    this.horizonMist?.update(dt, this.shipGroup.position, this.camera, this.stormCur, this.elapsed);
+    if (this.moonShafts) {
+      const moonW = this.camera.position.clone().add(this.moonOffset);
+      this.moonShafts.update(
+        moonW,
+        this.shipGroup.position,
+        this.stormCur,
+        this.flash,
+        this.elapsed,
+      );
     }
 
     // Lightning flash boosts hemi briefly
@@ -5406,6 +5486,7 @@ export class LeviathanOceanCinema {
   }
 
   skip(): void {
+    if (this.logoEl) this.logoEl.style.opacity = '1';
     this.elapsed = LEVIATHAN_BATTLE_DURATION_SEC;
     this.cbs.onComplete?.();
   }
@@ -5481,20 +5562,12 @@ export class LeviathanOceanCinema {
    * Never raises above boot quality; only steps down under pressure.
    */
   private applyFpsBudget(s: FpsBudgetState): void {
-    if (Math.abs(s.dprCap - this.lastAppliedDpr) > 0.04) {
-      this.lastAppliedDpr = s.dprCap;
-      const w = Math.max(2, this.host.clientWidth);
-      const h = Math.max(2, this.host.clientHeight);
-      this.renderer.setPixelRatio(Math.min(window.devicePixelRatio || 1, s.dprCap));
-      this.renderer.setSize(w, h, false);
-      this.post?.resize(w, h);
-    }
+    // Do not resize DPR mid-cut — that hitch is the “jump” and drops rain/bloom.
     if (this.post && this.post.getQuality() !== s.postQuality) {
       this.post.setQuality(s.postQuality);
     }
     if (this.rain) {
       const mat = this.rain.material as THREE.PointsMaterial;
-      // Base opacity still set in tickCinemaRain; scale under pressure
       mat.opacity = Math.min(mat.opacity, 0.18 + this.stormCur * 0.62) * s.rainScale;
     }
   }
@@ -5523,6 +5596,7 @@ export class LeviathanOceanCinema {
     this.shipHulls = { intact: null, damaged: null, sinking: null };
     this.shipHullState = 'intact';
     this.shipSinkY = 0;
+    this.forceShipSink = false;
     this.leviAnim?.dispose();
     this.leviAnim = null;
     this.leviDirector?.dispose();
@@ -5557,7 +5631,14 @@ export class LeviathanOceanCinema {
     this.dragonVfx?.dispose();
     this.dragonVfx = null;
     this.waterSplash?.dispose();
+    this.horizonMist?.dispose();
+    this.moonShafts?.dispose();
+    this.horizonMist = null;
+    this.moonShafts = null;
+    this.rimLight = null;
     this.waterSplash = null;
+    this.rogueWave?.dispose();
+    this.rogueWave = null;
     if (this.skyDome) {
       this.scene.remove(this.skyDome);
       this.skyDome.geometry.dispose();

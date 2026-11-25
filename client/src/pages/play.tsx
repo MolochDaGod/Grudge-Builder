@@ -1,3 +1,6 @@
+import { getStateCallbacks } from '@colyseus/sdk';
+import { useAuth } from '@/contexts/AuthContext';
+import { GameRecovery } from '@/components/GameRecovery';
 /**
  * PlayPage — the main game world.
  *
@@ -59,6 +62,17 @@ function getTestPlayTerrainSeed(characterId?: string | null): string {
 // ── Component ────────────────────────────────────────────────────
 
 export default function PlayPage() {
+  const { isAuthenticated, authLoading, user, openLogin } = useAuth();
+  if (!isAuthenticated) return <main className="min-h-screen grid place-items-center bg-slate-950 text-amber-100"><div className="text-center space-y-5">
+    <h1 className="text-2xl">{authLoading ? 'Checking your account…' : 'Your next voyage awaits'}</h1>
+    {!authLoading && <button className="rounded border border-amber-500 px-6 py-3" onClick={() => openLogin(window.location.pathname + window.location.search)}>Sign in to enter the world</button>}
+    <p><a href="/lobby" className="underline">Return to the lobby</a></p>
+  </div></main>;
+  return <PlaySession key={user?.grudgeId || 'verified-session'} />;
+}
+
+function PlaySession() {
+  const { isAuthenticated, authLoading, openLogin } = useAuth();
   const [, setLocation] = useLocation();
   const activeSector = getPlaySectorFromUrl();
   const worldSeed = getWorldSeedFromUrl();
@@ -97,8 +111,10 @@ export default function PlayPage() {
     Array<{ key: string; label: string; skillId?: string }>
   >([]);
 
-  // Load real DB character + warm zone catalog
+  // Load an owned character before connecting or allocating the game canvas.
   useEffect(() => {
+    let cancelled = false;
+    if (!isAuthenticated) { setCharacterLoaded(false); setPlayerInfo(null); return; }
     async function loadCharacter() {
       // Warm open-world catalog + assert ObjectStore ↔ WORLD_SECTORS truth
       void verifyMapDeploymentTruth().then((report) => {
@@ -117,17 +133,10 @@ export default function PlayPage() {
 
       const params = new URLSearchParams(window.location.search);
       const gcsHandoff = params.get('from') === 'gcs' && params.get('characterId');
-      // Trailer / flyby / proof: never dump users into foundry create loop
-      const cinematicGuest =
-        params.has('trailer') ||
-        params.has('flyby') ||
-        params.has('proof') ||
-        params.get('guest') === '1';
-
       const handoffId = params.get('characterId');
       const launch = readViewerLaunchBuild();
       let char = await resolveActiveCharacterForPlay(handoffId);
-      if (launch) {
+      if (launch && char) {
         char = characterFromLaunch(launch, char);
         console.info(
           `[Play] Launch hash · race=${char.raceId} class=${char.classId} weapon=${launch.weaponBagId}`,
@@ -137,58 +146,10 @@ export default function PlayPage() {
         await new Promise((r) => setTimeout(r, 800));
         char = await resolveActiveCharacterForPlay(handoffId);
       }
-      if (!char && cinematicGuest) {
-        console.info('[Play] Cinematic guest (trailer/flyby) — skip create-character');
-        char = {
-          id: 'guest-trailer',
-          name: 'Trailer Guest',
-          raceId: 'human',
-          classId: 'warrior',
-          level: 20,
-          accountId: 'guest',
-          equipment: {},
-          model3d: {
-            baseModelId: 'human',
-            weaponSlots: {},
-            equippedMeshes: {},
-          },
-        } as Character;
-      }
-      // Auth 401 / expired JWT / missing roster: still enter the zone with a
-      // local guest so engine init is not blocked by Railway roster.
+      if (cancelled) return;
       if (!char) {
-        const forceGuest =
-          params.get('guest') === '1' ||
-          params.get('mode') === 'zone' ||
-          engineMode === 'zone';
-        if (forceGuest) {
-          console.warn(
-            '[Play] No authenticated character — entering zone as local guest (sign in to load roster heroes)',
-          );
-          char = {
-            id: handoffId || 'guest-zone',
-            name: 'Guest Captain',
-            raceId: 'human',
-            classId: 'warrior',
-            level: 1,
-            accountId: 'guest',
-            equipment: {},
-            model3d: {
-              baseModelId: 'human',
-              weaponSlots: {},
-              equippedMeshes: {},
-            },
-          } as Character;
-        } else {
-          // SSOT funnel: create at Foundry, then return to this play URL with characterId
-          console.warn('[Play] No roster character — redirecting to create-character');
-          const returnTo =
-            window.location.pathname + window.location.search || '/play';
-          setLocation(
-            '/create-character?returnTo=' + encodeURIComponent(returnTo),
-          );
-          return;
-        }
+        setLocation('/create-character?returnTo=' + encodeURIComponent(window.location.pathname + window.location.search));
+        return;
       }
 
       characterRef.current = char;
@@ -198,8 +159,11 @@ export default function PlayPage() {
       );
       setCharacterLoaded(true);
     }
-    loadCharacter();
-  }, []); // eslint-disable-line react-hooks/exhaustive-deps
+    void loadCharacter().catch(error => {
+      if (!cancelled) setLoadError(error instanceof Error ? error.message : 'Unable to load your character.');
+    });
+    return () => { cancelled = true; };
+  }, [isAuthenticated]); // eslint-disable-line react-hooks/exhaustive-deps
 
   // Load 3D model + apply faction camps once world + character are ready
   useEffect(() => {
@@ -281,10 +245,10 @@ export default function PlayPage() {
   // ── Connect after character is loaded ───────────────────────────────
 
   useEffect(() => {
-    if (characterLoaded && playerInfo) {
+    if (isAuthenticated && characterLoaded && playerInfo) {
       colyseus.connect();
     }
-  }, [characterLoaded, playerInfo]); // eslint-disable-line react-hooks/exhaustive-deps
+  }, [isAuthenticated, characterLoaded, playerInfo]); // eslint-disable-line react-hooks/exhaustive-deps
 
   // ── Auto-join sector once connected ───────────────────────────
 
@@ -297,6 +261,8 @@ export default function PlayPage() {
   // ── Initialize 3D engine ──────────────────────────────────────
 
   useEffect(() => {
+    if (!isAuthenticated || !characterLoaded) return;
+    let cancelled = false;
     const canvas = canvasRef.current;
     if (!canvas || engineRef.current) return;
 
@@ -352,10 +318,13 @@ export default function PlayPage() {
       },
     };
 
-    const engine = new Island3DEngine(config);
+    let engine: Island3DEngine;
+    try { engine = new Island3DEngine(config); }
+    catch (error) { setLoadError(error instanceof Error ? error.message : 'Graphics initialization failed.'); return; }
     engineRef.current = engine;
 
     engine.init().then(() => {
+      if (cancelled) return;
       if (!engine.physicsReady && engine.character) {
         throw new Error('Physics layer not ready — holding loadscreen');
       }
@@ -398,6 +367,7 @@ export default function PlayPage() {
         };
       }
     }).catch((err) => {
+      if (cancelled) return;
       console.error('[Play] Engine init failed:', err);
       const msg = err instanceof Error ? err.message : String(err);
       setLoadError(msg.slice(0, 220));
@@ -410,14 +380,23 @@ export default function PlayPage() {
       engine.resize(window.innerWidth, window.innerHeight);
     };
     window.addEventListener('resize', handleResize);
+    const handleContextLoss = (event: Event) => {
+      event.preventDefault();
+      engine.stop();
+      setLoadError('The browser lost the graphics context. Retry the game to reconnect your renderer.');
+    };
+    canvas.addEventListener('webglcontextlost', handleContextLoss);
 
     return () => {
+      canvas.removeEventListener('webglcontextlost', handleContextLoss);
+      cancelled = true;
       window.removeEventListener('resize', handleResize);
       if (moveIntervalRef.current) clearInterval(moveIntervalRef.current);
       engine.dispose();
       engineRef.current = null;
+      setLoaded(false);
     };
-  }, []);
+  }, [isAuthenticated, characterLoaded]);
 
   useEffect(() => {
     if (!loaded) return;
@@ -470,7 +449,7 @@ export default function PlayPage() {
     // Listen for player add/remove on the SectorRoom state
     const room = colyseus.sectorRoom;
 
-    room.state.players.onAdd((player: any, sessionId: string) => {
+    getStateCallbacks(room)(room.state).players.onAdd((player: any, sessionId: string) => {
       if (sessionId === colyseus.localSessionId) return;
       rpm.addPlayer(sessionId, {
         id: player.id,
@@ -492,7 +471,7 @@ export default function PlayPage() {
       });
 
       // Listen for property changes on this player (incl. anim for remotes)
-      player.onChange(() => {
+      getStateCallbacks(room)(player).onChange(() => {
         rpm.updatePlayer(sessionId, {
           x: player.x, y: player.y, z: player.z,
           facing: player.facing,
@@ -505,12 +484,12 @@ export default function PlayPage() {
       });
     });
 
-    room.state.players.onRemove((_player: any, sessionId: string) => {
+    getStateCallbacks(room)(room.state).players.onRemove((_player: any, sessionId: string) => {
       rpm.removePlayer(sessionId);
     });
 
     // ── Sync remote buildings from room state ─────────────────────
-    room.state.buildings?.onAdd?.((building: any, id: string) => {
+    getStateCallbacks(room)(room.state).buildings.onAdd?.((building: any, id: string) => {
       // Skip our own placements (already rendered locally)
       if (building.ownerId === colyseus.localSessionId) return;
       // Place a prop in the local engine for this remote building
@@ -527,7 +506,7 @@ export default function PlayPage() {
       }
     });
 
-    room.state.buildings?.onRemove?.((building: any, id: string) => {
+    getStateCallbacks(room)(room.state).buildings.onRemove?.((building: any, id: string) => {
       if (building.ownerId === colyseus.localSessionId) return;
       // Find and remove the matching local prop
       const props = engine.building?.getAllProps() || [];
@@ -557,9 +536,9 @@ export default function PlayPage() {
       syncHarvestNodeDepleted(engine, id, node.depleted);
     };
 
-    room.state.harvestNodes?.onAdd?.((node: any, id: string) => {
+    getStateCallbacks(room)(room.state).harvestNodes.onAdd?.((node: any, id: string) => {
       applyNode(node, id);
-      node.onChange(() => applyNode(node, id));
+      getStateCallbacks(room)(node).onChange(() => applyNode(node, id));
     });
 
     room.state.harvestNodes?.forEach?.((node: any, id: string) => {
@@ -694,12 +673,12 @@ export default function PlayPage() {
       );
     };
 
-    room.state.enemies?.onAdd?.((enemy: any, enemyId: string) => {
+    getStateCallbacks(room)(room.state).enemies.onAdd?.((enemy: any, enemyId: string) => {
       applyEnemy(enemy, enemyId);
-      enemy.onChange?.(() => applyEnemy(enemy, enemyId));
+      getStateCallbacks(room)(enemy).onChange?.(() => applyEnemy(enemy, enemyId));
     });
 
-    room.state.enemies?.onRemove?.((_enemy: any, enemyId: string) => {
+    getStateCallbacks(room)(room.state).enemies.onRemove?.((_enemy: any, enemyId: string) => {
       engine.creatures?.removeNetworkEnemy(enemyId);
     });
 
@@ -720,7 +699,7 @@ export default function PlayPage() {
       const mode = (engine as { playMode?: string }).playMode;
       let anim = moving ? 'walk' : 'idle';
       // Prefer character combat oneshot if exposed
-      const attackActive = (engine.character as { isAttacking?: () => boolean }).isAttacking?.();
+      const attackActive = engine.character.isAttacking;
       if (attackActive) anim = 'attack';
       if (mode === 'harvest' && !moving) {
         /* keep idle unless tool swing — harvest oneshot via harvest path */
@@ -743,6 +722,10 @@ export default function PlayPage() {
   const sectorBiome = sectorDef
     ? `${sectorDef.name} · ${sectorDef.biome}`
     : colyseus.sectorId || getStarterSectorId();
+
+  if (authLoading) return <main className="min-h-screen grid place-items-center bg-slate-950 text-amber-100">Checking your account…</main>;
+  if (!isAuthenticated) return <main className="min-h-screen grid place-items-center bg-slate-950 text-amber-100"><div className="text-center space-y-5"><h1 className="text-2xl">Your next voyage awaits</h1><button className="rounded border border-amber-500 px-6 py-3" onClick={() => openLogin(window.location.pathname + window.location.search)}>Sign in to enter the world</button><p><a href="/lobby" className="underline">Return to the lobby</a></p></div></main>;
+  if (loadError) return <GameRecovery message={loadError} />;
 
   return (
     <div className="fixed inset-0 bg-black">

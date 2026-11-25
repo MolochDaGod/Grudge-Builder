@@ -1,30 +1,43 @@
 /**
- * BossRoomInstanceSystem — load Hoth (and similar) boss chambers as instances.
+ * BossRoomInstanceSystem — load Hoth / woods / desert / lava boss chambers.
  *
  * Entry sources:
  *  - portal on event island (spiral mountain)
  *  - mountain / frozen biome island portal
- *  - random dungeon portal
+ *  - random dungeon portal (biome-picked instance map)
  *
  * Player is moved into an offset instance room; E at exit returns to entry stamp.
  */
 import * as THREE from 'three';
 import {
+  BOSS_ROOM_INSTANCES,
   FLOATING_ISLAND_LOAD_ORDER,
   HOTH_BOSS_ROOM,
+  VOLCANIC_BOSS_ARENA,
+  pickBossRoomInstance,
   type BossRoomEntrySource,
   type BossRoomInstanceDef,
 } from '@shared/definitions/floatingIslandBossAssets';
 import {
-  fitObjectExtent,
   loadGlbFirst,
+  loadGltfFirst,
   stripSkyboxFromObject,
 } from './gltfSceneUtils';
+import {
+  prepareBossArenaPlay,
+  type BossArenaPlaySurface,
+} from './prepareBossArenaPlay';
 import { LargeBossFightSystem } from '../combat/LargeBossFightSystem';
 import type { WorldFxBus } from '../vfx/WorldFxBus';
+import type { PhysicsWorld } from '../physics/PhysicsWorld';
+import {
+  LAVA_CAESAR_BOSS_FIGHT,
+  LAVA_CAESAR_LOAD,
+} from '@shared/definitions/lavaCaesarBossFight';
+import { cloneGltfScene } from '@/lib/three/SharedGltfPipeline';
 
 export interface BossRoomCallbacks {
-  onEnter?: (roomId: string, bossId: string) => void;
+  onEnter?: (roomId: string, bossId: string, play?: BossArenaPlaySurface) => void;
   onExit?: (roomId: string) => void;
   onPrompt?: (msg: string | null) => void;
   onBossDeath?: (bossId: string) => void;
@@ -38,12 +51,15 @@ export interface BossRoomSystemOpts {
   instanceOffset?: THREE.Vector3;
   cb?: BossRoomCallbacks;
   worldFx?: WorldFxBus | null;
+  physics?: PhysicsWorld | null;
 }
 
 export class BossRoomInstanceSystem {
   readonly root = new THREE.Group();
   private scene: THREE.Scene;
+  private sectorId: string;
   private def: BossRoomInstanceDef = HOTH_BOSS_ROOM;
+  private rooms = new Map<string, THREE.Group>();
   private room: THREE.Group | null = null;
   private active = false;
   private entryStamp: THREE.Vector3 | null = null;
@@ -52,13 +68,19 @@ export class BossRoomInstanceSystem {
   private exitPad: THREE.Mesh | null = null;
   private disposed = false;
   private worldFx: WorldFxBus | null;
+  private physics: PhysicsWorld | null;
+  private playById = new Map<string, BossArenaPlaySurface>();
   /** PIP-style large boss fight inside the chamber */
   public largeBoss: LargeBossFightSystem | null = null;
+  private enterPlayerPos: THREE.Vector3 | null = null;
 
   constructor(opts: BossRoomSystemOpts) {
     this.scene = opts.scene;
+    this.sectorId = opts.sectorId;
     this.cb = opts.cb ?? {};
     this.worldFx = opts.worldFx ?? null;
+    this.physics = opts.physics ?? null;
+    this.def = pickBossRoomInstance({ sectorId: opts.sectorId }) ?? HOTH_BOSS_ROOM;
     this.bossId = this.def.bossIds[0]!;
     this.root.name = 'BossRoomInstances';
     this.root.position.copy(
@@ -66,7 +88,7 @@ export class BossRoomInstanceSystem {
     );
     this.root.visible = false;
     this.scene.add(this.root);
-    void this.preload();
+    void this.preloadSectorRooms();
   }
 
   get isInside() {
@@ -77,18 +99,38 @@ export class BossRoomInstanceSystem {
     return this.bossId;
   }
 
-  private async preload() {
-    try {
-      const scene = await loadGlbFirst(FLOATING_ISLAND_LOAD_ORDER.hothBossRoom);
-      if (this.disposed) return;
-      if (!scene) throw new Error('Hoth GLB missing on CDN and local');
-      if (this.def.stripSkybox) stripSkyboxFromObject(scene);
-      fitObjectExtent(scene, this.def.targetExtentM);
-      this.room = new THREE.Group();
-      this.room.name = this.def.id;
-      this.room.add(scene);
+  getActivePlay(): BossArenaPlaySurface | null {
+    return this.playById.get(this.def.id) ?? null;
+  }
 
-      // Exit portal
+  sampleHeight(x: number, z: number): number | null {
+    return this.playById.get(this.def.id)?.sampleHeight(x, z) ?? null;
+  }
+
+  private async preloadSectorRooms() {
+    const wanted = BOSS_ROOM_INSTANCES.filter(
+      (d) => d.sectors.includes(this.sectorId) || d.id === this.def.id,
+    );
+    const list = wanted.length ? wanted : [this.def];
+    for (const def of list) {
+      await this.ensureRoom(def);
+    }
+  }
+
+  private async ensureRoom(def: BossRoomInstanceDef): Promise<THREE.Group | null> {
+    const cached = this.rooms.get(def.id);
+    if (cached) return cached;
+    try {
+      const urls = FLOATING_ISLAND_LOAD_ORDER[def.loadKey];
+      const scene = await loadGlbFirst(urls);
+      if (this.disposed) return null;
+      if (!scene) throw new Error(`${def.id} GLB missing on CDN and local`);
+      if (def.stripSkybox) stripSkyboxFromObject(scene);
+      const room = new THREE.Group();
+      room.name = def.id;
+      room.visible = false;
+      room.add(scene);
+
       const exit = new THREE.Mesh(
         new THREE.TorusGeometry(1.8, 0.2, 8, 20),
         new THREE.MeshStandardMaterial({
@@ -98,12 +140,10 @@ export class BossRoomInstanceSystem {
         }),
       );
       exit.rotation.x = Math.PI / 2;
-      exit.position.set(0, 1.2, this.def.targetExtentM * 0.35);
+      exit.position.set(0, 1.2, def.targetExtentM * 0.35);
       exit.name = 'BossRoomExit';
-      this.exitPad = exit;
-      this.room.add(exit);
+      room.add(exit);
 
-      // Boss marker
       const bossMark = new THREE.Mesh(
         new THREE.ConeGeometry(1.2, 3.5, 6),
         new THREE.MeshStandardMaterial({
@@ -114,14 +154,32 @@ export class BossRoomInstanceSystem {
       );
       bossMark.position.set(0, 2, -4);
       bossMark.name = 'BossSpawnMarker';
-      this.room.add(bossMark);
+      room.add(bossMark);
 
-      this.root.add(this.room);
-      console.log(`[BossRoom] Preloaded ${this.def.name}`);
+      this.rooms.set(def.id, room);
+      this.root.add(room);
+      room.updateMatrixWorld(true);
+      const play = prepareBossArenaPlay({
+        visual: scene,
+        physics: this.physics,
+        targetExtentM: def.targetExtentM,
+      });
+      this.playById.set(def.id, play);
+      if (!this.room) {
+        this.room = room;
+        this.exitPad = exit;
+      }
+      console.log(`[BossRoom] Preloaded ${def.name}`, play.size, play.layerCounts);
+      return room;
     } catch (e) {
-      console.warn('[BossRoom] Hoth load failed — box arena fallback', e);
-      this.room = this.fallbackRoom();
-      this.root.add(this.room);
+      console.warn(`[BossRoom] ${def.id} load failed — box arena fallback`, e);
+      const room = this.fallbackRoom();
+      room.name = def.id;
+      room.visible = false;
+      this.rooms.set(def.id, room);
+      this.root.add(room);
+      if (!this.room) this.room = room;
+      return room;
     }
   }
 
@@ -142,49 +200,88 @@ export class BossRoomInstanceSystem {
   }
 
   /**
-   * Enter Hoth (or active def) from a portal.
+   * Enter Hoth / woods / desert / lava chamber from a portal.
    * Moves `playerPos` into the instance and stamps return position.
    */
   enter(
     playerPos: THREE.Vector3,
     source: BossRoomEntrySource = 'frozen_biome_portal',
+    roomId?: string,
   ): boolean {
-    if (!this.room) {
-      this.cb.onPrompt?.('Boss chamber still loading…');
+    const picked =
+      (roomId ? BOSS_ROOM_INSTANCES.find((r) => r.id === roomId) : null) ??
+      pickBossRoomInstance({ sectorId: this.sectorId }) ??
+      this.def;
+    this.def = picked;
+    const ready = this.rooms.get(picked.id);
+    if (!ready) {
+      void this.ensureRoom(picked);
+      this.cb.onPrompt?.(`${picked.name} still loading…`);
       return false;
     }
+    for (const g of this.rooms.values()) g.visible = false;
+    ready.visible = true;
+    this.room = ready;
+    this.exitPad =
+      (ready.getObjectByName('BossRoomExit') as THREE.Mesh | null) ?? this.exitPad;
+
     this.entryStamp = playerPos.clone();
     this.active = true;
     this.root.visible = true;
     this.bossId =
-      this.def.bossIds[Math.floor(Math.random() * this.def.bossIds.length)]!;
+      this.def.id === VOLCANIC_BOSS_ARENA.id
+        ? LAVA_CAESAR_BOSS_FIGHT.id
+        : this.def.bossIds[Math.floor(Math.random() * this.def.bossIds.length)]!;
 
-    // Place player near entrance of room (root offset space)
+    const play = this.playById.get(picked.id);
     const enterLocal = new THREE.Vector3(0, 2, this.def.targetExtentM * 0.3);
     const world = enterLocal.clone();
     this.root.localToWorld(world);
+    const groundY = play?.sampleHeight(world.x, world.z, world.y + 80);
+    if (groundY != null && Number.isFinite(groundY)) world.y = groundY + 0.08;
     playerPos.copy(world);
+    this.enterPlayerPos = playerPos;
 
-    this.cb.onEnter?.(this.def.id, this.bossId);
+    this.cb.onEnter?.(this.def.id, this.bossId, play);
     this.cb.onPrompt?.(
       `${this.def.name} (${source}) — defeat ${this.bossId} · E at blue ring to exit`,
     );
 
-    // Spawn PIP-style large boss at chamber center
-    this.spawnLargeBoss();
+    // Spawn PIP-style large boss at chamber center (lava Caesar on volcanic)
+    void this.spawnLargeBoss();
     return true;
   }
 
-  private spawnLargeBoss(): void {
+  private async spawnLargeBoss(): Promise<void> {
     this.largeBoss?.dispose();
     const local = new THREE.Vector3(0, 0, -4);
     const world = local.clone();
     this.root.localToWorld(world);
+    const volcanic = this.def.id === VOLCANIC_BOSS_ARENA.id;
+    const play = this.playById.get(this.def.id);
+    const lavaY = play?.waterLevel ?? world.y + 1.15;
+    let model: THREE.Object3D | null = null;
+    let animations: THREE.AnimationClip[] = [];
+    if (volcanic) {
+      const gltf = await loadGltfFirst(LAVA_CAESAR_LOAD.boss);
+      if (this.disposed) return;
+      if (gltf?.scene) {
+        model = cloneGltfScene(gltf);
+        animations = gltf.animations ?? [];
+      }
+    }
     this.largeBoss = new LargeBossFightSystem({
       scene: this.scene,
       position: world,
       arenaCenter: world.clone(),
-      bossId: this.bossId,
+      bossId: volcanic ? LAVA_CAESAR_BOSS_FIGHT.id : this.bossId,
+      cfg: volcanic ? LAVA_CAESAR_BOSS_FIGHT : undefined,
+      model,
+      animations,
+      lavaY: volcanic ? lavaY : undefined,
+      sampleHeight: play
+        ? (x, z) => play.sampleHeight(x, z)
+        : undefined,
       worldFx: this.worldFx,
       cb: {
         onPrompt: (msg) => this.cb.onPrompt?.(msg),
@@ -197,6 +294,11 @@ export class BossRoomInstanceSystem {
           this.cb.onPrompt?.(`Boss phase: ${p.name}`),
       },
     });
+    if (volcanic) {
+      this.largeBoss.bindArena(this.room);
+      const slot = this.largeBoss.loadSlotWorld(0);
+      if (slot && this.enterPlayerPos) this.enterPlayerPos.copy(slot);
+    }
   }
 
   /** Exit if near exit pad. */
@@ -219,8 +321,10 @@ export class BossRoomInstanceSystem {
 
   update(dt: number, playerPos?: THREE.Vector3) {
     if (!this.active || !this.room) return;
-    // Subtle ice shimmer
-    this.room.rotation.y += dt * 0.01;
+    // Subtle ice shimmer — not on lava (platforms + player session stay put)
+    if (this.def.id !== VOLCANIC_BOSS_ARENA.id) {
+      this.room.rotation.y += dt * 0.01;
+    }
     if (this.exitPad) {
       this.exitPad.rotation.z += dt * 1.2;
     }
@@ -236,6 +340,8 @@ export class BossRoomInstanceSystem {
     this.disposed = true;
     this.largeBoss?.dispose();
     this.largeBoss = null;
+    for (const play of this.playById.values()) play.dispose();
+    this.playById.clear();
     this.scene.remove(this.root);
     this.root.traverse((o) => {
       if (o instanceof THREE.Mesh) {

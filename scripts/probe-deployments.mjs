@@ -26,6 +26,8 @@ const runTruth = process.argv.includes("--truth");
 
 /** Hosts grouped by category. Edit this list when registering new deployments. */
 const TARGETS = [
+  { group: "frontend", url: "https://grudge.studio" },
+  { group: "frontend", url: "https://www.grudge.studio" },
   { group: "frontend", url: "https://grudgewarlords.com" },
   { group: "frontend", url: "https://www.grudgewarlords.com" },
   { group: "frontend", url: "https://client.grudge-studio.com" },

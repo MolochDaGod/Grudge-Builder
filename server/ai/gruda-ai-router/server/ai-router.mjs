@@ -3,7 +3,6 @@
 // Deploy alongside grudge-api-production-0d46 or as standalone Express.
 
 import express from 'express';
-import { init as initPuter } from '@heyputer/puter.js/src/init.cjs';
 import rateLimit from 'express-rate-limit';
 
 const router = express.Router();
@@ -20,7 +19,10 @@ router.use(limiter);
 
 // --- Config (env) ---
 const LEGION_BASE = process.env.LEGION_AI_URL || 'https://ai.grudge-studio.com';
-const PUTER_BACKUP_TOKEN = process.env.PUTER_BACKUP_TOKEN; // MolochDaDev JWT
+const PUTER_BACKUP_TOKEN =
+  process.env.PUTER_BACKUP_TOKEN ||
+  process.env.PUTER_DEPLOYER_TOKEN ||
+  ''; // MolochDaDev JWT from puter-cli — never commit
 const USAGE_KV_PREFIX = 'gruda:ai-usage:';
 
 // --- Model tiers (cost order) ---
@@ -34,6 +36,9 @@ const TIERS = {
 function resolveModel(requested, tier = 'cheap') {
   if (requested && requested.startsWith('puter:')) return requested;
   if (requested && requested.startsWith('legion:')) return requested;
+  if (requested && TIERS[requested]) {
+    return TIERS[requested][0];
+  }
   if (requested === 'auto' || !requested) {
     return TIERS[tier]?.[0] || TIERS.cheap[0];
   }
@@ -51,54 +56,85 @@ async function callLegion(model, messages, { maxTokens = 512, stream = false } =
   return r.json();
 }
 
+function messagesWithImage(messages, imageUrl) {
+  if (!imageUrl) return messages;
+  const last = messages[messages.length - 1] || { role: 'user', content: '' };
+  const text = typeof last.content === 'string' ? last.content : '';
+  return [
+    ...messages.slice(0, -1),
+    {
+      role: last.role || 'user',
+      content: [
+        { type: 'text', text },
+        { type: 'image_url', image_url: { url: imageUrl } },
+      ],
+    },
+  ];
+}
+
 async function callPuter(model, messages, { maxTokens = 512, stream = false } = {}) {
   if (!PUTER_BACKUP_TOKEN) throw new Error('no_puter_backup_token');
-  const puter = initPuter(PUTER_BACKUP_TOKEN);
   const clean = model.replace('puter:', '');
-  const resp = await puter.ai.chat(messages, { model: clean, max_tokens: maxTokens, stream });
-  return { text: resp?.message?.content || resp?.text || String(resp) };
+  const r = await fetch('https://api.puter.com/drivers/call', {
+    method: 'POST',
+    headers: {
+      'Content-Type': 'application/json',
+      Authorization: `Bearer ${PUTER_BACKUP_TOKEN}`,
+    },
+    body: JSON.stringify({
+      interface: 'puter-chat-completion',
+      method: 'complete',
+      args: { messages, model: clean, max_tokens: maxTokens, stream: !!stream },
+    }),
+  });
+  if (!r.ok) throw new Error(`puter_${r.status}`);
+  const data = await r.json();
+  return { text: data?.message?.content || data?.text || JSON.stringify(data) };
 }
 
 async function logUsage(page, modelUsed, tier, usage = {}) {
-  try {
-    const puter = initPuter(PUTER_BACKUP_TOKEN);
-    const key = `${USAGE_KV_PREFIX}${new Date().toISOString().slice(0,10)}:${page}`;
-    const existing = (await puter.kv.get(key)) || { count: 0, models: {} };
-    existing.count++;
-    existing.models[modelUsed] = (existing.models[modelUsed] || 0) + 1;
-    existing.last = Date.now();
-    await puter.kv.set(key, existing, Math.floor(Date.now()/1000) + 86400*30);
-  } catch (e) { console.warn('[ai-router] usage log failed', e.message); }
+  console.log('[ai-router] usage', {
+    page,
+    modelUsed,
+    tier,
+    tokens: usage?.total_tokens || usage?.tokens || null,
+    at: new Date().toISOString(),
+    kvHint: `${USAGE_KV_PREFIX}${new Date().toISOString().slice(0, 10)}:${page}`,
+  });
 }
 
 // --- Main endpoint ---
 router.post('/chat', async (req, res) => {
-  const { messages, model: requested, page = 'unknown', maxTokens = 512, stream = false, tier = 'cheap' } = req.body || {};
+  const { messages, model: requested, page = 'unknown', maxTokens = 512, stream = false, tier = 'cheap', imageUrl = null } = req.body || {};
   if (!messages || !Array.isArray(messages)) return res.status(400).json({ ok: false, error: 'messages_required' });
 
   // Optional Grudge ID JWT gate (future: require signed-in user for production pages)
   // const auth = req.headers.authorization;
   // if (!auth) return res.status(401).json({ ok:false, error:'grudge_id_required' });
 
-  const target = resolveModel(requested, tier);
+  const msgs = messagesWithImage(messages, imageUrl);
+  const requestTier = (requested && TIERS[requested]) ? requested : tier;
+  // Vision needs a Puter multimodal model; do not send images to Legion llama.
+  const target = imageUrl
+    ? (requested && requested.startsWith('puter:') ? requested : 'puter:gpt-4o')
+    : resolveModel(requested, requestTier);
   const isPuter = target.startsWith('puter:');
   const isLegion = target.startsWith('legion:');
 
-  let result, usedModel = target, costTier = tier;
+  let result, usedModel = target, costTier = imageUrl ? 'balanced' : requestTier;
 
   try {
     if (isLegion) {
-      result = await callLegion(target, messages, { maxTokens, stream });
+      result = await callLegion(target, msgs, { maxTokens, stream });
       usedModel = `legion:${result.model || target.replace('legion:','')}`;
     } else if (isPuter) {
-      result = await callPuter(target, messages, { maxTokens, stream });
+      result = await callPuter(target, msgs, { maxTokens, stream });
     } else {
-      // Unknown prefix — try Legion first, then Puter backup
       try {
-        result = await callLegion(`legion:${target}`, messages, { maxTokens, stream });
+        result = await callLegion(`legion:${target}`, msgs, { maxTokens, stream });
         usedModel = `legion:${target}`;
       } catch {
-        result = await callPuter(`puter:gpt-4o-mini`, messages, { maxTokens, stream });
+        result = await callPuter(`puter:gpt-4o-mini`, msgs, { maxTokens, stream });
         usedModel = 'puter:gpt-4o-mini';
         costTier = 'cheap';
       }
@@ -106,9 +142,16 @@ router.post('/chat', async (req, res) => {
 
     await logUsage(page, usedModel, costTier, result.usage);
 
+    const text =
+      result.text ||
+      result.reply ||
+      result.content ||
+      (typeof result.message?.content === 'string' ? result.message.content : null) ||
+      result.message?.content?.[0]?.text ||
+      '';
     res.json({
       ok: true,
-      text: result.text || result.message?.content || result.reply,
+      text,
       modelUsed: usedModel,
       costTier,
       usage: result.usage || {}

@@ -48,7 +48,7 @@
     "mocap_dual_slash"
   ],
   "hosts": {
-    "info": "https://info.grudge-studio.com",
+    "info": "https://objectstore.grudge-studio.com",
     "animator": "https://grudox.grudge-studio.com/animator/",
     "builder": "https://grudgewarlords.com"
   }

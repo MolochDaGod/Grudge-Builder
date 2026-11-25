@@ -79,7 +79,7 @@ export {
 export type { HarvestKind, GrowthPhase } from './harvest/RegenerativeHarvest';
 
 // Production barrel (preferred shared entry for play surfaces)
-export * from './production';
+
 
 // Engine
 export { Island3DEngine } from './engine/Island3DEngine';
@@ -119,7 +119,6 @@ export { LargeBossFightSystem } from './combat/LargeBossFightSystem';
 export type { LargeBossHitEvent, LargeBossCallbacks } from './combat/LargeBossFightSystem';
 export { BossCinemaFx } from './combat/BossCinemaFx';
 export type { CinemaHitEvent } from './combat/BossCinemaFx';
-export { AttackWarningSystem } from './combat/AttackWarningSystem';
 export {
   resolveBossHitResponse,
   resolveHitResponse,

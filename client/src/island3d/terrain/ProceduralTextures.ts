@@ -1,7 +1,10 @@
 /**
- * ProceduralTextures — generates terrain textures at runtime via Canvas2D.
- * These are decent-quality fallbacks that work without any external downloads.
- * Replace with real PBR textures from Poly Haven / ambientCG when available.
+ * ProceduralTextures — development-only texture generators plus the production
+ * terrain texture loader.
+ *
+ * Warlords production never falls back to generated canvas terrain. The async
+ * path always resolves canonical R2 PBR maps; these generators remain available
+ * only to explicit callers/tests that request them directly.
  */
 import * as THREE from 'three';
 
@@ -13,7 +16,7 @@ function createCanvas(w: number, h: number): { canvas: HTMLCanvasElement; ctx: C
   return { canvas, ctx };
 }
 
-/** Seed-able noise helper for texture variation */
+/** Seed-able noise helper for explicit development textures */
 function noise2d(x: number, y: number, seed: number): number {
   const n = Math.sin(x * 12.9898 + y * 78.233 + seed) * 43758.5453;
   return n - Math.floor(n);
@@ -57,7 +60,6 @@ export function createSandTexture(): THREE.Texture {
 export function createGrassShortTexture(): THREE.Texture {
   const { canvas, ctx } = createCanvas(256, 256);
   fillNoise(ctx, 256, 256, 60, 140, 40, 35, 2.0);
-  // Add grass blade streaks
   ctx.globalAlpha = 0.15;
   ctx.strokeStyle = '#2a6e1e';
   for (let i = 0; i < 200; i++) {
@@ -75,7 +77,6 @@ export function createGrassShortTexture(): THREE.Texture {
 export function createGrassTallTexture(): THREE.Texture {
   const { canvas, ctx } = createCanvas(256, 256);
   fillNoise(ctx, 256, 256, 35, 100, 25, 30, 3.0);
-  // Darker, denser forest floor
   ctx.globalAlpha = 0.2;
   ctx.fillStyle = '#1a3a10';
   for (let i = 0; i < 80; i++) {
@@ -92,7 +93,6 @@ export function createGrassTallTexture(): THREE.Texture {
 export function createRockTexture(): THREE.Texture {
   const { canvas, ctx } = createCanvas(256, 256);
   fillNoise(ctx, 256, 256, 120, 115, 105, 40, 4.0);
-  // Add crack lines
   ctx.globalAlpha = 0.25;
   ctx.strokeStyle = '#4a4540';
   ctx.lineWidth = 1;
@@ -130,7 +130,7 @@ export function createSeafloorTexture(): THREE.Texture {
   return canvasToTexture(canvas);
 }
 
-/** Legacy water texture — avoid on terrain; use createSeafloorTexture + ocean mesh instead. */
+/** Legacy explicit development water texture — runtime uses the ocean mesh. */
 export function createWaterTexture(): THREE.Texture {
   return createSeafloorTexture();
 }
@@ -144,7 +144,10 @@ export interface TerrainTextures {
   seafloor: THREE.Texture;
 }
 
-/** Procedural fallback — use loadTerrainTexturesAsync() for PBR when available. */
+/**
+ * Explicit procedural/dev texture set. Production terrain should call
+ * loadTerrainTexturesAsync(), which is real-PBR-only.
+ */
 export function loadTerrainTextures(): TerrainTextures {
   return {
     sand: createSandTexture(),
@@ -155,18 +158,25 @@ export function loadTerrainTextures(): TerrainTextures {
   };
 }
 
-/** Async loader — R2 CDN PBR with procedural fallback if manifest unavailable */
+/**
+ * Production loader — canonical 4K R2 PBR maps only.
+ *
+ * The manifest HEAD is diagnostic, not permission to downgrade. If the manifest
+ * probe fails we still bind the canonical Ground_N texture URLs so production can
+ * never silently ship generated canvas terrain.
+ */
 export async function loadTerrainTexturesAsync(): Promise<TerrainTextures> {
-  const { checkPBRTexturesAvailable, getHomeIslandLayerMaterials } = await import('./GroundPBRTextures');
-  if (await checkPBRTexturesAvailable()) {
-    return getHomeIslandLayerMaterials();
+  const {
+    checkPBRTexturesAvailable,
+    getHomeIslandLayerMaterials,
+    GROUND_PBR_CDN_MANIFEST,
+  } = await import('./GroundPBRTextures');
+  const manifestReady = await checkPBRTexturesAvailable();
+  if (!manifestReady) {
+    console.warn(
+      `[Terrain] PBR manifest probe failed (${GROUND_PBR_CDN_MANIFEST}); ` +
+        'continuing with canonical R2 PBR texture URLs — no procedural production fallback.',
+    );
   }
-  console.warn('[Terrain] PBR manifest not on CDN — using procedural fallback. Run: npm run upload:pbr-ground');
-  return {
-    sand: createSandTexture(),
-    grassShort: createGrassShortTexture(),
-    grassTall: createGrassTallTexture(),
-    rock: createRockTexture(),
-    seafloor: createSeafloorTexture(),
-  };
+  return getHomeIslandLayerMaterials();
 }

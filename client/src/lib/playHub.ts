@@ -10,9 +10,10 @@ import { weaponTypeFromModel3d } from '@shared/fleet';
 
 export type PlayDestination =
   | { path: '/'; reason: 'sign_in' }
-  | { path: '/create-character'; reason: 'no_character' }
-  | { path: '/island-reveal'; reason: 'no_island' }
-  | { path: '/home-island'; reason: 'play_home_island' }
+  | { path: '/create-character' | `/create-character?${string}`; reason: 'no_character' }
+  | { path: '/island-reveal' | `/island-reveal?${string}`; reason: 'no_island' }
+  | { path: '/home-island' | `/home-island?${string}`; reason: 'play_home_island' }
+  | { path: `/leviathan-cinema?${string}`; reason: 'play_tutorial' }
   | { path: string; reason: 'play_open_world' }
   | { path: '/ocean'; reason: 'play_ocean' }
   | { path: '/home'; reason: 'hub' };
@@ -50,31 +51,16 @@ export async function fetchPlayReadiness(): Promise<PlayReadiness> {
 
   let hasHomeIsland = false;
   let islandSeed: string | null = null;
-  let hasCharacter = !!activeCharacterId;
-  let resolvedActiveId = activeCharacterId;
-
-  try {
-    const res = await fetch('/api/island/status', { headers: authHeaders() });
-    if (res.ok) {
-      const data = await res.json();
-      hasHomeIsland = !!data.homeIsland;
-      islandSeed = data.seed ?? null;
-    }
-  } catch { /* offline */ }
-
-  if (!hasCharacter) {
-    try {
-      const envelope = await characterAPI.getEnvelope(WARLORDS_ERA);
-      if (envelope.characters.length > 0) {
-        hasCharacter = true;
-        const eraActive = envelope.eraSlots?.warlords?.activeCharacterId;
-        resolvedActiveId =
-          eraActive && envelope.characters.some((c) => c.id === eraActive)
-            ? eraActive
-            : envelope.characters[0].id;
-      }
-    } catch { /* offline */ }
-  }
+  // A cached UUID is never proof that this account owns a playable hero.
+  const envelope = await characterAPI.getEnvelope(WARLORDS_ERA);
+  const eraActive = envelope.eraSlots?.warlords?.activeCharacterId;
+  const resolvedActiveId = [eraActive, activeCharacterId].find(id => id && envelope.characters.some(c => c.id === id)) || envelope.characters[0]?.id || null;
+  const hasCharacter = !!resolvedActiveId;
+  const res = await fetch('/api/island/status', { headers: authHeaders() });
+  if (!res.ok) throw new Error(`Island status unavailable (HTTP ${res.status})`);
+  const data = await res.json();
+  hasHomeIsland = data.homeIsland === true;
+  islandSeed = data.seed ?? null;
 
   return {
     signedIn: true,
@@ -112,7 +98,7 @@ export async function resolvePlayDestination(): Promise<PlayDestination> {
     if (!isTutorialComplete()) {
       return {
         path: `/leviathan-cinema?${charQ}from=play`,
-        reason: 'play_home_island',
+        reason: 'play_tutorial',
       };
     }
   } catch {
@@ -124,7 +110,7 @@ export async function resolvePlayDestination(): Promise<PlayDestination> {
   }
 
   return {
-    path: `/home-island?${charQ}from=play`.replace(/\?&/, '?'),
+    path: `/home-island?${charQ}from=play`,
     reason: 'play_home_island',
   };
 }
@@ -143,6 +129,7 @@ export function playDestinationLabel(dest: PlayDestination): string {
     case 'sign_in': return 'Sign In to Play';
     case 'no_character': return 'Create Your Hero';
     case 'no_island': return 'Claim Home Island';
+    case 'play_tutorial': return 'Begin First Voyage';
     case 'play_home_island': return 'Play Home Island';
     case 'play_open_world': return 'Enter Open World';
     case 'play_ocean': return 'Sail the Ocean';

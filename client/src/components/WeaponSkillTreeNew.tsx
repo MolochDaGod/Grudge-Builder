@@ -4,7 +4,6 @@ import { Button } from '@/components/ui/button';
 import { RotateCcw } from 'lucide-react';
 import { cn } from '@/lib/utils';
 import {
-  WEAPON_TYPE_DEFINITIONS,
   WeaponSkillOption,
   SlotType,
   SelectedSkills,
@@ -12,6 +11,7 @@ import {
   getSlotSelectionKey,
   getSkillsForSlot,
 } from '@shared/definitions/weaponSkillsNew';
+import { resolveSkillTreeWeaponDef } from '@/lib/loadMasterWeaponSkills';
 
 interface WeaponSkillTreeNewProps {
   weaponType: string;
@@ -40,6 +40,30 @@ const GRID_COLS: Record<number, string> = {
   6: 'grid-cols-6',
 };
 
+function isIconPath(value: string | undefined): boolean {
+  if (!value) return false;
+  return (
+    value.startsWith('http') ||
+    value.startsWith('/') ||
+    value.includes('/icons/') ||
+    /\.(png|webp|jpg|jpeg|svg)$/i.test(value)
+  );
+}
+
+function CatalogGlyph({ value, className }: { value: string; className?: string }) {
+  if (isIconPath(value)) {
+    return (
+      <img
+        src={value}
+        alt=""
+        className={cn('object-contain shrink-0', className || 'w-8 h-8')}
+        referrerPolicy="no-referrer"
+      />
+    );
+  }
+  return <span className={className}>{value}</span>;
+}
+
 export function WeaponSkillTreeNew({
   weaponType,
   playerTier,
@@ -50,7 +74,7 @@ export function WeaponSkillTreeNew({
   const [hoveredSkill, setHoveredSkill] = useState<WeaponSkillOption | null>(null);
   const [tooltipPos, setTooltipPos] = useState({ x: 0, y: 0 });
 
-  const weaponDef = WEAPON_TYPE_DEFINITIONS[weaponType.toUpperCase()];
+  const weaponDef = resolveSkillTreeWeaponDef(weaponType);
 
   if (!weaponDef) {
     return (
@@ -97,7 +121,7 @@ export function WeaponSkillTreeNew({
       <div className="bg-slate-800/50 border border-slate-700 rounded-lg p-4">
         <div className="flex items-center justify-between mb-4">
           <div className="flex items-center gap-3">
-            <span className="text-3xl">{weaponDef.icon}</span>
+            <CatalogGlyph value={weaponDef.icon} className="w-10 h-10 text-3xl" />
             <div>
               <h2 className="text-xl font-bold text-amber-400 font-serif">{weaponDef.name} Skills</h2>
               <p className="text-sm text-slate-400">
@@ -121,7 +145,7 @@ export function WeaponSkillTreeNew({
             const hotbarSlot = getHotbarSlot(i);
             const slot = hotbarSlot?.slot;
             const selectedSkill = hotbarSlot?.selectedSkill;
-            const colors = slot ? SLOT_COLORS[slot.type] : null;
+            const colors = slot ? (SLOT_COLORS[slot.type] ?? SLOT_COLORS.primary) : null;
             const unlocked = slot ? isSlotUnlocked(slot.unlockTier) : false;
 
             return (
@@ -136,7 +160,7 @@ export function WeaponSkillTreeNew({
                 data-testid={`action-slot-${i + 1}`}
               >
                 {selectedSkill ? (
-                  <span className="text-xl">{selectedSkill.icon}</span>
+                  <CatalogGlyph value={selectedSkill.icon} className="w-7 h-7 text-xl" />
                 ) : (
                   <span className="text-slate-500">{i + 1}</span>
                 )}
@@ -150,7 +174,7 @@ export function WeaponSkillTreeNew({
         {weaponDef.slots.map((slot) => {
           const selectionKey = getSlotSelectionKey(slot, weaponDef.slots);
           const slotUnlocked = isSlotUnlocked(slot.unlockTier);
-          const colors = SLOT_COLORS[slot.type];
+          const colors = SLOT_COLORS[slot.type] ?? SLOT_COLORS.primary;
           const skills = getSkillsForSlot(slot, weaponDef.slots);
           const takenElsewhere = new Set(
             weaponDef.slots
@@ -222,9 +246,10 @@ export function WeaponSkillTreeNew({
                     )}
 
                     <div className="flex items-center gap-2 mb-2">
-                      <span className={cn('text-2xl', skillUnlocked ? '' : 'grayscale opacity-50')}>
-                        {skill.icon}
-                      </span>
+                      <CatalogGlyph
+                        value={skill.icon}
+                        className={cn('w-7 h-7 text-2xl', skillUnlocked ? '' : 'grayscale opacity-50')}
+                      />
                       <span
                         className={cn(
                           'font-semibold text-sm',
@@ -271,7 +296,7 @@ export function WeaponSkillTreeNew({
             {weaponDef.formSkills.map((form) => (
               <div key={form.formId} className="rounded-lg border border-slate-700 p-3">
                 <div className="flex items-center gap-2 mb-2">
-                  <span className="text-2xl">{form.formIcon}</span>
+                  <CatalogGlyph value={form.formIcon} className="w-7 h-7 text-2xl" />
                   <div>
                     <div className="font-semibold text-slate-200">{form.formName}</div>
                     <div className="text-xs text-slate-500 uppercase">{form.formType}</div>
@@ -301,7 +326,7 @@ export function WeaponSkillTreeNew({
           style={{ left: tooltipPos.x, top: tooltipPos.y }}
         >
           <h3 className="text-amber-400 font-bold mb-2 flex items-center gap-2">
-            <span className="text-xl">{hoveredSkill.icon}</span>
+            <CatalogGlyph value={hoveredSkill.icon} className="w-7 h-7 text-xl" />
             {hoveredSkill.name}
           </h3>
           <p className="text-slate-300 text-sm mb-3">{hoveredSkill.description}</p>

@@ -86,7 +86,7 @@ function makeProceduralPick(def: HarvestPickaxeDef): THREE.Group {
 
 function cloneToolNode(pack: THREE.Group, nodeName: string): THREE.Object3D | null {
   const node = pack.getObjectByName(nodeName);
-  let source: THREE.Object3D | null = node;
+  let source: THREE.Object3D | null = node ?? null;
   if (!source) {
     pack.traverse((o) => {
       if (source) return;

@@ -11,8 +11,14 @@ import Grudge6Character3D from "@/components/Grudge6Character3D";
 import { HERO_PORTRAITS } from "@/lib/artAssets";
 import { panelEquipmentToModel3d } from "@shared/fleet";
 import type { AnimState3D } from "@/lib/modelManifest";
+import { HERO_ROSTER } from "@shared/definitions/lore";
 
 const HERO_IDS = Object.keys(HERO_PORTRAITS);
+
+/** Canonical hero roster lookup: maps hero ID → { raceId, classId } */
+const HERO_RACE_CLASS_MAP = new Map(
+  HERO_ROSTER.map((h) => [h.id, { raceId: h.raceId, classId: h.classId }])
+);
 
 const ARMOR_TINT: Record<string, string> = {
   human_warrior: "#e6e9ef",
@@ -46,6 +52,19 @@ const ANIM_OPTIONS: AnimState3D[] = [
 ];
 
 function parseHeroId(heroId: string): { raceId: string; classId: string; label: string } {
+  // First, check canonical roster for named heroes (aurion, sigurd, etc.)
+  const canonical = HERO_RACE_CLASS_MAP.get(heroId);
+  if (canonical) {
+    const raceLabel = canonical.raceId.charAt(0).toUpperCase() + canonical.raceId.slice(1);
+    const classLabel = canonical.classId.charAt(0).toUpperCase() + canonical.classId.slice(1);
+    return {
+      raceId: canonical.raceId,
+      classId: canonical.classId,
+      label: `${raceLabel} ${classLabel}`,
+    };
+  }
+
+  // Fallback: parse race_class format (human_warrior, barbarian_mage, etc.)
   const idx = heroId.indexOf("_");
   const raceId = idx > 0 ? heroId.slice(0, idx) : "human";
   const role = idx > 0 ? heroId.slice(idx + 1) : "warrior";
@@ -60,6 +79,12 @@ export default function Grudge6ViewerPage() {
   const [heroId, setHeroId] = useState(HERO_IDS[0] ?? "human_warrior");
   const [anim, setAnim] = useState<AnimState3D>("idle");
   const [autoRotate, setAutoRotate] = useState(true);
+
+  const sex = useMemo(() => {
+    const params = new URLSearchParams(window.location.search);
+    const sexParam = params.get("sex");
+    return sexParam === "female" ? "female" : undefined;
+  }, []);
 
   const { raceId, classId, label } = useMemo(() => parseHeroId(heroId), [heroId]);
 
@@ -160,6 +185,7 @@ export default function Grudge6ViewerPage() {
             raceId={raceId}
             classId={classId}
             heroId={heroId}
+            sex={sex}
             model3d={model3d}
             animation={anim}
             position={{ x: 0, y: 0, z: 0 }}

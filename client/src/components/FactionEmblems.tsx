@@ -4,7 +4,7 @@
  * Icons live at client/public/assets/factions/*-emblem.png (shipped with SPA).
  * SVG fallbacks match ObjectStore factions.json colors if PNG fails to load.
  *
- * Colors (info.grudge-studio.com/api/v1/factions.json):
+ * Colors (objectstore.grudge-studio.com/api/v1/factions.json):
  *   Crusade = #fbbf24  Legion = #ef4444  Fabled = #22d3ee
  */
 

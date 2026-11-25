@@ -1,3 +1,5 @@
+import { createGameClient } from '@/lib/gameClient';
+import { getStateCallbacks } from '@colyseus/sdk';
 /**
  * NetworkManager — single multiplayer facade for Warlords zones / home / lobby.
  *
@@ -10,7 +12,7 @@
  *
  * Does not replace Colyseus rooms — wraps them with best practices.
  */
-import { Client, Room } from 'colyseus.js';
+import { Client, Room } from '@colyseus/sdk';
 import { getColyseusEndpoint } from '@/lib/colyseusEndpoint';
 import { resolveZoneSectorId } from '@shared/definitions/sectorBridge';
 import {
@@ -26,7 +28,6 @@ import {
   type ServerFxEvent,
 } from '@shared/network/syncProtocol';
 import { AssetLoadQueue } from './AssetLoadQueue';
-import { GAME_DATA_API } from '@/lib/grudgeConfig';
 import { FLEET_URLS } from '@shared/fleet';
 
 export interface NetworkPlayerJoin {
@@ -75,7 +76,7 @@ export class NetworkManager {
   // ── REST bootstrap ───────────────────────────────────────────────────────
 
   async fetchSession(sectorId?: string): Promise<MultiplayerSessionInfo> {
-    const base = (FLEET_URLS.gameData || GAME_DATA_API || '').replace(/\/$/, '');
+    const base = '';
     const q = sectorId ? `?sector=${encodeURIComponent(sectorId)}` : '';
     try {
       const res = await fetch(`${base}/api/multiplayer/session${q}`, {
@@ -101,7 +102,7 @@ export class NetworkManager {
       protocolVersion: SYNC_PROTOCOL_VERSION,
       colyseusUrl: getColyseusEndpoint(),
       rooms: ['sector', 'home_island', 'lobby', 'world', 'town', 'dungeon', 'tutorial'],
-      matchMakerReady: true,
+      matchMakerReady: false,
       recommendedSendHz: NETWORK_RATES.moveHz,
       assetCdn: FLEET_URLS.assets || 'https://assets.grudge-studio.com',
       sectorPreload: ['human', 'elf', 'orc', 'dwarf', 'barbarian', 'undead'],
@@ -112,7 +113,7 @@ export class NetworkManager {
   }
 
   async fetchHealth(): Promise<{ ok: boolean; raw?: unknown }> {
-    const base = (FLEET_URLS.gameData || GAME_DATA_API || '').replace(/\/$/, '');
+    const base = '';
     try {
       const res = await fetch(`${base}/api/multiplayer/status`);
       if (!res.ok) return { ok: false };
@@ -158,7 +159,7 @@ export class NetworkManager {
   async connectWorld(player: NetworkPlayerJoin): Promise<void> {
     await this.fetchSession();
     const endpoint = this.session?.colyseusUrl || getColyseusEndpoint();
-    this.client = new Client(endpoint);
+    this.client = createGameClient(endpoint);
     this.worldRoom = await this.client.joinOrCreate('world', {
       characterName: player.characterName,
       heroClass: player.heroClass,
@@ -171,17 +172,20 @@ export class NetworkManager {
     });
     this.sessionId = this.worldRoom.sessionId;
     this.emit('connected', { sessionId: this.sessionId });
-    this.worldRoom.onLeave((code) => {
-      void this.tryReconnect(this.worldRoom, code, (room) => {
-        this.worldRoom = room;
-        this.sessionId = room.sessionId;
-        this.emit('connected', { sessionId: this.sessionId });
-      }).then((ok) => {
-        if (!ok) {
-          this.worldRoom = null;
-          this.emit('disconnected', undefined as void);
-        }
-      });
+    const worldRoom = this.worldRoom;
+    worldRoom.onDrop(() => {
+      if (this.worldRoom === worldRoom) this.emit('error', 'Connection lost — reconnecting…');
+    });
+    worldRoom.onReconnect(() => {
+      if (this.worldRoom !== worldRoom) return;
+      this.sessionId = worldRoom.sessionId;
+      this.emit('connected', { sessionId: worldRoom.sessionId });
+    });
+    worldRoom.onLeave(() => {
+      if (this.worldRoom !== worldRoom) return;
+      this.worldRoom = null;
+      if (!this.sectorRoom) this.sessionId = null;
+      this.emit('disconnected', undefined as void);
     });
     this.worldRoom.onError((_c, msg) => this.emit('error', String(msg)));
   }
@@ -264,6 +268,7 @@ export class NetworkManager {
       islandSeed: player.islandSeed,
       isVisitor,
       characterName: player.characterName,
+      characterId: player.characterId,
       heroRace: player.heroRace,
       heroClass: player.heroClass,
       level: player.level,
@@ -280,33 +285,33 @@ export class NetworkManager {
   }
 
   private wireSectorRoom(room: Room): void {
-    room.state.players?.onAdd?.((player: any, sessionId: string) => {
+    getStateCallbacks(room)(room.state).players.onAdd?.((player: any, sessionId: string) => {
       this.emit('playerAdd', { sessionId, player });
       // Preload remote race mesh at priority 1
       if (sessionId !== this.sessionId && player.heroRace) {
         void AssetLoadQueue.loadRaceModel(player.heroRace, 1);
       }
-      player.onChange?.(() => {
+      getStateCallbacks(room)(player).onChange(() => {
         this.emit('playerChange', { sessionId, player });
       });
     });
-    room.state.players?.onRemove?.((_p: any, sessionId: string) => {
+    getStateCallbacks(room)(room.state).players.onRemove?.((_p: any, sessionId: string) => {
       this.emit('playerRemove', { sessionId });
     });
 
-    room.state.buildings?.onAdd?.((building: any, id: string) => {
+    getStateCallbacks(room)(room.state).buildings.onAdd?.((building: any, id: string) => {
       this.emit('buildingAdd', { id, building });
     });
-    room.state.buildings?.onRemove?.((_b: any, id: string) => {
+    getStateCallbacks(room)(room.state).buildings.onRemove?.((_b: any, id: string) => {
       this.emit('buildingRemove', { id });
     });
     room.state.buildings?.forEach?.((building: any, id: string) => {
       this.emit('buildingAdd', { id, building });
     });
 
-    room.state.harvestNodes?.onAdd?.((node: any, id: string) => {
+    getStateCallbacks(room)(room.state).harvestNodes.onAdd?.((node: any, id: string) => {
       this.emit('harvest', { nodeId: id, depleted: !!node.depleted });
-      node.onChange?.(() => {
+      getStateCallbacks(room)(node).onChange(() => {
         this.emit('harvest', { nodeId: id, depleted: !!node.depleted });
       });
     });
@@ -316,46 +321,22 @@ export class NetworkManager {
     room.onMessage(CLIENT_MSG.fx, (msg: ServerFxEvent) => this.emit('fx', msg));
     room.onMessage('fx', (msg: ServerFxEvent) => this.emit('fx', msg));
 
-    room.onLeave((code) => {
-      void this.tryReconnect(room, code, (rejoined) => {
-        this.sectorRoom = rejoined;
-        this.sessionId = rejoined.sessionId;
-        this.wireSectorRoom(rejoined);
-        this.emit('connected', { sessionId: this.sessionId });
-      }).then((ok) => {
-        if (!ok && this.sectorRoom === room) {
-          this.sectorRoom = null;
-          this.emit('disconnected', undefined as void);
-        }
-      });
+    // SDK 0.17 owns reconnection and preserves this room's listeners.
+    room.onDrop(() => {
+      if (this.sectorRoom === room) this.emit('error', 'Connection lost — reconnecting…');
+    });
+    room.onReconnect(() => {
+      if (this.sectorRoom !== room) return;
+      this.sessionId = room.sessionId;
+      this.emit('connected', { sessionId: room.sessionId });
+    });
+    room.onLeave(() => {
+      if (this.sectorRoom !== room) return;
+      this.sectorRoom = null;
+      this.sessionId = this.worldRoom?.sessionId ?? null;
+      this.emit('disconnected', undefined as void);
     });
     room.onError((_c, m) => this.emit('error', String(m)));
-  }
-
-  /**
-   * Attempt Colyseus reconnection after a network drop (non-1000 leave codes).
-   * Server must call allowReconnection (see server/colyseus/reconnect.ts).
-   */
-  private async tryReconnect(
-    room: Room | null,
-    code: number,
-    onOk: (room: Room) => void,
-  ): Promise<boolean> {
-    // 1000 = normal / consented close — do not reconnect
-    if (code === 1000 || !room || !this.client) return false;
-    const token =
-      (room as { rejoinToken?: string; reconnectionToken?: string }).reconnectionToken ||
-      (room as { rejoinToken?: string }).rejoinToken;
-    if (!token) return false;
-    this.emit('error', 'Connection lost — reconnecting…');
-    try {
-      const rejoined = await this.client.reconnect(token);
-      onOk(rejoined);
-      return true;
-    } catch (e) {
-      this.emit('error', `Could not rejoin: ${e instanceof Error ? e.message : String(e)}`);
-      return false;
-    }
   }
 
   // ── Outbound ─────────────────────────────────────────────────────────────

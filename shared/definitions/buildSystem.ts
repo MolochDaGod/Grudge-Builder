@@ -96,6 +96,13 @@ export interface BuildPieceDef {
   notes?: string;
 }
 
+/** Inputs keep identity and mesh selection required; catalog factories supply these defaults. */
+type BuildPieceDefaultKey =
+  | 'sourceGlb' | 'tier' | 'placeYOffset' | 'placement' | 'requiresFloor'
+  | 'terrainPlaceable' | 'scale' | 'size' | 'cost';
+export type BuildPieceInput = Omit<BuildPieceDef, BuildPieceDefaultKey> &
+  Partial<Pick<BuildPieceDef, BuildPieceDefaultKey>>;
+
 // ── CDN layout after `scripts/upload-build-packs-to-r2` ─────────────────────
 
 export const BUILD_PACK_PATHS = {
@@ -116,6 +123,8 @@ export const BUILD_PACK_PATHS = {
    * Harvestables + E-to-learn recipes for frostbite / event snow islands.
    */
   iceBiomeKit: '/models/biomes/ice/ice_biome_kit.glb',
+  /** SI-baked camp buildings (4 m). Standalone GLBs, catalog island-building-prefabs.json */
+  islandBuildings: '/models/buildings',
   /** Ultimate Fantasy RTS pack (CDN after convert/upload) */
   ultimateFantasyRts: '/models/warlords/rts',
   /** Local authoring sources (dev only) */
@@ -243,3 +252,4 @@ export const MEDIEVAL_TOWER_NODES = {
   towerD: 'b4_low',
   towerE: 'b5_low',
 } as const;
+

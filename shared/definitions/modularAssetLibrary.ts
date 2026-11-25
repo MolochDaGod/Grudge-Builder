@@ -86,6 +86,15 @@ export const MULTIPACK_LIBRARY = {
     mapFamilies: ['warlords_sector', 'home_island'] as MapFamily[],
     notes: 'Defense towers multipack',
   },
+  islandBuildings: {
+    id: 'island_buildings_si4',
+    path: BUILD_PACK_PATHS.islandBuildings,
+    role: 'faction_building' as const,
+    mapFamilies: ['home_island', 'warlords_sector', 'chicken_gun_lobby'] as MapFamily[],
+    catalog: '/api/objectstore/v1/island-building-prefabs.json',
+    notes:
+      'Cantina/tavern/inn/house/blacksmith/market baked to 4 m. Standalone GLBs (nodeName root). Cantina CDN key is cantina-4m.glb; identity-check still rejects size drift.',
+  },
 } as const;
 
 // ── Cold biome sources (KEEP) ────────────────────────────────────────────────

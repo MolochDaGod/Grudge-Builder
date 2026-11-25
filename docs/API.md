@@ -395,6 +395,8 @@ import { resolveIconUrl, iconOnError } from '@/lib/iconResolver';
 
 ### ObjectStore REST (no auth required)
 
+Base: `https://objectstore.grudge-studio.com`
+
 | Method | Endpoint |
 |--------|----------|
 | GET | `/api/v1/icons?category=skill&limit=50` |

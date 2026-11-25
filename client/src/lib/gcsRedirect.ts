@@ -9,16 +9,18 @@
 
 import {
   FLEET_URLS,
-  isFleetAllowedReturnUrl,
   warlordsPlayOrigin,
   warlordsPlayUrl,
+  validateReturnUrl,
 } from "@shared/fleet";
+import { isWarlordsPlayHost } from "@shared/fleet/warlordsDomains";
 import {
   normalizeGameEra,
   type GameEra,
 } from "@shared/definitions/gameEras";
 import { getToken } from "./grudgeBackend";
 import { postCreatePlayPath } from "./warlordsOnboarding";
+import { clientStudioOriginOpts } from "./studioOriginsClient";
 
 export type GcsLaunchMode = "landing" | "create";
 
@@ -41,7 +43,15 @@ export function isAllowedReturnUrl(url: string): boolean {
   try {
     const u = new URL(url);
     if (BLOCKED_RETURN_HOSTS.test(u.hostname)) return false;
-    return isFleetAllowedReturnUrl(url);
+    const opts = clientStudioOriginOpts();
+    return Boolean(
+      validateReturnUrl(url, {
+        base: typeof window !== "undefined" ? window.location.origin : warlordsPlayOrigin(),
+        dev: opts.dev,
+        extraHosts: opts.extraHosts,
+        fallback: "",
+      }),
+    );
   } catch {
     return false;
   }
@@ -64,12 +74,7 @@ export function defaultWarlordsReturnTo(path?: string): string {
   if (typeof window !== "undefined") {
     try {
       const h = window.location.hostname.toLowerCase();
-      if (
-        h === "grudgewarlords.com" ||
-        h === "www.grudgewarlords.com" ||
-        h.endsWith(".grudgewarlords.com") ||
-        h === "client.grudge-studio.com"
-      ) {
+      if (isWarlordsPlayHost(h)) {
         return `${window.location.origin}${p}`;
       }
     } catch {

@@ -137,7 +137,7 @@ export class CinemaStageGraph {
 
   dispose(): void {
     this.root.traverse((o) => {
-      if ((o as THREE.AxesHelper).isAxesHelper) {
+      if (o instanceof THREE.AxesHelper) {
         (o as THREE.AxesHelper).geometry?.dispose();
         ((o as THREE.AxesHelper).material as THREE.Material)?.dispose?.();
       }

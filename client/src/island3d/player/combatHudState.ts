@@ -31,6 +31,11 @@ export interface CombatHudSnapshot {
   softLock?: SoftLockScreenFrame | null;
   softLockTargetId?: string | null;
   softLockTargetName?: string | null;
+  /** Heal/buff first click: 1=self, 2–4=allies. Null until that click. */
+  allyPick?: Array<{ slot: number; label: string; id: string; hpFrac?: number }> | null;
+  allyPickSkill?: string | null;
+  /** Stun totem: first click, LMB places AOE zone */
+  zonePickSkill?: string | null;
 }
 
 export const EMPTY_COMBAT_HUD: CombatHudSnapshot = {
@@ -55,6 +60,9 @@ export const EMPTY_COMBAT_HUD: CombatHudSnapshot = {
   softLock: null,
   softLockTargetId: null,
   softLockTargetName: null,
+  allyPick: null,
+  allyPickSkill: null,
+  zonePickSkill: null,
 };
 
 export function formatMotionLabel(profile: MotionProfile | null): string {

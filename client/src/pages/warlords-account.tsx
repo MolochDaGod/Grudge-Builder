@@ -6,7 +6,7 @@ import { Link, useLocation } from 'wouter';
 import { WarlordsShell } from '@/components/WarlordsShell';
 import { useAccount } from '@/hooks/use-account';
 import { useAuth } from '@/contexts/AuthContext';
-import { getCurrentUser, getSession, authHeaders, logout } from '@/lib/grudgeBackend';
+import { authHeaders, logout } from '@/lib/grudgeBackend';
 import { CharacterManager, type Character } from '@/lib/characterManager';
 import {
   WARLORDS_CONNECTIONS,
@@ -16,7 +16,6 @@ import {
 import {
   fetchPlayReadiness,
   resolvePlayDestination,
-  playDestinationLabel,
   type PlayReadiness,
 } from '@/lib/playHub';
 import {
@@ -41,55 +40,65 @@ interface ConnProbe {
 export default function WarlordsAccountPage() {
   const [, setLocation] = useLocation();
   const { account, loading, error: accountError, refetch: refetchAccount } = useAccount();
-  const { isAuthenticated, openLogin, redirectToGrudgeIdLogin, refreshAuth } = useAuth();
-  const user = getCurrentUser();
-  const session = getSession();
+  const { isAuthenticated, authLoading, authError, user, session, openLogin, redirectToGrudgeIdLogin } = useAuth();
   const [chars, setChars] = useState<Character[]>([]);
   const [playReady, setPlayReady] = useState<PlayReadiness | null>(null);
   const [playLabel, setPlayLabel] = useState('Play Warlords');
   const [probes, setProbes] = useState<ConnProbe[]>([]);
   const [islandOk, setIslandOk] = useState<boolean | null>(null);
+  const [flowError, setFlowError] = useState<string | null>(null);
 
   useEffect(() => {
-    void refreshAuth();
-    void CharacterManager.getAll('warlords')
-      .then(setChars)
-      .catch(() => setChars([]));
-
-    void fetchPlayReadiness().then(async (r) => {
-      setPlayReady(r);
-      const dest = await resolvePlayDestination();
-      setPlayLabel(playDestinationLabel(dest));
+    let cancelled = false;
+    setChars([]);
+    setPlayReady(null);
+    setIslandOk(null);
+    setFlowError(null);
+    setPlayLabel(isAuthenticated ? 'Play Warlords' : 'Sign In to Play');
+    if (!isAuthenticated) return;
+    const controller = new AbortController();
+    void Promise.allSettled([
+      CharacterManager.getAll('warlords'),
+      fetchPlayReadiness(),
+      fetch('/api/island/status', { headers: authHeaders(), credentials: 'include', signal: controller.signal })
+        .then(async response => {
+          if (!response.ok) throw new Error(`Island service returned HTTP ${response.status}`);
+          return response.json();
+        }),
+    ]).then(([characters, readiness, island]) => {
+      if (cancelled) return;
+      if (characters.status === 'fulfilled') setChars(characters.value);
+      if (readiness.status === 'fulfilled') setPlayReady(readiness.value);
+      setIslandOk(island.status === 'fulfilled');
+      const failure = [characters, readiness, island].find(result => result.status === 'rejected');
+      if (failure?.status === 'rejected') setFlowError(failure.reason instanceof Error ? failure.reason.message : 'Unable to load your game progress.');
     });
+    return () => { cancelled = true; controller.abort(); };
+  }, [isAuthenticated, user?.grudgeId]);
 
-    fetch('/api/island/status', { headers: authHeaders(), credentials: 'include' })
-      .then((r) => {
-        setIslandOk(r.ok);
-        return r.ok ? r.json() : null;
-      })
-      .catch(() => setIslandOk(false));
-
+  useEffect(() => {
+    let cancelled = false;
     // Connection probes — use endpoints that exist (manifest.json is not on CDN root)
     const list: ConnProbe[] = [
-      { id: 'auth', label: 'Grudge ID', url: WARLORDS_CONNECTIONS.auth, ok: null },
-      { id: 'api', label: 'Game data API', url: `${WARLORDS_CONNECTIONS.gameData}/api/health`, ok: null },
+      { id: 'api', label: 'Game data API', url: '/api/health', ok: null },
       {
         id: 'assets',
         label: 'Assets CDN',
-        url: `${WARLORDS_CONNECTIONS.assets}/icons/pack/weapons/Sword_01.png`,
+        url: '/api/assets/icons/pack/weapons/Sword_01.png',
         ok: null,
       },
-      { id: 'local', label: 'This client /api/health', url: '/api/health', ok: null },
+      { id: 'realtime', label: 'Multiplayer', url: '/api/colyseus/health', ok: null },
     ];
     setProbes(list);
     list.forEach(async (p) => {
       try {
         const r = await fetch(p.url, {
           method: 'GET',
-          mode: 'cors',
+          signal: AbortSignal.timeout(10000),
           // Avoid CDN hotlink 403 when probing from grudgewarlords.com
           referrerPolicy: 'no-referrer',
         });
+        if (cancelled) return;
         setProbes((prev) => {
           const next = [...prev];
           const idx = next.findIndex((x) => x.id === p.id);
@@ -97,6 +106,7 @@ export default function WarlordsAccountPage() {
           return next;
         });
       } catch (e) {
+        if (cancelled) return;
         setProbes((prev) => {
           const next = [...prev];
           const idx = next.findIndex((x) => x.id === p.id);
@@ -110,7 +120,8 @@ export default function WarlordsAccountPage() {
         });
       }
     });
-  }, [refreshAuth]);
+    return () => { cancelled = true; };
+  }, []);
 
   const copy = (t: string) => {
     void navigator.clipboard.writeText(t);
@@ -132,15 +143,19 @@ export default function WarlordsAccountPage() {
               Account
             </h1>
             <p className="text-slate-500 text-sm mt-1">
-              Grudge ID identity · era <code className="text-amber-500/80">warlords</code> only on this product
+              Your identity, heroes, and progress across the shattered seas.
             </p>
           </div>
           <button
             type="button"
-            disabled={!isAuthenticated && !playReady?.signedIn}
+            disabled={authLoading || !isAuthenticated}
             onClick={async () => {
-              const dest = await resolvePlayDestination();
-              setLocation(dest.path);
+              try {
+                const dest = await resolvePlayDestination();
+                setLocation(dest.path);
+              } catch (error) {
+                setFlowError(error instanceof Error ? error.message : 'Unable to start your journey.');
+              }
             }}
             className="px-5 py-2.5 rounded-xl font-bold text-sm flex items-center gap-2 border-0 cursor-pointer disabled:opacity-50"
             style={{
@@ -154,10 +169,10 @@ export default function WarlordsAccountPage() {
           </button>
         </div>
 
-        {(!isAuthenticated && !session) || accountError ? (
+        {!authLoading && (!isAuthenticated || accountError || authError || flowError) ? (
           <div className="mb-6 rounded-xl border border-amber-900/40 bg-amber-950/20 p-5">
             <p className="text-sm text-slate-300 mb-3">
-              {accountError ||
+              {flowError || authError || accountError ||
                 'Sign in with Grudge ID to manage heroes and home island.'}
             </p>
             <div className="flex flex-wrap gap-2">
@@ -166,7 +181,7 @@ export default function WarlordsAccountPage() {
                 onClick={() => {
                   // Prefer Grudge ID redirect (fleet JWT handoff) over local modal only
                   try {
-                    redirectToGrudgeIdLogin('/auth/callback');
+                    redirectToGrudgeIdLogin('/account');
                   } catch {
                     try {
                       openLogin();
@@ -196,7 +211,7 @@ export default function WarlordsAccountPage() {
         {/* Profile */}
         <section className="rounded-2xl border border-white/10 bg-[#0b0f1e] p-5 mb-5">
           <h2 className="text-sm font-semibold text-amber-400/90 mb-4 tracking-wide">Profile</h2>
-          {loading ? (
+          {loading || authLoading ? (
             <div className="text-slate-500 text-sm flex items-center gap-2">
               <Loader2 className="w-4 h-4 animate-spin" /> Loading…
             </div>
@@ -295,20 +310,20 @@ export default function WarlordsAccountPage() {
           <div className="flex flex-wrap gap-2">
             <button
               type="button"
-              onClick={() => setLocation('/home-island')}
+              onClick={() => isAuthenticated ? setLocation('/home-island') : openLogin('/home-island')}
               className="px-3 py-1.5 rounded-md text-xs border border-emerald-800/50 text-emerald-400 bg-emerald-950/20 cursor-pointer"
             >
               Open 3D home island
             </button>
             <button
               type="button"
-              onClick={() => setLocation('/tutorial')}
+              onClick={() => isAuthenticated ? setLocation('/tutorial') : openLogin('/tutorial')}
               className="px-3 py-1.5 rounded-md text-xs border border-white/10 text-slate-400 bg-transparent cursor-pointer"
             >
               Tutorial
             </button>
             <span className="text-[11px] text-slate-600 self-center">
-              Island API {islandOk === null ? '…' : islandOk ? 'ok' : 'unavailable'}
+              {!isAuthenticated ? 'Sign in to load your island' : islandOk === null ? 'Checking island…' : islandOk ? 'Island service connected' : 'Island service unavailable'}
             </span>
           </div>
         </section>
@@ -316,7 +331,7 @@ export default function WarlordsAccountPage() {
         {/* Connections */}
         <section className="rounded-2xl border border-white/10 bg-[#0b0f1e] p-5 mb-5">
           <h2 className="text-sm font-semibold text-amber-400/90 mb-4 tracking-wide">
-            Fleet connections (grudge.studio)
+            Realm connections
           </h2>
           <ul className="space-y-2">
             {probes.map((p) => (

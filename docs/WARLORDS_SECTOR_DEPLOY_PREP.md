@@ -1,7 +1,7 @@
 # Warlords era — Sector world server deploy prep
 
 **Date:** 2026-07-17  
-**SSOT client:** `Desktop/grudge-builder` (Vercel grudge-builder / grudgewarlords.com)  
+**SSOT client:** `Desktop/grudge-builder` (Vercel grudge-builder / grudgewarlords.com = Jonathan-signed PREVIEW only)  
 **SSOT index:** `Desktop/SOURCE_OF_TRUTH.md`  
 **Map families:** `shared/definitions/mapRegistry.ts` (do not mix IDs)
 

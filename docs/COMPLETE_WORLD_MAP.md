@@ -14,7 +14,7 @@
 | **All 9 macro sectors** | Ethereal Falls · Frostbite · Thornwood · Stormbreak · Convergence · Ashen · Abyssal · **Haven Shore** · Ember Depths |
 | **Offline-first** | Renders from client SSOT without `/api/map/world` |
 | **Live overlay** | Optional player counts / controlling faction when API is up |
-| **Race capitals** | Markers for human/dwarf/elf/orc/undead/demon cities |
+| **Race capitals** | Play races: human+barbarian (Haven Port), dwarf, elf, orc, undead. Ashen Throne = demon NPC tribe, not a capital. |
 | **Land in** | `/play?sector=<zoneId>&mode=zone&worldSeed=…&city=…` |
 | **Sail** | `/ocean` with all 9 sector islands labeled on the tactical ocean |
 

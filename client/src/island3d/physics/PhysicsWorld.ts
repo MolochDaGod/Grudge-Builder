@@ -32,6 +32,8 @@ import {
   PHYSICS_FIXED_DT,
   PHYSICS_GRAVITY_Y,
   RIGID_BODY_PRESETS,
+  applyColliderMaterial,
+  type FleetColliderRole,
 } from './fleet';
 
 // ── Types ────────────────────────────────────────────────────────────────────
@@ -180,7 +182,10 @@ export class PhysicsWorld {
 
   // ── Terrain collider (trimesh — static, perfect accuracy) ──────────────
 
-  addTerrainCollider(terrainMesh: THREE.Mesh): PhysicsBody {
+  addTerrainCollider(
+    terrainMesh: THREE.Mesh,
+    opts?: { role?: FleetColliderRole },
+  ): PhysicsBody {
     const geo = terrainMesh.geometry as THREE.BufferGeometry;
     const posAttr = geo.getAttribute('position');
     const indexAttr = geo.getIndex();
@@ -214,6 +219,13 @@ export class PhysicsWorld {
     const colliderDesc = RAPIER.ColliderDesc.trimesh(vertices, indices)
       .setFriction(0.8)
       .setRestitution(0.1);
+    if (opts?.role) {
+      applyColliderMaterial(colliderDesc, opts.role, {
+        collisionEvents: RAPIER.ActiveEvents.COLLISION_EVENTS,
+        kinematicFixed:
+          RAPIER.ActiveCollisionTypes.DEFAULT | RAPIER.ActiveCollisionTypes.KINEMATIC_FIXED,
+      });
+    }
     const collider = this.world.createCollider(colliderDesc, rigidBody);
 
     const id = `terrain_${this.nextId++}`;
@@ -321,14 +333,14 @@ export class PhysicsWorld {
     scale?: number,
   ): PhysicsBody {
     // Try to find named collider mesh
-    let colliderMesh: THREE.Mesh | null = null;
+    const colliderMeshes: THREE.Mesh[] = [];
     const compoundMeshes: THREE.Mesh[] = [];
 
     scene.traverse((child) => {
       if (!(child as THREE.Mesh).isMesh) return;
       const name = child.name.toLowerCase();
       if (name === 'collider' || name === 'physics') {
-        colliderMesh = child as THREE.Mesh;
+        colliderMeshes.push(child as THREE.Mesh);
       } else if (name.startsWith('collider_')) {
         compoundMeshes.push(child as THREE.Mesh);
       }
@@ -346,6 +358,7 @@ export class PhysicsWorld {
     const rigidBody = this.world.createRigidBody(bodyDesc);
     let collider: RAPIER.Collider;
 
+    const colliderMesh = colliderMeshes.at(-1);
     if (colliderMesh) {
       // Option A: exact trimesh from named collider mesh
       const { vertices, indices } = this.extractMeshGeometry(colliderMesh, scale);

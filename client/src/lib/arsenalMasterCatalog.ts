@@ -1,10 +1,10 @@
 /**
- * Arsenal ↔ info.grudge-studio.com master catalogs
+ * Arsenal ↔ objectstore.grudge-studio.com master catalogs
  *
  * SSOT for item icons/stats/lore and weapon skills:
- *   https://info.grudge-studio.com/api/v1/master-items.json
- *   https://info.grudge-studio.com/api/v1/master-weapons.json
- *   https://info.grudge-studio.com/api/v1/master-weaponSkills.json
+ *   https://objectstore.grudge-studio.com/api/v1/master-items.json
+ *   https://objectstore.grudge-studio.com/api/v1/master-weapons.json
+ *   https://objectstore.grudge-studio.com/api/v1/master-weaponSkills.json
  *
  * Prefab meshes stay in weaponPrefabCatalog / armorPrefabCatalog.
  * This module overlays production info + icons onto the Arsenal SPA.

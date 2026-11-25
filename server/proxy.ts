@@ -5,7 +5,7 @@
  *   /api/<game-data> → Railway Postgres API (characters, missions, health, …)
  *   /api/game/:path* → Railway /api/:path* (legacy shim)
  *   /api/auth/:path* → Railway /api/auth/:path* (same as vercel.json; guest is 403)
- *   /api/assets/:path* → assets.grudge-studio.com/:path*
+ *   /api/assets/:path* → assets.grudge-studio.com/:path* (no Referer; CF hotlink 1011)
  *
  * Locally, Express handles /api/island/*, /api/account/*, etc. directly.
  * This proxy catches the external routes that would otherwise 404.

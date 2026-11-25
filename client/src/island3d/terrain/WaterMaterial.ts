@@ -318,7 +318,7 @@ export function bindOceanMaps(
   }
 }
 
-export function createOceanMesh(config: Partial<OceanConfig> = {}): THREE.Mesh {
+export function createOceanMesh(config: Partial<OceanConfig> = {}): THREE.Mesh<THREE.PlaneGeometry, THREE.ShaderMaterial> {
   const c = { ...DEFAULT_OCEAN, ...config };
   const segments = Math.max(16, Math.min(c.segments, 128));
   const geo = new THREE.PlaneGeometry(c.size, c.size, segments, segments);

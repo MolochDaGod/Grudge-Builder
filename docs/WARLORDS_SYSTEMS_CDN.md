@@ -191,7 +191,7 @@ Keep binaries on R2 only; catalogs may dual-publish.
 
 ## Agent rules
 
-1. Warlords client = `grudge-builder` → grudgewarlords.com  
+1. Warlords client = `grudge-builder` → grudgewarlords.com (Jonathan-signed PREVIEW only)  
 2. Do not mix GRUDGES/Nexus voxel Codex into Warlords play CDN requirements  
 3. New GLBs only under taxonomy prefixes  
 4. Prefer multipack **node instances** (PackModelLoader) over whole-scene dumps  

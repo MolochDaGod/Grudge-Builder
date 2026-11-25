@@ -37,6 +37,7 @@ import {
   type TreatyFriendProfile,
   type TreatyGroupSummary,
   type TreatyGroupMessage,
+  sendTreatyAgentChat,
 } from "@/lib/treatyChat";
 
 const POLL_MS = 5000;
@@ -60,7 +61,7 @@ interface TreatyChatPanelProps {
   expanded?: boolean;
 }
 
-type SubTab = "friends" | "dms" | "groups";
+type SubTab = "friends" | "dms" | "groups" | "agent";
 
 export function TreatyChatPanel({ active, expanded = false }: TreatyChatPanelProps) {
   const { toast } = useToast();
@@ -75,6 +76,9 @@ export function TreatyChatPanel({ active, expanded = false }: TreatyChatPanelPro
   const [activeGroupId, setActiveGroupId] = useState<string | null>(null);
   const [draft, setDraft] = useState("");
   const [sending, setSending] = useState(false);
+  const [agentLog, setAgentLog] = useState<Array<{ role: "user" | "agent"; text: string }>>([]);
+  const [agentDraft, setAgentDraft] = useState("");
+  const [agentSending, setAgentSending] = useState(false);
   const [creatingGroup, setCreatingGroup] = useState(false);
   const [newGroupName, setNewGroupName] = useState("");
   const [newGroupMembers, setNewGroupMembers] = useState("");
@@ -363,7 +367,7 @@ export function TreatyChatPanel({ active, expanded = false }: TreatyChatPanelPro
       onValueChange={(v) => setSubTab(v as SubTab)}
       className="w-full"
     >
-      <TabsList className="grid w-full grid-cols-3 bg-slate-900/80 mb-3">
+      <TabsList className="grid w-full grid-cols-4 bg-slate-900/80 mb-3">
         <TabsTrigger value="dms" className="gap-1.5">
           <MessageCircle className="h-3.5 w-3.5" />
           DMs
@@ -390,6 +394,9 @@ export function TreatyChatPanel({ active, expanded = false }: TreatyChatPanelPro
               {social!.pendingIncoming.length}
             </Badge>
           )}
+        </TabsTrigger>
+        <TabsTrigger value="agent" className="gap-1.5">
+          Agent
         </TabsTrigger>
       </TabsList>
 
@@ -584,6 +591,94 @@ export function TreatyChatPanel({ active, expanded = false }: TreatyChatPanelPro
             </section>
           </div>
         )}
+      </TabsContent>
+
+      <TabsContent value="agent" className="mt-0 space-y-3">
+        <p className="text-xs text-slate-500">
+          Talk to <span className="text-amber-400">Grudge Agent</span> (@grudagamebot) — GitHub, sandbox builds,
+          fleet catalogs, Treaty tools. Same agent as Telegram; memory continues per account.
+        </p>
+        <div className={`${listH} overflow-y-auto space-y-2 rounded-lg border border-slate-800 p-3 bg-slate-950/50`}>
+          {agentLog.length === 0 ? (
+            <p className="text-sm text-slate-600 text-center py-6">Ask about play-kit contracts, biomes, repos, or builds.</p>
+          ) : (
+            agentLog.map((m, i) => (
+              <div
+                key={i}
+                className={`text-sm rounded-md px-2.5 py-2 whitespace-pre-wrap ${
+                  m.role === "user" ? "bg-slate-800 text-slate-100 ml-6" : "bg-amber-950/40 text-amber-50 mr-6 border border-amber-900/40"
+                }`}
+              >
+                <span className="text-[10px] uppercase tracking-wide opacity-60 block mb-1">
+                  {m.role === "user" ? "You" : "Agent"}
+                </span>
+                {m.text}
+              </div>
+            ))
+          )}
+          <div ref={messagesEndRef} />
+        </div>
+        <div className="flex gap-2">
+          <input
+            className="flex-1 rounded-md border border-slate-700 bg-slate-900 px-3 py-2 text-sm"
+            placeholder="Message Grudge Agent…"
+            value={agentDraft}
+            disabled={agentSending}
+            onChange={(e) => setAgentDraft(e.target.value)}
+            onKeyDown={async (e) => {
+              if (e.key === "Enter" && !e.shiftKey) {
+                e.preventDefault();
+                const text = agentDraft.trim();
+                if (!text || agentSending) return;
+                setAgentSending(true);
+                setAgentLog((prev) => [...prev, { role: "user", text }]);
+                setAgentDraft("");
+                try {
+                  const r = await sendTreatyAgentChat(text);
+                  setAgentLog((prev) => [
+                    ...prev,
+                    { role: "agent", text: r.reply || r.error || "No reply" },
+                  ]);
+                } catch (err: any) {
+                  setAgentLog((prev) => [
+                    ...prev,
+                    { role: "agent", text: err?.message || "Agent request failed" },
+                  ]);
+                  toast({ title: "Agent error", description: err?.message, variant: "destructive" });
+                } finally {
+                  setAgentSending(false);
+                }
+              }
+            }}
+          />
+          <Button
+            disabled={agentSending || !agentDraft.trim()}
+            onClick={async () => {
+              const text = agentDraft.trim();
+              if (!text || agentSending) return;
+              setAgentSending(true);
+              setAgentLog((prev) => [...prev, { role: "user", text }]);
+              setAgentDraft("");
+              try {
+                const r = await sendTreatyAgentChat(text);
+                setAgentLog((prev) => [
+                  ...prev,
+                  { role: "agent", text: r.reply || r.error || "No reply" },
+                ]);
+              } catch (err: any) {
+                setAgentLog((prev) => [
+                  ...prev,
+                  { role: "agent", text: err?.message || "Agent request failed" },
+                ]);
+                toast({ title: "Agent error", description: err?.message, variant: "destructive" });
+              } finally {
+                setAgentSending(false);
+              }
+            }}
+          >
+            {agentSending ? <Loader2 className="h-4 w-4 animate-spin" /> : "Send"}
+          </Button>
+        </div>
       </TabsContent>
     </Tabs>
   );

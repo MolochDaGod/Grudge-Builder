@@ -2044,4 +2044,28 @@
   };
 
   global.GrudgeFleet = fleet;
+
+  (function mountStudioFriends() {
+    if (typeof document === 'undefined' || typeof window === 'undefined') return;
+    if (window.__grudgeFriendsWidget) return;
+    function go() {
+      if (document.querySelector('script[src*="friends-widget.js"]')) return;
+      var s = document.createElement('script');
+      s.src = 'https://nemesis.grudge-studio.com/friends-widget.js';
+      s.defer = true;
+      var host = (location.hostname || '').toLowerCase();
+      var app = 'grudge-studio';
+      if (host.indexOf('open.') === 0) app = 'gameopen';
+      else if (host.indexOf('grudox') !== -1) app = 'grudox';
+      else if (host.indexOf('warlord') !== -1 || host.indexOf('client.') === 0) app = 'warlords';
+      else if (host.indexOf('forge') === 0) app = 'forge';
+      else if (host.indexOf('character') === 0) app = 'character';
+      else if (host.indexOf('mine') === 0) app = 'mineloader';
+      else if (host.indexOf('wallet') === 0) app = 'wallet';
+      s.setAttribute('data-app', app);
+      (document.body || document.documentElement).appendChild(s);
+    }
+    if (document.readyState === 'loading') document.addEventListener('DOMContentLoaded', go);
+    else go();
+  })();
 })(typeof window !== 'undefined' ? window : globalThis);

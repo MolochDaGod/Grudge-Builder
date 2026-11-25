@@ -22,6 +22,7 @@ export class CinemaAnimDirector {
   private actions = new Map<string, THREE.AnimationAction>();
   private current: string | null = null;
   private timeScale = 1;
+  private frozen = false;
 
   constructor(root: THREE.Object3D, clips: THREE.AnimationClip[], rematch = true) {
     this.root = root;
@@ -241,11 +242,25 @@ export class CinemaAnimDirector {
     return [...new Set([...this.clips.keys()])];
   }
 
+  /** Hard-stop clips (thrown ragdoll). Mixer must not keep writing bones. */
+  freezeLimp(): void {
+    this.frozen = true;
+    this.mixer.stopAllAction();
+    for (const a of this.actions.values()) {
+      a.enabled = false;
+      a.setEffectiveWeight(0);
+      a.setEffectiveTimeScale(0);
+    }
+    this.current = null;
+  }
+
   update(dt: number): void {
+    if (this.frozen) return;
     this.mixer.update(dt);
   }
 
   dispose(): void {
+    this.frozen = true;
     this.mixer.stopAllAction();
     this.actions.clear();
   }

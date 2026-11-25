@@ -33,6 +33,7 @@ import {
 } from './DragonKoiCastAura';
 import { CastingMaster, type CastRequest } from '../casting/CastingMaster';
 import type { SpellFxSystem } from './SpellFxSystem';
+import { GroundSlamBreakFx } from './GroundSlamBreakFx';
 
 export class WorldFxBus {
   readonly root = new THREE.Group();
@@ -45,6 +46,8 @@ export class WorldFxBus {
   readonly supernova: SupernovaImpactSystem;
   /** Surrounding cast auras (dragon_koi multipack, multi color/opacity/shader) */
   readonly dragonKoiCast: DragonKoiCastAuraSystem;
+  /** One-shot juggernaut slam break on hard ground hits */
+  readonly groundSlam: GroundSlamBreakFx;
   /**
    * Master casting orchestrator (Linear skillshots + Casting path/VFX).
    * Wired after SpellFxSystem is available via `attachCastingMaster`.
@@ -58,9 +61,11 @@ export class WorldFxBus {
     this.supernova = new SupernovaImpactSystem(scene);
     setSupernovaImpactSystem(this.supernova);
     this.dragonKoiCast = new DragonKoiCastAuraSystem(scene);
+    this.groundSlam = new GroundSlamBreakFx(scene);
     // Preload large pack in background so first skill hit isn't cold
     void this.supernova.preload();
     void this.dragonKoiCast.preload();
+    void this.groundSlam.preload();
   }
 
   /**
@@ -200,6 +205,47 @@ export class WorldFxBus {
     scale?: number,
   ): void {
     this.spellImpact(at, { damageType, scale, withParticles: true });
+  }
+
+  /** Play juggernaut slam break once at feet, then hide. */
+  groundSlamBreak(at: THREE.Vector3): void {
+    this.groundSlam.spawn(at);
+  }
+
+  /**
+   * Small earth-surge AOE at a totem breach (EarthAbility spike palette).
+   * Geometry spike + rise lives on SpellTotemSystem; this is the ground burst.
+   */
+  /** Purple stun-totem burst (Freya) — expanding impact at the zone. */
+  stunBurst(at: THREE.Vector3, radius = 4.5): void {
+    this.spellImpact(at, {
+      school: 'arcane',
+      damageType: 'arcane',
+      vfxKey: 'arcane_swirl',
+      scale: Math.max(1.4, radius * 0.45),
+      withParticles: true,
+    });
+    this.spawn('attack_burst', {
+      position: at.clone().add(new THREE.Vector3(0, 0.4, 0)),
+      burst: true,
+      burstCount: 28,
+    });
+  }
+
+  totemEmerge(at: THREE.Vector3): void {
+    const ground = at.clone();
+    this.spellImpact(ground, {
+      school: 'nature',
+      damageType: 'earth',
+      vfxKey: 'earth_surge',
+      scale: 0.55,
+      withParticles: true,
+    });
+    this.spawn('attack_burst', {
+      position: ground.clone().add(new THREE.Vector3(0, 0.15, 0)),
+      burst: true,
+      burstCount: 20,
+    });
   }
 
   teleportSmoke(at: THREE.Vector3): void {
@@ -380,6 +426,7 @@ export class WorldFxBus {
 
     this.supernova.update(dt);
     this.dragonKoiCast.update(dt);
+    this.groundSlam.update(dt);
     this.casting?.update(dt);
   }
 
@@ -392,6 +439,7 @@ export class WorldFxBus {
     this.trails = [];
     this.supernova.dispose();
     this.dragonKoiCast.dispose();
+    this.groundSlam.dispose();
     this.casting?.dispose();
     this.casting = null;
     setSupernovaImpactSystem(null);

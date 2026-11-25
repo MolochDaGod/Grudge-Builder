@@ -10,6 +10,7 @@ import {
   FLOATING_ISLAND_LOAD_ORDER,
   HOTH_BOSS_ROOM,
   SPIRAL_MOUNTAIN_EVENT,
+  pickBossRoomInstance,
   type EventIslandBiome,
 } from '@shared/definitions/floatingIslandBossAssets';
 import {
@@ -51,6 +52,7 @@ interface LiveIsland {
 export class EventIslandSystem {
   readonly root = new THREE.Group();
   private scene: THREE.Scene;
+  private sectorId: string;
   private waterLevel: number;
   private zoneSize: number;
   private cb: EventIslandCallbacks;
@@ -61,6 +63,7 @@ export class EventIslandSystem {
 
   constructor(opts: EventIslandOpts) {
     this.scene = opts.scene;
+    this.sectorId = opts.sectorId;
     this.waterLevel = opts.waterLevel;
     this.zoneSize = opts.zoneSizeM;
     this.cb = opts.cb ?? {};
@@ -142,7 +145,8 @@ export class EventIslandSystem {
     pad.position.set(0, 8, 6);
     pad.name = 'EventIslandPortal';
     pad.userData.portal = true;
-    pad.userData.portalTarget = HOTH_BOSS_ROOM.id;
+    pad.userData.portalTarget =
+      pickBossRoomInstance({ sectorId: opts.sectorId })?.id ?? HOTH_BOSS_ROOM.id;
     pad.userData.entrySource = 'event_island_portal';
     g.add(pad);
 
@@ -260,7 +264,8 @@ export class EventIslandSystem {
         best = {
           islandId: isl.id,
           pos,
-          target: HOTH_BOSS_ROOM.id,
+          target:
+            pickBossRoomInstance({ sectorId: this.sectorId })?.id ?? HOTH_BOSS_ROOM.id,
         };
       }
     }

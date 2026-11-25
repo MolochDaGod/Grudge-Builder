@@ -665,6 +665,7 @@ export const WEAPON_TYPE_DEFINITIONS: Record<string, WeaponTypeDefinition> = {
         unlockTier: 2,
         label: "ABILITY",
         skills: [
+          { id: "staff_stun_totem", name: "Stun Totem", description: "Select a ground AOE. A Freya totem rises from under the zone; a purple burst stuns every enemy inside.", icon: "/icons/misc/ChaosCircle.png", tier: 1, damage: 12, cooldown: 18, effects: ["Ground AOE", "Stun 2.5s", "Purple burst", "Arcane staff"] },
           { id: "staff_inferno_shield", name: "Inferno Shield", description: "Reflect damage", icon: "🛡️", tier: 1, damage: 0, cooldown: 15, effects: ["Absorb 200", "Reflect 30%"] },
           { id: "staff_glacial_shield", name: "Glacial Shield", description: "Absorb + slow attackers", icon: "🧊", tier: 2, damage: 0, cooldown: 15, effects: ["Absorb 250", "Slow Attackers"] },
           { id: "staff_meteor_strike", name: "Meteor Strike", description: "Delayed massive burst", icon: "☄️", tier: 3, damage: 150, cooldown: 18, effects: ["Delay 1.5s", "AoE 5m"] },
@@ -895,6 +896,7 @@ export const WEAPON_TYPE_DEFINITIONS: Record<string, WeaponTypeDefinition> = {
           { id: "wand_r_fire_bolt", name: "Fire Bolt", description: "Single-target fire, builds Burn stack", icon: "🔥", tier: 1, damage: 50, cooldown: 0, effects: ["Builds Burn Stack"], sourceWeaponType: "STAFF" },
           { id: "wand_r_frost_bolt", name: "Frost Bolt", description: "Single-target ice, slows", icon: "❄️", tier: 1, damage: 45, cooldown: 0, effects: ["Slow 30%"], sourceWeaponType: "STAFF" },
           { id: "wand_r_arcane_bolt", name: "Arcane Bolt", description: "Pure arcane damage, builds Charge", icon: "✨", tier: 1, damage: 40, cooldown: 0, effects: ["Builds Arcane Charge"], sourceWeaponType: "STAFF" },
+          { id: "wand_r_stun_totem", name: "Stun Totem", description: "Select a ground AOE. Freya totem rises; purple burst stuns enemies in the zone.", icon: "/icons/misc/ChaosCircle.png", tier: 1, damage: 12, cooldown: 18, effects: ["Ground AOE", "Stun 2.5s", "Purple burst"], sourceWeaponType: "STAFF" },
           { id: "wand_r_holy_light", name: "Holy Light", description: "Heal single ally", icon: "💛", tier: 1, damage: -60, cooldown: 2, effects: ["Heal Ally"], sourceWeaponType: "STAFF" },
           { id: "wand_r_nature_bolt", name: "Nature Bolt", description: "Poison + minor heal", icon: "🌿", tier: 1, damage: 35, cooldown: 0, effects: ["Poison 4s", "Self Heal 10"], sourceWeaponType: "STAFF" },
           { id: "wand_r_lightning_bolt", name: "Lightning Bolt", description: "Chain to 2 targets", icon: "⚡", tier: 2, damage: 55, cooldown: 2, effects: ["Chain 2"], sourceWeaponType: "STAFF" },
@@ -1311,6 +1313,13 @@ const WEAPON_TYPE_ALIASES: Record<string, string> = {
   GREATAXE: "AXE",
   TOME: "STAFF",
   TOOL: "HAMMER",
+  LANCE: "SPEAR",
+  NIMBLE_FINGERS: "RANGER_QUICK_FINGERS",
+  RANGER_LOG: "RANGER_QUICK_FINGERS",
+  DUAL_WIELD: "WARRIOR_BATTLE",
+  BATTLE_DUAL: "WARRIOR_BATTLE",
+  PICKAXE: "TOOL",
+  SHOVEL: "TOOL",
 };
 
 export function normalizeWeaponTypeId(weaponType: string): string {

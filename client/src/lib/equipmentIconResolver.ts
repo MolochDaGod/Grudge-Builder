@@ -39,6 +39,7 @@ export interface EquipmentIconItem {
   prefabId?: string;
   styleId?: string | number;
   meshUrl?: string;
+  preferMeshIcon?: boolean;
 }
 
 /** Sync path for img src ΓÇö uses baked/catalog only (no async generate). */
@@ -124,13 +125,8 @@ export async function getEquipmentIconAsync(
   });
 }
 
-// Augment type for optional flag
-declare module '@/lib/equipmentIconResolver' {
-  // no-op ΓÇö preferMeshIcon on item via cast
-}
-export type EquipmentIconItemEx = EquipmentIconItem & {
-  preferMeshIcon?: boolean;
-};
+/** Compatibility alias for callers using the former extended icon type. */
+export type EquipmentIconItemEx = EquipmentIconItem;
 
 /**
  * Warm-generate icons for all ready prefabs of a type (inventory preload).
@@ -163,3 +159,6 @@ export async function warmGenerateIconsForType(
 }
 
 export { SHIELD_ICON_CATALOG, bakedEquipmentIconPath };
+
+
+export { cacheIconFromEquippedWeapon } from '@/lib/equipmentIconFromMesh';

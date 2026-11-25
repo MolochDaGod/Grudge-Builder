@@ -244,7 +244,10 @@ export class NpcCampSystem {
       rotationY: opts?.rotationY ?? 0,
     };
     camp.data.upgrades.push(placed);
-    await this.attachUpgradeMesh(camp, placed);
+    if (!await this.attachUpgradeMesh(camp, placed)) {
+      camp.data.upgrades = camp.data.upgrades.filter(upgrade => upgrade !== placed);
+      return false;
+    }
 
     // Claim Flag → ownership + garrison spawn hook
     if (upgradeId === 'camp_flag' || def.kind === 'flag') {
@@ -330,9 +333,9 @@ export class NpcCampSystem {
 
   // ── Internals ────────────────────────────────────────────────────────────
 
-  private async attachUpgradeMesh(camp: RuntimeCamp, up: PlacedCampUpgrade): Promise<void> {
+  private async attachUpgradeMesh(camp: RuntimeCamp, up: PlacedCampUpgrade): Promise<boolean> {
     const udef = CAMP_UPGRADES[up.upgradeId];
-    if (!udef) return;
+    if (!udef) return false;
     const asset = getBuildAsset(udef.buildAssetId);
     const group = new THREE.Group();
     group.position.set(up.localPos[0], up.localPos[1], up.localPos[2]);
@@ -345,10 +348,18 @@ export class NpcCampSystem {
         // PackModelLoader: multipack node extract (survival kit / towers) or full GLB
         const mesh = await loadBuildAssetModel(asset);
         group.add(mesh);
-      } catch {
+      } catch (error) {
+        if (up.kind === 'trap') {
+          console.warn(`[NpcCamp] Trap asset failed: ${udef.buildAssetId}`, error);
+          return false;
+        }
         group.add(this.makeUpgradePlaceholder(up.kind));
       }
     } else {
+      if (up.kind === 'trap') {
+        console.warn(`[NpcCamp] Trap asset is not registered: ${udef.buildAssetId}`);
+        return false;
+      }
       group.add(this.makeUpgradePlaceholder(up.kind));
     }
 
@@ -364,10 +375,11 @@ export class NpcCampSystem {
         /* optional */
       }
     }
+    return true;
   }
 
-  private makeUpgradePlaceholder(kind: CampUpgradeKind): THREE.Mesh {
-    const colors: Record<CampUpgradeKind, number> = {
+  private makeUpgradePlaceholder(kind: Exclude<CampUpgradeKind, 'trap'>): THREE.Mesh {
+    const colors: Record<Exclude<CampUpgradeKind, 'trap'>, number> = {
       bench: 0x8b6914,
       storage: 0x654321,
       tower: 0x7a5c3a,
@@ -375,7 +387,7 @@ export class NpcCampSystem {
       fire: 0xff6600,
       barricade: 0x5a4a3a,
     };
-    const sizes: Record<CampUpgradeKind, [number, number, number]> = {
+    const sizes: Record<Exclude<CampUpgradeKind, 'trap'>, [number, number, number]> = {
       bench: [2, 0.8, 0.6],
       storage: [1.2, 0.9, 0.9],
       tower: [2.5, 7, 2.5],

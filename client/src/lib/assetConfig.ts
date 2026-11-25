@@ -77,6 +77,9 @@ function toCdnRelativePath(pathOrUrl: string): string {
  * Same-origin URL that Vercel / Vite proxy to R2.
  * Prefer this for fetch, Three.js loaders, and canvas.
  */
+/** Local public sprite on the Warlords SPA — not R2. assetUrl() would 403/404 via /api/assets. */
+export const GBUX_TOKEN_SRC = "/sprites/gbux-token.png";
+
 export function sameOriginAssetUrl(path: string): string {
   if (!path) return '/api/assets/';
   if (/^(data:|blob:)/i.test(path)) return path;
@@ -193,7 +196,7 @@ export function apiUrl(endpoint: string): string {
  *
  * @example
  *   workerUrl('/v1/weapon-skills/SWORD')
- *   // => 'https://info.grudge-studio.com/v1/weapon-skills/SWORD'
+ *   // => 'https://objectstore.grudge-studio.com/api/v1/weapon-skills/SWORD'
  */
 export function workerUrl(path: string): string {
   const cleanPath = path.startsWith('/') ? path : `/${path}`;

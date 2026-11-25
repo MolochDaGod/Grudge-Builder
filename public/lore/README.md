@@ -7,7 +7,7 @@
 ## Tome contents
 
 - 6-hour game days / 8-day weeks (matches `gameClock.ts`)
-- Eight day names (Firstdawn … Restday)
+- Eight gods’ days (Oathday · Gravesday · Forge Day · Tide Day · Balance Day · Ashday · Skywatch · Night's End)
 - Four seasons
 - Gods: Odin, Madra, Omni
 - Religions, gods’ days, events, tides & sky

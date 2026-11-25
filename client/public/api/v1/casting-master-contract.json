@@ -7,7 +7,7 @@
     "https://github.com/MolochDaGod/CastingAbilitiesThreeJS"
   ],
   "terrainRef": "https://simonstorlschulke.github.io/threejs-examples/?scene=0",
-  "description": "Mastered Linear skillshots + Casting path/VFX + three-layer islands for Grudge Builder / info.grudge-studio.com",
+  "description": "Mastered Linear skillshots + Casting path/VFX + three-layer islands for Grudge Builder / objectstore.grudge-studio.com",
   "linearSkillshots": {
     "ice": { "name": "Frost Lance", "shape": "line", "hotkey": "Q" },
     "thunder": { "name": "Storm Lance", "shape": "line", "hotkey": "E" },
@@ -51,7 +51,7 @@
   },
   "hosts": {
     "castingLab": "https://casting.grudge.studio",
-    "info": "https://info.grudge-studio.com",
+    "info": "https://objectstore.grudge-studio.com",
     "builder": "https://client.grudge-studio.com",
     "weaponSkills": "https://weapon-skills.grudge-studio.com",
     "animAi": "https://anim-ai-worker.grudge.workers.dev"

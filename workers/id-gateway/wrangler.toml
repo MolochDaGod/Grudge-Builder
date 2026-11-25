@@ -25,3 +25,6 @@ head_sampling_rate = 1
 ENVIRONMENT = "production"
 UPSTREAM = "https://grudge-api-production-0d46.up.railway.app"
 PUBLIC_HOST = "https://id.grudge-studio.com"
+# Comma-separated extra return/CORS hosts (exact hostnames, no wildcards, no scheme).
+# Empty by default; set per-environment without a code change. Not a secret.
+AUTH_ALLOWED_RETURN_HOSTS = ""

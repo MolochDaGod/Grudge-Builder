@@ -1,5 +1,5 @@
 /**
- * TutorialMainPanel — production-style main panel for /tutorial.
+ * TutorialMainPanel — production main panel for multiplayer Shipwreck Cove.
  * Tabs: Character · Inventory · Craft · Skills · Quests (Traveler)
  */
 import {
@@ -48,6 +48,15 @@ const TABS: { id: MainPanelTab; label: string; Icon: typeof User; hotkey: string
 const PANEL =
   'bg-[#0c0b10]/96 backdrop-blur-xl border border-amber-600/40 rounded-2xl shadow-2xl shadow-black/60';
 
+/** Only recipes with an authoritative multiplayer ShipwreckRoom action. */
+const PRODUCTION_SHORE_RECIPE_IDS = new Set([
+  't0_pickaxe',
+  't0_hatchet',
+  'campfire',
+  'cook_meat',
+  'raft',
+]);
+
 export function TutorialMainPanel(props: TutorialMainPanelProps) {
   if (!props.open) return null;
 
@@ -58,7 +67,7 @@ export function TutorialMainPanel(props: TutorialMainPanelProps) {
   } = props;
 
   const inv = { stick: sticks, stone: stones };
-  const recipes = TUTORIAL_QUICK_CRAFT;
+  const recipes = TUTORIAL_QUICK_CRAFT.filter((r) => PRODUCTION_SHORE_RECIPE_IDS.has(r.id));
 
   return (
     <div className="absolute inset-0 z-[60] flex items-center justify-center p-4 pointer-events-auto">
@@ -69,7 +78,6 @@ export function TutorialMainPanel(props: TutorialMainPanelProps) {
         onClick={onClose}
       />
       <div className={`relative w-full max-w-3xl max-h-[min(86vh,720px)] flex flex-col ${PANEL}`}>
-        {/* Header */}
         <div className="flex items-center justify-between px-5 py-3 border-b border-amber-600/25">
           <div>
             <h2
@@ -89,12 +97,12 @@ export function TutorialMainPanel(props: TutorialMainPanelProps) {
             type="button"
             onClick={onClose}
             className="p-2 rounded-lg border border-stone-700 text-stone-400 hover:text-amber-300 hover:border-amber-600/50"
+            aria-label="Close main panel"
           >
             <X className="w-4 h-4" />
           </button>
         </div>
 
-        {/* Tabs */}
         <div className="flex flex-wrap gap-1 px-3 py-2 border-b border-white/5 bg-black/30">
           {TABS.map(({ id, label, Icon, hotkey }) => (
             <button
@@ -114,7 +122,6 @@ export function TutorialMainPanel(props: TutorialMainPanelProps) {
           ))}
         </div>
 
-        {/* Body */}
         <div className="flex-1 overflow-y-auto p-5 min-h-[280px]">
           {tab === 'character' && (
             <div className="grid md:grid-cols-2 gap-4">
@@ -179,14 +186,16 @@ export function TutorialMainPanel(props: TutorialMainPanelProps) {
                     className="rounded-lg border border-white/10 bg-black/50 p-3 flex flex-col gap-2"
                   >
                     <span className="text-amber-100 text-sm font-medium truncate">{id}</span>
-                    <button
-                      type="button"
-                      onClick={() => onEquip(id)}
-                      disabled={equippedMainHand === id}
-                      className="text-[11px] px-2 py-1 rounded border border-amber-600/40 text-amber-200 hover:bg-amber-600/20 disabled:opacity-40"
-                    >
-                      {equippedMainHand === id ? 'Equipped' : 'Equip MainHand'}
-                    </button>
+                    {id.startsWith('t0_') && (
+                      <button
+                        type="button"
+                        onClick={() => onEquip(id)}
+                        disabled={equippedMainHand === id}
+                        className="text-[11px] px-2 py-1 rounded border border-amber-600/40 text-amber-200 hover:bg-amber-600/20 disabled:opacity-40"
+                      >
+                        {equippedMainHand === id ? 'Equipped' : 'Equip MainHand'}
+                      </button>
+                    )}
                   </div>
                 ))}
               </div>
@@ -196,26 +205,34 @@ export function TutorialMainPanel(props: TutorialMainPanelProps) {
           {tab === 'craft' && (
             <div className="space-y-2">
               <p className="text-[11px] text-stone-500 mb-2">
-                Quick Craft · traveler T0 kit (sticks + stones)
+                Shipwreck Cove · authoritative quick craft
               </p>
               {recipes.map((r) => {
                 const ok = canCraftQuick(r.id, inv);
+                const owned = inventory.includes(r.id) || (r.id === 'cook_meat' && inventory.includes('cooked_meat'));
                 return (
                   <div
                     key={r.id}
                     className="flex items-center justify-between gap-3 rounded-lg border border-white/10 bg-black/40 px-3 py-2.5"
                   >
-                    <div>
-                      <div className="text-amber-100 text-sm font-semibold">{r.name}</div>
-                      <div className="text-[10px] text-stone-500">{r.description || r.tab}</div>
+                    <div className="min-w-0">
+                      <div className="text-amber-100 text-sm font-semibold flex items-center gap-2">
+                        <span aria-hidden>{r.icon}</span>{r.name}
+                      </div>
+                      <div className="text-[10px] text-stone-500">{r.description}</div>
+                      <div className="text-[9px] text-stone-600 mt-1">
+                        {r.cost.stick > 0 && `stick ×${r.cost.stick} `}
+                        {r.cost.stone > 0 && `stone ×${r.cost.stone}`}
+                        {r.id === 'cook_meat' && 'campfire + raw meat'}
+                      </div>
                     </div>
                     <button
                       type="button"
-                      disabled={!ok}
+                      disabled={!ok || owned}
                       onClick={() => onCraft(r.id)}
                       className="shrink-0 px-3 py-1.5 rounded-lg text-xs font-bold border border-amber-500/50 text-amber-200 bg-amber-600/15 hover:bg-amber-600/30 disabled:opacity-30 disabled:cursor-not-allowed"
                     >
-                      Craft
+                      {owned ? 'Done' : 'Craft'}
                     </button>
                   </div>
                 );
@@ -309,10 +326,8 @@ export function TutorialMainPanel(props: TutorialMainPanelProps) {
         </div>
 
         <div className="px-5 py-2 border-t border-white/5 text-[10px] text-stone-600 flex justify-between">
-          <span>Esc close · Traveler line is race-shared</span>
-          <span>
-            {missions.checklist.filter((c) => c.completed).length}/{missions.checklist.length} missions
-          </span>
+          <span>Esc close · server-authoritative multiplayer tutorial</span>
+          <span>{missions.checklist.filter((c) => c.completed).length}/{missions.checklist.length} missions</span>
         </div>
       </div>
     </div>

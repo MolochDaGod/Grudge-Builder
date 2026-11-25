@@ -5,6 +5,8 @@
  * Never call https://api.grudge-studio.com from the browser with X-Grudge-Token —
  * that host's CORS preflight rejects the header and breaks the whole app shell.
  */
+import { readFleetAuthToken, clearFleetAuthTokens } from "@shared/fleet";
+
 const PORTAL_API =
   (typeof import.meta !== "undefined" && import.meta.env?.VITE_PORTAL_API) ||
   ""; // same-origin
@@ -22,17 +24,7 @@ export type PortalUniverseState = {
 };
 
 function readToken(): string | null {
-  try {
-    return (
-      localStorage.getItem("grudge_auth_token") ||
-      localStorage.getItem("sso_token") ||
-      localStorage.getItem("grudge_session_token") ||
-      sessionStorage.getItem("grudge_auth_token") ||
-      null
-    );
-  } catch {
-    return null;
-  }
+  return readFleetAuthToken();
 }
 
 function captureLaunch(): Record<string, string | null> & { urlToken: string | null } {
@@ -124,7 +116,7 @@ async function exchange(token: string) {
  */
 async function fallbackUniverseFromCharacters(token: string | null) {
   try {
-    const data = await portalGet("/api/characters", token);
+    const data = await portalGet("/api/characters?era=warlords", token);
     const list = Array.isArray(data)
       ? data
       : data?.characters || data?.items || data?.data || [];
@@ -140,20 +132,7 @@ async function fallbackUniverseFromCharacters(token: string | null) {
 }
 
 function clearStaleAuthTokens(): void {
-  try {
-    [
-      "grudge_auth_token",
-      "sso_token",
-      "grudge_session_token",
-      "grudge.token",
-      "grudge.token.exp",
-    ].forEach((k) => {
-      localStorage.removeItem(k);
-      sessionStorage.removeItem(k);
-    });
-  } catch {
-    /* ignore */
-  }
+  clearFleetAuthTokens();
 }
 
 export async function hydratePortalUniverse(): Promise<PortalUniverseState> {
@@ -225,13 +204,8 @@ export async function hydratePortalUniverse(): Promise<PortalUniverseState> {
     return empty;
   }
 
-  try {
-    universe = await portalGet("/api/me/universe", token);
-  } catch (e: any) {
-    // Soft: many deploys only have /api/characters
-    universe = await fallbackUniverseFromCharacters(token);
-    if (!universe) errors.push(`universe: ${e?.message || e}`);
-  }
+  // /api/me/universe is not a Railway route — skip it (was 401 noise).
+  universe = await fallbackUniverseFromCharacters(token);
 
   try {
     const ps = await portalGet("/api/me/play-settings", token);

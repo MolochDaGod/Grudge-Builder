@@ -27,7 +27,7 @@ export interface FirewoodChopCallbacks {
   onFell?: (tree: HarvestableTree, fallYaw: number) => void;
   onSegmentSplit?: (tree: HarvestableTree, segment: number) => void;
   onWoodCollected?: (qty: number, tree: HarvestableTree) => void;
-  onNotch?: (tree: HarvestableTree, eval: BaseStrikeEval) => void;
+  onNotch?: (tree: HarvestableTree, evaluation: BaseStrikeEval) => void;
 }
 
 export interface CollectibleWood {
@@ -63,6 +63,10 @@ export class FirewoodChopSystem {
 
   setScene(scene: THREE.Scene): void {
     this.scene = scene;
+  }
+
+  setConfig(cfg: Partial<FirewoodChopConfig>): void {
+    this.cfg = { ...this.cfg, ...cfg };
   }
 
   /** Ensure firewood state fields exist on a tree. */
@@ -219,7 +223,7 @@ export class FirewoodChopSystem {
 
     // Spawn collectible wood proxies
     if (ev.completedSegment) {
-      this.spawnCollectibleWood(tree, impact, 2 + Math.floor(Math.random() * 2));
+      this.spawnCollectibleWood(tree, impact, this.cfg.woodPiecesPerSegment ?? 2);
       this.cb.onSegmentSplit?.(tree, i);
     }
 

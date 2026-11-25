@@ -293,7 +293,7 @@ async function getOrcBakedTemplate() {
       // CDN race kit FIRST (always on R2). Local bake second (gitignored, often absent).
       const candidates = [
         resolveRaceCdnUrl('orc'),
-        'https://assets.grudge-studio.com/models/grudge6/races/ORC_Characters.glb',
+        '/asset-packs/toon-rts-characters/glb/characters/orc.glb',
         typeof window !== 'undefined'
           ? new URL(CINEMA_ORC_BAKED.glb, window.location.origin).href
           : CINEMA_ORC_BAKED.glb,

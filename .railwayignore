@@ -4,6 +4,7 @@
 
 /node_modules
 /client
+/client/**
 /.git
 /.github
 /.grok
@@ -30,7 +31,25 @@
 /api
 /src
 /public
+/public/**
 /migrations
+/staging
+/tmp
+/wartrailer
+/.history
+/build
+/dist._bak_intro_outside
+/tmp-craftpix-mine
+/tmp-shield-icons
+/attached_assets
+/node_modules
+/node_modules/**
+*.glb
+*.fbx
+*.mp4
+*.webm
+*.hdr
+*.exr
 
 # Media / noise
 *.zip

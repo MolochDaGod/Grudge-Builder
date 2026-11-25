@@ -48,8 +48,8 @@ const projectileMeshCache = new Map<string, THREE.Object3D>();
 let projectilePreloadStarted = false;
 
 const CDN_PROJECTILE_URLS: Record<string, string> = {
-  arrow: 'https://assets.grudge-studio.com/models/weapons/projectiles/arrow.glb',
-  bolt: 'https://assets.grudge-studio.com/models/weapons/projectiles/arrow.glb',
+  arrow: assetUrl('/models/weapons/projectiles/arrow.glb'),
+  bolt: assetUrl('/models/weapons/projectiles/arrow.glb'),
   shuriken: resolveNinjaProjectileMesh('shuriken-4'),
   kunai: resolveNinjaProjectileMesh('kunai'),
 };
@@ -59,8 +59,14 @@ export interface CombatTarget {
   position: THREE.Vector3;
   /** Optional HP fraction 0–1 for execute */
   hpFrac?: number;
+  /** Display name for heal-pick HUD */
+  name?: string;
   /** Root object for attach */
   object?: THREE.Object3D;
+  /** Active unique buff / shield skill ids (if host tracks status) */
+  statusIds?: string[];
+  /** Stun lockout (creatures / NPCs) */
+  stun?: (sec: number) => void;
 }
 
 export interface SkillCastContext {
@@ -71,7 +77,11 @@ export interface SkillCastContext {
   lockTarget: CombatTarget | null;
   /** All nearby hostiles for AoE */
   hostiles: CombatTarget[];
+  /** Nearby allies for heals / totem echo */
+  friendlies?: CombatTarget[];
   weaponType?: string;
+  /** Totem echo — skip cooldown / mana */
+  echo?: boolean;
 }
 
 export interface SkillHitEvent {
@@ -231,7 +241,7 @@ export class ProductionSkillCombatRuntime {
     if (!skill) return { ok: false, reason: 'unknown_skill' };
 
     const now = performance.now();
-    if (!this.isReady(skillId, now)) {
+    if (!ctx.echo && !this.isReady(skillId, now)) {
       return { ok: false, reason: 'cooldown', skill };
     }
 
@@ -261,7 +271,7 @@ export class ProductionSkillCombatRuntime {
     }
 
     // One clock: ScriptableSkillRuntime (catalog CD + windup as castTimeSec)
-    if (!this.scriptable.commitCastClock(skillId, now)) {
+    if (!ctx.echo && !this.scriptable.commitCastClock(skillId, now)) {
       return { ok: false, reason: 'cooldown', skill };
     }
 
@@ -314,7 +324,8 @@ export class ProductionSkillCombatRuntime {
     // Buff / defense / summon — immediate
     if (skill.hitCollider === 'none' || skill.style === 'buff' || skill.style === 'defense' || skill.style === 'summon') {
       this.onBuff?.(skill);
-      this.spawnImpactVfx(ctx.casterPos, skill, skill.aoeRadius > 0 ? skill.aoeRadius : 1.4);
+      const fxScale = skill.style === 'summon' ? 1.1 : skill.aoeRadius > 0 ? skill.aoeRadius : 1.4;
+      this.spawnImpactVfx(ctx.casterPos, skill, fxScale);
       return { ok: true, skill, hits: [] };
     }
 
@@ -662,6 +673,12 @@ export class ProductionSkillCombatRuntime {
       scale: scale * 0.85,
       withParticles: true,
     });
+    const blob = `${skill.name} ${skill.description} ${(skill.effects ?? []).join(' ')} ${skill.vfxKey}`;
+    if (/slam|stomp|shockwave|meteor|knock.?up|crush/i.test(blob)) {
+      const feet = at.clone();
+      feet.y -= 1.1;
+      this.worldFx?.groundSlamBreak?.(feet);
+    }
   }
 
   private nearestHostile(

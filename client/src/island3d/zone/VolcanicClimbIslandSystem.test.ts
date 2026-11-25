@@ -1,6 +1,6 @@
 /**
  * Layout + loot smoke tests.
- * Run: npx tsx client/src/island3d/zone/VolcanicClimbIslandSystem.test.ts
+ * Run: npx vitest run --config client/vitest.config.ts client/src/island3d/zone/VolcanicClimbIslandSystem.test.ts
  */
 import {
   VOLCANIC_CLIMB,
@@ -13,6 +13,9 @@ import {
   summitTierFromFloor,
 } from '../../../../shared/definitions/volcanicClimb.ts';
 
+import { test } from 'vitest';
+
+test('VolcanicClimbIslandSystem gameplay invariants', () => {
 function assert(c: boolean, m: string) {
   if (!c) throw new Error(m);
 }
@@ -77,4 +80,5 @@ console.log('VolcanicClimbIslandSystem.test.ts OK', {
   ashenO,
   loot: lootA.map((g) => `${g.qty}×${g.itemId}`).join(', '),
   spread: spread.toFixed(1),
+});
 });

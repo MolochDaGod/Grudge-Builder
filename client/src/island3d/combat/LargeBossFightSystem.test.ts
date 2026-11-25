@@ -1,6 +1,6 @@
 /**
  * PIP boss phase / attack pick smoke tests.
- * Run: npx tsx client/src/island3d/combat/LargeBossFightSystem.test.ts
+ * Run: npx vitest run --config client/vitest.config.ts client/src/island3d/combat/LargeBossFightSystem.test.ts
  */
 import {
   PIP_SKULL_BOSS_FIGHT,
@@ -9,7 +9,14 @@ import {
   pipBossHeightM,
   inShockwaveBand,
 } from '../../../../shared/definitions/pipSkullBossFight.ts';
+import {
+  LAVA_CAESAR_BOSS_FIGHT,
+  isLavaCaesarFight,
+} from '../../../../shared/definitions/lavaCaesarBossFight.ts';
 
+import { test } from 'vitest';
+
+test('LargeBossFightSystem gameplay invariants', () => {
 function assert(c: boolean, m: string) {
   if (!c) throw new Error(m);
 }
@@ -58,10 +65,15 @@ assert(slam.knockdown && (slam.knockUpMps ?? 0) >= 4, 'slam launches');
 const zap = PIP_SKULL_BOSS_FIGHT.attacks.electric_shock;
 assert((zap.stunSec ?? 0) >= 1, 'electric stuns hard');
 
+assert(isLavaCaesarFight(LAVA_CAESAR_BOSS_FIGHT), 'lava cfg id');
+assert(LAVA_CAESAR_BOSS_FIGHT.attacks.fire_twister.vfx === 'fire_twister', 'twister vfx');
+assert((LAVA_CAESAR_BOSS_FIGHT.attacks.lava_dive.weight ?? 0) > 0, 'dive pickable');
+
 console.log('LargeBossFightSystem.test.ts OK', {
   p2: p2.id,
   atk: atk?.id,
   heightM: h.toFixed(1),
   slamKb: slam.knockbackMps,
   zapStun: zap.stunSec,
+});
 });

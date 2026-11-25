@@ -24,7 +24,7 @@ export function IslandRenderer({
 }: IslandRendererProps) {
   const canvasRef = useRef<HTMLCanvasElement>(null);
   const spritesRef = useRef<LoadedSprites>({});
-  const animationFrameRef = useRef<number>();
+  const animationFrameRef = useRef<number | undefined>(undefined);
   const [isDragging, setIsDragging] = useState(false);
   const lastMousePosRef = useRef({ x: 0, y: 0 });
 

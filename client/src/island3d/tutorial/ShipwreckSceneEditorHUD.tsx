@@ -13,7 +13,7 @@ import {
   Box,
   MapPin,
   Move,
-  Navigate,
+  Navigation,
   Eye,
   EyeOff,
   Download,
@@ -273,7 +273,7 @@ export function ShipwreckSceneEditorHUD({
               }}
               className="text-[9px] px-1.5 py-0.5 rounded bg-slate-800 text-slate-200 flex items-center gap-1"
             >
-              <Navigate className="w-3 h-3" />
+              <Navigation className="w-3 h-3" />
               Nav {navDebug ? 'ON' : 'OFF'}
             </button>
             <button

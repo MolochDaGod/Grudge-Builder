@@ -42,7 +42,7 @@ describe("ephemeral Vercel SSO hosts", () => {
       canonicalSsoReturnOrigin("https://grudge-builder-4ou1a2tv6-grudgenexus.vercel.app"),
     ).toBe("https://grudgewarlords.com");
     expect(canonicalSsoReturnOrigin("https://client.grudge-studio.com")).toBe(
-      "https://client.grudge-studio.com",
+      "https://grudgewarlords.com",
     );
   });
 });

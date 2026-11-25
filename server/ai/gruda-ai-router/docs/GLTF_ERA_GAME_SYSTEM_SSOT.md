@@ -4,6 +4,8 @@
 
 Load order (always): `grudge-studio` → `threejs-skills` → `grudge-3d-game-packages` → era-specific leaf (`grudge-warlords-assets`, `voxel-era-grudox-client`, `grudge-production-cinema`, etc.).
 
+**Asset CDN paths:** Use `assets.grudge-studio.com` for binary assets (GLB, textures, audio) and `objectstore.grudge-studio.com/api/v1` for JSON catalogs. Legacy hosts (`github.io`, `r2.dev`, `info.grudge-studio.com`) are deprecated.
+
 ---
 
 ## Era × Game-System Matrix for Generated GLTF

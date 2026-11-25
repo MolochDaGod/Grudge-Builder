@@ -253,6 +253,24 @@ body {
   color: var(--gold);
   line-height: 1.1;
 }
+.tg-login {
+  margin-top: 12px;
+  padding: 12px;
+  border-radius: var(--radius);
+  border: 1px solid rgba(41, 160, 219, 0.28);
+  background: linear-gradient(180deg, rgba(41, 160, 219, 0.08), rgba(17, 17, 24, 0.4));
+  display: grid;
+  gap: 8px;
+  justify-items: center;
+}
+.tg-login-label {
+  font-size: 0.7rem;
+  font-weight: 600;
+  letter-spacing: 0.06em;
+  text-transform: uppercase;
+  color: #7ec8e8;
+}
+.tg-login iframe { margin: 0 auto; }
 .more-panel {
   margin-top: 12px;
   padding-top: 12px;
@@ -559,6 +577,10 @@ body {
         <span class="oauth-label">Grudge</span>
       </button>
     </div>
+    <div class="tg-login" id="tg-login-wrap" aria-label="Telegram Login via @grudagamebot">
+      <div class="tg-login-label">Telegram · @grudagamebot</div>
+      <div id="tg-widget-slot"></div>
+    </div>
     <button class="btn-more" id="btn-more-toggle" type="button" aria-expanded="false" aria-controls="more-panel">
       More options
       <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M6 9l6 6 6-6"/></svg>
@@ -692,7 +714,24 @@ function trimTrailingSlashes(value){
 function resolveApiBase(){
   const qs = new URLSearchParams(location.search);
   const fromQuery = qs.get("api");
-  if (fromQuery) return trimTrailingSlashes(fromQuery);
+  if (fromQuery) {
+    // Validate api param: only same-origin or canonical Railway API origin
+    try {
+      const apiUrl = new URL(fromQuery, location.origin);
+      const apiOrigin = apiUrl.origin;
+      const canonicalApiOrigin = "https://grudge-api-production-0d46.up.railway.app";
+      // Reject userinfo tricks (evil@host)
+      if (apiUrl.username || apiUrl.password) {
+        // Invalid/attacker API: fall through to default
+      } else if (apiOrigin === location.origin || apiOrigin === canonicalApiOrigin) {
+        // Accept same-origin (localhost dev) or the exact canonical API origin (https only)
+        return trimTrailingSlashes(apiOrigin);
+      }
+      // Invalid/attacker API: fall through to default
+    } catch {
+      // Invalid URL: fall through to default
+    }
+  }
   const meta = document.querySelector('meta[name="grudge-api"]');
   if (meta && meta.content.trim()) return trimTrailingSlashes(meta.content.trim());
   const h = location.hostname;
@@ -708,23 +747,71 @@ let lastSessionToken = "";
 
 const qs = new URLSearchParams(location.search);
 const isPopup = (() => { try { return !!window.opener && window.opener !== window; } catch { return false; } })();
+const ALLOWED_RETURN_HOSTS = new Set(Array.isArray(/*__GRUDGE_ALLOWED_RETURN_HOSTS__*/[]) ? /*__GRUDGE_ALLOWED_RETURN_HOSTS__*/[] : []);
+const ALLOW_LOCALHOST_RETURN = Boolean(/*__GRUDGE_ALLOW_LOCALHOST__*/false);
+function hasUnsafeInput(raw){
+  if (!raw || raw !== raw.trim()) return true;
+  if (/[\u0000-\u001f\u007f\s]/.test(raw)) return true;
+  if (raw.includes("\\")) return true;
+  return false;
+}
+function hasDefaultPort(u){
+  return !u.port || (u.protocol === "https:" && u.port === "443") || (u.protocol === "http:" && u.port === "80");
+}
+function isLocalHost(host){
+  const h = String(host || "").toLowerCase();
+  return h === "localhost" || h === "127.0.0.1";
+}
+function isAllowedReturnUrl(raw, opts){
+  opts = opts || {};
+  const value = String(raw || "");
+  if (!value || hasUnsafeInput(value)) return null;
+  if (value.startsWith("/")) {
+    if (!opts.allowRelative) return null;
+    if (value.startsWith("//") || value.startsWith("/\\")) return null;
+    try { return new URL(value, location.origin).toString(); } catch { return null; }
+  }
+  if (value.startsWith("//")) return null;
+  try {
+    const u = new URL(value);
+    if (u.username || u.password) return null;
+    if (isLocalHost(u.hostname)) {
+      if (!ALLOW_LOCALHOST_RETURN) return null;
+      if (u.protocol !== "http:") return null;
+      return u.toString();
+    }
+    if (u.protocol !== "https:" || !hasDefaultPort(u)) return null;
+    if (!ALLOWED_RETURN_HOSTS.has(u.hostname.toLowerCase())) return null;
+    return u.toString();
+  } catch {
+    return null;
+  }
+}
+function toAllowedOrigin(raw){
+  const safe = isAllowedReturnUrl(raw, { allowRelative: false });
+  if (!safe) return null;
+  try { return new URL(safe).origin; } catch { return null; }
+}
 /**
  * Fleet return URL after login.
  * Browser bar keeps the public path query (e.g. /login?redirect_uri=https://grudge-crafting.puter.site/)
  * while the gateway may map upstream to ?redirect= — accept every fleet alias.
  */
-let returnTo =
+const queryReturnRaw =
   qs.get("redirect_uri") ||
   qs.get("redirect") ||
   qs.get("return_to") ||
   qs.get("return") ||
   qs.get("returnUrl") ||
-  null;
+  "";
+let returnTo = isAllowedReturnUrl(queryReturnRaw, { allowRelative: true });
 // Recover return if OAuth hop dropped query (sessionStorage set in startOAuth)
 if (!returnTo) {
   try {
     const stashed = sessionStorage.getItem("grudge_auth_return");
-    if (stashed && /^https?:\/\//i.test(stashed)) returnTo = stashed;
+    const safeStash = isAllowedReturnUrl(stashed || "", { allowRelative: true });
+    if (safeStash) returnTo = safeStash;
+    else sessionStorage.removeItem("grudge_auth_return");
   } catch (_) {}
 }
 if (returnTo) {
@@ -732,12 +819,20 @@ if (returnTo) {
 }
 const appKey = (qs.get("app") || "").toLowerCase();
 const isAccountMode = location.pathname === "/account" || qs.get("view") === "account";
-let openerOrigin = qs.get("origin") || qs.get("audience") || null;
-if (!openerOrigin && document.referrer) { try { openerOrigin = new URL(document.referrer).origin; } catch {} }
+let openerOrigin = toAllowedOrigin(qs.get("origin") || qs.get("audience") || "");
+if (!openerOrigin && document.referrer) {
+  try { openerOrigin = toAllowedOrigin(new URL(document.referrer).origin); } catch {}
+}
 const isHandoffReturn = qs.get("handoff") === "1";
 const urlLaunchToken = qs.get("grudge_token");
-window.addEventListener("message", (e) => { if (e?.data?.type === "grudge-auth:init" && typeof e.data.origin === "string") openerOrigin = e.data.origin; });
-if (isPopup) { try { window.opener.postMessage({ type: "grudge-auth:ready" }, "*"); } catch {} }
+window.addEventListener("message", (e) => {
+  if (e?.data?.type !== "grudge-auth:init") return;
+  const origin = toAllowedOrigin(typeof e.data.origin === "string" ? e.data.origin : "");
+  if (origin) openerOrigin = origin;
+});
+if (isPopup && openerOrigin) {
+  try { window.opener.postMessage({ type: "grudge-auth:ready" }, openerOrigin); } catch {}
+}
 
 /* DOM helpers — must exist before applyContextBanner / isAccountMode title setup */
 const $ = (id) => document.getElementById(id);
@@ -911,9 +1006,10 @@ async function mintLaunchToken(audience){
   return r.token;
 }
 function postAuthToOpener(targetOrigin, token, user){
-  const origin = targetOrigin && targetOrigin !== "*" ? targetOrigin : "*";
+  const origin = toAllowedOrigin(targetOrigin || "");
+  if (!origin || !window.opener) return;
   const modern = { type:"grudge-auth:success", source:"grudge-id", token, user };
-  const legacy = { type:"grudge:auth:success", token, player: user, audience: origin !== "*" ? origin : null };
+  const legacy = { type:"grudge:auth:success", token, player: user, audience: origin };
   try { window.opener.postMessage(modern, origin); } catch {}
   try { window.opener.postMessage(legacy, origin); } catch {}
 }
@@ -990,9 +1086,13 @@ async function handoff(user){
   }
   const sessionToken = await resolveSessionToken(user);
   if (isPopup && window.opener){
-    const audience = openerOrigin || qs.get("audience") || qs.get("origin") || null;
+    const audience = toAllowedOrigin(openerOrigin || qs.get("audience") || qs.get("origin") || "");
+    if (!audience) {
+      renderDone(user, false, destLabel);
+      return;
+    }
     let token = "";
-    try { token = await mintLaunchToken(audience || undefined); } catch (e) {
+    try { token = await mintLaunchToken(audience); } catch (e) {
       if (!sessionToken) throw e;
     }
     // Prefer session JWT for opener; launch is secondary
@@ -1009,7 +1109,7 @@ async function handoff(user){
         sessionToken: sessionToken || undefined,
         launchToken: token || undefined,
         user: user,
-      }, audience && audience !== "*" ? audience : "*");
+      }, audience);
     } catch {}
     renderDone(user, true, destLabel); return;
   }
@@ -1090,7 +1190,7 @@ function hasAccountUsername(user){
   const n = String(user.displayName || user.username || "").trim();
   if (!n || n.length < 2) return false;
   // Provider-prefixed / auto usernames still need a real claim
-  if (/^(puter:|Puter_|guest_|Guest_|wallet:|discord:|phone:|google:|github:)/i.test(n)) return false;
+  if (/^(puter:|Puter_|guest_|Guest_|wallet:|discord:|phone:|google:|github:|telegram:)/i.test(n)) return false;
   if (/^puter_[a-f0-9]+$/i.test(n) || /^guest_[a-f0-9]+$/i.test(n)) return false;
   return true;
 }
@@ -1243,6 +1343,56 @@ async function runTelegramLogin(btn){
 }
 $("btn-telegram")?.addEventListener("click", () => runTelegramLogin($("btn-telegram")));
 $("btn-github").addEventListener("click", () => startOAuth("github"));
+
+/** Telegram Login Widget (@grudagamebot) — BotFather domain: id.grudge-studio.com */
+let tgWidgetMounted = false;
+async function mountTelegramLoginWidget(){
+  const wrap = $("tg-login-wrap");
+  const slot = $("tg-widget-slot");
+  if (!wrap || !slot || tgWidgetMounted) return;
+  let bot = "grudagamebot";
+  try {
+    const cfg = await fetch(CONFIG.apiBase + "/api/auth/telegram/widget-config", {
+      credentials: "include",
+      headers: { Accept: "application/json" },
+    }).then((r) => (r.ok ? r.json() : null)).catch(() => null);
+    if (cfg && cfg.botUsername) bot = String(cfg.botUsername).replace(/^@/, "");
+  } catch (_) {}
+  window.__grudgeOnTelegramAuth = async function (user) {
+    try {
+      const body = Object.assign({}, user || {});
+      if (returnTo) body.returnTo = returnTo;
+      const data = await api("/api/auth/telegram", {
+        method: "POST",
+        body: JSON.stringify(body),
+      });
+      if (data.token || data.access_token) {
+        lastSessionToken = data.token || data.access_token;
+      }
+      toast("Signed in with Telegram.", "success");
+      await afterAuth({
+        token: data.token || data.access_token,
+        grudgeId: data.grudgeId,
+        displayName: data.username,
+        username: data.username,
+        needsProfile: !!data.isNew,
+      });
+    } catch (e) {
+      toast((e && e.message) || "Telegram sign-in failed.", "error");
+    }
+  };
+  slot.innerHTML = "";
+  const s = document.createElement("script");
+  s.async = true;
+  s.src = "https://telegram.org/js/telegram-widget.js?22";
+  s.setAttribute("data-telegram-login", bot);
+  s.setAttribute("data-size", "large");
+  s.setAttribute("data-radius", "8");
+  s.setAttribute("data-request-access", "write");
+  s.setAttribute("data-onauth", "__grudgeOnTelegramAuth(user)");
+  slot.appendChild(s);
+  tgWidgetMounted = true;
+}
 
 const B58 = "123456789ABCDEFGHJKLMNPQRSTUVWXYZabcdefghijkmnopqrstuvwxyz";
 function base58(bytes){ if (!bytes || !bytes.length) return ""; const digits = [0]; for (let i=0;i<bytes.length;i++){ let carry = bytes[i]; for (let j=0;j<digits.length;j++){ carry += digits[j] << 8; digits[j] = carry % 58; carry = (carry / 58) | 0; } while (carry){ digits.push(carry % 58); carry = (carry / 58) | 0; } } let str = ""; for (let k=0; bytes[k] === 0 && k < bytes.length - 1; k++) str += "1"; for (let q=digits.length-1; q>=0; q--) str += B58[digits[q]]; return str; }
@@ -1633,6 +1783,7 @@ function isClaimedHandle(raw){
   const n = String(raw || "").trim();
   if (!n) return false;
   if (/^(puter:|Puter_|guest_|Guest_|wallet:|discord:|phone:|google:|github:)/i.test(n)) return false;
+  if (/^(puter:|Puter_|guest_|Guest_|wallet:|discord:|phone:|google:|github:|telegram:)/i.test(n)) return false;
   return /^[a-zA-Z0-9_\-]{3,30}$/.test(n);
 }
 
@@ -1757,6 +1908,7 @@ async function boot(){
     }
     show("choose");
     refreshPuterButton();
+    void mountTelegramLoginWidget();
   }
 }
 boot();

@@ -52,7 +52,7 @@ export function measureSkinnedBox3(root: THREE.Object3D): THREE.Box3 {
   let any = false;
   root.traverse((o) => {
     const m = o as THREE.Mesh;
-    if (!m.isSkinnedMesh || !m.visible) return;
+    if (!(m instanceof THREE.SkinnedMesh) || !m.visible) return;
     if (!any) {
       box.setFromObject(m, true);
       any = true;
@@ -235,7 +235,7 @@ export class CinemaBoxSystems {
   dispose(): void {
     this.helperGroup.traverse((o) => {
       const h = o as THREE.Box3Helper;
-      if (h.isBox3Helper) {
+      if (h instanceof THREE.Box3Helper) {
         h.geometry?.dispose?.();
         (h.material as THREE.Material)?.dispose?.();
       }

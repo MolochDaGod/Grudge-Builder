@@ -56,7 +56,7 @@ export function pipelineForCharacter(hero: Character): CrewPipeline {
   if (pipe === "voxel") return "voxel";
   if (pipe === "toon") return "toon";
   // Armada era = mechs (Mech Builder); armada_ship is legacy naval prop only
-  if (pipe === "mech" || pipe === "armada" || pipe === "armada_ship") return "armada";
+  if (pipe === "mech" || pipe === "armada_ship") return "armada";
   return "grudge6";
 }
 

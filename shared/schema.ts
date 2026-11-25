@@ -1,5 +1,5 @@
 import { sql } from "drizzle-orm";
-import { pgTable, text, varchar, integer, jsonb, bigint, boolean, real } from "drizzle-orm/pg-core";
+import { pgTable, text, varchar, integer, jsonb, bigint, boolean, real, primaryKey } from "drizzle-orm/pg-core";
 import { createInsertSchema } from "drizzle-zod";
 import { z } from "zod";
 
@@ -603,6 +603,10 @@ export const accounts = pgTable("accounts", {
   walletType: text("wallet_type"), // 'crossmint' (server-managed) or 'external' (WalletConnect)
   crossmintWalletId: text("crossmint_wallet_id"), // Crossmint's internal wallet identifier
   crossmintEmail: text("crossmint_email"), // Email used for Crossmint wallet (for recovery)
+  // Warerareward referral system
+  referralCode: text("referral_code").unique(), // WERA- + 6 uppercase A-Z0-9, issued on register
+  referredBy: text("referred_by"), // Referral code that was used during registration
+  firstCharacterGranted: boolean("first_character_granted").notNull().default(false), // True if first free character was granted
   createdAt: bigint("created_at", { mode: "number" }).notNull().default(sql`extract(epoch from now()) * 1000`),
   updatedAt: bigint("updated_at", { mode: "number" }).notNull().default(sql`extract(epoch from now()) * 1000`),
 });
@@ -663,6 +667,19 @@ export const insertAccountResourcesSchema = createInsertSchema(accountResources)
 
 export type InsertAccountResources = z.infer<typeof insertAccountResourcesSchema>;
 export type AccountResources = typeof accountResources.$inferSelect;
+
+/** Account-scoped learned recipes (hidden/experiment + blueprint). Not character XP. */
+export const accountLearnedRecipes = pgTable(
+  "account_learned_recipes",
+  {
+    accountId: varchar("account_id").notNull(),
+    recipeId: text("recipe_id").notNull(),
+    learnedAt: bigint("learned_at", { mode: "number" }).notNull().default(sql`extract(epoch from now()) * 1000`),
+  },
+  (t) => [primaryKey({ columns: [t.accountId, t.recipeId] })],
+);
+
+export type AccountLearnedRecipe = typeof accountLearnedRecipes.$inferSelect;
 
 // Home Islands - each account gets one unique home island
 // The state field is a flexible JSONB blob - the client transforms it to its own IslandState format

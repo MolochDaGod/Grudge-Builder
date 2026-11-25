@@ -84,11 +84,12 @@ function cloneHammerNode(pack: THREE.Group, nodeName: string): THREE.Object3D | 
   const node = pack.getObjectByName(nodeName);
   if (!node) {
     // Fallback: any child with "hammer" in the name
-    let alt: THREE.Object3D | null = null;
+    const matches: THREE.Object3D[] = [];
     pack.traverse((o) => {
-      if (alt) return;
-      if (/hammer/i.test(o.name || '') && o !== pack) alt = o;
+      if (matches.length) return;
+      if (/hammer/i.test(o.name || '') && o !== pack) matches.push(o);
     });
+    const alt = matches[0];
     if (!alt) return null;
     const c = alt.clone(true);
     c.name = nodeName;

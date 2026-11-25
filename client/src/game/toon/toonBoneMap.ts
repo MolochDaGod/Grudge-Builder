@@ -146,13 +146,14 @@ function worldX(bone: THREE.Bone): number {
  *   spine → L arm chain, R arm chain, optional neck/head leaves
  */
 export function discoverToonBoneRoles(root: THREE.Object3D): RoleMap {
-  let best: THREE.Skeleton | null = null;
+  const skeletons: THREE.Skeleton[] = [];
   root.traverse((o) => {
     const m = o as THREE.SkinnedMesh;
     if (m.isSkinnedMesh && m.skeleton?.bones?.length) {
-      if (!best || m.skeleton.bones.length > best.bones.length) best = m.skeleton;
+      skeletons.push(m.skeleton);
     }
   });
+  const best = skeletons.sort((a, b) => b.bones.length - a.bones.length)[0];
   if (!best) return {};
 
   const bones = best.bones as THREE.Bone[];
@@ -343,7 +344,8 @@ export function retargetClipToToon(
 
 /** Parse baked AnimationClip JSON (arena format). */
 export function parseBakedClipJson(data: unknown, name?: string): THREE.AnimationClip {
-  const clip = THREE.AnimationClip.parse(data as object);
+  if (!data || typeof data !== 'object') throw new TypeError('Animation clip JSON must be an object');
+  const clip = THREE.AnimationClip.parse(data as THREE.AnimationClipJSON);
   if (name) clip.name = name;
   return clip;
 }

@@ -22,6 +22,7 @@ import { cn } from "@/lib/utils";
 import { SpriteAnimationEngine, MOTION_TYPES, type MotionType, type AnimationFrame } from "@/components/SpriteAnimationEngine";
 import { HeroSpriteGallery, HeroSpriteAnimator } from '@/components/HeroSpriteAnimator';
 import { HERO_SPRITES, HERO_RACE_LIST, type HeroRace, type AnimationType as HeroAnimationType } from '@/lib/heroSprites';
+import { puterAI } from '@/lib/puterIntegration';
 
 const CANVAS_SIZE = 100;
 const DISPLAY_SCALE = 4;
@@ -484,11 +485,6 @@ export default function SpriteEditorPage() {
     setIsGenerating(true);
     
     try {
-      const puter = (window as any).puter;
-      if (!puter?.ai?.chat) {
-        throw new Error("Puter AI not available");
-      }
-      
       const preset = ANIMATION_PRESETS.find(p => p.id === selectedPreset);
       const motionPrompt = preset?.prompt || aiPrompt || "performing an action";
       const frameCount = preset?.frames || generationFrames;
@@ -528,8 +524,8 @@ Use 30-50 rectangles. Include body, armor, weapon details positioned for this fr
 Animation Progress: ${Math.round(frameProgress * 100)}%.
 Output: JSON array of colored rectangles for a 100x100 pixel art effect.`;
         
-        const response = await puter.ai.chat(prompt);
-        const text = response?.message?.content || response;
+        const text = await puterAI.chat(prompt, { page: 'warlords_sprite_editor', maxTokens: 800 });
+        if (!text) continue;
         
         const jsonMatch = text.match(/\[[\s\S]*\]/);
         if (jsonMatch) {
@@ -577,11 +573,6 @@ Output: JSON array of colored rectangles for a 100x100 pixel art effect.`;
     setIsGenerating(true);
     
     try {
-      const puter = (window as any).puter;
-      if (!puter?.ai?.chat) {
-        throw new Error("Puter AI not available");
-      }
-      
       const raceDescriptions: Record<string, string> = {
         human: "fair-skinned human with determined features",
         orc: "green-skinned orc with tusks and fierce expression",
@@ -640,8 +631,8 @@ Output: JSON array of colored rectangles: [{"x": 0, "y": 0, "w": 10, "h": 10, "c
 Use 20-40 rectangles with semi-transparent colors where appropriate.`;
       }
       
-      const response = await puter.ai.chat(prompt);
-      const text = response?.message?.content || response;
+      const text = await puterAI.chat(prompt, { page: 'warlords_sprite_editor', maxTokens: 800 });
+      if (!text) throw new Error("AI router returned no text");
       
       const jsonMatch = text.match(/\[[\s\S]*\]/);
       if (jsonMatch) {

@@ -3,6 +3,7 @@
  */
 import * as THREE from 'three';
 import { loadAssetGltf } from '@/lib/three/SharedGltfPipeline';
+import type { GLTF } from 'three/examples/jsm/loaders/GLTFLoader.js';
 
 /**
  * Load first successful play mesh (assetUrl + SharedGltf).
@@ -10,9 +11,17 @@ import { loadAssetGltf } from '@/lib/three/SharedGltfPipeline';
 export async function loadGlbFirst(
   urls: readonly string[],
 ): Promise<THREE.Group | null> {
+  const gltf = await loadGltfFirst(urls);
+  return (gltf?.scene as THREE.Group) ?? null;
+}
+
+/** Full GLTF (clips + scene) — first URL that loads. */
+export async function loadGltfFirst(
+  urls: readonly string[],
+): Promise<GLTF | null> {
   for (const raw of urls) {
     const gltf = await loadAssetGltf(raw, 'medium');
-    if (gltf?.scene) return gltf.scene as THREE.Group;
+    if (gltf?.scene) return gltf;
   }
   return null;
 }

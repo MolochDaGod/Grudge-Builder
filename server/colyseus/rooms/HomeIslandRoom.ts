@@ -1,3 +1,4 @@
+import { authenticateGameJoin } from '../gameAuth';
 /**
  * HomeIslandRoom.ts
  * ─────────────────────────────────────────────────────────────
@@ -73,7 +74,15 @@ const RESOURCE_TYPES = ["forest", "mining", "fishing", "herbalism"];
 
 // ── HomeIslandRoom ───────────────────────────────────────────────
 
-export class HomeIslandRoom extends Room<HomeIslandState> {
+export class HomeIslandRoom extends Room<{ state: HomeIslandState }> {
+  async onAuth(client: Client, options: any, context: any) {
+    const identity = await authenticateGameJoin(context?.token, options, true);
+    const owner = String(options.accountId || '');
+    if (owner !== this.ownerId) throw new Error('Island owner mismatch');
+    Object.assign(options, identity.join, { accountId: owner, visitorAccountId: identity.accountId, isVisitor: identity.accountId !== owner });
+    return identity;
+  }
+
   /** Owner seat + MAX_VISITORS guests (hosting SSOT). */
   maxClients = 1 + MAX_VISITORS;
   private ownerId: string = "";
@@ -305,7 +314,7 @@ export class HomeIslandRoom extends Room<HomeIslandState> {
     );
   }
 
-  async onLeave(client: Client, consented?: boolean) {
+  async onLeave(client: Client, consented?: number) {
     const player = this.state.players.get(client.sessionId);
     const { leaveWithReconnect } = await import("../reconnect");
 

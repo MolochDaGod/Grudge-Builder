@@ -11,7 +11,8 @@
  * Also tests: error display, modal open/close, view switching.
  */
 import { describe, it, expect, vi, beforeEach } from "vitest";
-import { render, screen, act, waitFor } from "@testing-library/react";
+import { render, screen, act, waitFor, cleanup } from "@testing-library/react";
+import { afterEach } from "vitest";
 import userEvent from "@testing-library/user-event";
 import { AuthProvider, useAuth } from "@/contexts/AuthContext";
 import { LoginModal } from "@/components/LoginModal";
@@ -37,6 +38,7 @@ vi.mock("@/lib/grudgeBackend", () => ({
   getSession: vi.fn(() => null),
   logout: vi.fn(),
   verifyToken: vi.fn(async () => ({ valid: false })),
+  ensureFleetSessionClaim: vi.fn(async () => {}),
   loginWithCredentials: (...args: unknown[]) =>
     mockLoginWithCredentials(...args),
   registerAccount: (...args: unknown[]) => mockRegisterAccount(...args),
@@ -131,7 +133,7 @@ describe("LoginModal", () => {
       expect(screen.getByText("Continue with Phantom")).toBeInTheDocument();
       expect(screen.getByText("Continue with Discord")).toBeInTheDocument();
       expect(screen.getByText("Sign in with Username")).toBeInTheDocument();
-      expect(screen.getByText("Continue as Guest")).toBeInTheDocument();
+      expect(screen.queryByText("Continue as Guest")).not.toBeInTheDocument();
     });
   });
 

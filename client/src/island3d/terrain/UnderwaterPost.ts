@@ -32,7 +32,7 @@ export class UnderwaterPost {
   /** 0 surface · 1 deep */
   depthFactor = 0;
 
-  private savedFog: THREE.FogBase | null = null;
+  private savedFog: THREE.Fog | THREE.FogExp2 | null = null;
   private underwaterFog: THREE.FogExp2;
   private overlay: HTMLDivElement | null = null;
   private host: HTMLElement | null = null;

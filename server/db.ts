@@ -2,6 +2,7 @@ import dotenv from "dotenv";
 dotenv.config({ path: ".env.local" });
 dotenv.config();
 import pg from "pg";
+import { drizzle, type NodePgDatabase } from "drizzle-orm/node-postgres";
 import * as schema from "@shared/schema";
 
 const { Pool } = pg;
@@ -40,20 +41,25 @@ if (pool) {
   });
 }
 
-// Drizzle ORM instance — null in sandbox mode
-export const db = pool
-  ? (await import("drizzle-orm/node-postgres")).drizzle(pool, { schema })
-  : (null as any);
+// Preserve schema inference in every query. Unconfigured persistence fails explicitly.
+const unavailableDatabase = new Proxy({} as NodePgDatabase<typeof schema>, {
+  get() { throw new Error("Player persistence is unavailable: DATABASE_URL is not configured."); },
+});
+export const db: NodePgDatabase<typeof schema> = pool
+  ? drizzle(pool, { schema })
+  : unavailableDatabase;
 
 /** Quick connectivity check — used by health endpoint */
 export async function checkDbHealth(): Promise<boolean> {
   if (SANDBOX_MODE) return false;
   try {
     const client = await pool!.connect();
-    await client.query("SELECT 1");
-    client.release();
-    return true;
+    try {
+      await client.query("SELECT 1");
+      return true;
+    } finally { client.release(); }
   } catch {
     return false;
   }
 }
+

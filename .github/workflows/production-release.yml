@@ -1,0 +1,166 @@
+name: Production release — Grudge Warlords
+
+on:
+  push:
+    branches: [main]
+  workflow_dispatch:
+
+concurrency:
+  group: grudge-production-release
+  cancel-in-progress: false
+
+permissions:
+  contents: read
+
+env:
+  VERCEL_ORG_ID: team_VZ7uiFGiR9QBdqtzne04xygG
+  VERCEL_PROJECT_ID: prj_AT8CcdGZRjg838A2B0EyYtw65Fvb
+  RAILWAY_PROJECT_ID: 92f039ec-2cce-4e1e-b06a-dd0ac6256d70
+  RAILWAY_ENVIRONMENT: production
+  RAILWAY_SERVICE: grudge-api
+  RAILWAY_URL: https://grudge-api-production-0d46.up.railway.app
+
+jobs:
+  validate:
+    runs-on: ubuntu-latest
+    timeout-minutes: 45
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 22
+          cache: npm
+      - name: Install locked dependencies
+        run: npm ci --ignore-scripts --include=dev
+      - name: Build client and server
+        run: |
+          npm run build:client
+          npm run build:server
+      - name: Run client acceptance tests
+        run: npm run test:client -- --run
+      - name: Verify production route contract
+        # The stable test alias may intentionally point at the previous green
+        # release while this candidate is being validated. The exact SHA is
+        # checked again on the staged preview and after promotion below.
+        env:
+          GITHUB_SHA: ''
+          PROBE_EXPECT_RELEASE: 'false'
+        run: node scripts/probe-warlords-test.mjs https://test.grudge-studio.com
+
+  deploy-api:
+    needs: validate
+    runs-on: ubuntu-latest
+    timeout-minutes: 30
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 22
+          cache: npm
+      - run: npm ci --ignore-scripts --include=dev
+      - name: Install pinned Railway CLI
+        run: npm install --global @railway/cli@5.49.2
+      - name: Deploy API and wait for readiness
+        env:
+          RAILWAY_TOKEN: ${{ secrets.RAILWAY_TOKEN }}
+        run: |
+          railway up --ci --project "$RAILWAY_PROJECT_ID" --environment "$RAILWAY_ENVIRONMENT" --service "$RAILWAY_SERVICE" --message "production $GITHUB_SHA"
+          for i in $(seq 1 36); do
+            code=$(curl -sS -o /tmp/health.json -w '%{http_code}' "$RAILWAY_URL/api/health" || true)
+            if [ "$code" = 200 ]; then cat /tmp/health.json; exit 0; fi
+            sleep 10
+          done
+          cat /tmp/health.json || true
+          exit 1
+
+  deploy-client:
+    needs: [validate, deploy-api]
+    runs-on: ubuntu-latest
+    timeout-minutes: 30
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 22
+          cache: npm
+      - run: npm ci --ignore-scripts --include=dev
+      - name: Install pinned Vercel CLI
+        run: npm install --global vercel@59.11.7
+      - name: Ensure required production domains belong to grudge-builder
+        env:
+          VERCEL_ORG_ID: ${{ env.VERCEL_ORG_ID }}
+          VERCEL_PROJECT_ID: ${{ env.VERCEL_PROJECT_ID }}
+          VERCEL_TOKEN: ${{ secrets.VERCEL_TOKEN }}
+        run: |
+          node --input-type=module <<'JS'
+          const domains = [
+            'grudge.studio',
+            'www.grudge.studio',
+            'grudgewarlords.com',
+            'www.grudgewarlords.com',
+            'client.grudge-studio.com',
+          ];
+          const { VERCEL_TOKEN: token, VERCEL_PROJECT_ID: project, VERCEL_ORG_ID: team } = process.env;
+          if (!token) throw new Error('VERCEL_TOKEN is missing.');
+          if (!project) throw new Error('VERCEL_PROJECT_ID is missing.');
+          if (!team) throw new Error('VERCEL_ORG_ID is missing.');
+          const headers = {
+            Authorization: ['Bearer', token].join(' '),
+            'Content-Type': 'application/json',
+          };
+          for (const domain of domains) {
+            const getEndpoint = `https://api.vercel.com/v9/projects/${project}/domains/${domain}?teamId=${team}`;
+            let response = await fetch(getEndpoint, { headers, signal: AbortSignal.timeout(15000) });
+            if (response.status === 404) {
+              response = await fetch(`https://api.vercel.com/v9/projects/${project}/domains?teamId=${team}`, {
+                method: 'POST',
+                headers,
+                body: JSON.stringify({ name: domain }),
+                signal: AbortSignal.timeout(15000),
+              });
+            } else if (!response.ok) {
+              const detail = await response.text().catch(() => '');
+              throw new Error(
+                `Domain ${domain} is not attached to grudge-builder. Reassign it to project ${project} on team ${team} before running production release again (HTTP ${response.status}${detail ? `: ${detail}` : ''}).`,
+              );
+            }
+            if (!response.ok) {
+              throw new Error(`Cannot ensure project domain ${domain} (HTTP ${response.status}).`);
+            }
+            response = await fetch(getEndpoint, { headers, signal: AbortSignal.timeout(15000) });
+            if (!response.ok) {
+              throw new Error(`Cannot verify project domain ${domain} after attach (HTTP ${response.status}).`);
+            }
+            const data = await response.json();
+            const name = data?.name ?? data?.domain?.name ?? data?.hostname;
+            const projectId = data?.projectId ?? data?.project?.id ?? data?.project?.projectId;
+            const teamId = data?.teamId ?? data?.team?.id;
+            if ((name ?? domain) !== domain) throw new Error(`Unexpected domain response for ${domain}.`);
+            if (projectId && projectId !== project) throw new Error(`Domain ${domain} is attached to ${projectId}, not ${project}.`);
+            if (teamId && teamId !== team) throw new Error(`Domain ${domain} is attached to team ${teamId}, not ${team}.`);
+            console.log(`Verified project domain: ${domain}`);
+          }
+          JS
+      - name: Build and stage immutable production artifact
+        env:
+          VERCEL_TOKEN: ${{ secrets.VERCEL_TOKEN }}
+          NODE_OPTIONS: --max-old-space-size=8192
+        run: |
+          node -e "require('fs').writeFileSync('client/public/release.json', JSON.stringify({ commit: process.env.GITHUB_SHA, builtAt: new Date().toISOString() }) + '\\n')"
+          vercel pull --yes --environment=production --token "$VERCEL_TOKEN"
+          vercel build --prod --token "$VERCEL_TOKEN"
+          url=$(vercel deploy --prebuilt --prod --skip-domain --yes --token "$VERCEL_TOKEN")
+          echo "RELEASE_URL=$url" >> "$GITHUB_ENV"
+          node scripts/probe-warlords-test.mjs "$url"
+      - name: Promote after preview probes
+        env:
+          VERCEL_ORG_ID: ${{ env.VERCEL_ORG_ID }}
+          VERCEL_TOKEN: ${{ secrets.VERCEL_TOKEN }}
+        run: |
+          vercel promote "$RELEASE_URL" --yes --scope "$VERCEL_ORG_ID" --token "$VERCEL_TOKEN"
+          vercel cache purge --yes --scope "$VERCEL_ORG_ID" --token "$VERCEL_TOKEN"
+          node scripts/probe-warlords-test.mjs https://grudge.studio
+          node scripts/probe-warlords-test.mjs https://www.grudge.studio
+          node scripts/probe-warlords-test.mjs https://grudgewarlords.com
+          node scripts/probe-warlords-test.mjs https://client.grudge-studio.com
+          node scripts/probe-warlords-test.mjs https://test.grudge-studio.com

@@ -171,6 +171,29 @@ canvas.dr-combat-cursor {
   pointer-events: none;
 }
 
+.dr-ally-pick.dr-zone-pick {
+  border-color: #8b5cf6;
+  color: #ddd6fe;
+  background: rgba(28, 12, 40, 0.9);
+}
+
+.dr-ally-pick {
+  position: absolute;
+  bottom: 68px;
+  left: 50%;
+  transform: translateX(-50%);
+  z-index: 37;
+  padding: 4px 10px;
+  background: rgba(12, 28, 18, 0.88);
+  border: 1px solid #3d8b5a;
+  color: #b8f0c8;
+  font-size: 11px;
+  letter-spacing: 0.04em;
+  border-radius: 4px;
+  pointer-events: none;
+  white-space: nowrap;
+}
+
 /* Production hotbar 1-5 modeled on legacy Grudge Warlords (Cell + icon + num + CD overlay) */
 .dr-hotbar {
   position: absolute;
@@ -185,6 +208,11 @@ canvas.dr-combat-cursor {
   border: 2px solid #5c4630;
   border-radius: 4px;
   pointer-events: auto;
+}
+
+.dr-hotbar.is-ally-pick {
+  border-color: #3d8b5a;
+  box-shadow: 0 0 10px rgba(61, 139, 90, 0.35);
 }
 
 .dr-hotbar-slot {
@@ -256,6 +284,29 @@ canvas.dr-combat-cursor {
   background: rgba(0,0,0,0.7);
   pointer-events: none;
   transition: height 0.05s linear;
+}
+
+.dr-hotbar-slot.is-pick {
+  border-color: #3d8b5a;
+  background: #0c1c12;
+}
+
+.dr-hotbar-slot.is-pick-empty {
+  opacity: 0.35;
+}
+
+.dr-hotbar-slot.is-pick-cancel {
+  border-color: #6b5340;
+  opacity: 0.8;
+}
+
+.dr-hotbar-slot .slot-hp {
+  position: absolute;
+  left: 0;
+  bottom: 0;
+  height: 3px;
+  background: #3d8b5a;
+  pointer-events: none;
 }
 
 .dr-action-slot {

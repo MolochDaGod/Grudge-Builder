@@ -158,6 +158,8 @@ export const WARLORDS_FLOW_BY_ID: Record<WarlordsFlowStepId, WarlordsFlowStep> =
 /** Session / local flags (Warlords SPA origin only — not shared with Foundry host) */
 export const WARLORDS_FLOW_FLAGS = {
   openingSeen: 'warlords_opening_seen_v1',
+  /** Raft is crafted, but tutorial is not complete until launch/board handoff succeeds. */
+  raftCrafted: 'warlords_raft_crafted_v1',
   tutorialComplete: 'warlords_tutorial_complete_v1',
   airshipSeen: 'warlords_airship_seen_v1',
   homeIslandUnlockedShown: 'warlords_home_island_unlock_toast_v1',

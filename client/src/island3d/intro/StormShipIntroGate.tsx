@@ -13,6 +13,7 @@ import {
   DEFAULT_INTRO_OPTIONS,
   INTRO_OPTIONS_KEY,
   INTRO_SESSION_KEY,
+  WARLORDS_LOAD_COVER_URL,
   type AfterIntroDestination,
   type Island3dIntroOptions,
 } from '@shared/definitions/productionIntro';
@@ -205,21 +206,23 @@ export function StormShipIntroGate({
         {/* Full-screen load plate — assets + GPU warm before play */}
         {booting && (
           <div
-            className={`absolute inset-0 z-[15] flex flex-col items-center justify-center bg-[#04080f] transition-opacity duration-500 ${
+            className={`absolute inset-0 z-[15] flex flex-col items-center justify-end overflow-hidden bg-[#04080f] transition-opacity duration-500 ${
               fadeOutBoot ? 'opacity-0 pointer-events-none' : 'opacity-100'
             }`}
             aria-busy="true"
             aria-live="polite"
           >
-            <div className="absolute inset-0 bg-[radial-gradient(ellipse_at_center,_rgba(14,60,90,0.35)_0%,_transparent_65%)]" />
-            <div className="relative z-[1] flex flex-col items-center px-6 max-w-md w-full">
-              <div className="text-[10px] uppercase tracking-[0.35em] text-cyan-500/90 font-semibold mb-2">
+            <img
+              src={WARLORDS_LOAD_COVER_URL}
+              alt="Grudge Island RTS"
+              className="absolute inset-0 w-full h-full object-cover"
+            />
+            <div className="absolute inset-0 bg-black/40" />
+            <div className="relative z-[1] flex flex-col items-center px-6 max-w-md w-full pb-12">
+              <div className="text-[10px] uppercase tracking-[0.35em] text-amber-200/90 font-semibold mb-2">
                 Grudge · Production cinema
               </div>
-              <div className="font-cinzel text-2xl md:text-3xl tracking-widest text-amber-100/95 text-center">
-                Leviathan Ocean
-              </div>
-              <p className="text-[12px] text-slate-400 mt-2 text-center leading-relaxed">
+              <p className="text-[12px] text-slate-200 mt-1 text-center leading-relaxed">
                 Preparing native Three.js cutscene — ship, storm, and cast.
               </p>
               {/* Load bar */}

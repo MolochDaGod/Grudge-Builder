@@ -26,6 +26,7 @@ const TARGETS = [
   { project: "grudge-character-creator", url: "https://grudge6.grudge-studio.com" },
   { project: "grudge-drive", url: "https://drive.grudge-studio.com" },
   { project: "grudges-survival", url: "https://grudges.grudge-studio.com" },
+  // objectstore-grudge = NON-SSOT probe (Vercel project name only; catalog SSOT = objectstore.grudge-studio.com)
   { project: "objectstore-grudge", url: "https://info.grudge-studio.com" },
   { project: "objectstore-grudge", url: "https://info.grudge-studio.com/docs" },
   { project: "grudge-game-data-hub", url: "https://grudge-game-data-hub.vercel.app" },

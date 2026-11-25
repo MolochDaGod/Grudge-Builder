@@ -48,10 +48,10 @@ export const BACKGROUNDS = {
 // Warlords era cinematic — grudge loadin.mp4 on fleet R2 (see fleetVideo.ts for catalog API).
 
 export const VIDEOS = {
-  intro: FLEET_VIDEO_CATALOG.warlordsIntro.r2_url,
-  pvpLoadscreen: FLEET_VIDEO_CATALOG.warlordsPvpLoadscreen.r2_url,
-  loading: FLEET_VIDEO_CATALOG.warlordsPvpLoadscreen.r2_url,
-  pirateKingBanner: FLEET_VIDEO_CATALOG.warlordsIntro.r2_url,
+  intro: assetUrl(FLEET_VIDEO_CATALOG.warlordsIntro.r2_url),
+  pvpLoadscreen: assetUrl(FLEET_VIDEO_CATALOG.warlordsPvpLoadscreen.r2_url),
+  loading: assetUrl(FLEET_VIDEO_CATALOG.warlordsPvpLoadscreen.r2_url),
+  pirateKingBanner: assetUrl(FLEET_VIDEO_CATALOG.warlordsIntro.r2_url),
 
   /** Legacy intro video (fallback) */
   introLegacy: assetUrl('/videos/intro-legacy.mp4'),

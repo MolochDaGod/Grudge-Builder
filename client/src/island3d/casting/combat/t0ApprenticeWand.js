@@ -287,7 +287,7 @@ export function exportT0ApprenticeWandJson() {
     weaponId: WEAPON_ID,
     weaponName: WEAPON_NAME,
     slotPattern: 'three-slot-starter',
-    weaponSkillsHtml: 'https://info.grudge-studio.com/WEAPON_SKILLS.html',
+    weaponSkillsHtml: 'https://objectstore.grudge-studio.com/WEAPON_SKILLS.html',
     slots: {
       slot1: {
         label: 'Slot 1 · Starter Attack',

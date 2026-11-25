@@ -27,6 +27,8 @@ import dotenv from "dotenv";
 // dotenv.config() does NOT override already-set vars, so .env.local wins.
 dotenv.config({ path: ".env.local" });
 dotenv.config();
+import { requireSessionAndJwtSecrets } from "./lib/requiredSecrets";
+requireSessionAndJwtSecrets();
 import { fileURLToPath } from "url";
 import { dirname } from "path";
 // import.meta.url is undefined when esbuild bundles to CJS — fall back to cwd
@@ -45,7 +47,7 @@ import { setupColyseus } from "./colyseus/index";
 import { registerBackendProxy } from "./proxy";
 import { registerSupabaseRoutes } from "./supabase/routes";
 import { registerFleetRoutes } from "./fleet/routes";
-import { GRUDGE_CORS_OPTIONS } from "./cors";
+import { GRUDGE_CORS_OPTIONS, applyPublicReadCors } from "./cors";
 
 console.log('[boot] All imports loaded successfully');
 
@@ -53,6 +55,7 @@ const app = express();
 const httpServer = createServer(app);
 
 // ── CORS (shared config from server/cors.ts) ─────────────────────────────────
+app.use(applyPublicReadCors);
 app.use(cors(GRUDGE_CORS_OPTIONS));
 
 // NOTE: Static file serving is registered AFTER API routes (see below).

@@ -18,6 +18,8 @@ export {
   type Eip1193Provider,
 } from "./eip6963";
 
+import { requestEvmAccounts } from "./eip6963";
+
 export {
   saveEvmSession,
   loadEvmSession,

@@ -48,9 +48,9 @@ import {
   getCategorySummary,
 } from '@shared/definitions/modularBuildings';
 
-// ═══════════════════════════════════════════════════════════════
+// ═══════════════════════════════════════════════════════════════════════════
 // 1. SECTOR GRID LAYOUT
-// ═══════════════════════════════════════════════════════════════
+// ═══════════════════════════════════════════════════════════════════════════
 
 describe('Sector Grid Layout', () => {
   it('has exactly 9 sectors', () => {
@@ -139,9 +139,9 @@ describe('Sector Grid Layout', () => {
   });
 });
 
-// ═══════════════════════════════════════════════════════════════
+// ═══════════════════════════════════════════════════════════════════════════
 // 2. ZONE POPULATION DETERMINISM
-// ═══════════════════════════════════════════════════════════════
+// ═══════════════════════════════════════════════════════════════════════════
 
 describe('Zone Population', () => {
   const sector = getSectorById('ethereal_falls')!;
@@ -249,7 +249,7 @@ describe('Zone Population', () => {
     );
     const ashenIslands = getNodesByCategory<IslandNode>(ashenPop, 'island').length;
     const havenIslands = getNodesByCategory<IslandNode>(havenPop, 'island').length;
-    // Open-sea should not exceed archipelago density (equal is allowed � seed edge)
+    // Open-sea should not exceed archipelago density (equal is allowed — seed edge)
     expect(ashenIslands).toBeLessThanOrEqual(havenIslands);
     expect(ashenIslands).toBeLessThanOrEqual(16);
     expect(ashenIslands).toBeGreaterThanOrEqual(2);
@@ -270,9 +270,9 @@ describe('Zone Population', () => {
   });
 });
 
-// ═══════════════════════════════════════════════════════════════
+// ═══════════════════════════════════════════════════════════════════════════
 // 3. BOSS AI STATE MACHINE
-// ═══════════════════════════════════════════════════════════════
+// ═══════════════════════════════════════════════════════════════════════════
 
 describe('Orc Boss AI', () => {
   it('starts in phase1 at full HP', () => {
@@ -339,9 +339,9 @@ describe('Orc Boss AI', () => {
   });
 });
 
-// ═══════════════════════════════════════════════════════════════
+// ═══════════════════════════════════════════════════════════════════════════
 // 4. SECTOR TRANSITIONS (sailing between zones)
-// ═══════════════════════════════════════════════════════════════
+// ═══════════════════════════════════════════════════════════════════════════
 
 describe('Sector Transitions', () => {
   it('adjacent sectors share borders with no gap', () => {
@@ -391,9 +391,9 @@ describe('Sector Transitions', () => {
   });
 });
 
-// ═══════════════════════════════════════════════════════════════
+// ═══════════════════════════════════════════════════════════════════════════
 // 5. BUILDING CATALOG INTEGRITY
-// ═══════════════════════════════════════════════════════════════
+// ═══════════════════════════════════════════════════════════════════════════
 
 describe('Building Catalog', () => {
   it('has no duplicate piece IDs', () => {

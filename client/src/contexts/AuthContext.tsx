@@ -14,9 +14,9 @@
  *
  * Wraps the entire app so any component can `useAuth()`.
  */
-import { createContext, useContext, useState, useCallback, useEffect, type ReactNode } from "react";
+import { createContext, useContext, useState, useCallback, useEffect, useRef, type ReactNode } from "react";
 import {
-  isAuthenticated as checkAuth,
+  ensureFleetSessionClaim,
   getCurrentUser,
   getSession,
   logout as backendLogout,
@@ -28,6 +28,8 @@ import { loginWithGrudgeId } from "@/lib/grudgeFleet";
 
 interface AuthState {
   isAuthenticated: boolean;
+  authLoading: boolean;
+  authError: string | null;
   user: GrudgeUser | null;
   session: GrudgeSession | null;
   loginOpen: boolean;
@@ -51,16 +53,32 @@ interface AuthState {
 const AuthContext = createContext<AuthState | null>(null);
 
 export function AuthProvider({ children }: { children: ReactNode }) {
-  const [isAuthed, setIsAuthed] = useState(() => checkAuth());
+  const [isAuthed, setIsAuthed] = useState(false);
+  const [authLoading, setAuthLoading] = useState(true);
+  const [authError, setAuthError] = useState<string | null>(null);
+  const authGeneration = useRef(0);
   const [user, setUser] = useState<GrudgeUser | null>(() => getCurrentUser());
   const [session, setSession] = useState<GrudgeSession | null>(() => getSession());
   const [loginOpen, setLoginOpen] = useState(false);
 
   const refreshAuth = useCallback(async () => {
-    const result = await verifyToken();
-    setIsAuthed(result.valid);
-    setUser(result.valid ? getCurrentUser() : null);
-    setSession(result.valid ? getSession() : null);
+    const generation = ++authGeneration.current;
+    setAuthLoading(true);
+    try {
+      await ensureFleetSessionClaim();
+      const result = await verifyToken();
+      if (generation !== authGeneration.current) return;
+      setIsAuthed(result.valid);
+      setUser(result.valid ? getCurrentUser() : null);
+      setSession(result.valid ? getSession() : null);
+      setAuthError(null);
+    } catch {
+      if (generation !== authGeneration.current) return;
+      setIsAuthed(false);
+      setAuthError('Account service is unavailable. Retry your connection.');
+    } finally {
+      if (generation === authGeneration.current) setAuthLoading(false);
+    }
   }, []);
 
   // Re-check on mount and after fleet bootstrap / SSO bridge completes
@@ -69,9 +87,20 @@ export function AuthProvider({ children }: { children: ReactNode }) {
     const onAuthReady = () => {
       refreshAuth();
     };
+    const onRejected = () => {
+      ++authGeneration.current;
+      setIsAuthed(false);
+      setUser(null);
+      setSession(null);
+      setAuthLoading(false);
+      setAuthError('Session rejected. Sign in again with Grudge ID.');
+    };
+    window.addEventListener("grudge:auth:rejected", onRejected);
     window.addEventListener("grudge:auth:ready", onAuthReady);
     window.addEventListener("grudge:auth:success", onAuthReady);
     return () => {
+      ++authGeneration.current;
+      window.removeEventListener("grudge:auth:rejected", onRejected);
       window.removeEventListener("grudge:auth:ready", onAuthReady);
       window.removeEventListener("grudge:auth:success", onAuthReady);
     };
@@ -116,7 +145,10 @@ export function AuthProvider({ children }: { children: ReactNode }) {
   const closeLogin = useCallback(() => setLoginOpen(false), []);
 
   const handleLogout = useCallback(() => {
+    ++authGeneration.current;
     backendLogout();
+    setAuthLoading(false);
+    setAuthError(null);
     setIsAuthed(false);
     setUser(null);
     setSession(null);
@@ -126,6 +158,8 @@ export function AuthProvider({ children }: { children: ReactNode }) {
     <AuthContext.Provider
       value={{
         isAuthenticated: isAuthed,
+        authLoading,
+        authError,
         user,
         session,
         loginOpen,

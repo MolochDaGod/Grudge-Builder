@@ -1,0 +1,22 @@
+{
+  "manifest_version": 3,
+  "name": "Gruda Wallet",
+  "short_name": "Gruda",
+  "version": "1.0.0",
+  "description": "Grudge ID Play wallet. Opens the live Gruda bag — Crossmint signs, not a seed.",
+  "action": {
+    "default_title": "Gruda Wallet",
+    "default_icon": {
+      "16": "icon-16.png",
+      "32": "icon-32.png",
+      "128": "icon-128.png"
+    }
+  },
+  "background": { "service_worker": "background.js" },
+  "icons": {
+    "16": "icon-16.png",
+    "32": "icon-32.png",
+    "128": "icon-128.png"
+  },
+  "host_permissions": ["https://wallet.grudge-studio.com/*", "https://id.grudge-studio.com/*"]
+}

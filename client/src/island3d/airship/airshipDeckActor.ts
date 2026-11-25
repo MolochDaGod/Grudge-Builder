@@ -4,7 +4,6 @@
  * Do not invent a second controller / IK / physics stack.
  */
 import * as THREE from 'three';
-import { assetUrl } from '@/lib/assetConfig';
 import {
   AIRSHIP_HERO_HEIGHT_M,
 } from '@shared/definitions/airshipSoloZone';
@@ -12,18 +11,15 @@ import {
   model3dFromEquipped,
   normalizeRaceId,
   raceMeshPrefix,
-  RACE_TOON_RTS_PATHS,
 } from '@shared/fleet';
 import { setupGrudge6Equipment } from '@/lib/grudge6Equipment';
-import { deploySafeCharacter, formatSafeReport } from '@/lib/safeCharacter';
-import { fitCharacterRootToHeightM, PLAYER_HEIGHT_M } from '@/island3d/zoneWorldScale';
+import { loadRaceKitPlay } from '@/lib/loadRaceKitPlay';
 import { CharacterIK } from '@/island3d/player/CharacterIK';
 import {
   AnimationController,
   loadBakedAnimationClip,
 } from '@/lib/modelLoader';
 import { bip001PackForWeapon, type Bip001Rel } from '@/lib/animation/bip001DrcAnims';
-import { loadGltfCached, cloneGltfScene } from '@/lib/three/SharedGltfPipeline';
 import type { WeaponType } from '@/lib/modelManifest';
 
 export type OriginalThirtyRole = 'worker' | 'mage' | 'knight' | 'archer' | 'spearman';
@@ -102,28 +98,25 @@ export async function createDeckActor(opts: {
   const raceId = normalizeRaceId(opts.raceId);
   const role = opts.role || originalThirtyRoleFromClass(opts.classId);
   const look = ORIGINAL_THIRTY_LOADOUTS[role];
-  const path = RACE_TOON_RTS_PATHS[raceId] ?? RACE_TOON_RTS_PATHS.human;
-  const gltf = await loadGltfCached(assetUrl(path), 'critical');
-  const model = cloneGltfScene(gltf);
+
+  // HARD: play body = loadRaceKit only (CDN grudge6-kit) — not freestyle GLB + safeCharacter
+  const kit = await loadRaceKitPlay(raceId, {
+    targetHeightM: AIRSHIP_HERO_HEIGHT_M,
+    skipDefaultLoadout: true,
+  });
+  const model = kit.root;
   model.name = `toon_${raceId}_${role}`;
 
   const model3d = model3dFromEquipped(raceId, look.equipped);
   setupGrudge6Equipment(raceMeshPrefix(raceId), model, model3d);
 
-  const dep = deploySafeCharacter(model, {
-    targetHeightM: AIRSHIP_HERO_HEIGHT_M,
-    importPipeline: 'toon-rts',
-    raceId,
-    facePlusZ: false,
-  });
-  if (!dep.report.ok) {
-    console.warn(formatSafeReport(dep.report));
-    fitCharacterRootToHeightM(model, 1, PLAYER_HEIGHT_M);
-  }
-
   const root = new THREE.Group();
   root.name = opts.name;
   root.add(model);
+  // Contract lives on kit root; mirror for deck systems
+  if (model.userData.warlordsPlayContract) {
+    root.userData.warlordsPlayContract = model.userData.warlordsPlayContract;
+  }
 
   const mixer = new THREE.AnimationMixer(model);
   const controller = new AnimationController(mixer, model);
@@ -143,6 +136,10 @@ export async function createDeckActor(opts: {
   });
   ik.isGrounded = true;
 
+  console.info(
+    `[DeckActor] loadRaceKit ${raceId}/${role} h≈${kit.heightM.toFixed(2)}m url=${kit.url}`,
+  );
+
   return {
     root,
     model,
@@ -150,7 +147,7 @@ export async function createDeckActor(opts: {
     controller,
     ik,
     moving: false,
-    heightM: AIRSHIP_HERO_HEIGHT_M,
+    heightM: kit.heightM || AIRSHIP_HERO_HEIGHT_M,
     role,
   };
 }

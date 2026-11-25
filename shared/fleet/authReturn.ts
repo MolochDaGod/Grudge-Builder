@@ -1,4 +1,5 @@
 import { warlordsPlayOrigin } from "./warlordsDomains";
+import { validateReturnUrl } from "./studioOrigins";
 
 /**
  * Fleet SSO return-url allowlist — shared by auth routes and client redirects.
@@ -42,6 +43,12 @@ const EXACT_HOSTS = new Set([
   "mech-playground.vercel.app",
   "grudge.studio",
   "www.grudge.studio",
+  // Era play clients + account hub (DNS → Vercel grudge-builder)
+  "warlords.grudge.studio",
+  "nexus.grudge.studio",
+  "voxel.grudge.studio",
+  "account.grudge.studio",
+  "apps.grudge.studio",
   "grudgestudio.org",
   "grudgeplatform.io",
   "puter.com",
@@ -54,10 +61,14 @@ const EXACT_HOSTS = new Set([
   "grudge-studio.puter.site",
   "grudge-heros.puter.site",
   // Mine-Loader / Voxel Realms
-  "mine-loader.vercel.app",
+  "mine-loader.vercel.app", // legacy Vercel — primary = mine.grudge-studio.com
   "mine.grudge-studio.com",
   "puter-monitor-ai.vercel.app",
   "grudaskill.grok.me",
+  // Spawn worlds that hand a player back to Grudge ID
+  "spawn.co",
+  "www.spawn.co",
+  "play.bigspawn.net",
 ]);
 
 const SUFFIX_HOSTS = [
@@ -73,6 +84,8 @@ const SUFFIX_HOSTS = [
   ".netlify.app",
   ".netlify.live",
   ".cloudflarepages.com",
+  // Grok App Builder live preview (wallet hub + fleet SSO test)
+  ".grok-sandbox.com",
 ];
 
 /** Optional production/signed hosts from env (server) or globalThis (embed). */
@@ -112,6 +125,11 @@ export function canonicalSsoReturnOrigin(origin: string): string {
   try {
     const u = new URL(origin.includes("://") ? origin : `https://${origin}`);
     if (isEphemeralVercelHost(u.hostname)) return warlordsPlayOrigin();
+    // Legacy studio play brand → Warlords apex (production MMO is grudgewarlords.com)
+    const h = u.hostname.toLowerCase();
+    if (h === "client.grudge-studio.com" || h === "warlord3d.grudge-studio.com") {
+      return warlordsPlayOrigin();
+    }
     return u.origin;
   } catch {
     return warlordsPlayOrigin();
@@ -119,13 +137,21 @@ export function canonicalSsoReturnOrigin(origin: string): string {
 }
 
 /** Returns true when `url` may receive SSO tokens after Grudge ID login. */
-export function isFleetAllowedReturnUrl(url: string): boolean {
+export function isFleetAllowedReturnUrl(
+  url: string,
+  opts: { dev?: boolean; extraHosts?: string | string[]; base?: string } = {},
+): boolean {
+  const resolved = validateReturnUrl(url, {
+    base: opts.base,
+    dev: opts.dev,
+    extraHosts: opts.extraHosts,
+    fallback: "",
+  });
+  if (!resolved) return false;
   try {
-    const host = new URL(url).hostname.toLowerCase();
-    if (extraExactHosts().includes(host)) return true;
-    if (isEphemeralVercelHost(host)) return false;
-    if (EXACT_HOSTS.has(host)) return true;
-    return SUFFIX_HOSTS.some((suffix) => host.endsWith(suffix) || host === suffix.slice(1));
+    const parsed = new URL(resolved);
+    if (isEphemeralVercelHost(parsed.hostname.toLowerCase())) return false;
+    return true;
   } catch {
     return false;
   }
@@ -135,11 +161,25 @@ export function isFleetAllowedReturnUrl(url: string): boolean {
 export function resolveFleetReturnUrl(
   query: Record<string, string | string[] | undefined>,
   fallback = "https://grudgewarlords.com/",
+  opts: { dev?: boolean; extraHosts?: string | string[]; base?: string } = {},
 ): string {
-  for (const key of ["return", "return_to", "redirect", "redirect_uri"]) {
+  for (const key of ["return", "return_to", "redirect", "redirect_uri", "returnUrl"]) {
     const raw = query[key];
     const value = Array.isArray(raw) ? raw[0] : raw;
-    if (value && isFleetAllowedReturnUrl(value)) return value;
+    if (!value) continue;
+    const resolved = validateReturnUrl(value, {
+      base: opts.base,
+      dev: opts.dev,
+      extraHosts: opts.extraHosts,
+      fallback: "",
+    });
+    if (!resolved) continue;
+    try {
+      if (isEphemeralVercelHost(new URL(resolved).hostname.toLowerCase())) continue;
+    } catch {
+      continue;
+    }
+    return resolved;
   }
   return fallback;
 }
