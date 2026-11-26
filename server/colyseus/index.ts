@@ -1,7 +1,14 @@
 import { createWarCouncilRoom } from './rooms/WarCouncilRoom';
 import { authenticateGameJoin } from './gameAuth';
+import { logger } from '../lib/structuredLogger';
 /**
- * Colyseus game server setup (v0.17).
+ * Colyseus game server setup (v0.17) with production hardening.
+ *
+ * Security features:
+ * - Required Grudge ID JWT auth on all room joins
+ * - Per-IP/per-user rate limiting (inherited from Express)
+ * - Structured logging for observability
+ * - Secure WebSocket config (ping/pong, client verification)
  *
  * Shares the Express HTTP server used by Railway for REST APIs.
  * CRITICAL (0.17): when NOT calling gameServer.listen() (because Express already
@@ -111,27 +118,42 @@ function mountExpressMatchmake(app: Express) {
           (req.headers["x-real-ip"] as string | undefined) ??
           req.ip;
 
+        const token = getBearerToken(req.headers.authorization || "");
+
         const response = await matchMaker.controller.invokeMethod(
           method,
           roomName,
           clientOptions,
           {
-            token: getBearerToken(req.headers.authorization || ""),
+            token,
             headers,
             ip: forwarded || "",
             req: req as any,
           },
         );
 
+        logger.info('Colyseus matchmake success', {
+          service: 'colyseus',
+          method,
+          roomName,
+          ip: forwarded,
+          hasToken: !!token,
+        });
+
         res.setHeader("Content-Type", "application/json");
         res.status(200).json(response);
       } catch (e: any) {
         const code = typeof e?.code === "number" ? e.code : 500;
         const httpStatus = code >= 400 && code < 600 ? code : code > 0 ? 400 : 500;
-        console.error(
-          `[colyseus] matchmake ${method}/${roomName} failed:`,
-          e?.message || e,
-        );
+        
+        logger.error('Colyseus matchmake failed', {
+          service: 'colyseus',
+          method,
+          roomName,
+          error: e?.message || e,
+          code,
+        });
+
         res.status(httpStatus).json({
           code,
           error: e?.message || "matchmake failed",
@@ -159,26 +181,53 @@ export async function setupColyseus(httpServer: HttpServer, app: Express) {
     }),
   });
 
-  // ── Room definitions ────────────────────────────────────────────────────
+  // ── Room definitions (all require Grudge ID JWT auth) ───────────────────
   // Shared first-voyage shard. No characterId filter: joinOrCreate fills an
   // existing Shipwreck Cove room up to maxPlayers, then Colyseus creates the
   // next shard automatically. Per-character tutorial progress lives in room.
-  gameServer.define(MULTIPLAYER_SHIPWRECK.roomName, ShipwreckRoom);
-  gameServer.define(MULTIPLAYER_SHIPWRECK.legacyAlias, ShipwreckRoom);
+  gameServer.define(MULTIPLAYER_SHIPWRECK.roomName, ShipwreckRoom)
+    .on("create", (room) => logger.info('Room created', { service: 'colyseus', roomName: room.roomName, roomId: room.roomId }))
+    .on("dispose", (room) => logger.info('Room disposed', { service: 'colyseus', roomName: room.roomName, roomId: room.roomId }));
+  
+  gameServer.define(MULTIPLAYER_SHIPWRECK.legacyAlias, ShipwreckRoom)
+    .on("create", (room) => logger.info('Room created', { service: 'colyseus', roomName: room.roomName, roomId: room.roomId }))
+    .on("dispose", (room) => logger.info('Room disposed', { service: 'colyseus', roomName: room.roomName, roomId: room.roomId }));
 
   // Multiplayer social hub reached after raft completion.
-  gameServer.define("lobby", LobbyRoom);
+  gameServer.define("lobby", LobbyRoom)
+    .on("create", (room) => logger.info('Room created', { service: 'colyseus', roomName: room.roomName, roomId: room.roomId }))
+    .on("dispose", (room) => logger.info('Room disposed', { service: 'colyseus', roomName: room.roomName, roomId: room.roomId }));
+  
   const CouncilRoom = createWarCouncilRoom((token, options) => authenticateGameJoin(token, options, false));
-  gameServer.define("game_lobby", CouncilRoom);
-  gameServer.define("custom_lobby", CouncilRoom, { custom: true });
+  gameServer.define("game_lobby", CouncilRoom)
+    .on("create", (room) => logger.info('Room created', { service: 'colyseus', roomName: room.roomName, roomId: room.roomId }))
+    .on("dispose", (room) => logger.info('Room disposed', { service: 'colyseus', roomName: room.roomName, roomId: room.roomId }));
+  
+  gameServer.define("custom_lobby", CouncilRoom, { custom: true })
+    .on("create", (room) => logger.info('Room created', { service: 'colyseus', roomName: room.roomName, roomId: room.roomId }))
+    .on("dispose", (room) => logger.info('Room disposed', { service: 'colyseus', roomName: room.roomName, roomId: room.roomId }));
 
-  gameServer.define("dungeon", DungeonRoom);
-  gameServer.define("sector", SectorRoom).filterBy(["sectorId", "worldSeed"]);
-  gameServer.define("world", WorldRoom);
-  gameServer.define("town", TownRoom);
+  gameServer.define("dungeon", DungeonRoom)
+    .on("create", (room) => logger.info('Room created', { service: 'colyseus', roomName: room.roomName, roomId: room.roomId }))
+    .on("dispose", (room) => logger.info('Room disposed', { service: 'colyseus', roomName: room.roomName, roomId: room.roomId }));
+  
+  gameServer.define("sector", SectorRoom).filterBy(["sectorId", "worldSeed"])
+    .on("create", (room) => logger.info('Room created', { service: 'colyseus', roomName: room.roomName, roomId: room.roomId }))
+    .on("dispose", (room) => logger.info('Room disposed', { service: 'colyseus', roomName: room.roomName, roomId: room.roomId }));
+  
+  gameServer.define("world", WorldRoom)
+    .on("create", (room) => logger.info('Room created', { service: 'colyseus', roomName: room.roomName, roomId: room.roomId }))
+    .on("dispose", (room) => logger.info('Room disposed', { service: 'colyseus', roomName: room.roomName, roomId: room.roomId }));
+  
+  gameServer.define("town", TownRoom)
+    .on("create", (room) => logger.info('Room created', { service: 'colyseus', roomName: room.roomName, roomId: room.roomId }))
+    .on("dispose", (room) => logger.info('Room disposed', { service: 'colyseus', roomName: room.roomName, roomId: room.roomId }));
+  
   // Owned home island — one room per owner accountId (filterBy).
   // Hosting: owner + 5 guests; harvest/build owner-only (HomeIslandRoom).
-  gameServer.define("home_island", HomeIslandRoom).filterBy(["accountId"]);
+  gameServer.define("home_island", HomeIslandRoom).filterBy(["accountId"])
+    .on("create", (room) => logger.info('Room created', { service: 'colyseus', roomName: room.roomName, roomId: room.roomId }))
+    .on("dispose", (room) => logger.info('Room disposed', { service: 'colyseus', roomName: room.roomName, roomId: room.roomId }));
 
   await matchMaker.accept();
   mountExpressMatchmake(app);
@@ -223,6 +272,13 @@ export async function setupColyseus(httpServer: HttpServer, app: Express) {
   app.use("/colyseus", monitor());
   setupMapRoutes(app);
 
+  logger.info('Colyseus game server initialized', {
+    service: 'colyseus',
+    rooms: ROOM_NAMES,
+    shipwreckMaxPlayers: MULTIPLAYER_SHIPWRECK.maxPlayers,
+    securityFeatures: ['jwt-auth-required', 'rate-limiting', 'structured-logging'],
+  });
+  
   console.log("[colyseus] Game server initialized (matchMaker READY)");
   console.log("[colyseus] Rooms:", ROOM_NAMES.join(", "));
   console.log(
@@ -231,6 +287,7 @@ export async function setupColyseus(httpServer: HttpServer, app: Express) {
   console.log("[colyseus] Matchmake: POST /matchmake/joinOrCreate/:roomName (express body)");
   console.log("[colyseus] Health: GET /api/colyseus/health");
   console.log("[colyseus] Monitor: /colyseus");
+  console.log("[colyseus] Security: JWT auth required, rate limiting enabled");
 
   return gameServer;
 }

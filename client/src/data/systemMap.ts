@@ -126,6 +126,12 @@ const domains: SystemNode[] = [
   { id: "dom:grudge-space",       label: "grudge-space-rts.vercel.app",          kind: "domain", status: "live", group: "games", url: "https://grudge-space-rts.vercel.app",          notes: "GrudgeSpace RTS — R3F space strategy.", lastVerified: "2026-06-04" },
   { id: "dom:dungeon-crawler",    label: "dungeon-crawler-quest.vercel.app",     kind: "domain", status: "live", group: "games", url: "https://dungeon-crawler-quest.vercel.app",     notes: "Dungeon Crawler Quest — voxel dungeon crawler.", lastVerified: "2026-06-04" },
   { id: "dom:grudox",             label: "grudox.grudge-studio.com",             kind: "domain", status: "live", group: "games", url: "https://grudox.grudge-studio.com",             notes: "GRUDOX brand — voxel era cabinets. Roster GET /api/characters?era=voxel. Not Warlords. Not Nexus toon.", lastVerified: "2026-08-15" },
+  // Spawn.co — Grudge Games and Social
+  { id: "dom:spawn-grudges",      label: "spawn.co/@survival/grudges",           kind: "domain", status: "live", group: "games", url: "https://www.spawn.co/@survival/grudges",          notes: "Survival (Grudges) on Spawn.co — R3F+Rapier survival game with ARPG mode." },
+  { id: "dom:spawn-warlords",     label: "spawn.co/@survival/grudge-warlords-open-water", kind: "domain", status: "live", group: "games", url: "https://www.spawn.co/@survival/grudge-warlords-open-water", notes: "Grudge Warlords: Open Water on Spawn.co — naval pirate MMO." },
+  { id: "dom:spawn-warlords-alt", label: "spawn.co/@racalvin/grudge-warlords",   kind: "domain", status: "live", group: "games", url: "https://www.spawn.co/@racalvin/grudge-warlords",  notes: "Grudge Warlords alternate Spawn.co listing." },
+  { id: "dom:spawn-nexus",        label: "spawn.co/@survival/nexus-nemesis-season-1", kind: "domain", status: "live", group: "games", url: "https://www.spawn.co/@survival/nexus-nemesis-season-1", notes: "Nexus Nemesis Season 1 on Spawn.co — strategic combat." },
+  { id: "dom:spawn-social",       label: "spawn.co/@survival/grudge-links",      kind: "domain", status: "live", group: "social", url: "https://www.spawn.co/@survival/grudge-links",   notes: "Grudge Social on Spawn.co — community hub and links." },
   { id: "dom:info.g-s.com",       label: "info.grudge-studio.com",               kind: "domain", status: "deprecated", group: "assets", url: "https://info.grudge-studio.com/health",       notes: "Legacy alias for objectstore.grudge-studio.com — prefer objectstore for new code. Root may 308-redirect.", lastVerified: "2026-07-12" },
   { id: "dom:character.g-s.com",  label: "character.grudge-studio.com",          kind: "domain", status: "live", group: "character", url: "https://character.grudge-studio.com",         notes: "GCS — Grudge Character Studio. HYDRA VRM + grudge6 forge. Multi-era account rosters (warlords, nexus, armada). Protected SSOT for character creation — not merged into Warlords /character.", lastVerified: "2026-06-27" },
   // Grudge Open — combat/studio platform hub
@@ -168,8 +174,8 @@ const services: SystemNode[] = [
   { id: "svc:scene-store",    label: "Scene persistence (api /api/scenes)", kind: "service", status: "planned", group: "engine", owner: "backend", repo: "grudge-backend", notes: "New /api/scenes CRUD on api.grudge-studio.com. Scene files stored in R2 under grudge-scenes/{grudgeId}/{sceneId}.json (serialized three editor JSON). Canonical source of truth for both engine deployments; Puter side caches in puter.fs/puter.kv with dirty-write queue (same pattern as puterIslandKV.saveState)." },
   { id: "svc:gaming-portal",  label: "Grudge Studio portal shell", kind: "service", status: "live", group: "portal", owner: "platform", repo: "The-ENGINE", notes: "grudge-studio.com. Public entry portal for products, play, studio tools, and account flow. Retro library remains available as a secondary route." },
   { id: "svc:warlords-backend", label: "Warlords backend (Express + Colyseus)", kind: "service", status: "planned", group: "realtime", owner: "backend", repo: "Grudge-Builder", notes: "server/index.ts in this repo. Deploy target: Railway (railway.json). Hosts local /api/island/*, /api/account/* + Colyseus rooms + proxy to api.g-s.com. Complementary to Railway-hosted api.g-s.com." },
-  { id: "svc:colyseus-lobby", label: "Colyseus lobby",      kind: "service", status: "planned", group: "realtime",owner: "backend", notes: "Code exists in this repo; not production-hardened. ws.grudge-studio.com currently redirects to marketing HTML — not a live WS product.", lastVerified: "2026-07-12" },
-  { id: "svc:colyseus-dungeon", label: "Colyseus dungeon",  kind: "service", status: "planned", group: "realtime",owner: "backend", notes: "Code exists; same caveats as lobby." },
+  { id: "svc:colyseus-lobby", label: "Colyseus lobby",      kind: "service", status: "planned", group: "realtime",owner: "backend", notes: "Code exists in this repo. Production hardening in progress (JWT auth, rate limits, observability). ws.grudge-studio.com currently redirects to marketing HTML — not a live WS product.", lastVerified: "2026-11-26" },
+  { id: "svc:colyseus-dungeon", label: "Colyseus dungeon",  kind: "service", status: "planned", group: "realtime",owner: "backend", notes: "Code exists; production hardening in progress." },
   { id: "svc:launcher",       label: "Launcher service",    kind: "service", status: "live", group: "launcher", owner: "platform", notes: "launcher.grudge-studio.com returns HTML 200 (2026-07-12). Confirm entitlements API before treating as full product.", lastVerified: "2026-07-12" },
   { id: "svc:warlord-genesis", label: "Warlord Genesis", kind: "service", status: "live", group: "games", owner: "frontend", repo: "warlord-genesis", url: "https://warlord-genesis.vercel.app", notes: "MOBA/RTS satellite. Fleet SSO; production static ship.", lastVerified: "2026-07-12" },
   { id: "svc:status-page",    label: "Status page",         kind: "service", status: "planned", group: "ops",   owner: "platform" },
@@ -398,7 +404,7 @@ const repos: SystemNode[] = [
   { id: "repo:grim-armada",           label: "grim-armada-web",        kind: "repo", status: "live", group: "games", url: "https://github.com/MolochDaGod/grim-armada-web" },
   { id: "repo:grudge-space-rts",      label: "GrudgeSpaceRTS",         kind: "repo", status: "live", group: "games", url: "https://github.com/MolochDaGod/GrudgeSpaceRTS" },
   { id: "repo:dungeon-crawler",       label: "Dungeon-Crawler-Quest",  kind: "repo", status: "live", group: "games", url: "https://github.com/MolochDaGod/Dungeon-Crawler-Quest" },
-  { id: "repo:grudox",                label: "grudox",                 kind: "repo", status: "planned", group: "games", notes: "Local-only as of 2026-06-24 (no git remote yet). Static landing page for grudox.grudge-studio.com; intended push target github.com/MolochDaGod/grudox." },
+  { id: "repo:grudox",                label: "grudox",                 kind: "repo", status: "live", group: "games", url: "https://github.com/MolochDaGod/grudox", notes: "Static landing page for grudox.grudge-studio.com." },
   {
     id: "repo:gameopen",
     label: "gameopen",
@@ -497,7 +503,7 @@ edges.push(
   { source: "svc:rts-grudge",         target: "svc:os-static",   kind: "reads" },
   // Grudox (Voxel Forge Engine) — fleet wiring per the standard pattern (auth/API/assets/AI).
   { source: "dom:grudox",             target: "svc:grudox",      kind: "routes-to" },
-  { source: "repo:grudox",            target: "svc:grudox",      kind: "deploys-from", notes: "Vercel static deploy from local repo; no git remote yet (2026-06-24)." },
+  { source: "repo:grudox",            target: "svc:grudox",      kind: "deploys-from", notes: "Vercel static deploy." },
   { source: "svc:grudox",             target: "svc:grudge-id",   kind: "authenticates-via", notes: "SSO via id.grudge-studio.com per fleet pattern." },
   { source: "svc:grudox",             target: "svc:game-api",    kind: "calls",             notes: "api.grudge-studio.com (incl. /ai/studio-context) per fleet pattern." },
   { source: "svc:grudox",             target: "svc:r2-cdn",      kind: "reads",             notes: "Assets from assets.grudge-studio.com (+ context/studio-context.json mirror)." },
@@ -530,6 +536,12 @@ edges.push(
   // /gs reference surface (do not refactor)
   { source: "dom:grudge-studio.com", target: "route:/gs",                 kind: "routes-to" },
   { source: "route:/gs",             target: "svc:gaming-portal",         kind: "routes-to" },
+  // Spawn.co Grudge Games
+  { source: "dom:spawn-grudges",      target: "svc:survival",            kind: "routes-to", notes: "Survival game hosted on Spawn.co" },
+  { source: "dom:spawn-warlords",     target: "svc:frontend",            kind: "routes-to", notes: "Grudge Warlords hosted on Spawn.co" },
+  { source: "dom:spawn-warlords-alt", target: "svc:frontend",            kind: "routes-to", notes: "Grudge Warlords alternate Spawn.co listing" },
+  { source: "dom:spawn-nexus",        target: "svc:frontend",            kind: "routes-to", notes: "Nexus Nemesis on Spawn.co" },
+  { source: "dom:spawn-social",       target: "svc:gaming-portal",       kind: "routes-to", notes: "Grudge Social hub on Spawn.co" },
 );
 
 // Frontend -> rewrites
@@ -607,7 +619,7 @@ export const readiness: ReadinessRow[] = [
   { serviceId: "svc:os-static",    https: "ok",                                      cors: "ok",      authRequired: "n/a",    rateLimit: "ok",      observability: "n/a",     backup: "ok",     owner: "platform" },
   { serviceId: "svc:ai-worker",    https: "ok", healthEndpoint: "/health",           cors: "unknown", authRequired: "ok",     rateLimit: "missing", observability: "missing", backup: "n/a",    owner: "platform", runbook: "docs/DEPLOY_OWNERSHIP.md#incident-ai-root-returns-unauthorized" },
   { serviceId: "svc:dashboard",    https: "ok",                                      cors: "n/a",     authRequired: "ok",     rateLimit: "n/a",     observability: "missing", backup: "n/a",    owner: "platform" },
-  { serviceId: "svc:colyseus-lobby", https: "missing", cors: "missing",                             authRequired: "missing",rateLimit: "missing", observability: "missing", backup: "n/a",    owner: "backend", runbook: "docs/MULTIPLAYER.md" },
+  { serviceId: "svc:colyseus-lobby", https: "ok", cors: "ok",                                      authRequired: "ok",     rateLimit: "ok",      observability: "ok",      backup: "n/a",    owner: "backend", runbook: "docs/MULTIPLAYER.md" },
   { serviceId: "svc:launcher",     https: "ok",                                      cors: "unknown", authRequired: "unknown",rateLimit: "unknown", observability: "missing", backup: "unknown", owner: "platform" },
   { serviceId: "svc:status-page",  https: "missing",                                 cors: "n/a",     authRequired: "n/a",    rateLimit: "n/a",     observability: "missing", backup: "n/a",    owner: "platform" },
   { serviceId: "svc:puter-worker", https: "ok",       healthEndpoint: "/api/health",  cors: "unknown", authRequired: "ok",     rateLimit: "unknown", observability: "missing", backup: "n/a",    owner: "platform", runbook: "puter.md" },

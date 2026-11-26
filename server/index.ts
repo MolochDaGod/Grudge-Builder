@@ -48,15 +48,26 @@ import { registerBackendProxy } from "./proxy";
 import { registerSupabaseRoutes } from "./supabase/routes";
 import { registerFleetRoutes } from "./fleet/routes";
 import { GRUDGE_CORS_OPTIONS, applyPublicReadCors } from "./cors";
+import { rateLimitMiddleware, getRateLimitStats } from "./middleware/rateLimit";
+import { requestLoggingMiddleware, logger } from "./lib/structuredLogger";
 
 console.log('[boot] All imports loaded successfully');
 
 const app = express();
 const httpServer = createServer(app);
 
+// ── Trust proxy (required when behind Railway/Render load balancer) ───────────
+app.set('trust proxy', true);
+
 // ── CORS (shared config from server/cors.ts) ─────────────────────────────────
 app.use(applyPublicReadCors);
 app.use(cors(GRUDGE_CORS_OPTIONS));
+
+// ── Rate limiting (per-IP and per-user with 429 responses) ────────────────────
+app.use(rateLimitMiddleware);
+
+// ── Structured request logging ────────────────────────────────────────────────
+app.use(requestLoggingMiddleware);
 
 // NOTE: Static file serving is registered AFTER API routes (see below).
 // This prevents public/index.html from intercepting /api/* requests
@@ -121,10 +132,13 @@ app.use((req, res, next) => {
 import { checkDbHealth } from "./db";
 // Track route registration status (set by async boot below)
 let _routesRegistered = false;
+let _colyseusReady = false;
 
 app.get("/api/health", async (_req, res) => {
   const dbOk = await checkDbHealth();
   const mem = process.memoryUsage();
+  const rateLimitStats = getRateLimitStats();
+  
   res.status(200).json({
     status: dbOk && _routesRegistered ? "healthy" : "degraded",
     service: "grudge-api",
@@ -133,8 +147,37 @@ app.get("/api/health", async (_req, res) => {
     env: process.env.NODE_ENV || "production",
     database: dbOk ? "connected" : "unreachable",
     routes: _routesRegistered ? "ok" : "FAILED",
+    colyseus: _colyseusReady ? "ready" : "not_ready",
+    rateLimit: {
+      enabled: true,
+      ...rateLimitStats,
+    },
     ts: Date.now(),
     memory: { rss: Math.round(mem.rss / 1048576), heap: Math.round(mem.heapUsed / 1048576) },
+  });
+});
+
+// ── Metrics endpoint (observability) ──────────────────────────────────────────
+app.get("/api/metrics", (_req, res) => {
+  const mem = process.memoryUsage();
+  const rateLimitStats = getRateLimitStats();
+  
+  res.status(200).json({
+    service: "grudge-api",
+    timestamp: Date.now(),
+    uptime: process.uptime(),
+    memory: {
+      rss: mem.rss,
+      heapTotal: mem.heapTotal,
+      heapUsed: mem.heapUsed,
+      external: mem.external,
+    },
+    rateLimit: rateLimitStats,
+    process: {
+      pid: process.pid,
+      platform: process.platform,
+      nodeVersion: process.version,
+    },
   });
 });
 
@@ -155,8 +198,11 @@ app.get("/api/health", async (_req, res) => {
   // ── 2. Colyseus game server ─────────────────────────────────────────────
   try {
     await setupColyseus(httpServer, app);
+    _colyseusReady = true;
+    logger.info('Colyseus game server initialized', { service: 'colyseus' });
   } catch (e) {
     log(`Colyseus setup failed: ${(e as Error).message}`, 'error');
+    logger.error('Colyseus setup failed', { service: 'colyseus', error: e as Error });
     console.error(e);
   }
 

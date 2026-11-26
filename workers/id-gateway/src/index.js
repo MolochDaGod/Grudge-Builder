@@ -558,7 +558,6 @@ export default {
     if (url.pathname === "/api/auth/telegram" && request.method === "POST") {
       return handleTelegramLogin(request, upstreamBase, upstreamHost);
     }
-    const mapped = mapUpstreamPath(url);
     const mapped = mapUpstreamPath(url, studioOpts);
     const target = upstreamBase + mapped;
 
