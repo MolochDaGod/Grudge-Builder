@@ -16,6 +16,7 @@ import { syncGameDataFromObjectStore } from "@/lib/gameData";
 import { syncItemsFromObjectStore } from "@/lib/grudaDB";
 import NotFound from "@/pages/not-found";
 import { Grudge6Redirect } from "@/components/Grudge6Redirect";
+import { RouteRedirect } from "@/components/RouteRedirect";
 import GrudgeAI from "@/components/GrudgeAI";
 import { GrudgeTruthBadge } from "@/components/GrudgeTruthBadge";
 import { GrudgeTokenWidget } from "@/components/grudge-token/GrudgeTokenWidget";
@@ -149,7 +150,8 @@ function Router() {
       <Route path="/equipment" component={MainPanelPage} />
       {/* /character create → GCS; /heroes roster; /home = WCS hub; /airship = era select */}
       <Route path="/character" component={CharacterRedirect} />
-      <Route path="/characters" component={HeroesPage} />
+      {/* Route alias: redirect /characters → /heroes (roster) */}
+      <Route path="/characters">{() => <RouteRedirect to="/heroes" />}</Route>
       <Route path="/create-character" component={CreateCharacterRedirect} />
       <Route path="/character-creator" component={CharacterCreatorRedirect} />
       <Route path="/heroes" component={HeroesPage} />
@@ -160,11 +162,13 @@ function Router() {
       <Route path="/database" component={DatabasePage} />
       <Route path="/combat" component={CombatPage} />
       <Route path="/skills" component={SkillTreePage} />
-      <Route path="/skill-tree" component={SkillTreePage} />
-      <Route path="/skill-trees" component={SkillTreePage} />
+      {/* Route aliases: redirect to /skills */}
+      <Route path="/skill-tree">{() => <RouteRedirect to="/skills" />}</Route>
+      <Route path="/skill-trees">{() => <RouteRedirect to="/skills" />}</Route>
       <Route path="/admin" component={AdminPage} />
       <Route path="/dungeon" component={DungeonTiledPage} />
-      <Route path="/dungeon-tiled" component={DungeonTiledPage} />
+      {/* Route alias: redirect to /dungeon */}
+      <Route path="/dungeon-tiled">{() => <RouteRedirect to="/dungeon" />}</Route>
       <Route path="/sprites" component={SpriteEnginePage} />
       <Route path="/sprite-admin" component={SpriteAdminPage} />
       <Route path="/profession/miner" component={MinerPage} />
@@ -225,7 +229,8 @@ function Router() {
         )}
       </Route>
       <Route path="/war-scene" component={WarScenePage} />
-      <Route path="/medieval-battle" component={WarScenePage} />
+      {/* Route alias: redirect to /war-scene */}
+      <Route path="/medieval-battle">{() => <RouteRedirect to="/war-scene" />}</Route>
       <Route path="/editor" component={EditorPage} />
       <Route path="/forge" component={ForgePage} />
       <Route path="/scene" component={ScenePage} />
