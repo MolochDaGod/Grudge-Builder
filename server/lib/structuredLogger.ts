@@ -18,11 +18,21 @@ export interface LogContext {
 }
 
 function formatLog(level: LogLevel, message: string, context?: LogContext) {
+  // Handle Error objects specially since their properties are non-enumerable
+  const serializedContext = context ? { ...context } : {};
+  if (serializedContext.error instanceof Error) {
+    serializedContext.error = {
+      message: serializedContext.error.message,
+      stack: serializedContext.error.stack,
+      name: serializedContext.error.name,
+    };
+  }
+  
   return JSON.stringify({
     timestamp: new Date().toISOString(),
     level,
     message,
-    ...context,
+    ...serializedContext,
   });
 }
 

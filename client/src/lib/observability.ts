@@ -121,21 +121,17 @@ class FrontendObservability {
 
   /**
    * Send error to backend tracking endpoint.
+   * Note: This endpoint doesn't exist yet - errors are stored client-side only for now.
+   * TODO: Implement /api/telemetry/errors endpoint on the backend when needed.
    */
   private async sendErrorToBackend(entry: { error: Error; context: ErrorContext; timestamp: number }) {
-    try {
-      await fetch('/api/telemetry/errors', {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({
-          message: entry.error.message,
-          stack: entry.error.stack,
-          context: entry.context,
-          timestamp: entry.timestamp,
-        }),
+    // Currently not implemented - would need backend endpoint
+    // Keeping this method for future implementation
+    if (import.meta.env.DEV) {
+      console.log('[Observability] Would send error to backend (not implemented):', {
+        message: entry.error.message,
+        context: entry.context,
       });
-    } catch (err) {
-      // Silently fail - don't want error reporting to break the app
     }
   }
 

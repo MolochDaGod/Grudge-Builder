@@ -47,8 +47,13 @@ function checkLimit(
 }
 
 export function rateLimitMiddleware(req: Request, res: Response, next: NextFunction) {
-  // Skip rate limiting for health checks
-  if (req.path === '/api/health' || req.path === '/api/colyseus/health') {
+  // Skip rate limiting for health checks and static assets
+  if (
+    req.path === '/api/health' || 
+    req.path === '/api/colyseus/health' ||
+    req.path === '/api/metrics' ||
+    !req.path.startsWith('/api/') // Don't rate limit non-API routes (static assets, etc.)
+  ) {
     return next();
   }
 
@@ -76,8 +81,10 @@ export function rateLimitMiddleware(req: Request, res: Response, next: NextFunct
   // Check user-based rate limit if authenticated
   const authHeader = req.get('Authorization') || req.get('X-Session-Token');
   if (authHeader) {
-    // Extract user ID from token (simple version without full JWT decode)
-    const tokenHash = authHeader.substring(0, 16); // Use first 16 chars as identifier
+    // Hash the full token to avoid all JWTs sharing the same bucket
+    // (all HS256 JWTs start with "Bearer eyJhbGciO")
+    const crypto = require('crypto');
+    const tokenHash = crypto.createHash('sha256').update(authHeader).digest('hex').substring(0, 32);
     const userCheck = checkLimit(tokenHash, userStore, MAX_REQUESTS_PER_USER);
 
     if (!userCheck.allowed) {
