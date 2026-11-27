@@ -163,4 +163,4 @@ jobs:
           node scripts/probe-warlords-test.mjs https://www.grudge.studio
           node scripts/probe-warlords-test.mjs https://grudgewarlords.com
           node scripts/probe-warlords-test.mjs https://client.grudge-studio.com
-          node scripts/probe-warlords-test.mjs https://test.grudge-studio.com
+          PROBE_EXPECT_RELEASE=false node scripts/probe-warlords-test.mjs https://test.grudge-studio.com
