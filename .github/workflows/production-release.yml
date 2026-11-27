@@ -153,7 +153,8 @@ jobs:
           vercel build --prod --token "$VERCEL_TOKEN"
           url=$(vercel deploy --prebuilt --prod --skip-domain --yes --token "$VERCEL_TOKEN")
           echo "RELEASE_URL=$url" >> "$GITHUB_ENV"
-          node scripts/probe-warlords-test.mjs "$url"
+          # The deployment hostname is behind Vercel SSO and returns 302.
+          # Public domains are probed after promote.
       - name: Promote after preview probes
         env:
           VERCEL_ORG_ID: ${{ env.VERCEL_ORG_ID }}
