@@ -65,8 +65,8 @@ export function warlordsLoginUrl(returnPath = '/account'): string {
   return buildFleetLoginUrl(callback);
 }
 
-export function gcsCreateHeroUrl(): string {
-  const returnTo = encodeURIComponent(`${warlordsOrigin()}/account`);
+export function gcsCreateHeroUrl(returnPath = '/account'): string {
+  const returnTo = encodeURIComponent(`${warlordsOrigin()}${returnPath}`);
   return `${FLEET_URLS.gcs}?era=warlords&mode=create&return_uri=${returnTo}`;
 }
 
@@ -86,6 +86,8 @@ export type WarlordsNavId =
   | 'lore-world'
   | 'codex'
   | 'account'
+  | 'treaty'
+  | 'worlds'
   | 'play'
   | 'home-island'
   | 'tutorial'
@@ -113,5 +115,6 @@ export const WARLORDS_NAV: Array<{
   { id: 'home-island', label: 'Home Island', href: '/home-island' },
   { id: 'lore', label: 'Lore', href: '/lore' },
   { id: 'account', label: 'Account', href: '/account' },
-  { id: 'play', label: 'Play', href: '/lobby', primary: true },
+  { id: 'treaty', label: 'Social', href: '/treaty' },
+  { id: 'worlds', label: 'Worlds', href: '/worlds', primary: true },
 ];
