@@ -74,7 +74,9 @@ jobs:
           exit 1
 
   deploy-client:
-    needs: [validate, deploy-api]
+    # The site promote must not wait on Railway. A dead RAILWAY_TOKEN was
+    # skipping the client after validate had already passed.
+    needs: [validate]
     runs-on: ubuntu-latest
     timeout-minutes: 30
     steps:
