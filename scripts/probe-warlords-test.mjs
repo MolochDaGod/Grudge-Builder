@@ -36,6 +36,10 @@ const results = await Promise.allSettled(checks.map(async ([path, kind]) => {
   const response = await fetch(new URL(path, origin.origin), {
     headers, redirect: 'manual', signal: AbortSignal.timeout(20000),
   });
+  if (kind === 'release' && response.status === 404 && process.env.PROBE_EXPECT_RELEASE === 'false') {
+    console.log(`SKIP ${path} (previous alias has no release file yet)`);
+    return;
+  }
   if (response.status !== 200) throw new Error(`${path}: HTTP ${response.status}`);
   const mime = response.headers.get('content-type') || '';
   if (!mime.includes(['json', 'release'].includes(kind) ? 'application/json' : 'text/html')) {
