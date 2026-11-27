@@ -287,7 +287,7 @@ export default function WarlordsLandingPage() {
               Worlds
             </h3>
             <p className="text-slate-500 text-sm mt-1">
-              Warlords and Social stay on this domain. Play opens in the game window.
+              Warlords and Social stay on this domain. Play opens in the game window, with an organizer beside it.
             </p>
           </div>
           <Link href="/worlds">

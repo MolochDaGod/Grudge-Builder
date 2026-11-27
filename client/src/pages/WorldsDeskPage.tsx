@@ -10,7 +10,7 @@ import { characterAPI } from '@/lib/api';
 import type { Character } from '@/lib/characterManager';
 import { authHeaders } from '@/lib/grudgeBackend';
 import { gcsCreateHeroUrl } from '@/lib/warlordsProduct';
-import { SPAWN_PLAY_WINDOW, SPAWN_WORLDS, spawnWorldById } from '@/lib/spawnWorlds';
+import { SPAWN_OVERLAY_WINDOW, SPAWN_PLAY_WINDOW, SPAWN_WORLDS, spawnOverlayPath, spawnWorldById, type SpawnWorld } from '@/lib/spawnWorlds';
 
 type AccountMe = {
   grudgeId?: string;
@@ -75,6 +75,17 @@ export default function WorldsDeskPage() {
     };
   }, [isAuthenticated]);
 
+  function openOrganizer(world: SpawnWorld) {
+    const overlay = window.open(
+      spawnOverlayPath(world.id),
+      SPAWN_OVERLAY_WINDOW,
+      'popup=yes,width=400,height=720',
+    );
+    if (!overlay) {
+      setStatus('The organizer window was blocked. This tab still holds the account. Allow popups for grudgewarlords.com.');
+    }
+  }
+
   async function chooseHero(id: string) {
     setBusy(true);
     try {
@@ -98,9 +109,9 @@ export default function WorldsDeskPage() {
           Your worlds
         </h1>
         <p className="text-slate-400 max-w-2xl mt-3 text-sm leading-relaxed">
-          Move between Grudge Warlords and Grudge Social on this page. The address bar stays on
-          grudgewarlords.com. Enter opens the Spawn world in the game window, because Spawn will not
-          run inside this site. Saved heroes and the account stay here.
+          Move between Grudge Warlords and Grudge Social here. Spawn will not run inside this site,
+          so the game window uses Spawn's address. Enter also opens a small organizer on
+          grudgewarlords.com for the account and the active hero.
         </p>
 
         <div className="mt-6 flex flex-wrap gap-3 text-sm">
@@ -180,11 +191,13 @@ export default function WorldsDeskPage() {
               {selected.title}
             </h2>
             <p className="text-sm text-slate-400 mt-2">
-              Enter keeps this tab on grudgewarlords.com and sends the game window to {selected.detail}.
+              This tab stays on grudgewarlords.com. The game window goes to {selected.detail}.
+              The organizer window is this domain beside the game.
             </p>
             <a
               href={selected.playUrl}
               target={SPAWN_PLAY_WINDOW}
+              onClick={() => openOrganizer(selected)}
               className="inline-block mt-4 px-6 py-3 rounded-xl font-bold no-underline"
               style={{ background: 'linear-gradient(180deg,#f6c945,#d8a819)', color: '#20180a' }}
             >

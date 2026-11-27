@@ -30,6 +30,7 @@ import { CharacterManager } from "@/lib/characterManager";
 // entry; keep Rapier/island3d off that graph and disable modulePreload in vite.
 const WarlordsLandingPage = lazy(() => import("@/pages/warlords-landing"));
 const WorldsDeskPage = lazy(() => import("@/pages/WorldsDeskPage"));
+const WorldsOverlayPage = lazy(() => import("@/pages/WorldsOverlayPage"));
 const CharacterRedirect = lazy(() => import("@/pages/character-redirect"));
 const ProfessionsPage = lazy(() => import("@/pages/professions"));
 const DatabasePage = lazy(() => import("@/pages/database"));
@@ -136,6 +137,7 @@ function Router() {
     <Suspense fallback={<div className="min-h-screen bg-black" />}>
     <Switch>
       <Route path="/" component={WarlordsLandingPage} />
+      <Route path="/worlds/overlay" component={WorldsOverlayPage} />
       <Route path="/worlds/:worldId" component={WorldsDeskPage} />
       <Route path="/worlds" component={WorldsDeskPage} />
       <Route path="/auth/callback" component={AuthCallbackPage} />

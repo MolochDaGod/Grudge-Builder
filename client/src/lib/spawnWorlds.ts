@@ -2,8 +2,9 @@
  * Grudge Warlords desk → Spawn worlds.
  * Player saves stay on Railway. Spawn player.state.grudge is a mirror, written
  * by the account link, not by this page.
- * Spawn refuses to be framed (frame-ancestors 'self' https://inside.spawn.co),
- * so play opens in a named window and this origin stays in the desk tab.
+ * Spawn refuses to be framed (frame-ancestors 'self' https://inside.spawn.co).
+ * The game window is Spawn's address. The desk and the organizer stay here.
+ * Do not append account or character query params onto playUrl.
  */
 
 export type SpawnWorldId = 'warlords' | 'social';
@@ -34,10 +35,18 @@ export const SPAWN_WORLDS: readonly SpawnWorld[] = [
   },
 ];
 
-/** Reused so switching worlds replaces the game window and leaves this tab on our domain. */
+/** Reused so switching worlds replaces the game window. */
 export const SPAWN_PLAY_WINDOW = 'grudgeSpawnPlay';
+
+/** Compact organizer. Same name so a second Enter focuses it instead of stacking windows. */
+export const SPAWN_OVERLAY_WINDOW = 'grudgeCanonical';
 
 export function spawnWorldById(id: string | undefined): SpawnWorld | null {
   if (!id) return null;
   return SPAWN_WORLDS.find((world) => world.id === id) ?? null;
+}
+
+/** Same-origin organizer. The game URL is never this path. */
+export function spawnOverlayPath(id: SpawnWorldId): string {
+  return `/worlds/overlay?world=${id}`;
 }
