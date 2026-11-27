@@ -29,6 +29,7 @@ import { CharacterManager } from "@/lib/characterManager";
 // Landing is the only eager route. Vite 7 modulepreloads every lazy() from the
 // entry; keep Rapier/island3d off that graph and disable modulePreload in vite.
 const WarlordsLandingPage = lazy(() => import("@/pages/warlords-landing"));
+const WorldsDeskPage = lazy(() => import("@/pages/WorldsDeskPage"));
 const CharacterRedirect = lazy(() => import("@/pages/character-redirect"));
 const ProfessionsPage = lazy(() => import("@/pages/professions"));
 const DatabasePage = lazy(() => import("@/pages/database"));
@@ -135,6 +136,8 @@ function Router() {
     <Suspense fallback={<div className="min-h-screen bg-black" />}>
     <Switch>
       <Route path="/" component={WarlordsLandingPage} />
+      <Route path="/worlds/:worldId" component={WorldsDeskPage} />
+      <Route path="/worlds" component={WorldsDeskPage} />
       <Route path="/auth/callback" component={AuthCallbackPage} />
       <Route path="/intro" component={IntroPage} />
       <Route path="/landing" component={WarlordsLandingPage} />

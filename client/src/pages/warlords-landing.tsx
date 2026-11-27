@@ -47,41 +47,41 @@ const FACTION_UI = [
 const PLAY_PATH = [
   {
     n: '01',
-    title: 'War council',
-    detail: 'Meet your crew · choose a world',
-    href: '/lobby',
+    title: 'World desk',
+    detail: 'Stay on grudgewarlords.com',
+    href: '/worlds',
     icon: Flame,
     art: PRODUCTION_PATH_ART.opening,
   },
   {
     n: '02',
-    title: 'Create hero',
-    detail: 'Choose your race and calling',
-    href: '/create-character',
+    title: 'Warlords',
+    detail: 'Spawn @racalvin/grudge-warlords',
+    href: '/worlds/warlords',
     icon: Swords,
     art: PRODUCTION_PATH_ART.createHero,
   },
   {
     n: '03',
-    title: 'Airship',
-    detail: 'Prepare for your first voyage',
-    href: '/combat',
+    title: 'Social',
+    detail: 'Spawn Links · Treaty on this site',
+    href: '/worlds/social',
     icon: Anchor,
     art: PRODUCTION_PATH_ART.tutorial,
   },
   {
     n: '04',
-    title: 'Tutorial island',
-    detail: 'Shipwreck · craft raft',
-    href: '/tutorial',
+    title: 'Create hero',
+    detail: 'Foundry · saved on your account',
+    href: '/create-character',
     icon: Globe,
     art: PRODUCTION_PATH_ART.openWorld,
   },
   {
     n: '05',
-    title: 'Home island',
-    detail: 'Build a home beyond the storm',
-    href: '/home-island',
+    title: 'Account social',
+    detail: 'Friends and messages',
+    href: '/treaty',
     icon: Leaf,
     art: PRODUCTION_PATH_ART.homeIsland,
   },
@@ -226,11 +226,10 @@ export default function WarlordsLandingPage() {
             <p className="text-slate-500 text-sm mb-8 italic">By Racalvin the Pirate King</p>
 
             <div className="flex flex-wrap gap-3 mb-10">
-              {/* Single primary CTA → /home resolves next production step (create / voyage / home island) */}
               <button
                 type="button"
                 onClick={() => {
-                  setLocation('/lobby');
+                  setLocation('/worlds');
                 }}
                 className="px-8 py-3.5 rounded-xl font-bold tracking-wider border-0 cursor-pointer"
                 style={{
@@ -240,7 +239,7 @@ export default function WarlordsLandingPage() {
                   boxShadow: '0 14px 40px -10px rgba(246,201,69,.55)',
                 }}
               >
-                ENTER THE LOBBY
+                YOUR WORLDS
               </button>
               <Link href="/lore">
                 <a className="px-6 py-3.5 rounded-xl text-sm font-semibold tracking-wide border border-white/10 text-slate-300 no-underline inline-flex items-center gap-2 hover:border-amber-500/40">
@@ -285,15 +284,15 @@ export default function WarlordsLandingPage() {
         <div className="flex items-end justify-between mb-6">
           <div>
             <h3 className="text-2xl font-bold tracking-wide text-amber-400" style={{ fontFamily: "'Cinzel', serif" }}>
-              Begin your journey
+              Worlds
             </h3>
             <p className="text-slate-500 text-sm mt-1">
-              Gather in the lobby, choose a hero, and set sail.
+              Warlords and Social stay on this domain. Play opens in the game window.
             </p>
           </div>
-          <Link href="/lobby">
+          <Link href="/worlds">
             <a className="text-xs text-amber-500/80 hover:text-amber-400 no-underline flex items-center gap-1">
-              Open war council <ChevronRight className="w-3.5 h-3.5" />
+              Open the desk <ChevronRight className="w-3.5 h-3.5" />
             </a>
           </Link>
         </div>
